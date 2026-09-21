@@ -72,9 +72,13 @@ create table if not exists recorded_sessions (
   weight numeric,
   reps int,
   time_min numeric,
-  feel text,                         -- 'easy' | 'ok' | 'hard'
+  feel text,                         -- 'easy' | 'ok' | 'hard' -- derived from `rating` below
+  rating int,                        -- 1-5, given on the post-workout review (Summary screen)
+  review_notes text,                 -- optional free-text note from that same review
   created_at timestamptz default now()
 );
+alter table recorded_sessions add column if not exists rating int;
+alter table recorded_sessions add column if not exists review_notes text;
 
 -- progression_targets: current suggested target per (user, session_title)
 create table if not exists progression_targets (

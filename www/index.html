@@ -208,6 +208,9 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
 .divider-row .or-text{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:var(--text-3);text-transform:uppercase;}
 .text-input::placeholder{color:var(--text-3);}
 .text-input:focus{outline:none;border-color:var(--accent);}
+textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertical;font-family:var(--font-body);}
+.rating-slider{width:100%;accent-color:var(--accent);height:6px;margin-top:4px;}
+.rating-label{text-align:center;font-size:14px;font-weight:600;color:var(--text);margin-top:8px;}
 .unit-toggle{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-pill);overflow:hidden;flex-shrink:0;}
 .unit-btn{padding:0 12px;height:44px;background:var(--well);color:var(--text-3);border:none;font-family:var(--font-mono);font-size:11px;cursor:pointer;}
 .unit-btn+.unit-btn{border-left:1px solid var(--border);}
@@ -1048,6 +1051,13 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
       <div class="sess" id="summarySessTitle"></div>
     </div>
     <div class="stats-grid" id="summaryStats"></div>
+    <div class="summary-note" id="summaryReviewCard" hidden>
+      <div class="st-label" data-i18n="rateWorkoutLabel"></div>
+      <input type="range" class="rating-slider" id="reviewRatingSlider" min="1" max="5" value="3">
+      <div class="rating-label" id="reviewRatingLabel"></div>
+      <textarea class="text-input" id="reviewNotesInput" rows="2" style="margin-top:12px;"></textarea>
+      <button class="btn btn-primary" id="submitReviewBtn" style="width:100%;margin-top:12px;" data-i18n="submitReviewBtn"></button>
+    </div>
     <div class="summary-note"><p id="summaryNote"></p></div>
     <div class="summary-note" id="summaryProgressNote" style="border-left-color:var(--ok-border);" hidden><p id="summaryProgressMsg"></p></div>
     <div class="streak-band"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 2c1 3-3 4-3 7a3 3 0 0 0 6 0c0-1-1-1.5-1-2.5 1.5 1 2 2.8 2 4.5a4 4 0 1 1-8 0C6 7 9 6 10 2z"/></svg><div><div class="v" id="summaryStreakVal"></div><div class="l" data-i18n="streakLine"></div></div></div>
@@ -1232,11 +1242,6 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
       <div class="sheet-section" id="logPerfTimeSection">
         <div class="st-label" data-i18n="logPerfTimeLabel"></div>
         <input type="number" inputmode="numeric" class="text-input" id="logPerfTimeInput">
-      </div>
-
-      <div class="sheet-section">
-        <div class="st-label" data-i18n="logPerfFeelLabel"></div>
-        <div class="chip-row" id="logPerfFeelChips"></div>
       </div>
 
       <button class="btn btn-primary sheet-apply" id="saveLogPerf" data-i18n="saveWorkoutBtn"></button>
@@ -1535,13 +1540,12 @@ const STR = {
     logPerfWeightLabel: "Top Set Weight (lb)",
     logPerfRepsLabel: "Reps Completed",
     logPerfTimeLabel: "Total Time (min)",
-    logPerfFeelLabel: "How did it feel?",
-    feelEasy: "Easy",
-    feelOk: "Just Right",
-    feelHard: "Too Hard",
     statProgress: "Next Suggested",
     progressionUpMsg: "Nice work — next time we'll suggest {target}.",
     progressionHoldMsg: "Solid effort — we'll suggest the same {target} next time.",
+    rateWorkoutLabel: "Rate this workout",
+    reviewNotesPlaceholder: "Anything you want to remember about today? (optional)",
+    submitReviewBtn: "Submit Review",
     bestStreakLabel: "Best Streak",
     totalWorkoutsLabel: "Total Workouts",
     totalDistanceLabel: "Total Distance",
@@ -1710,13 +1714,12 @@ const STR = {
     logPerfWeightLabel: "Peso de la serie máxima (lb)",
     logPerfRepsLabel: "Repeticiones completadas",
     logPerfTimeLabel: "Tiempo total (min)",
-    logPerfFeelLabel: "¿Cómo te sentiste?",
-    feelEasy: "Fácil",
-    feelOk: "Adecuado",
-    feelHard: "Muy difícil",
     statProgress: "Próximo objetivo",
     progressionUpMsg: "Buen trabajo — la próxima vez sugeriremos {target}.",
     progressionHoldMsg: "Buen esfuerzo — sugeriremos el mismo {target} la próxima vez.",
+    rateWorkoutLabel: "Califica este entrenamiento",
+    reviewNotesPlaceholder: "¿Algo que quieras recordar sobre hoy? (opcional)",
+    submitReviewBtn: "Enviar reseña",
     bestStreakLabel: "Récord de días activos",
     totalWorkoutsLabel: "Entrenamientos totales",
     totalDistanceLabel: "Distancia total",
@@ -1851,6 +1854,10 @@ const SUMMARY_NOTE = {
   run: {en:"Nice work — that's another session logged. Your legs may feel it tomorrow.", es:"Buen trabajo — otra sesión registrada. Puede que lo sientas mañana en las piernas."},
   strength: {en:"Solid session. That's strength you get to keep.", es:"Buena sesión. Esa fuerza es tuya para quedártela."},
   hike: {en:"Time outside counts too. Well done.", es:"El tiempo al aire libre también cuenta. Bien hecho."},
+};
+const REVIEW_RATING_LABELS = {
+  en: ['😩 Rough', '😕 Tough', '🙂 OK', '💪 Good', '🔥 Great'],
+  es: ['😩 Duro', '😕 Difícil', '🙂 Bien', '💪 Genial', '🔥 Excelente'],
 };
 
 const WEEK_TABLES = [
@@ -2680,20 +2687,9 @@ function applyProgressionResult(session, logged){
 }
 
 /* ---------------- log performance sheet ---------------- */
-let logPerfFeel = 'ok';
-function renderLogPerfFeelChips(){
-  const L = STR[state.lang];
-  const feels = [['easy',L.feelEasy],['ok',L.feelOk],['hard',L.feelHard]];
-  const row = document.getElementById('logPerfFeelChips');
-  row.innerHTML = feels.map(([k,label])=>`<div class="chip ${k===logPerfFeel?'sel':''}" data-feel="${k}">${label}</div>`).join('');
-  row.querySelectorAll('.chip').forEach(c=>{
-    c.addEventListener('click', ()=>{ logPerfFeel = c.getAttribute('data-feel'); renderLogPerfFeelChips(); });
-  });
-}
 function openLogPerformance(){
   const eff = todaySession();
   state._pendingSession = eff;
-  logPerfFeel = 'ok';
   const target = getProgressionTarget(eff, state.intensityIdx);
   document.getElementById('logPerfWeightSection').hidden = eff.t!=='strength';
   document.getElementById('logPerfRepsSection').hidden = eff.t!=='strength';
@@ -2706,7 +2702,6 @@ function openLogPerformance(){
     const dist = parseFloat(eff.en.detail) || 3;
     document.getElementById('logPerfTimeInput').value = Math.round(target.pace*dist);
   }
-  renderLogPerfFeelChips();
   document.getElementById('logPerfOverlay').hidden = false;
 }
 function closeLogPerformance(){
@@ -2718,7 +2713,7 @@ document.getElementById('closeLogPerf').addEventListener('click', closeLogPerfor
 document.getElementById('saveLogPerf').addEventListener('click', function(){
   const eff = state._pendingSession || todaySession();
   const target = getProgressionTarget(eff, state.intensityIdx);
-  const logged = {feel: logPerfFeel};
+  const logged = {};
   if(eff.t==='strength'){
     logged.weight = parseFloat(document.getElementById('logPerfWeightInput').value) || (target && target.weight) || 0;
     logged.reps = parseFloat(document.getElementById('logPerfRepsInput').value) || (target && target.reps) || 0;
@@ -2758,14 +2753,36 @@ function startWorkout(logged){
   state.totalWorkouts += 1;
   state._lastSession = eff;
   state._lastLogged = logged || null;
-  applyProgressionResult(eff, logged);
-  if(logged){
-    cloudInsertRecordedSession(dateKey(TODAY_DATE), eff, logged);
-    cloudSaveProgressionTarget(eff, getProgressionTarget(eff, state.intensityIdx));
-  }
+  // Progression isn't calculated yet -- it waits for the post-workout review (rating gates whether
+  // a met target actually counts as "advance", same idea the old feel-chip used to serve, just
+  // moved to right after seeing the Summary screen instead of before it).
+  state._lastProgressed = false;
+  state._reviewSubmitted = false;
   saveProfileToCloud(); // streak / totals just changed
   showScreen('summary');
 }
+
+/* ---------------- post-workout review ---------------- */
+function ratingToFeel(rating){
+  return rating<=2 ? 'hard' : (rating>=4 ? 'easy' : 'ok');
+}
+function renderReviewRatingLabel(){
+  const rating = parseInt(document.getElementById('reviewRatingSlider').value, 10);
+  document.getElementById('reviewRatingLabel').textContent = REVIEW_RATING_LABELS[state.lang][rating-1];
+}
+document.getElementById('reviewRatingSlider').addEventListener('input', renderReviewRatingLabel);
+document.getElementById('submitReviewBtn').addEventListener('click', function(){
+  const session = state._lastSession;
+  const logged = {...state._lastLogged, rating: parseInt(document.getElementById('reviewRatingSlider').value,10), notes: document.getElementById('reviewNotesInput').value.trim(), feel: ratingToFeel(parseInt(document.getElementById('reviewRatingSlider').value,10))};
+  state._lastLogged = logged;
+  applyProgressionResult(session, logged);
+  cloudInsertRecordedSession(dateKey(TODAY_DATE), session, logged);
+  if(session.t==='strength' || session.t==='run'){
+    cloudSaveProgressionTarget(session, getProgressionTarget(session, state.intensityIdx));
+  }
+  state._reviewSubmitted = true;
+  renderSummary();
+});
 
 /* ---------------- week / plan view ---------------- */
 function weekRangeLabel(weekIdx){
@@ -3544,7 +3561,7 @@ function getSummaryStats(session, intensityIdx, logged){
       {l:L.statPace, v:paceStr},
       {l:L.statTempoTarget, v:tgt},
     ];
-    if(target) stats.push({l:L.statProgress, v:fmtPace(target.pace)+'/mi'});
+    if(target && state._reviewSubmitted) stats.push({l:L.statProgress, v:fmtPace(target.pace)+'/mi'});
     return stats;
   }
   if(session.t==='strength'){
@@ -3559,7 +3576,7 @@ function getSummaryStats(session, intensityIdx, logged){
       {l:L.statSetsReps, v: setsReps},
       {l:L.statTopSet, v: `${weight} lb x ${reps}`},
     ];
-    if(target) stats.push({l:L.statProgress, v:`${target.weight} lb`});
+    if(target && state._reviewSubmitted) stats.push({l:L.statProgress, v:`${target.weight} lb`});
     return stats;
   }
   if(session.t==='hike'){
@@ -3584,13 +3601,25 @@ function renderSummary(){
   document.getElementById('summaryNote').textContent = noteObj[state.lang];
   document.getElementById('summaryStreakVal').textContent = `${state.streak} ${L.dayStreakSuffix}`;
   const progNoteEl = document.getElementById('summaryProgressNote');
-  if((session.t==='strength'||session.t==='run') && logged){
+  const reviewCardEl = document.getElementById('summaryReviewCard');
+  if(logged && !state._reviewSubmitted){
+    // Right after finishing -- ask for the review before showing any progression result, since
+    // the rating given here is what decides whether a met target actually counts as "advance".
+    document.getElementById('reviewRatingSlider').value = 3;
+    document.getElementById('reviewNotesInput').value = '';
+    document.getElementById('reviewNotesInput').placeholder = L.reviewNotesPlaceholder;
+    renderReviewRatingLabel();
+    reviewCardEl.hidden = false;
+    progNoteEl.hidden = true;
+  } else if((session.t==='strength'||session.t==='run') && logged){
+    reviewCardEl.hidden = true;
     const target = getProgressionTarget(session, state.intensityIdx);
     const targetStr = session.t==='strength' ? `${target.weight} lb` : `${fmtPace(target.pace)}/mi`;
     const msg = (state._lastProgressed ? L.progressionUpMsg : L.progressionHoldMsg).replace('{target}', targetStr);
     document.getElementById('summaryProgressMsg').textContent = msg;
     progNoteEl.hidden = false;
   } else {
+    reviewCardEl.hidden = true;
     progNoteEl.hidden = true;
   }
 }
@@ -3699,6 +3728,7 @@ async function cloudInsertRecordedSession(dateStr, session, logged){
     await sb.from('recorded_sessions').insert({
       user_id: state.userId, log_date: dateStr, session_type: session.t, session_title: session.en.title,
       weight: logged.weight ?? null, reps: logged.reps ?? null, time_min: logged.time ?? null, feel: logged.feel ?? null,
+      rating: logged.rating ?? null, review_notes: logged.notes || null,
     });
   }catch(e){ /* best-effort */ }
 }

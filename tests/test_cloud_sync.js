@@ -166,7 +166,15 @@ function openSession(backend){
   }
   docA.getElementById('saveLogPerf').click();
   await wait(80);
+  // Progression (and the recorded_sessions write) now waits for the post-workout review.
+  docA.getElementById('reviewRatingSlider').value = '5';
+  docA.getElementById('reviewRatingSlider').dispatchEvent(new domA.window.Event('input', {bubbles:true}));
+  docA.getElementById('reviewNotesInput').value = 'Felt strong today';
+  docA.getElementById('submitReviewBtn').click();
+  await wait(80);
   console.log('Recorded session synced to cloud:', backend.db.recorded_sessions.length===1 ? 'OK' : `FAIL (${backend.db.recorded_sessions.length})`);
+  console.log('Rating and notes from the review landed on that cloud row:',
+    backend.db.recorded_sessions[0] && backend.db.recorded_sessions[0].rating===5 && backend.db.recorded_sessions[0].review_notes==='Felt strong today' ? 'OK' : `FAIL (${JSON.stringify(backend.db.recorded_sessions[0])})`);
   console.log('Progression target synced to cloud:', Object.keys(backend.db.progression_targets).length===1 ? 'OK' : `FAIL (${Object.keys(backend.db.progression_targets).length})`);
   docA.getElementById('closeLogPerf').click();
   await wait(10);

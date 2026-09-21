@@ -6,6 +6,11 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'u
 const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/', beforeParse(window){ window.__ALTIRO_TEST_TODAY__ = '2026-09-18'; } });
 const { window } = dom;
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function submitReview(doc, rating){
+  doc.getElementById('reviewRatingSlider').value = String(rating);
+  doc.getElementById('reviewRatingSlider').dispatchEvent(new window.Event('input', {bubbles:true}));
+  doc.getElementById('submitReviewBtn').click();
+}
 
 // Covers the run-session half of the progression engine (the strength half is covered in
 // test_progression.js). Switches focus to "Running Only" via the real Adjust sheet so today's
@@ -49,6 +54,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(30);
 
   console.log('Navigated to Summary:', doc.getElementById('screen-summary').hidden===false ? 'OK' : 'FAIL');
+  console.log('Review card shown, no progression result yet:', doc.getElementById('summaryReviewCard').hidden===false && !doc.getElementById('summaryStats').textContent.includes('Next Suggested') ? 'OK' : 'FAIL');
+  submitReview(doc, 5); // great, non-hard rating
+  await wait(30);
   console.log('Summary includes a Next Suggested pace stat:', doc.getElementById('summaryStats').textContent.includes('Next Suggested') ? 'OK' : 'FAIL');
   console.log('Progression note shows the "up" (tightened pace) message:', doc.getElementById('summaryProgressMsg').textContent.startsWith("Nice work") ? 'OK' : `FAIL (${doc.getElementById('summaryProgressMsg').textContent})`);
 
@@ -65,9 +73,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   const slowTime = Math.round(secondSeededTime*1.5);
   doc.getElementById('logPerfTimeInput').value = slowTime;
-  const hardChip = [...doc.querySelectorAll('#logPerfFeelChips .chip')].find(c => c.getAttribute('data-feel') === 'hard');
-  hardChip.click();
   doc.getElementById('saveLogPerf').click();
+  await wait(30);
+  submitReview(doc, 1); // rough, "hard" rating
   await wait(30);
   console.log('Progression note shows the "hold steady" message after a slow/hard run:', doc.getElementById('summaryProgressMsg').textContent.startsWith('Solid effort') ? 'OK' : `FAIL (${doc.getElementById('summaryProgressMsg').textContent})`);
 

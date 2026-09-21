@@ -1322,31 +1322,46 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
 /* ---------------- supabase ---------------- */
 const SUPABASE_URL = 'https://ylzyqdeciysvufpffatu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsenlxZGVjaXlzdnVmcGZmYXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NDk2NTcsImV4cCI6MjEwNTUyNTY1N30.WCrPVr0MwwjMqf3NASXtsm6Kjt8prR9aMaMlinn2YsY';
-// Falls back to a harmless offline stub if the CDN script didn't load (ad blocker, flaky
-// network, or a test harness that doesn't execute external <script src> tags) -- the app
-// should degrade to local-only behavior, not crash outright.
-const sb = (window.supabase && window.supabase.createClient)
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : (function(){
-      const offlineError = { message: 'Offline: Supabase client failed to load.' };
-      const chain = {
-        select(){ return chain; },
-        eq(){ return chain; },
-        maybeSingle(){ return Promise.resolve({ data: null, error: offlineError }); },
-        update(){ return chain; },
-      };
-      return {
-        auth: {
-          getSession: () => Promise.resolve({ data: { session: null } }),
-          onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } }),
-          signUp: () => Promise.resolve({ data: null, error: offlineError }),
-          signInWithPassword: () => Promise.resolve({ data: null, error: offlineError }),
-          signInWithOAuth: () => Promise.resolve({ error: offlineError }),
-          signOut: () => Promise.resolve({ error: null }),
-        },
-        from(){ return chain; },
-      };
-    })();
+function makeOfflineSupabaseStub(){
+  const offlineError = { message: 'Offline: Supabase client failed to load.' };
+  const chain = {
+    select(){ return chain; },
+    eq(){ return chain; },
+    maybeSingle(){ return Promise.resolve({ data: null, error: offlineError }); },
+    update(){ return chain; },
+  };
+  return {
+    auth: {
+      getSession: () => Promise.resolve({ data: { session: null } }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } }),
+      signUp: () => Promise.resolve({ data: null, error: offlineError }),
+      signInWithPassword: () => Promise.resolve({ data: null, error: offlineError }),
+      signInWithOAuth: () => Promise.resolve({ error: offlineError }),
+      signOut: () => Promise.resolve({ error: null }),
+    },
+    from(){ return chain; },
+  };
+}
+// Starts as a harmless offline stub so nothing crashes if the CDN script hasn't executed yet,
+// then upgrades to the real client the moment window.supabase becomes available -- polled for a
+// few seconds rather than checked once, since a plain <script src> *should* block the next
+// script until it's loaded, but sandboxed/proxied environments don't always guarantee that
+// ordering. Every call site below reads the `sb` variable at call time (not the value it had at
+// page load), so once this swap happens, everything just starts working -- no reload needed.
+// supabaseReady resolves once that swap has happened (or attempts run out), so the one-time
+// page-load session check can wait for it instead of racing a stub that always says "no session".
+let sb = makeOfflineSupabaseStub();
+const supabaseReady = new Promise((resolve)=>{
+  (function poll(attemptsLeft){
+    if(window.supabase && window.supabase.createClient){
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      resolve(true);
+      return;
+    }
+    if(attemptsLeft<=0){ resolve(false); return; } // give up silently; stays on the offline stub
+    setTimeout(()=>poll(attemptsLeft-1), 250);
+  })(16); // ~4 seconds total
+});
 
 /* ---------------- icons ---------------- */
 const ICONS = {
@@ -3663,6 +3678,7 @@ showScreen('welcome');
   // Runs after the synchronous init above so there's no blank-screen flash while this
   // resolves -- a returning signed-in user briefly sees Welcome, then jumps to Home.
   try{
+    await supabaseReady; // don't ask the offline stub whether a real session exists
     const { data: { session } } = await sb.auth.getSession();
     if(session){
       state.signedIn = true;

@@ -5,6 +5,7 @@
   "description": "Altiro fitness training app - standalone web app + native (iOS/Android) shell",
   "scripts": {
     "dev": "npx serve www -l 5173",
+    "test": "node tests/run-all.js",
     "cap:add:ios": "npx cap add ios",
     "cap:add:android": "npx cap add android",
     "cap:sync": "npx cap sync",
@@ -16,8 +17,9 @@
     "@supabase/supabase-js": "^2.45.4"
   },
   "devDependencies": {
+    "@capacitor/android": "^6.1.2",
     "@capacitor/cli": "^6.1.2",
     "@capacitor/ios": "^6.1.2",
-    "@capacitor/android": "^6.1.2"
+    "jsdom": "^30.1.0"
   }
 }

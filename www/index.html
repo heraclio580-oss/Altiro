@@ -879,6 +879,8 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
         <input type="password" id="passwordInput" class="text-input" style="margin-top:9px;" placeholder="••••••••" autocomplete="new-password">
       </div>
       <button class="btn btn-primary" id="emailSignupBtn" data-i18n="createAccountBtn" style="margin-top:16px;" disabled></button>
+      <button class="btn-text" id="toggleAuthMode" type="button" style="margin-top:12px;width:100%;text-align:center;" data-i18n="alreadyHaveAccount"></button>
+      <div id="authError" class="footer-note" style="margin-top:10px;color:var(--accent);"></div>
 
       <div class="footer-note" style="margin-top:14px;" data-i18n="mockAuthNote"></div>
     </div>
@@ -1313,9 +1315,39 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
 </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 (function(){
 "use strict";
+/* ---------------- supabase ---------------- */
+const SUPABASE_URL = 'https://ylzyqdeciysvufpffatu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsenlxZGVjaXlzdnVmcGZmYXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NDk2NTcsImV4cCI6MjEwNTUyNTY1N30.WCrPVr0MwwjMqf3NASXtsm6Kjt8prR9aMaMlinn2YsY';
+// Falls back to a harmless offline stub if the CDN script didn't load (ad blocker, flaky
+// network, or a test harness that doesn't execute external <script src> tags) -- the app
+// should degrade to local-only behavior, not crash outright.
+const sb = (window.supabase && window.supabase.createClient)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : (function(){
+      const offlineError = { message: 'Offline: Supabase client failed to load.' };
+      const chain = {
+        select(){ return chain; },
+        eq(){ return chain; },
+        maybeSingle(){ return Promise.resolve({ data: null, error: offlineError }); },
+        update(){ return chain; },
+      };
+      return {
+        auth: {
+          getSession: () => Promise.resolve({ data: { session: null } }),
+          onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } }),
+          signUp: () => Promise.resolve({ data: null, error: offlineError }),
+          signInWithPassword: () => Promise.resolve({ data: null, error: offlineError }),
+          signInWithOAuth: () => Promise.resolve({ error: offlineError }),
+          signOut: () => Promise.resolve({ error: null }),
+        },
+        from(){ return chain; },
+      };
+    })();
+
 /* ---------------- icons ---------------- */
 const ICONS = {
   run: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 15l3.5-4 2.5 2 3-5.5M13 4l2 2-2 2M15.5 9l1.5 1.5-2 2"/><circle cx="14" cy="4" r="1.4" fill="currentColor" stroke="none"/></svg>',
@@ -1386,7 +1418,11 @@ const STR = {
     passwordLabel: "Password",
     createAccountBtn: "Create Account",
     creatingAccountMsg: "Creating account…",
-    mockAuthNote: "Prototype only — this won't create a real account.",
+    mockAuthNote: "Your account is created with Supabase — a real password, a real sign-in.",
+    alreadyHaveAccount: "Already have an account? Sign in",
+    needAccount: "Need an account? Create one",
+    signInBtn: "Sign In",
+    confirmEmailMsg: "Check your email to confirm your account, then sign in below.",
     eyebrowGoal: "Goal",
     goalHeadline: "What are you working toward?",
     goalSub: "This shapes your plan — nothing here is locked in.",
@@ -1483,7 +1519,7 @@ const STR = {
     notificationsTitle: "Workout reminders",
     notificationsSub: "A nudge on days you have a session",
     signOutBtn: "Sign Out",
-    signOutToast: "Signed out — prototype only, nothing changed",
+    signOutToast: "Signed out",
     scheduledLabel: "Scheduled",
     markCompleteTitle: "Completed",
     markCompleteSub: "Mark this day as done or not",
@@ -1551,7 +1587,11 @@ const STR = {
     passwordLabel: "Contraseña",
     createAccountBtn: "Crear cuenta",
     creatingAccountMsg: "Creando cuenta…",
-    mockAuthNote: "Solo prototipo — esto no creará una cuenta real.",
+    mockAuthNote: "Tu cuenta se crea con Supabase: una contraseña real, un inicio de sesión real.",
+    alreadyHaveAccount: "¿Ya tienes una cuenta? Inicia sesión",
+    needAccount: "¿Necesitas una cuenta? Crea una",
+    signInBtn: "Iniciar sesión",
+    confirmEmailMsg: "Revisa tu correo para confirmar tu cuenta y luego inicia sesión.",
     eyebrowGoal: "Objetivo",
     goalHeadline: "¿Hacia qué estás trabajando?",
     goalSub: "Esto da forma a tu plan — nada aquí es definitivo.",
@@ -1648,7 +1688,7 @@ const STR = {
     notificationsTitle: "Recordatorios de entrenamiento",
     notificationsSub: "Un aviso los días que tienes sesión",
     signOutBtn: "Cerrar sesión",
-    signOutToast: "Sesión cerrada — solo prototipo, nada cambió",
+    signOutToast: "Sesión cerrada",
     scheduledLabel: "Programado",
     markCompleteTitle: "Completado",
     markCompleteSub: "Marca este día como hecho o no",
@@ -1837,6 +1877,7 @@ const defaultState = () => ({
   lang:'en',
   theme:'dark',
   signedIn:false,
+  userId:null,
   userName:'Jordan Rivera',
   userEmail:'jordan.rivera@gmail.com',
 });
@@ -2100,6 +2141,7 @@ function applyLang(){
   renderChipRow('genderChips', GENDER_OPTIONS, state.gender, selectGender);
   ensureWeek();
   updateOnbSliderLabels(state.focusRatio);
+  updateAuthModeUI();
   renderHome();
   renderWeek();
   renderCalendarScreen();
@@ -2405,6 +2447,7 @@ function runLoading(){
     } else {
       ensureWeek();
       state.week = buildWeek(state.focusRatio);
+      if(state.signedIn && state.userId) saveProfileToCloud();
       state.loadTimer = setTimeout(()=>showScreen('home'), 550);
     }
   }
@@ -3197,8 +3240,24 @@ document.getElementById('themeToggle').addEventListener('click', function(){
   applyTheme(state.theme);
   this.classList.toggle('on', state.theme==='light');
 });
-document.getElementById('signOutBtn').addEventListener('click', ()=>{
+document.getElementById('signOutBtn').addEventListener('click', async ()=>{
+  await sb.auth.signOut();
+  clearTimeout(state.loadTimer);
+  const lang = state.lang, theme = state.theme;
+  state = defaultState();
+  state.lang = lang; state.theme = theme;
+  document.getElementById('goalNext').disabled = true;
+  document.getElementById('levelNext').disabled = true;
+  document.getElementById('intensityNext').disabled = true;
+  document.getElementById('emailInput').value = '';
+  document.getElementById('passwordInput').value = '';
+  document.getElementById('emailSignupBtn').disabled = true;
+  document.getElementById('authError').textContent = '';
+  authMode = 'signup';
+  resetInfoUI();
+  applyLang();
   showToast(STR[state.lang].signOutToast);
+  showScreen('welcome');
 });
 
 /* ---------------- adjust sheet ---------------- */
@@ -3375,19 +3434,82 @@ function renderSummary(){
   }
 }
 
-/* ---------------- account / sign-in ---------------- */
-document.getElementById('googleSignInBtn').addEventListener('click', function(){
+/* ---------------- account / sign-in (real Supabase Auth) ---------------- */
+let authMode = 'signup';
+function updateAuthModeUI(){
+  const L = STR[state.lang];
+  document.getElementById('emailSignupBtn').textContent = authMode==='signup' ? L.createAccountBtn : L.signInBtn;
+  document.getElementById('toggleAuthMode').textContent = authMode==='signup' ? L.alreadyHaveAccount : L.needAccount;
+}
+document.getElementById('toggleAuthMode').addEventListener('click', ()=>{
+  authMode = authMode==='signup' ? 'signin' : 'signup';
+  document.getElementById('authError').textContent = '';
+  updateAuthModeUI();
+});
+
+// Cloud persistence for the fields real users set up during onboarding, plus rollup
+// stats. Per-day workout logs / progression sync are a separate, larger follow-up --
+// this covers "your setup survives a sign-out / new device" for now.
+async function loadProfileFromCloud(){
+  if(!state.userId) return;
+  const { data, error } = await sb.from('profiles').select('*').eq('id', state.userId).maybeSingle();
+  if(error || !data) return;
+  if(data.goal) state.goal = data.goal;
+  if(data.level) state.level = data.level;
+  if(data.training_days) state.trainingDays = data.training_days;
+  if(data.focus_ratio!=null) state.focusRatio = data.focus_ratio;
+  if(data.intensity_idx!=null) state.intensityIdx = data.intensity_idx;
+  if(data.age_bracket) state.age = data.age_bracket;
+  if(data.gender) state.gender = data.gender;
+  if(data.weight!=null) state.weight = data.weight;
+  if(data.weight_unit) state.weightUnit = data.weight_unit;
+  if(data.full_name) state.userName = data.full_name;
+  if(data.streak!=null) state.streak = data.streak;
+  if(data.best_streak!=null) state.bestStreak = data.best_streak;
+  if(data.total_workouts!=null) state.totalWorkouts = data.total_workouts;
+  if(data.total_distance!=null) state.totalDistance = data.total_distance;
+  state.week = buildWeek(state.focusRatio);
+}
+async function saveProfileToCloud(){
+  if(!state.userId) return;
+  try{
+    await sb.from('profiles').update({
+      goal: state.goal,
+      level: state.level,
+      training_days: state.trainingDays,
+      focus_ratio: state.focusRatio,
+      intensity_idx: state.intensityIdx,
+      age_bracket: state.age,
+      gender: state.gender,
+      weight: state.weight,
+      weight_unit: state.weightUnit,
+      streak: state.streak,
+      best_streak: state.bestStreak,
+      total_workouts: state.totalWorkouts,
+      total_distance: state.totalDistance,
+      updated_at: new Date().toISOString(),
+    }).eq('id', state.userId);
+  }catch(e){ /* best-effort; local state remains the source of truth for this session */ }
+}
+
+document.getElementById('googleSignInBtn').addEventListener('click', async function(){
   const btn = this;
   if(btn.disabled) return;
   const labelEl = btn.querySelector('.glabel');
+  const L = STR[state.lang];
   btn.disabled = true;
-  labelEl.textContent = STR[state.lang].signingInMsg;
-  setTimeout(()=>{
-    state.signedIn = true;
+  labelEl.textContent = L.signingInMsg;
+  document.getElementById('authError').textContent = '';
+  const { error } = await sb.auth.signInWithOAuth({ provider: 'google' });
+  if(error){
+    // Expected until Google OAuth is configured in the Supabase dashboard
+    // (Authentication -> Providers -> Google). Surface it rather than fake success.
+    document.getElementById('authError').textContent = error.message;
     btn.disabled = false;
-    labelEl.textContent = STR[state.lang].googleSignInBtn;
-    showScreen('loading');
-  }, 700);
+    labelEl.textContent = L.googleSignInBtn;
+  }
+  // On success Supabase redirects the page to Google and back; onAuthStateChange below
+  // picks up the resulting session, so there's nothing further to do here.
 });
 
 function updateEmailSignupBtn(){
@@ -3397,19 +3519,65 @@ function updateEmailSignupBtn(){
 }
 document.getElementById('emailInput').addEventListener('input', updateEmailSignupBtn);
 document.getElementById('passwordInput').addEventListener('input', updateEmailSignupBtn);
-document.getElementById('emailSignupBtn').addEventListener('click', function(){
+document.getElementById('emailSignupBtn').addEventListener('click', async function(){
   const btn = this;
   if(btn.disabled) return;
+  const L = STR[state.lang];
   const email = document.getElementById('emailInput').value.trim();
+  const password = document.getElementById('passwordInput').value;
+  const errEl = document.getElementById('authError');
+  errEl.style.color = 'var(--accent)';
+  errEl.textContent = '';
   btn.disabled = true;
-  btn.textContent = STR[state.lang].creatingAccountMsg;
-  setTimeout(()=>{
-    state.signedIn = true;
-    state.userEmail = email;
+  btn.textContent = authMode==='signup' ? L.creatingAccountMsg : L.signingInMsg;
+  try{
+    if(authMode==='signup'){
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if(error) throw error;
+      if(!data.session){
+        // Email confirmation is required by this Supabase project's Auth settings --
+        // there's no session yet, so don't pretend the user is signed in.
+        errEl.style.color = 'var(--ok-icon)';
+        errEl.textContent = L.confirmEmailMsg;
+        authMode = 'signin';
+        return;
+      }
+      state.signedIn = true;
+      state.userEmail = email;
+      state.userName = email.split('@')[0];
+      state.userId = data.user.id;
+      showScreen('loading');
+    } else {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+      state.signedIn = true;
+      state.userEmail = email;
+      state.userName = email.split('@')[0];
+      state.userId = data.user.id;
+      await loadProfileFromCloud(); // overwrites userName if a real full_name is on file
+      showScreen('loading');
+    }
+  }catch(err){
+    errEl.style.color = 'var(--accent)';
+    errEl.textContent = err.message || 'Something went wrong.';
+  }finally{
     btn.disabled = false;
-    btn.textContent = STR[state.lang].createAccountBtn;
-    showScreen('loading');
-  }, 700);
+    updateAuthModeUI();
+  }
+});
+
+sb.auth.onAuthStateChange((event, session)=>{
+  if(event==='SIGNED_IN' && session && !state.signedIn){
+    state.signedIn = true;
+    state.userEmail = session.user.email;
+    state.userName = session.user.email.split('@')[0];
+    state.userId = session.user.id;
+    loadProfileFromCloud().then(()=> showScreen('home'));
+  }
+  if(event==='SIGNED_OUT'){
+    state.signedIn = false;
+    state.userId = null;
+  }
 });
 
 /* ---------------- exercise detail (mock demo player) ---------------- */
@@ -3491,5 +3659,21 @@ setupSliders();
 ensureWeek();
 applyLang();
 showScreen('welcome');
+(async function initAuth(){
+  // Runs after the synchronous init above so there's no blank-screen flash while this
+  // resolves -- a returning signed-in user briefly sees Welcome, then jumps to Home.
+  try{
+    const { data: { session } } = await sb.auth.getSession();
+    if(session){
+      state.signedIn = true;
+      state.userEmail = session.user.email;
+      state.userName = session.user.email.split('@')[0];
+      state.userId = session.user.id;
+      await loadProfileFromCloud();
+      applyLang();
+      showScreen('home');
+    }
+  }catch(e){ /* stay on Welcome if the session check fails */ }
+})();
 })();
 </script>

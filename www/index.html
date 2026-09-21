@@ -1218,6 +1218,49 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
     </div>
   </div>
 
+  <!-- PLAN A WORKOUT SHEET (overlay) -->
+  <div class="sheet-overlay" id="planWorkoutOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="planWorkoutTitle"></span>
+        <button class="iconbtn" id="closePlanWorkout"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="planNameLabel"></div>
+        <input type="text" class="text-input" id="planNameInput">
+      </div>
+
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="manualTypeLabel"></div>
+        <div class="type-select-row" id="planTypeRow"></div>
+      </div>
+
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="manualVolumeLabel"></div>
+        <input type="text" class="text-input" id="planVolumeInput">
+      </div>
+
+      <div class="sheet-section" id="planWeightSection">
+        <div class="st-label" data-i18n="logPerfWeightLabel"></div>
+        <input type="number" inputmode="numeric" class="text-input" id="planWeightInput">
+      </div>
+
+      <div class="sheet-section" id="planRepsSection">
+        <div class="st-label" data-i18n="planTargetRepsLabel"></div>
+        <input type="number" inputmode="numeric" class="text-input" id="planRepsInput">
+      </div>
+
+      <div class="sheet-section" id="planPaceSection">
+        <div class="st-label" data-i18n="planPaceLabel"></div>
+        <input type="text" class="text-input" id="planPaceInput" placeholder="9:30">
+      </div>
+
+      <button class="btn btn-primary sheet-apply" id="savePlanWorkout" data-i18n="planWorkoutSaveBtn"></button>
+    </div>
+  </div>
+
   <div class="toast" id="toast" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 10l4 4 8-9"/></svg><span id="toastMsg"></span></div>
 
   <!-- HOW IT WORKS TUTORIAL -->
@@ -1554,6 +1597,14 @@ const STR = {
     dragHandleHint: "Tap and hold to move this workout to another day",
     nextWeekLabel: "Next Week",
     planLimitReached: "You've planned as far ahead as this preview supports.",
+    planWorkoutBtn: "Plan a Workout",
+    resetPlanBtn: "Reset to Suggested Plan",
+    planWorkoutTitle: "Plan a Workout",
+    planNameLabel: "What are you planning?",
+    planTargetRepsLabel: "Target Reps",
+    planPaceLabel: "Target Pace (min/mi, e.g. 9:30)",
+    planWorkoutSaveBtn: "Save Plan",
+    workoutPlannedToast: "Workout planned",
   },
   es: {
     welcomeHeadline: "Encontrar tiempo para entrenar es difícil. Saber por dónde empezar no debería serlo.",
@@ -1723,6 +1774,14 @@ const STR = {
     dragHandleHint: "Mantén presionado para mover este entrenamiento a otro día",
     nextWeekLabel: "Próxima semana",
     planLimitReached: "Has planificado con la mayor anticipación que permite esta vista previa.",
+    planWorkoutBtn: "Planificar un entrenamiento",
+    resetPlanBtn: "Restablecer al plan sugerido",
+    planWorkoutTitle: "Planificar un entrenamiento",
+    planNameLabel: "¿Qué estás planificando?",
+    planTargetRepsLabel: "Repeticiones objetivo",
+    planPaceLabel: "Ritmo objetivo (min/mi, ej. 9:30)",
+    planWorkoutSaveBtn: "Guardar plan",
+    workoutPlannedToast: "Entrenamiento planificado",
   }
 };
 
@@ -1933,12 +1992,15 @@ function buildWeek(focusIdx){
 // history: days already completed or missed keep their real content and status untouched. Only
 // days not yet locked in -- today, unless today is already done, in which case tomorrow -- pick
 // up the new focus/training-day pattern, with its own rotation starting fresh from that point.
+// A day the user explicitly planned themselves (isCustom) is ALSO left untouched -- it's their
+// content now, not the auto-generator's, so a focus/intensity change shouldn't silently erase it.
 function regenerateUpcomingWeek(focusIdx, newTrainingDays){
   const pool = WEEK_TABLES[focusIdx].filter(d => d.p.t !== 'rest');
   const fromIdx = isTodayDone() ? TODAY_IDX+1 : TODAY_IDX;
   const week = state.week.map(d => ({...d}));
   let slot = 0;
   for(let i=fromIdx;i<7;i++){
+    if(week[i].isCustom) continue;
     if(newTrainingDays.includes(i)){
       const src = pool[slot % pool.length];
       week[i] = {p:{...src.p}, c:{...src.c}, completed:false};
@@ -1997,12 +2059,13 @@ function getDayData(date){
   const key = dateKey(date);
   const wd = weekDates(0);
   const idxInCurrentWeek = wd.findIndex(d => dateKey(d)===key);
-  let p, c, planCompleted;
+  let p, c, planCompleted, isCustom=false;
   if(idxInCurrentWeek>=0){
     const d = state.week[idxInCurrentWeek];
     p = (idxInCurrentWeek===TODAY_IDX) ? todaySession() : d.p;
     c = d.c;
     planCompleted = (idxInCurrentWeek===TODAY_IDX) ? state.todayCompleted : d.completed;
+    isCustom = !!d.isCustom;
   } else {
     const overrideLog = state.dayLog[key];
     const gen = (overrideLog && overrideLog.session)
@@ -2010,13 +2073,14 @@ function getDayData(date){
       : sessionForDate(date);
     p = gen.p; c = gen.c;
     planCompleted = p.t==='rest' ? true : date.getTime() < TODAY_DATE.getTime();
+    isCustom = !!(overrideLog && overrideLog.session && overrideLog.session.isCustom);
   }
   const log = state.dayLog[key];
   const manualEntries = (log && log.manualEntries) ? log.manualEntries : [];
   let completed = planCompleted || manualEntries.length>0;
   if(log && typeof log.completedOverride === 'boolean') completed = log.completedOverride;
   return {
-    key, date, p, c, completed, manualEntries,
+    key, date, p, c, completed, manualEntries, isCustom,
     isToday: key===dateKey(TODAY_DATE),
     isPast: date.getTime() < TODAY_DATE.getTime(),
     isFuture: date.getTime() > TODAY_DATE.getTime(),
@@ -2040,10 +2104,10 @@ function getRawDaySlot(date){
   const idxInCurrentWeek = currentWeekIdxFor(key);
   if(idxInCurrentWeek>=0){
     const d = state.week[idxInCurrentWeek];
-    return {p: d.p, c: d.c, completed: d.completed};
+    return {p: d.p, c: d.c, completed: d.completed, isCustom: !!d.isCustom};
   }
   const dd = getDayData(date);
-  return {p: dd.p, c: dd.c, completed: dd.completed};
+  return {p: dd.p, c: dd.c, completed: dd.completed, isCustom: !!dd.isCustom};
 }
 function writeDaySlot(date, slot){
   const key = dateKey(date);
@@ -2052,12 +2116,32 @@ function writeDaySlot(date, slot){
     state.week[idxInCurrentWeek].p = slot.p;
     state.week[idxInCurrentWeek].c = slot.c;
     state.week[idxInCurrentWeek].completed = slot.completed;
+    state.week[idxInCurrentWeek].isCustom = !!slot.isCustom;
     state.doneCount = computeDoneCount();
   } else {
     const log = ensureDayLog(key);
-    log.session = {p: slot.p, c: slot.c};
+    log.session = {p: slot.p, c: slot.c, isCustom: !!slot.isCustom};
     log.completedOverride = slot.completed;
   }
+}
+/* ---------------- user-planned workouts (today or any future date) ---------------- */
+function planCustomWorkout(key, opts){
+  const session = ses(opts.type, opts.title, opts.detail||'', opts.title, opts.detail||'');
+  writeDaySlot(parseDateKey(key), {p: session, c: null, completed: false, isCustom: true});
+  if(opts.target){
+    const target = {};
+    if(opts.type==='strength'){ target.weight = opts.target.weight; target.reps = opts.target.reps; }
+    if(opts.type==='run'){ target.pace = opts.target.pace; }
+    state.progression[progressionKey(session)] = target;
+    cloudSaveProgressionTarget(session, target);
+  }
+  cloudSavePlannedSession(key, session);
+}
+function resetToSuggestedPlan(key){
+  const date = parseDateKey(key);
+  const gen = sessionForDate(date);
+  writeDaySlot(date, {p: gen.p, c: gen.c, completed: false, isCustom: false});
+  cloudClearPlannedSession(key);
 }
 function reorderWithinWeek(weekIdx, sourceIdx, targetIdx){
   if(sourceIdx === targetIdx) return;
@@ -3014,6 +3098,12 @@ function renderDayDetail(){
   if(dd.p.t!=='rest'){
     actionsHtml += `<button class="watch-demo-btn" id="ddWatchDemoBtn" type="button" style="margin-top:12px;">${ICONS.play}${L.watchDemoBtn}</button>`;
   }
+  if(dd.isToday || dd.isFuture){
+    actionsHtml += `<button class="btn btn-ghost" id="ddPlanWorkoutBtn" type="button" style="width:100%;margin-top:12px;">${L.planWorkoutBtn}</button>`;
+    if(dd.isCustom){
+      actionsHtml += `<button class="btn-text" id="ddResetPlanBtn" type="button" style="width:100%;margin-top:8px;">${L.resetPlanBtn}</button>`;
+    }
+  }
   let rescheduleIdx = -1;
   if(status==='missed'){
     rescheduleIdx = currentWeekIdxFor(state.openDayKey);
@@ -3033,12 +3123,23 @@ function renderDayDetail(){
   actionsEl.hidden = actionsHtml==='';
 
   const ddStartBtn = document.getElementById('ddStartWorkoutBtn');
-  if(ddStartBtn) ddStartBtn.addEventListener('click', ()=>{ closeDayDetail(); startWorkout(); });
+  if(ddStartBtn) ddStartBtn.addEventListener('click', ()=>{ closeDayDetail(); openLogPerformance(); });
   const ddWatchBtn = document.getElementById('ddWatchDemoBtn');
   if(ddWatchBtn) ddWatchBtn.addEventListener('click', ()=>{
     const activeScreen = SCREEN_IDS.find(s=>elFor(s) && !elFor(s).hidden) || 'home';
     closeDayDetail();
     openExerciseDetail(dd.p, activeScreen);
+  });
+  const ddPlanBtn = document.getElementById('ddPlanWorkoutBtn');
+  if(ddPlanBtn) ddPlanBtn.addEventListener('click', ()=> openPlanWorkout(state.openDayKey));
+  const ddResetBtn = document.getElementById('ddResetPlanBtn');
+  if(ddResetBtn) ddResetBtn.addEventListener('click', ()=>{
+    resetToSuggestedPlan(state.openDayKey);
+    renderDayDetail();
+    renderCalendar();
+    renderWeek();
+    renderHome();
+    showToast(STR[state.lang].toastUpdated);
   });
   const ddShiftBtn = document.getElementById('ddShiftBtn');
   if(ddShiftBtn) ddShiftBtn.addEventListener('click', ()=>{
@@ -3180,6 +3281,64 @@ function deleteManualEntry(key, id){
   renderHome();
   renderWeek();
 }
+
+/* ---------------- plan a workout (today or any future date) ---------------- */
+let planEntryType = 'strength';
+function renderPlanTypeRow(){
+  const row = document.getElementById('planTypeRow');
+  const types = ['run','strength','hike','other'];
+  row.innerHTML = types.map(t=>`<button type="button" class="type-btn ${t===planEntryType?'sel':''}" data-type="${t}">${MANUAL_TYPE_ICON[t]}</button>`).join('');
+  row.querySelectorAll('.type-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{ planEntryType = b.getAttribute('data-type'); renderPlanTypeRow(); updatePlanTargetSections(); });
+  });
+}
+function updatePlanTargetSections(){
+  document.getElementById('planWeightSection').hidden = planEntryType!=='strength';
+  document.getElementById('planRepsSection').hidden = planEntryType!=='strength';
+  document.getElementById('planPaceSection').hidden = planEntryType!=='run';
+}
+function openPlanWorkout(key){
+  state._planningKey = key;
+  planEntryType = 'strength';
+  const L = STR[state.lang];
+  document.getElementById('planNameInput').value = '';
+  document.getElementById('planNameInput').placeholder = L.manualNamePlaceholder;
+  document.getElementById('planNameInput').style.borderColor = '';
+  document.getElementById('planVolumeInput').value = '';
+  document.getElementById('planVolumeInput').placeholder = L.manualVolumePlaceholder;
+  document.getElementById('planWeightInput').value = '';
+  document.getElementById('planRepsInput').value = '';
+  document.getElementById('planPaceInput').value = '';
+  renderPlanTypeRow();
+  updatePlanTargetSections();
+  document.getElementById('planWorkoutOverlay').hidden = false;
+}
+function closePlanWorkout(){
+  document.getElementById('planWorkoutOverlay').hidden = true;
+}
+document.getElementById('closePlanWorkout').addEventListener('click', closePlanWorkout);
+document.getElementById('savePlanWorkout').addEventListener('click', ()=>{
+  const nameInput = document.getElementById('planNameInput');
+  const name = nameInput.value.trim();
+  if(!name || !state._planningKey){ nameInput.style.borderColor = 'var(--accent)'; nameInput.focus(); return; }
+  const detail = document.getElementById('planVolumeInput').value.trim();
+  let target = null;
+  if(planEntryType==='strength'){
+    const w = parseFloat(document.getElementById('planWeightInput').value);
+    const r = parseFloat(document.getElementById('planRepsInput').value);
+    if(w>0 && r>0) target = {weight:w, reps:r};
+  } else if(planEntryType==='run'){
+    const m = document.getElementById('planPaceInput').value.trim().match(/^(\d+):(\d\d)$/);
+    if(m) target = {pace: parseInt(m[1],10) + parseInt(m[2],10)/60};
+  }
+  planCustomWorkout(state._planningKey, {title:name, type:planEntryType, detail, target});
+  closePlanWorkout();
+  renderDayDetail();
+  renderCalendar();
+  renderWeek();
+  renderHome();
+  showToast(STR[state.lang].workoutPlannedToast);
+});
 
 /* ---------------- progress ---------------- */
 function weekStats(offset){
@@ -3586,28 +3745,58 @@ async function cloudSaveProgressionTarget(session, target){
     }, { onConflict: 'user_id,session_key' });
   }catch(e){ /* best-effort */ }
 }
+async function cloudSavePlannedSession(dateStr, session){
+  if(!state.userId) return;
+  try{
+    const row = await cloudGetOrCreateWorkoutLog(dateStr);
+    if(!row) return;
+    await sb.from('workout_logs').update({
+      planned_type: session.t, planned_title: session.en.title, planned_detail: session.en.detail || null,
+    }).eq('id', row.id);
+  }catch(e){ /* best-effort */ }
+}
+async function cloudClearPlannedSession(dateStr){
+  if(!state.userId) return;
+  try{
+    const row = await cloudGetOrCreateWorkoutLog(dateStr);
+    if(!row) return;
+    await sb.from('workout_logs').update({ planned_type:null, planned_title:null, planned_detail:null }).eq('id', row.id);
+  }catch(e){ /* best-effort */ }
+}
 async function loadWorkoutDataFromCloud(){
   if(!state.userId) return;
   try{
     const { data: logs } = await sb.from('workout_logs')
-      .select('log_date, completed_override, manual_entries(id, name, type, volume, notes)')
+      .select('log_date, completed_override, planned_type, planned_title, planned_detail, manual_entries(id, name, type, volume, notes)')
       .eq('user_id', state.userId);
     if(logs){
       logs.forEach(row=>{
         const key = row.log_date; // Postgres `date` serializes as 'YYYY-MM-DD', same shape as dateKey()
+        const customSession = row.planned_type
+          ? ses(row.planned_type, row.planned_title, row.planned_detail||'', row.planned_title, row.planned_detail||'')
+          : null;
         state.dayLog[key] = {
           completedOverride: row.completed_override,
           manualEntries: (row.manual_entries||[]).map(e=>(
             { id:'m'+e.id, supabaseId:e.id, name:e.name, type:e.type, volume:e.volume||'', notes:e.notes||'' }
           )),
-          session: null,
+          session: customSession ? {p: customSession, c: null, isCustom: true} : null,
         };
-        // The current (fixed demo) week's non-today slots track completion on state.week[i].completed
-        // directly rather than through dayLog -- mirror the override there too so the Home week-strip
-        // (which reads state.week directly) agrees with Day Detail / Calendar (which read dayLog).
+        // The current week's non-today slots track completion (and, for a custom plan, the session
+        // itself) on state.week[i] directly rather than through dayLog -- mirror both there too so
+        // the Home week-strip (which reads state.week directly) agrees with Day Detail / Calendar
+        // (which read dayLog).
         const idx = currentWeekIdxFor(key);
-        if(idx>=0 && idx!==TODAY_IDX && typeof row.completed_override==='boolean'){
-          state.week[idx].completed = row.completed_override;
+        if(idx>=0){
+          if(idx!==TODAY_IDX && typeof row.completed_override==='boolean'){
+            state.week[idx].completed = row.completed_override;
+          }
+          if(customSession){
+            state.week[idx].p = customSession;
+            state.week[idx].c = null;
+            state.week[idx].isCustom = true;
+            if(idx!==TODAY_IDX) state.week[idx].completed = false;
+          }
         }
       });
     }

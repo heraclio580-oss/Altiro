@@ -48,6 +48,7 @@ function makeSharedBackend(){
           }
           const rows = Object.values(db.workout_logs).filter(matchRow).map(r => ({
             log_date: r.log_date, completed_override: r.completed_override,
+            planned_type: r.planned_type||null, planned_title: r.planned_title||null, planned_detail: r.planned_detail||null,
             manual_entries: Object.values(db.manual_entries).filter(e=>e.workout_log_id===r.id)
               .map(e=>({id:e.id, name:e.name, type:e.type, volume:e.volume, notes:e.notes})),
           }));
@@ -167,6 +168,25 @@ function openSession(backend){
   await wait(80);
   console.log('Recorded session synced to cloud:', backend.db.recorded_sessions.length===1 ? 'OK' : `FAIL (${backend.db.recorded_sessions.length})`);
   console.log('Progression target synced to cloud:', Object.keys(backend.db.progression_targets).length===1 ? 'OK' : `FAIL (${Object.keys(backend.db.progression_targets).length})`);
+  docA.getElementById('closeLogPerf').click();
+  await wait(10);
+
+  // Plan a custom future workout (Saturday) -- should sync planned_type/title/detail to workout_logs.
+  goPillA('home');
+  await wait(20);
+  docA.querySelector('#weekStrip .day-cell[data-day="5"]').click();
+  await wait(20);
+  docA.getElementById('ddPlanWorkoutBtn').click();
+  await wait(20);
+  docA.getElementById('planNameInput').value = 'Weekend Trail Run';
+  docA.getElementById('planNameInput').dispatchEvent(new domA.window.Event('input', {bubbles:true}));
+  [...docA.querySelectorAll('#planTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='run').click();
+  docA.getElementById('savePlanWorkout').click();
+  await wait(60);
+  console.log('Planned workout synced to cloud (planned_title set on a workout_logs row):',
+    Object.values(backend.db.workout_logs).some(r=>r.planned_title==='Weekend Trail Run') ? 'OK' : 'FAIL');
+  docA.getElementById('closeDayDetail').click();
+  await wait(10);
 
   // ---- Session B: a FRESH page load, same backend -- sign in and confirm everything round-trips ----
   const domB = openSession(backend);
@@ -193,6 +213,11 @@ function openSession(backend){
   if(isStrength){
     console.log('Session B: Home shows a Next Suggested target carried over from Session A:', docB.getElementById('sessionCard').textContent.includes('lb') ? 'OK' : 'FAIL');
   }
+
+  docB.querySelector('#weekStrip .day-cell[data-day="5"]').click();
+  await wait(20);
+  console.log('Session B: Saturday\'s custom-planned workout from Session A round-trips correctly:', docB.getElementById('dayDetailPlanRow').textContent.includes('Weekend Trail Run') ? 'OK' : 'FAIL');
+  console.log('Session B: "Reset to Suggested Plan" is offered (it knows this day is custom):', !!docB.getElementById('ddResetPlanBtn') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');
   process.exit(0);

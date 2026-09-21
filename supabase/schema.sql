@@ -38,9 +38,15 @@ create table if not exists workout_logs (
   user_id uuid not null references auth.users(id) on delete cascade,
   log_date date not null,
   completed_override boolean,        -- null = no manual override, true/false = explicit toggle
+  planned_type text,                 -- set when the user has planned their own workout for this day
+  planned_title text,                -- (today or any future date) -- overrides the auto-generated plan
+  planned_detail text,
   created_at timestamptz default now(),
   unique (user_id, log_date)
 );
+alter table workout_logs add column if not exists planned_type text;
+alter table workout_logs add column if not exists planned_title text;
+alter table workout_logs add column if not exists planned_detail text;
 
 -- manual_entries: free-text "+ Add a Workout" logs, children of a workout_log
 create table if not exists manual_entries (

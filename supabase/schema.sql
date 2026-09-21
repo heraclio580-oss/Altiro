@@ -109,12 +109,15 @@ alter table recorded_sessions enable row level security;
 alter table progression_targets enable row level security;
 alter table subscriptions enable row level security;
 
+drop policy if exists "own profile" on profiles;
 create policy "own profile" on profiles
   for all using (auth.uid() = id) with check (auth.uid() = id);
 
+drop policy if exists "own workout logs" on workout_logs;
 create policy "own workout logs" on workout_logs
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "own manual entries" on manual_entries;
 create policy "own manual entries" on manual_entries
   for all using (
     auth.uid() = (select user_id from workout_logs where id = workout_log_id)
@@ -122,9 +125,11 @@ create policy "own manual entries" on manual_entries
     auth.uid() = (select user_id from workout_logs where id = workout_log_id)
   );
 
+drop policy if exists "own recorded sessions" on recorded_sessions;
 create policy "own recorded sessions" on recorded_sessions
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "own progression targets" on progression_targets;
 create policy "own progression targets" on progression_targets
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -132,6 +137,7 @@ create policy "own progression targets" on progression_targets
 -- (used by the RevenueCat webhook handler) can write. No insert/update/delete
 -- policy is defined for the `authenticated` role, so those are denied by
 -- default; the service role bypasses RLS entirely.
+drop policy if exists "read own subscription" on subscriptions;
 create policy "read own subscription" on subscriptions
   for select using (auth.uid() = user_id);
 

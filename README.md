@@ -1,10 +1,14 @@
 # Altiro
 
+**Live: https://heraclio580-oss.github.io/Altiro/**
+
 A fitness training app: adaptive weekly plans, real workout logging, and
 progression programming. This repo is the migration target for the
 [Claude Artifact prototype](https://claude.ai/artifact/FPPw9WiHXNAskt5TZ7J917)
-(currently Version 49) — the path from "working prototype" to "real app store
-app with subscriptions."
+(the Artifact is now frozen as a historical reference only — its sandbox
+blocks the Supabase script, so it can't run real auth; the GitHub Pages link
+above is the real, current app) — the path from "working prototype" to "real
+app store app with subscriptions."
 
 ## Why this repo exists
 
@@ -57,9 +61,12 @@ integrations.
 - [ ] Capacitor iOS/Android platforms added, tested on simulator/device.
 - [ ] Store listings, privacy policy, account deletion flow, App Review submission.
 
-## Run it locally right now
+## Run it
 
-The app is a single static HTML file — no build step required yet:
+**Live site:** https://heraclio580-oss.github.io/Altiro/ — auto-deploys via
+GitHub Actions (`.github/workflows/deploy-pages.yml`) on every push to `main`.
+
+Or run it locally — it's a single static HTML file, no build step required:
 
 ```bash
 npm run dev

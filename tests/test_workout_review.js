@@ -42,9 +42,8 @@ function setSlider(doc, val){
   console.log('Review card hides after submitting:', doc.getElementById('summaryReviewCard').hidden===true ? 'OK' : 'FAIL');
   console.log('Progression note now visible (this was a strength/run session):', doc.getElementById('summaryProgressNote').hidden===false ? 'OK' : 'FAIL');
 
-  // --- A hike session has no progression, but should still get a review prompt. There's no
-  // dedicated hike focus mode, so force a hike day via the app's own Create Workout override
-  // instead -- a real, supported way for a hike-type session to occur on a given day. ---
+  // --- An interval session has no progression, but should still get a review prompt. Plan a
+  // very short interval workout for today so the real timer can run to completion quickly. ---
 
   goPill('home');
   await wait(20);
@@ -53,27 +52,40 @@ function setSlider(doc, val){
   await wait(20);
   doc.getElementById('addTodayWorkoutBtn').click();
   await wait(20);
-  doc.getElementById('createCompletedToggle').click(); // switch to planning mode
-  doc.getElementById('manualNameInput').value = 'Ridge Trail Hike';
+  doc.getElementById('manualNameInput').value = 'Speed Bag Rounds';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
-  [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='hike').click();
+  [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='interval').click();
+  console.log('Picking Interval hides the "Mark as Completed" toggle (it completes via the timer, not a checkbox):', doc.getElementById('createCompletedSection').hidden===true ? 'OK' : 'FAIL');
+  doc.getElementById('createRoundsInput').value = '1';
+  doc.getElementById('createWorkDurationInput').value = '0:01';
+  doc.getElementById('createRestDurationInput').value = '0:01';
   doc.getElementById('saveManualEntry').click();
   await wait(30);
 
   goPill('home');
   await wait(20);
-  console.log('Today is now the custom-planned hike:', doc.getElementById('sessionCard').querySelector('.title').textContent.includes('Ridge Trail Hike') ? 'OK' : 'FAIL');
+  console.log('Today is now the custom-planned interval workout:', doc.getElementById('sessionCard').querySelector('.title').textContent.includes('Speed Bag Rounds') ? 'OK' : 'FAIL');
+  console.log('Record button offers to start the timer instead of recording:', doc.getElementById('recordLabel').textContent === 'Start Timer' ? 'OK' : `FAIL (${doc.getElementById('recordLabel').textContent})`);
 
   doc.getElementById('recordBtn').click();
-  await wait(950);
-  doc.getElementById('saveLogPerf').click();
+  await wait(20);
+  console.log('Interval timer overlay opens (no recording pulse, straight to the timer):', doc.getElementById('intervalTimerOverlay').hidden===false ? 'OK' : 'FAIL');
+  console.log('Timer pre-loads the 1 round / 1s work / 1s rest just configured:', doc.getElementById('timerRoundsVal').textContent==='1' && doc.getElementById('timerWorkVal').textContent==='0:01' && doc.getElementById('timerRestVal').textContent==='0:01' ? 'OK' : 'FAIL');
+
+  doc.getElementById('timerStartPauseBtn').click();
+  await wait(2600); // 1s work + 1s rest + tick overhead -> should reach "done" with 1 round
+  console.log('Timer reaches "all rounds complete" and offers Finish:', doc.getElementById('timerFinishBtn').hidden===false ? 'OK' : `FAIL (phase: ${doc.getElementById('timerPhaseLabel').textContent})`);
+
+  doc.getElementById('timerFinishBtn').click();
   await wait(30);
-  console.log('Review card is still offered for a hike (no progression, but feedback still matters):', doc.getElementById('summaryReviewCard').hidden===false ? 'OK' : 'FAIL');
+  console.log('Finishing the timer navigates to Summary:', doc.getElementById('screen-summary').hidden===false ? 'OK' : 'FAIL');
+  console.log('Summary shows the round count from the timer:', doc.getElementById('summaryStats').textContent.includes('1') ? 'OK' : 'FAIL');
+  console.log('Review card is still offered for an interval workout (no progression, but feedback still matters):', doc.getElementById('summaryReviewCard').hidden===false ? 'OK' : 'FAIL');
   setSlider(doc, 4);
   doc.getElementById('submitReviewBtn').click();
   await wait(30);
-  console.log('No progression note for a hike even after review (nothing to progress):', doc.getElementById('summaryProgressNote').hidden===true ? 'OK' : 'FAIL');
-  console.log('No crash, no "Next Suggested" stat for a hike:', !doc.getElementById('summaryStats').textContent.includes('Next Suggested') ? 'OK' : 'FAIL');
+  console.log('No progression note for an interval workout even after review (nothing to progress):', doc.getElementById('summaryProgressNote').hidden===true ? 'OK' : 'FAIL');
+  console.log('No crash, no "Next Suggested" stat for an interval workout:', !doc.getElementById('summaryStats').textContent.includes('Next Suggested') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');
   process.exit(0);

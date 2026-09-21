@@ -49,6 +49,9 @@ function makeSharedBackend(){
           const rows = Object.values(db.workout_logs).filter(matchRow).map(r => ({
             log_date: r.log_date, completed_override: r.completed_override,
             planned_type: r.planned_type||null, planned_title: r.planned_title||null, planned_detail: r.planned_detail||null,
+            planned_interval_rounds: r.planned_interval_rounds ?? null,
+            planned_interval_work_sec: r.planned_interval_work_sec ?? null,
+            planned_interval_rest_sec: r.planned_interval_rest_sec ?? null,
             manual_entries: Object.values(db.manual_entries).filter(e=>e.workout_log_id===r.id)
               .map(e=>({id:e.id, name:e.name, type:e.type, volume:e.volume, notes:e.notes})),
           }));
@@ -197,6 +200,25 @@ function openSession(backend){
   docA.getElementById('closeDayDetail').click();
   await wait(10);
 
+  // Plan an interval workout (Sunday) -- the rounds/work/rest config should also sync.
+  docA.querySelector('#weekStrip .day-cell[data-day="6"]').click();
+  await wait(20);
+  docA.getElementById('addWorkoutBtn').click();
+  await wait(20);
+  docA.getElementById('manualNameInput').value = 'Heavy Bag Rounds';
+  docA.getElementById('manualNameInput').dispatchEvent(new domA.window.Event('input', {bubbles:true}));
+  [...docA.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='interval').click();
+  docA.getElementById('createRoundsInput').value = '8';
+  docA.getElementById('createWorkDurationInput').value = '2:00';
+  docA.getElementById('createRestDurationInput').value = '0:30';
+  docA.getElementById('saveManualEntry').click();
+  await wait(60);
+  const intervalRow = Object.values(backend.db.workout_logs).find(r=>r.planned_title==='Heavy Bag Rounds');
+  console.log('Interval workout config synced to cloud (8 rounds, 2:00 work, 0:30 rest):',
+    intervalRow && intervalRow.planned_interval_rounds===8 && intervalRow.planned_interval_work_sec===120 && intervalRow.planned_interval_rest_sec===30 ? 'OK' : `FAIL (${JSON.stringify(intervalRow)})`);
+  docA.getElementById('closeDayDetail').click();
+  await wait(10);
+
   // ---- Session B: a FRESH page load, same backend -- sign in and confirm everything round-trips ----
   const domB = openSession(backend);
   await wait(80);
@@ -227,6 +249,12 @@ function openSession(backend){
   await wait(20);
   console.log('Session B: Saturday\'s custom-planned workout from Session A round-trips correctly:', docB.getElementById('dayDetailPlanRow').textContent.includes('Weekend Trail Run') ? 'OK' : 'FAIL');
   console.log('Session B: "Reset to Suggested Plan" is offered (it knows this day is custom):', !!docB.getElementById('ddResetPlanBtn') ? 'OK' : 'FAIL');
+  docB.getElementById('closeDayDetail').click();
+  await wait(10);
+
+  docB.querySelector('#weekStrip .day-cell[data-day="6"]').click();
+  await wait(20);
+  console.log('Session B: Sunday\'s interval workout title round-trips:', docB.getElementById('dayDetailPlanRow').textContent.includes('Heavy Bag Rounds') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');
   process.exit(0);

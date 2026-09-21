@@ -41,12 +41,18 @@ create table if not exists workout_logs (
   planned_type text,                 -- set when the user has planned their own workout for this day
   planned_title text,                -- (today or any future date) -- overrides the auto-generated plan
   planned_detail text,
+  planned_interval_rounds int,       -- only set when planned_type = 'interval'
+  planned_interval_work_sec int,
+  planned_interval_rest_sec int,
   created_at timestamptz default now(),
   unique (user_id, log_date)
 );
 alter table workout_logs add column if not exists planned_type text;
 alter table workout_logs add column if not exists planned_title text;
 alter table workout_logs add column if not exists planned_detail text;
+alter table workout_logs add column if not exists planned_interval_rounds int;
+alter table workout_logs add column if not exists planned_interval_work_sec int;
+alter table workout_logs add column if not exists planned_interval_rest_sec int;
 
 -- manual_entries: free-text "+ Add a Workout" logs, children of a workout_log
 create table if not exists manual_entries (

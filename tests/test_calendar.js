@@ -70,9 +70,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('manualNameInput').value = '100 Push-ups <script>alert(1)</script>';
   doc.getElementById('manualVolumeInput').value = '10 x 10';
   doc.getElementById('manualNotesInput').value = 'Felt good';
-  // pick 'other' type
-  const otherTypeBtn = [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='other');
-  otherTypeBtn.click();
+  // pick the Cardio type (the 3-choice picker no longer has a separate "other")
+  const cardioTypeBtn = [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='run');
+  cardioTypeBtn.click();
   await wait(10);
   doc.getElementById('saveManualEntry').click();
   await wait(20);

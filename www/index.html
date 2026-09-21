@@ -174,6 +174,7 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
 
 /* ---------- buttons ---------- */
 .btn{height:46px;border-radius:var(--r-pill);border:none;font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn[hidden]{display:none;}
 .btn-primary{background:linear-gradient(135deg,var(--accent-hover),var(--accent));color:var(--on-accent);box-shadow:0 4px 14px var(--accent-shadow);}
 .btn-primary:hover{background:linear-gradient(135deg,var(--accent-bright),var(--accent-hover));}
 .btn-primary:disabled{background:var(--disabled-bg);color:var(--disabled-text);cursor:not-allowed;}
@@ -391,9 +392,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .mo-cell.missed .mo-num{color:var(--alert);}
 .mo-cell.missed .mo-dot{background:var(--alert);}
 .mo-cell.has-log{box-shadow:inset 0 0 0 1px var(--accent);}
-.type-select-row{display:flex;gap:8px;flex-wrap:wrap;}
-.type-btn{width:44px;height:44px;border-radius:50%;background:var(--well);border:1px solid var(--border);color:var(--text-2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
-.type-btn svg{width:18px;height:18px;}
+.type-select-row{display:flex;gap:8px;}
+.type-btn{flex:1;height:52px;border-radius:var(--r-md);background:var(--well);border:1px solid var(--border);color:var(--text-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:0 4px;font-family:var(--font-body);}
+.type-btn svg{width:16px;height:16px;flex-shrink:0;}
+.type-btn span{font-size:10.5px;line-height:1.1;text-align:center;}
 .type-btn.sel{border-color:var(--accent);background:var(--accent-tint);color:var(--text);}
 .manual-entry{display:flex;align-items:center;gap:10px;background:var(--well);border:1px solid var(--border);border-radius:var(--r-md);padding:9px 10px;margin-top:8px;}
 .manual-entry .ic{width:26px;height:26px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--text-2);flex-shrink:0;}
@@ -412,6 +414,25 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 @keyframes sheetUp{from{transform:translateY(24px);opacity:0.4;}to{transform:none;opacity:1;}}
 @media (prefers-reduced-motion: reduce){.sheet-panel{animation:none;}}
 .sheet-handle{width:36px;height:4px;background:var(--divider-soft);border-radius:2px;margin:0 auto 14px;}
+
+.timer-overlay{position:absolute;inset:0;background:rgba(10,10,11,0.72);display:flex;align-items:center;justify-content:center;z-index:90;padding:20px;}
+.timer-overlay[hidden]{display:none;}
+.timer-modal{position:relative;width:100%;max-width:320px;background:var(--sheet-bg);border:1px solid var(--divider);border-radius:28px;padding:24px 22px;text-align:center;animation:sheetUp .22s ease both;}
+.timer-close{position:absolute;top:12px;right:12px;}
+.timer-phase{font-family:var(--font-mono);font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-3);}
+.timer-phase.work{color:var(--accent);}
+.timer-phase.rest{color:var(--ok-icon);}
+.timer-round{font-size:13px;color:var(--text-2);margin-top:4px;}
+.timer-display{font-family:var(--font-mono);font-weight:700;font-size:56px;color:var(--text);margin:18px 0;letter-spacing:0.02em;}
+.timer-display.urgent{color:var(--accent);}
+.timer-config{display:flex;justify-content:space-between;gap:10px;margin-bottom:20px;}
+.timer-config-item{flex:1;}
+.timer-config-item .st-label{font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;}
+.stepper{display:flex;align-items:center;justify-content:space-between;background:var(--well);border:1px solid var(--border);border-radius:var(--r-md);padding:6px 4px;}
+.stepper button{width:22px;height:22px;border-radius:50%;background:var(--card-2);border:none;color:var(--text);font-size:14px;line-height:1;cursor:pointer;flex-shrink:0;}
+.stepper span{font-family:var(--font-mono);font-size:12.5px;color:var(--text);flex:1;text-align:center;}
+.timer-controls{display:flex;gap:10px;}
+.timer-controls .btn{flex:1;}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;}
 .sheet-head .label{font-size:14px;}
 .sheet-section{margin-top:20px;}
@@ -1216,6 +1237,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <input type="text" class="text-input" id="createPaceInput" placeholder="9:30">
       </div>
 
+      <div class="sheet-section" id="createIntervalSection">
+        <div class="st-label" data-i18n="intervalRoundsLabel"></div>
+        <input type="number" inputmode="numeric" class="text-input" id="createRoundsInput" min="1" value="6">
+        <div class="st-label" style="margin-top:12px;" data-i18n="intervalWorkLabel"></div>
+        <input type="text" class="text-input" id="createWorkDurationInput" placeholder="3:00">
+        <div class="st-label" style="margin-top:12px;" data-i18n="intervalRestLabel"></div>
+        <input type="text" class="text-input" id="createRestDurationInput" placeholder="1:00">
+      </div>
+
       <button class="btn btn-primary sheet-apply" id="saveManualEntry" data-i18n="saveWorkoutBtn"></button>
     </div>
   </div>
@@ -1245,6 +1275,35 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <button class="btn btn-primary sheet-apply" id="saveLogPerf" data-i18n="saveWorkoutBtn"></button>
+    </div>
+  </div>
+
+  <!-- INTERVAL TIMER (centered overlay) -->
+  <div class="timer-overlay" id="intervalTimerOverlay" hidden>
+    <div class="timer-modal">
+      <button class="iconbtn timer-close" id="closeIntervalTimer"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      <div class="timer-phase" id="timerPhaseLabel"></div>
+      <div class="timer-round" id="timerRoundLabel"></div>
+      <div class="timer-display" id="timerDisplay">0:00</div>
+      <div class="timer-config" id="timerConfigRow">
+        <div class="timer-config-item">
+          <div class="st-label" data-i18n="intervalRoundsLabel"></div>
+          <div class="stepper"><button type="button" data-field="rounds" data-step="-1">−</button><span id="timerRoundsVal"></span><button type="button" data-field="rounds" data-step="1">+</button></div>
+        </div>
+        <div class="timer-config-item">
+          <div class="st-label" data-i18n="timerWorkShort"></div>
+          <div class="stepper"><button type="button" data-field="work" data-step="-15">−</button><span id="timerWorkVal"></span><button type="button" data-field="work" data-step="15">+</button></div>
+        </div>
+        <div class="timer-config-item">
+          <div class="st-label" data-i18n="timerRestShort"></div>
+          <div class="stepper"><button type="button" data-field="rest" data-step="-15">−</button><span id="timerRestVal"></span><button type="button" data-field="rest" data-step="15">+</button></div>
+        </div>
+      </div>
+      <div class="timer-controls">
+        <button class="btn btn-primary" id="timerStartPauseBtn" data-i18n="timerStartBtn"></button>
+        <button class="btn btn-ghost" id="timerResetBtn" data-i18n="timerResetBtn"></button>
+      </div>
+      <button class="btn btn-primary" id="timerFinishBtn" style="width:100%;margin-top:12px;" data-i18n="timerFinishBtn" hidden></button>
     </div>
   </div>
 
@@ -1409,10 +1468,11 @@ const ICONS = {
   muteOff: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 8v4h3l4 3V5L6 8H3z"/><path d="M13 7l4 6M17 7l-4 6"/></svg>',
   plus: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M10 4v12M4 10h12"/></svg>',
   trash: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4.5h4V6M6 6l.7 10h6.6L14 6"/></svg>',
-  grip: '<svg viewBox="0 0 20 20" fill="currentColor"><circle cx="7" cy="5" r="1.3"/><circle cx="13" cy="5" r="1.3"/><circle cx="7" cy="10" r="1.3"/><circle cx="13" cy="10" r="1.3"/><circle cx="7" cy="15" r="1.3"/><circle cx="13" cy="15" r="1.3"/></svg>'
+  grip: '<svg viewBox="0 0 20 20" fill="currentColor"><circle cx="7" cy="5" r="1.3"/><circle cx="13" cy="5" r="1.3"/><circle cx="7" cy="10" r="1.3"/><circle cx="13" cy="10" r="1.3"/><circle cx="7" cy="15" r="1.3"/><circle cx="13" cy="15" r="1.3"/></svg>',
+  interval: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="11" r="6.5"/><path d="M10 8v3l2 1.5M8 2h4"/></svg>'
 };
-const TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, rest: ICONS.rest};
-const MANUAL_TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, other: ICONS.flame};
+const TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, interval: ICONS.interval, rest: ICONS.rest};
+const MANUAL_TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, other: ICONS.flame, interval: ICONS.interval};
 
 /* ---------------- translations ---------------- */
 const STR = {
@@ -1533,6 +1593,18 @@ const STR = {
     weatherConditionClear: "Clear",
     workoutsLabel: "Workouts",
     recordActionLabel: "Record Workout",
+    startTimerLabel: "Start Timer",
+    timerWorkShort: "Work",
+    timerRestShort: "Rest",
+    timerStartBtn: "Start",
+    timerPauseBtn: "Pause",
+    timerResumeBtn: "Resume",
+    timerResetBtn: "Reset",
+    timerFinishBtn: "Finish Workout",
+    timerWorkPhase: "Work",
+    timerRestPhase: "Rest",
+    timerRoundOf: "Round {n} of {total}",
+    timerCompleteLabel: "All rounds complete!",
     recordRestLabel: "Rest Day",
     recordDoneLabel: "Completed",
     recordingLabel: "Recording…",
@@ -1575,6 +1647,9 @@ const STR = {
     manualNameLabel: "What did you do?",
     manualNamePlaceholder: "e.g. Push-ups",
     manualTypeLabel: "Type",
+    typeCardio: "Cardio",
+    typeWeightTraining: "Weight Training",
+    typeInterval: "Interval",
     manualVolumeLabel: "Sets, reps, or duration",
     manualVolumePlaceholder: "e.g. 10 x 10, or 45 min",
     manualNotesLabel: "Notes (optional)",
@@ -1588,6 +1663,9 @@ const STR = {
     planNameLabel: "What are you planning?",
     planTargetRepsLabel: "Target Reps",
     planPaceLabel: "Target Pace (min/mi, e.g. 9:30)",
+    intervalRoundsLabel: "Rounds",
+    intervalWorkLabel: "Round Duration (min:sec)",
+    intervalRestLabel: "Rest Duration (min:sec)",
     workoutPlannedToast: "Workout planned",
   },
   es: {
@@ -1707,6 +1785,18 @@ const STR = {
     weatherConditionClear: "Despejado",
     workoutsLabel: "Entrenamientos",
     recordActionLabel: "Registrar entrenamiento",
+    startTimerLabel: "Iniciar cronómetro",
+    timerWorkShort: "Trabajo",
+    timerRestShort: "Descanso",
+    timerStartBtn: "Iniciar",
+    timerPauseBtn: "Pausar",
+    timerResumeBtn: "Reanudar",
+    timerResetBtn: "Reiniciar",
+    timerFinishBtn: "Finalizar entrenamiento",
+    timerWorkPhase: "Trabajo",
+    timerRestPhase: "Descanso",
+    timerRoundOf: "Ronda {n} de {total}",
+    timerCompleteLabel: "¡Todas las rondas completadas!",
     recordRestLabel: "Día de descanso",
     recordDoneLabel: "Completado",
     recordingLabel: "Grabando…",
@@ -1749,6 +1839,9 @@ const STR = {
     manualNameLabel: "¿Qué hiciste?",
     manualNamePlaceholder: "ej. Flexiones",
     manualTypeLabel: "Tipo",
+    typeCardio: "Cardio",
+    typeWeightTraining: "Pesas",
+    typeInterval: "Intervalos",
     manualVolumeLabel: "Series, repeticiones o duración",
     manualVolumePlaceholder: "ej. 10 x 10, o 45 min",
     manualNotesLabel: "Notas (opcional)",
@@ -1762,6 +1855,9 @@ const STR = {
     planNameLabel: "¿Qué estás planificando?",
     planTargetRepsLabel: "Repeticiones objetivo",
     planPaceLabel: "Ritmo objetivo (min/mi, ej. 9:30)",
+    intervalRoundsLabel: "Rondas",
+    intervalWorkLabel: "Duración de la ronda (min:seg)",
+    intervalRestLabel: "Duración del descanso (min:seg)",
     workoutPlannedToast: "Entrenamiento planificado",
   }
 };
@@ -1843,17 +1939,20 @@ const SESSION_TIP = {
   run: {en:"Keep it steady — an easy, conversational pace works.", es:"Mantén un ritmo constante y cómodo, que te permita conversar."},
   strength: {en:"Focus on form and control through each set.", es:"Concéntrate en la forma y el control en cada serie."},
   hike: {en:"Bring water and take the hills at your own pace.", es:"Lleva agua y toma las subidas a tu propio ritmo."},
+  interval: {en:"Push the work, breathe through the rest — the bell has you covered.", es:"Da todo en el trabajo, respira en el descanso — la campana te avisa."},
   rest: {en:"Recovery is part of the plan — take the day.", es:"La recuperación es parte del plan. Tómate el día."},
 };
 const FOCUS_POINTS = {
   run: {en:['Posture','Breathing rhythm','Pace control'], es:['Postura','Ritmo de respiración','Control del ritmo']},
   strength: {en:['Form','Full range of motion','Controlled tempo'], es:['Forma','Rango de movimiento completo','Tempo controlado']},
   hike: {en:['Footing','Steady pace','Hydration'], es:['Pisada','Ritmo constante','Hidratación']},
+  interval: {en:['Pacing effort','Fast recovery','Consistent rounds'], es:['Dosificar el esfuerzo','Recuperación rápida','Rondas constantes']},
 };
 const SUMMARY_NOTE = {
   run: {en:"Nice work — that's another session logged. Your legs may feel it tomorrow.", es:"Buen trabajo — otra sesión registrada. Puede que lo sientas mañana en las piernas."},
   strength: {en:"Solid session. That's strength you get to keep.", es:"Buena sesión. Esa fuerza es tuya para quedártela."},
   hike: {en:"Time outside counts too. Well done.", es:"El tiempo al aire libre también cuenta. Bien hecho."},
+  interval: {en:"Rounds done. That's real work.", es:"Rondas completas. Eso es trabajo real."},
 };
 const REVIEW_RATING_LABELS = {
   en: ['😩 Rough', '😕 Tough', '🙂 OK', '💪 Good', '🔥 Great'],
@@ -2112,6 +2211,7 @@ function writeDaySlot(date, slot){
 /* ---------------- user-planned workouts (today or any future date) ---------------- */
 function planCustomWorkout(key, opts){
   const session = ses(opts.type, opts.title, opts.detail||'', opts.title, opts.detail||'');
+  if(opts.interval) session.interval = opts.interval; // {rounds, workSec, restSec} -- read by the interval timer
   writeDaySlot(parseDateKey(key), {p: session, c: null, completed: false, isCustom: true});
   if(opts.target){
     const target = {};
@@ -2643,7 +2743,7 @@ function renderHome(){
     recLabel.textContent = L.recordDoneLabel;
   } else {
     recIcon.innerHTML = TYPE_ICON[eff.t];
-    recLabel.textContent = L.recordActionLabel;
+    recLabel.textContent = eff.t==='interval' ? L.startTimerLabel : L.recordActionLabel;
   }
 }
 
@@ -2689,6 +2789,7 @@ function applyProgressionResult(session, logged){
 /* ---------------- log performance sheet ---------------- */
 function openLogPerformance(){
   const eff = todaySession();
+  if(eff.t==='interval'){ openIntervalTimer(); return; }
   state._pendingSession = eff;
   const target = getProgressionTarget(eff, state.intensityIdx);
   document.getElementById('logPerfWeightSection').hidden = eff.t!=='strength';
@@ -2728,6 +2829,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
 
 document.getElementById('recordBtn').addEventListener('click', function(){
   if(this.classList.contains('disabled') || this.classList.contains('done') || this.classList.contains('recording')) return;
+  if(todaySession().t==='interval'){ openIntervalTimer(); return; }
   this.classList.add('recording');
   document.getElementById('recordLabel').textContent = STR[state.lang].recordingLabel;
   setTimeout(openLogPerformance, 900);
@@ -2761,6 +2863,164 @@ function startWorkout(logged){
   saveProfileToCloud(); // streak / totals just changed
   showScreen('summary');
 }
+
+/* ---------------- interval timer ---------------- */
+let timerState = null; // {rounds, workSec, restSec, roundNum, phase, remainingMs, running, started, tickHandle, lastBeepSecond}
+let audioCtx = null;
+function getAudioCtx(){
+  if(!audioCtx){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(AC) audioCtx = new AC();
+  }
+  return audioCtx;
+}
+function playTone(freq, durationMs){
+  try{
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime+0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+durationMs/1000);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + durationMs/1000 + 0.02);
+  }catch(e){ /* audio is a nice-to-have, never block the timer over it */ }
+}
+function playBeep(){ playTone(880, 140); }
+function playBell(){ playTone(1200, 500); }
+
+function defaultTimerState(cfg){
+  return {
+    rounds: cfg.rounds, workSec: cfg.workSec, restSec: cfg.restSec,
+    roundNum: 1, phase: 'work', remainingMs: cfg.workSec*1000,
+    running: false, started: false, tickHandle: null, lastBeepSecond: null,
+  };
+}
+function openIntervalTimer(){
+  const eff = todaySession();
+  const cfg = eff.interval || {rounds:6, workSec:180, restSec:60};
+  timerState = defaultTimerState(cfg);
+  renderTimerUI();
+  document.getElementById('intervalTimerOverlay').hidden = false;
+}
+function closeIntervalTimer(){
+  stopTimerTick();
+  document.getElementById('intervalTimerOverlay').hidden = true;
+}
+document.getElementById('closeIntervalTimer').addEventListener('click', closeIntervalTimer);
+
+function renderTimerUI(){
+  const L = STR[state.lang];
+  const ts = timerState;
+  if(!ts) return;
+  document.getElementById('timerRoundsVal').textContent = ts.rounds;
+  document.getElementById('timerWorkVal').textContent = fmtClock(ts.workSec);
+  document.getElementById('timerRestVal').textContent = fmtClock(ts.restSec);
+  document.getElementById('timerConfigRow').style.display = ts.started ? 'none' : 'flex';
+  const phaseEl = document.getElementById('timerPhaseLabel');
+  const roundEl = document.getElementById('timerRoundLabel');
+  const displayEl = document.getElementById('timerDisplay');
+  const startPauseBtn = document.getElementById('timerStartPauseBtn');
+  const resetBtn = document.getElementById('timerResetBtn');
+  const finishBtn = document.getElementById('timerFinishBtn');
+  if(ts.phase==='done'){
+    phaseEl.textContent = L.timerCompleteLabel;
+    phaseEl.className = 'timer-phase';
+    roundEl.textContent = '';
+    displayEl.textContent = '🎉';
+    displayEl.classList.remove('urgent');
+    startPauseBtn.hidden = true;
+    resetBtn.hidden = true;
+    finishBtn.hidden = false;
+    return;
+  }
+  finishBtn.hidden = true;
+  startPauseBtn.hidden = false;
+  resetBtn.hidden = false;
+  phaseEl.textContent = ts.phase==='work' ? L.timerWorkPhase : L.timerRestPhase;
+  phaseEl.className = 'timer-phase ' + ts.phase;
+  roundEl.textContent = L.timerRoundOf.replace('{n}', ts.roundNum).replace('{total}', ts.rounds);
+  const secLeft = Math.max(0, Math.ceil(ts.remainingMs/1000));
+  displayEl.textContent = fmtClock(secLeft);
+  displayEl.classList.toggle('urgent', secLeft<=3);
+  startPauseBtn.textContent = ts.running ? L.timerPauseBtn : (ts.started ? L.timerResumeBtn : L.timerStartBtn);
+}
+function stopTimerTick(){
+  if(timerState && timerState.tickHandle){ clearInterval(timerState.tickHandle); timerState.tickHandle = null; }
+}
+function advanceTimerPhase(){
+  const ts = timerState;
+  playBell();
+  ts.lastBeepSecond = null;
+  if(ts.phase==='work'){
+    ts.phase = 'rest';
+    ts.remainingMs = ts.restSec*1000;
+  } else if(ts.roundNum >= ts.rounds){
+    stopTimerTick();
+    ts.phase = 'done';
+    ts.running = false;
+    renderTimerUI();
+    return;
+  } else {
+    ts.roundNum += 1;
+    ts.phase = 'work';
+    ts.remainingMs = ts.workSec*1000;
+  }
+  renderTimerUI();
+}
+function startTimerTick(){
+  const ts = timerState;
+  ts.running = true;
+  ts.started = true;
+  ts.lastTick = Date.now();
+  ts.tickHandle = setInterval(()=>{
+    const now = Date.now();
+    const elapsed = now - ts.lastTick;
+    ts.lastTick = now;
+    ts.remainingMs -= elapsed;
+    const secLeft = Math.ceil(ts.remainingMs/1000);
+    if(secLeft<=3 && secLeft>=1 && secLeft!==ts.lastBeepSecond){
+      ts.lastBeepSecond = secLeft;
+      playBeep();
+    }
+    if(ts.remainingMs<=0){ advanceTimerPhase(); return; }
+    renderTimerUI();
+  }, 200);
+  renderTimerUI();
+}
+document.getElementById('timerStartPauseBtn').addEventListener('click', ()=>{
+  if(!timerState) return;
+  if(timerState.running){ stopTimerTick(); timerState.running=false; renderTimerUI(); }
+  else{ startTimerTick(); }
+});
+document.getElementById('timerResetBtn').addEventListener('click', ()=>{
+  if(!timerState) return;
+  stopTimerTick();
+  timerState = defaultTimerState({rounds:timerState.rounds, workSec:timerState.workSec, restSec:timerState.restSec});
+  renderTimerUI();
+});
+document.querySelectorAll('#intervalTimerOverlay [data-field]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(!timerState || timerState.started) return; // locked once the timer has actually run
+    const field = btn.getAttribute('data-field');
+    const step = parseInt(btn.getAttribute('data-step'),10);
+    if(field==='rounds') timerState.rounds = Math.max(1, timerState.rounds+step);
+    if(field==='work'){ timerState.workSec = Math.max(10, timerState.workSec+step); timerState.remainingMs = timerState.workSec*1000; }
+    if(field==='rest') timerState.restSec = Math.max(5, timerState.restSec+step);
+    renderTimerUI();
+  });
+});
+document.getElementById('timerFinishBtn').addEventListener('click', ()=>{
+  const rounds = timerState ? timerState.rounds : null;
+  closeIntervalTimer();
+  // Interval workouts have no weight/reps/time to capture -- the round count from the timer itself
+  // IS the performance data, so skip Log Performance and go straight into completion + review.
+  startWorkout({rounds});
+});
 
 /* ---------------- post-workout review ---------------- */
 function ratingToFeel(rating){
@@ -3212,9 +3472,10 @@ function toggleTodayCompleted(){
 let manualEntryType = 'strength';
 let createMarkCompleted = true;
 function renderManualTypeRow(){
+  const L = STR[state.lang];
   const row = document.getElementById('manualTypeRow');
-  const types = ['run','strength','hike','other'];
-  row.innerHTML = types.map(t=>`<button type="button" class="type-btn ${t===manualEntryType?'sel':''}" data-type="${t}">${MANUAL_TYPE_ICON[t]}</button>`).join('');
+  const types = [['run', L.typeCardio], ['strength', L.typeWeightTraining], ['interval', L.typeInterval]];
+  row.innerHTML = types.map(([t,label])=>`<button type="button" class="type-btn ${t===manualEntryType?'sel':''}" data-type="${t}">${MANUAL_TYPE_ICON[t]}<span>${label}</span></button>`).join('');
   row.querySelectorAll('.type-btn').forEach(b=>{
     b.addEventListener('click', ()=>{ manualEntryType = b.getAttribute('data-type'); renderManualTypeRow(); updateCreateTargetSections(); });
   });
@@ -3227,6 +3488,10 @@ function updateCreateTargetSections(){
   document.getElementById('createWeightSection').hidden = !(showTargets && manualEntryType==='strength');
   document.getElementById('createRepsSection').hidden = !(showTargets && manualEntryType==='strength');
   document.getElementById('createPaceSection').hidden = !(showTargets && manualEntryType==='run');
+  document.getElementById('createIntervalSection').hidden = manualEntryType!=='interval';
+  // An interval workout is completed by actually running its timer, not by a checkbox, so the
+  // usual "Mark as Completed" toggle doesn't apply here -- always plan it, never a plain log entry.
+  document.getElementById('createCompletedSection').hidden = manualEntryType==='interval';
 }
 function updateCreateCompletedUI(){
   const dd = getDayData(parseDateKey(state.openDayKey));
@@ -3258,6 +3523,11 @@ function openManualEntry(){
   document.getElementById('createWeightInput').value = '';
   document.getElementById('createRepsInput').value = '';
   document.getElementById('createPaceInput').value = '';
+  document.getElementById('createRoundsInput').value = '6';
+  document.getElementById('createWorkDurationInput').value = '';
+  document.getElementById('createWorkDurationInput').placeholder = '3:00';
+  document.getElementById('createRestDurationInput').value = '';
+  document.getElementById('createRestDurationInput').placeholder = '1:00';
   renderManualTypeRow();
   updateCreateCompletedUI();
   document.getElementById('manualEntryOverlay').hidden = false;
@@ -3279,12 +3549,35 @@ function readCreateTarget(){
   }
   return null;
 }
+function parseMinSec(str, fallbackSec){
+  const m = str.trim().match(/^(\d+):(\d\d)$/);
+  return m ? parseInt(m[1],10)*60 + parseInt(m[2],10) : fallbackSec;
+}
+function readIntervalConfig(){
+  const rounds = Math.max(1, parseInt(document.getElementById('createRoundsInput').value,10) || 6);
+  const workSec = parseMinSec(document.getElementById('createWorkDurationInput').value || document.getElementById('createWorkDurationInput').placeholder, 180);
+  const restSec = parseMinSec(document.getElementById('createRestDurationInput').value || document.getElementById('createRestDurationInput').placeholder, 60);
+  return {rounds, workSec, restSec};
+}
 document.getElementById('saveManualEntry').addEventListener('click', ()=>{
   const nameInput = document.getElementById('manualNameInput');
   const name = nameInput.value.trim();
   if(!name || !state.openDayKey){ nameInput.style.borderColor = 'var(--accent)'; nameInput.focus(); return; }
   const volume = document.getElementById('manualVolumeInput').value.trim();
   const notes = document.getElementById('manualNotesInput').value.trim();
+
+  if(manualEntryType==='interval'){
+    // An interval workout is completed by running its timer, not logged as an instant fact --
+    // it always becomes the day's actual planned session (like Plan a Workout), never a plain entry.
+    planCustomWorkout(state.openDayKey, {title:name, type:'interval', detail:volume, target:null, interval:readIntervalConfig()});
+    closeManualEntry();
+    renderDayDetail();
+    renderCalendar();
+    renderWeek();
+    renderHome();
+    showToast(STR[state.lang].workoutPlannedToast);
+    return;
+  }
 
   if(createMarkCompleted){
     const log = ensureDayLog(state.openDayKey);
@@ -3544,6 +3837,10 @@ function fmtTime(mins){
 function fmtPace(paceMin){
   return `${Math.floor(paceMin)}:${String(Math.round((paceMin%1)*60)).padStart(2,'0')}`;
 }
+function fmtClock(totalSec){
+  const m = Math.floor(totalSec/60), s = totalSec%60;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
 function getSummaryStats(session, intensityIdx, logged){
   const L = STR[state.lang];
   const tier = INTENSITY[intensityIdx];
@@ -3585,6 +3882,17 @@ function getSummaryStats(session, intensityIdx, logged){
       {l:L.statTime, v:'58 min'},
       {l:L.statElevGain, v:'410 ft'},
       {l:L.statAvgPace, v:'18:07/mi'},
+    ];
+  }
+  if(session.t==='interval'){
+    const cfg = session.interval || {rounds:6, workSec:180, restSec:60};
+    const rounds = (logged && logged.rounds) || cfg.rounds;
+    const totalMin = (rounds*cfg.workSec + Math.max(0,rounds-1)*cfg.restSec)/60;
+    return [
+      {l:L.intervalRoundsLabel, v: rounds},
+      {l:L.timerWorkShort, v: fmtClock(cfg.workSec)},
+      {l:L.timerRestShort, v: fmtClock(cfg.restSec)},
+      {l:L.statTime, v: fmtTime(totalMin)},
     ];
   }
   return [];
@@ -3749,6 +4057,9 @@ async function cloudSavePlannedSession(dateStr, session){
     if(!row) return;
     await sb.from('workout_logs').update({
       planned_type: session.t, planned_title: session.en.title, planned_detail: session.en.detail || null,
+      planned_interval_rounds: session.interval ? session.interval.rounds : null,
+      planned_interval_work_sec: session.interval ? session.interval.workSec : null,
+      planned_interval_rest_sec: session.interval ? session.interval.restSec : null,
     }).eq('id', row.id);
   }catch(e){ /* best-effort */ }
 }
@@ -3757,14 +4068,17 @@ async function cloudClearPlannedSession(dateStr){
   try{
     const row = await cloudGetOrCreateWorkoutLog(dateStr);
     if(!row) return;
-    await sb.from('workout_logs').update({ planned_type:null, planned_title:null, planned_detail:null }).eq('id', row.id);
+    await sb.from('workout_logs').update({
+      planned_type:null, planned_title:null, planned_detail:null,
+      planned_interval_rounds:null, planned_interval_work_sec:null, planned_interval_rest_sec:null,
+    }).eq('id', row.id);
   }catch(e){ /* best-effort */ }
 }
 async function loadWorkoutDataFromCloud(){
   if(!state.userId) return;
   try{
     const { data: logs } = await sb.from('workout_logs')
-      .select('log_date, completed_override, planned_type, planned_title, planned_detail, manual_entries(id, name, type, volume, notes)')
+      .select('log_date, completed_override, planned_type, planned_title, planned_detail, planned_interval_rounds, planned_interval_work_sec, planned_interval_rest_sec, manual_entries(id, name, type, volume, notes)')
       .eq('user_id', state.userId);
     if(logs){
       logs.forEach(row=>{
@@ -3772,6 +4086,9 @@ async function loadWorkoutDataFromCloud(){
         const customSession = row.planned_type
           ? ses(row.planned_type, row.planned_title, row.planned_detail||'', row.planned_title, row.planned_detail||'')
           : null;
+        if(customSession && row.planned_type==='interval' && row.planned_interval_rounds!=null){
+          customSession.interval = {rounds: row.planned_interval_rounds, workSec: row.planned_interval_work_sec, restSec: row.planned_interval_rest_sec};
+        }
         state.dayLog[key] = {
           completedOverride: row.completed_override,
           manualEntries: (row.manual_entries||[]).map(e=>(

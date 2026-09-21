@@ -51,10 +51,20 @@ integrations.
       the app falls back to a harmless offline stub instead of crashing —
       auth actions surface a clear error instead of silently pretending to
       succeed.
-- [ ] **Not yet synced to the cloud:** per-day workout logs, manual entries,
-      recorded Log-Performance data, and progression targets. These still
-      live only in local `state` for the session — the tables exist in
-      `supabase/schema.sql` and are ready for this next.
+- [x] **Deployed to GitHub Pages**, auto-deploying on every push to `main`.
+      This is the real app now — the Claude Artifact copy is frozen as a
+      historical reference (its sandbox blocks the Supabase script).
+- [x] **Workout data syncs to the cloud.** Completed-day toggles, manual
+      "+ Add a Workout" entries, structured performance data from the
+      real Record Workout flow, and progression targets all read/write
+      through to `workout_logs`, `manual_entries`, `recorded_sessions`,
+      and `progression_targets`. Signing in on a different device/browser
+      pulls all of it back down — verified with a two-session round-trip
+      test (`tests/test_cloud_sync.js`) using a shared in-memory mock
+      backend, not just "the call didn't throw."
+      All writes are fire-and-forget (best-effort, wrapped in try/catch) —
+      local state stays the source of truth for the current session even
+      if a write fails, so nothing blocks on network latency.
 - [ ] Paywall UI + entitlement gating.
 - [ ] RevenueCat SDK integration + subscription products configured in App
       Store Connect / Play Console.
@@ -90,9 +100,16 @@ npm test
 | [Google Play Console](https://play.google.com/console/) | $25 one-time | Android Play Store distribution |
 | [RevenueCat](https://www.revenuecat.com) | free tier to start | cross-platform subscription management |
 
+## Known limitation worth knowing about
+
+"Today" is currently pinned to a fixed simulated date (carried over from the
+original Artifact prototype's demo scaffolding), not the real calendar date —
+`TODAY_DATE`/`WEEK_MONDAY` in `www/index.html`. This doesn't break anything
+built so far (cloud sync round-trips correctly against whatever "today" the
+app considers it to be), but it means the app won't naturally advance to a
+new day on its own yet. Worth fixing before real day-to-day use — not yet
+scheduled.
+
 ## Next step
 
-Sync per-day workout logs, manual entries, recorded performance data, and
-progression targets to Supabase (the `workout_logs`, `manual_entries`,
-`recorded_sessions`, and `progression_targets` tables already exist in
-`supabase/schema.sql` for this). After that: paywall UI + RevenueCat.
+Paywall UI + entitlement gating, then RevenueCat SDK integration.

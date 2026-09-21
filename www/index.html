@@ -2676,6 +2676,7 @@ function startWorkout(logged){
   // override could silently hide a workout the user just completed for real.
   const log = state.dayLog[dateKey(TODAY_DATE)];
   if(log) log.completedOverride = null;
+  cloudSetCompletedOverride(dateKey(TODAY_DATE), null);
   state.doneCount = computeDoneCount();
   state.streak += 1;
   if(state.streak > state.bestStreak) state.bestStreak = state.streak;
@@ -2688,6 +2689,11 @@ function startWorkout(logged){
   state._lastSession = eff;
   state._lastLogged = logged || null;
   applyProgressionResult(eff, logged);
+  if(logged){
+    cloudInsertRecordedSession(dateKey(TODAY_DATE), eff, logged);
+    cloudSaveProgressionTarget(eff, getProgressionTarget(eff, state.intensityIdx));
+  }
+  saveProfileToCloud(); // streak / totals just changed
   showScreen('summary');
 }
 
@@ -3082,6 +3088,7 @@ document.getElementById('dayCompleteToggle').addEventListener('click', ()=>{
   } else {
     ensureDayLog(state.openDayKey).completedOverride = next;
   }
+  cloudSetCompletedOverride(state.openDayKey, next);
   renderDayDetail();
   renderCalendar();
   renderWeek();
@@ -3090,6 +3097,7 @@ document.getElementById('dayCompleteToggle').addEventListener('click', ()=>{
 function toggleTodayCompleted(){
   const next = !isTodayDone();
   ensureDayLog(dateKey(TODAY_DATE)).completedOverride = next;
+  cloudSetCompletedOverride(dateKey(TODAY_DATE), next);
   state.todayCompleted = next;
   state.doneCount = computeDoneCount();
   renderHome();
@@ -3133,11 +3141,13 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
   const volume = document.getElementById('manualVolumeInput').value.trim();
   const notes = document.getElementById('manualNotesInput').value.trim();
   const log = ensureDayLog(state.openDayKey);
-  log.manualEntries.push({id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes});
+  const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes};
+  log.manualEntries.push(entry);
   // A fresh log is the clearest possible "this happened" signal, so it should always win over any
   // earlier explicit "mark as not done" toggle -- otherwise a stale override could silently hide a
   // workout the user just told the app they did.
   log.completedOverride = null;
+  cloudInsertManualEntry(state.openDayKey, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
   const idxInCurrentWeek = currentWeekIdxFor(state.openDayKey);
   if(idxInCurrentWeek>=0 && idxInCurrentWeek!==TODAY_IDX){
     state.week[idxInCurrentWeek].completed = true;
@@ -3153,7 +3163,9 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
 function deleteManualEntry(key, id){
   const log = state.dayLog[key];
   if(!log) return;
+  const entry = log.manualEntries.find(e=>e.id===id);
   log.manualEntries = log.manualEntries.filter(e=>e.id!==id);
+  if(entry && entry.supabaseId) cloudDeleteManualEntry(entry.supabaseId);
   state.doneCount = computeDoneCount();
   if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail();
   renderCalendar();
@@ -3507,6 +3519,106 @@ async function saveProfileToCloud(){
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }
 }
 
+/* ---------------- cloud sync: workout logs, manual entries, recorded sessions, progression ---------------- */
+async function cloudGetOrCreateWorkoutLog(dateStr){
+  if(!state.userId) return null;
+  try{
+    const { data: existing } = await sb.from('workout_logs').select('id, completed_override')
+      .eq('user_id', state.userId).eq('log_date', dateStr).maybeSingle();
+    if(existing) return existing;
+    const { data: created, error } = await sb.from('workout_logs')
+      .insert({ user_id: state.userId, log_date: dateStr }).select('id, completed_override').maybeSingle();
+    if(error) throw error;
+    return created;
+  }catch(e){ return null; }
+}
+async function cloudSetCompletedOverride(dateStr, value){
+  if(!state.userId) return;
+  try{
+    const row = await cloudGetOrCreateWorkoutLog(dateStr);
+    if(!row) return;
+    await sb.from('workout_logs').update({ completed_override: value }).eq('id', row.id);
+  }catch(e){ /* best-effort */ }
+}
+async function cloudInsertManualEntry(dateStr, entry){
+  if(!state.userId) return null;
+  try{
+    const row = await cloudGetOrCreateWorkoutLog(dateStr);
+    if(!row) return null;
+    // A fresh manual log clears any stale "not done" override, mirroring the local logic in the
+    // saveManualEntry handler below.
+    await sb.from('workout_logs').update({ completed_override: null }).eq('id', row.id);
+    const { data, error } = await sb.from('manual_entries').insert({
+      workout_log_id: row.id, name: entry.name, type: entry.type, volume: entry.volume, notes: entry.notes,
+    }).select('id').maybeSingle();
+    if(error) throw error;
+    return data ? data.id : null;
+  }catch(e){ return null; }
+}
+async function cloudDeleteManualEntry(supabaseId){
+  if(!state.userId || !supabaseId) return;
+  try{ await sb.from('manual_entries').delete().eq('id', supabaseId); }catch(e){ /* best-effort */ }
+}
+async function cloudInsertRecordedSession(dateStr, session, logged){
+  if(!state.userId || !logged) return;
+  try{
+    await sb.from('recorded_sessions').insert({
+      user_id: state.userId, log_date: dateStr, session_type: session.t, session_title: session.en.title,
+      weight: logged.weight ?? null, reps: logged.reps ?? null, time_min: logged.time ?? null, feel: logged.feel ?? null,
+    });
+  }catch(e){ /* best-effort */ }
+}
+async function cloudSaveProgressionTarget(session, target){
+  if(!state.userId || !target) return;
+  try{
+    await sb.from('progression_targets').upsert({
+      user_id: state.userId, session_key: progressionKey(session),
+      weight: target.weight ?? null, reps: target.reps ?? null, pace_min: target.pace ?? null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,session_key' });
+  }catch(e){ /* best-effort */ }
+}
+async function loadWorkoutDataFromCloud(){
+  if(!state.userId) return;
+  try{
+    const { data: logs } = await sb.from('workout_logs')
+      .select('log_date, completed_override, manual_entries(id, name, type, volume, notes)')
+      .eq('user_id', state.userId);
+    if(logs){
+      logs.forEach(row=>{
+        const key = row.log_date; // Postgres `date` serializes as 'YYYY-MM-DD', same shape as dateKey()
+        state.dayLog[key] = {
+          completedOverride: row.completed_override,
+          manualEntries: (row.manual_entries||[]).map(e=>(
+            { id:'m'+e.id, supabaseId:e.id, name:e.name, type:e.type, volume:e.volume||'', notes:e.notes||'' }
+          )),
+          session: null,
+        };
+        // The current (fixed demo) week's non-today slots track completion on state.week[i].completed
+        // directly rather than through dayLog -- mirror the override there too so the Home week-strip
+        // (which reads state.week directly) agrees with Day Detail / Calendar (which read dayLog).
+        const idx = currentWeekIdxFor(key);
+        if(idx>=0 && idx!==TODAY_IDX && typeof row.completed_override==='boolean'){
+          state.week[idx].completed = row.completed_override;
+        }
+      });
+    }
+    const { data: targets } = await sb.from('progression_targets').select('*').eq('user_id', state.userId);
+    if(targets){
+      const prog = {};
+      targets.forEach(t=>{
+        const entry = {};
+        if(t.weight!=null) entry.weight = t.weight;
+        if(t.reps!=null) entry.reps = t.reps;
+        if(t.pace_min!=null) entry.pace = t.pace_min;
+        prog[t.session_key] = entry;
+      });
+      state.progression = prog;
+    }
+    state.doneCount = computeDoneCount();
+  }catch(e){ /* local state remains authoritative if this fails */ }
+}
+
 document.getElementById('googleSignInBtn').addEventListener('click', async function(){
   const btn = this;
   if(btn.disabled) return;
@@ -3570,6 +3682,7 @@ document.getElementById('emailSignupBtn').addEventListener('click', async functi
       state.userName = email.split('@')[0];
       state.userId = data.user.id;
       await loadProfileFromCloud(); // overwrites userName if a real full_name is on file
+      await loadWorkoutDataFromCloud();
       showScreen('loading');
     }
   }catch(err){
@@ -3587,7 +3700,7 @@ sb.auth.onAuthStateChange((event, session)=>{
     state.userEmail = session.user.email;
     state.userName = session.user.email.split('@')[0];
     state.userId = session.user.id;
-    loadProfileFromCloud().then(()=> showScreen('home'));
+    loadProfileFromCloud().then(loadWorkoutDataFromCloud).then(()=> showScreen('home'));
   }
   if(event==='SIGNED_OUT'){
     state.signedIn = false;
@@ -3686,6 +3799,7 @@ showScreen('welcome');
       state.userName = session.user.email.split('@')[0];
       state.userId = session.user.id;
       await loadProfileFromCloud();
+      await loadWorkoutDataFromCloud();
       applyLang();
       showScreen('home');
     }

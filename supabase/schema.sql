@@ -97,6 +97,22 @@ create table if not exists progression_targets (
   primary key (user_id, session_key)
 );
 
+-- personal_records: user-entered lift PRs -- a self-reported baseline, kept as a full history
+-- (not overwritten in place) so progress on a given lift can be seen over time. The app also uses
+-- these to seed a starting progression target for an exercise it has no real session data for yet.
+create table if not exists personal_records (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  exercise text not null,
+  value numeric not null,
+  unit text default 'lb',
+  created_at timestamptz default now()
+);
+alter table personal_records enable row level security;
+drop policy if exists "own personal records" on personal_records;
+create policy "own personal records" on personal_records
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 -- ---------------------------------------------------------------------------
 -- subscriptions: synced from RevenueCat webhooks. This is the source of truth
 -- for whether a user's account currently has paid access ("entitlement").

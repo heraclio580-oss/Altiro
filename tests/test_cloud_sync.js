@@ -10,7 +10,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 // Two separate JSDOM "sessions" below share ONE of these (one `db`), which is what lets this test
 // prove real write-in-session-A / read-in-session-B persistence, not just "the call didn't throw."
 function makeSharedBackend(){
-  const db = { profiles:{}, workout_logs:{}, manual_entries:{}, recorded_sessions:[], progression_targets:{} };
+  const db = { profiles:{}, workout_logs:{}, manual_entries:{}, recorded_sessions:[], progression_targets:{}, personal_records:{} };
   const authUsers = {};
   let nextId = 1;
   const newId = () => 'id' + (nextId++);
@@ -62,6 +62,14 @@ function makeSharedBackend(){
           if(pendingDelete){ const f=filters.find(x=>x[0]==='id'); if(f) delete db.manual_entries[f[1]]; return {data:null, error:null}; }
         }
         if(table==='recorded_sessions' && pendingInsert){ db.recorded_sessions.push(pendingInsert); return {data:null, error:null}; }
+        if(table==='personal_records'){
+          if(pendingInsert){ const id=newId(); db.personal_records[id]={id,...pendingInsert}; return {data:{id}, error:null}; }
+          if(pendingDelete){ const f=filters.find(x=>x[0]==='id'); if(f) delete db.personal_records[f[1]]; return {data:null, error:null}; }
+          const f = filters.find(x=>x[0]==='user_id');
+          return {data: Object.values(db.personal_records).filter(r=>!f || r.user_id===f[1]).map(r=>({
+            id:r.id, exercise:r.exercise, value:r.value, unit:r.unit, created_at: r.created_at || new Date().toISOString(),
+          })), error:null};
+        }
         if(table==='progression_targets'){
           if(pendingUpsert){
             const key = pendingUpsert.payload.user_id+'|'+pendingUpsert.payload.session_key;
@@ -219,6 +227,15 @@ function openSession(backend){
   docA.getElementById('closeDayDetail').click();
   await wait(10);
 
+  // Add a lift PR -- should sync to personal_records.
+  goPillA('progress');
+  await wait(20);
+  docA.getElementById('prExerciseInput').value = 'Deadlift';
+  docA.getElementById('prValueInput').value = '315';
+  docA.getElementById('addPrBtn').click();
+  await wait(60);
+  console.log('PR synced to cloud:', Object.values(backend.db.personal_records).some(r=>r.exercise==='Deadlift' && r.value===315) ? 'OK' : 'FAIL');
+
   // ---- Session B: a FRESH page load, same backend -- sign in and confirm everything round-trips ----
   const domB = openSession(backend);
   await wait(80);
@@ -255,6 +272,12 @@ function openSession(backend){
   docB.querySelector('#weekStrip .day-cell[data-day="6"]').click();
   await wait(20);
   console.log('Session B: Sunday\'s interval workout title round-trips:', docB.getElementById('dayDetailPlanRow').textContent.includes('Heavy Bag Rounds') ? 'OK' : 'FAIL');
+  docB.getElementById('closeDayDetail').click();
+  await wait(10);
+
+  goPillB('progress');
+  await wait(20);
+  console.log('Session B: the Deadlift PR from Session A round-trips correctly:', docB.getElementById('prList').textContent.includes('Deadlift') && docB.getElementById('prList').textContent.includes('315') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');
   process.exit(0);

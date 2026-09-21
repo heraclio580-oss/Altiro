@@ -1009,6 +1009,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
           <div class="barchart" id="progBarChart"></div>
           <div class="week-detail-card" id="progWeekDetail"></div>
         </div>
+        <div class="sheet-section" style="margin-top:26px;">
+          <div class="st-label" data-i18n="prSectionLabel"></div>
+          <div id="prList"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <input type="text" class="text-input" id="prExerciseInput">
+            <input type="number" inputmode="decimal" class="text-input" id="prValueInput" style="max-width:84px;">
+          </div>
+          <button class="btn btn-ghost" id="addPrBtn" style="margin-top:10px;width:100%;" data-i18n="addPrBtn"></button>
+        </div>
       </div>
     </div>
   </section>
@@ -1622,6 +1631,13 @@ const STR = {
     totalWorkoutsLabel: "Total Workouts",
     totalDistanceLabel: "Total Distance",
     last4WeeksLabel: "Last 4 Weeks",
+    prSectionLabel: "Personal Records",
+    prExercisePlaceholder: "Exercise, e.g. Bench Press",
+    prValuePlaceholder: "lb",
+    addPrBtn: "+ Add a PR",
+    noPrsLoggedLabel: "No PRs logged yet — add your first lift below.",
+    prBestBadge: "PR",
+    prAddedToast: "PR saved",
     barLabel3: "3 Wk Ago", barLabel2: "2 Wk Ago", barLabel1: "Last Wk", barLabelNow: "Now",
     barLabelNAgo: "{n} Wk Ago",
     weekDetailWorkoutsLabel: "Workouts",
@@ -1814,6 +1830,13 @@ const STR = {
     totalWorkoutsLabel: "Entrenamientos totales",
     totalDistanceLabel: "Distancia total",
     last4WeeksLabel: "Últimas 4 semanas",
+    prSectionLabel: "Récords personales",
+    prExercisePlaceholder: "Ejercicio, ej. Press de banca",
+    prValuePlaceholder: "lb",
+    addPrBtn: "+ Agregar un récord",
+    noPrsLoggedLabel: "Aún no hay récords registrados — agrega tu primero abajo.",
+    prBestBadge: "RP",
+    prAddedToast: "Récord guardado",
     barLabel3: "Hace 3 sem", barLabel2: "Hace 2 sem", barLabel1: "Sem pasada", barLabelNow: "Ahora",
     barLabelNAgo: "Hace {n} sem",
     weekDetailWorkoutsLabel: "Entrenamientos",
@@ -2037,6 +2060,7 @@ const defaultState = () => ({
   progSelectedOffset:0,
   dayLog:{},
   progression:{},
+  prs:[],
   openDayKey:null,
   planWeeksLoaded:PLAN_INITIAL_WEEKS,
   notifications:true,
@@ -3677,6 +3701,68 @@ function renderProgress(){
       <div class="wd-stat"><div class="l">${L.weekDetailWorkoutsLabel}</div><div class="v">${sel.workouts}</div></div>
       <div class="wd-stat"><div class="l">${L.weekDetailDistanceLabel}</div><div class="v">${sel.distance.toFixed(1)} mi</div></div>
     </div>`;
+  renderPRs();
+}
+
+/* ---------------- personal records (lift PRs) ---------------- */
+function bestPrValueFor(exercise){
+  const key = exercise.trim().toLowerCase();
+  return state.prs.filter(p=>p.exercise.trim().toLowerCase()===key).reduce((max,p)=>Math.max(max,p.value), -Infinity);
+}
+// Entering a PR is an explicit, deliberate signal from the user -- more current and more trusted
+// than an intensity-tier guess (getProgressionTarget seeds one of those the moment Home simply
+// renders a session title, which happens constantly, so "only fill gaps" would almost never
+// actually fire). A PR always updates that exercise's suggested weight; any existing rep target
+// is left alone, since the PR is just a weight number, not a full working-set prescription.
+function applyPRToProgression(exercise, value){
+  const session = {t:'strength', en:{title:exercise}};
+  const key = progressionKey(session);
+  const existing = state.progression[key];
+  const target = {weight: value, reps: (existing && existing.reps) || 5};
+  state.progression[key] = target;
+  cloudSaveProgressionTarget(session, target);
+}
+function renderPRs(){
+  const L = STR[state.lang];
+  document.getElementById('prExerciseInput').placeholder = L.prExercisePlaceholder;
+  document.getElementById('prValueInput').placeholder = state.weightUnit;
+  const listEl = document.getElementById('prList');
+  const sorted = state.prs.slice().sort((a,b)=> b.createdAt - a.createdAt);
+  listEl.innerHTML = sorted.length ? sorted.map(pr=>{
+    const isBest = pr.value === bestPrValueFor(pr.exercise);
+    const dateStr = new Date(pr.createdAt).toLocaleDateString(state.lang==='es'?'es-ES':'en-US', {month:'short', day:'numeric'});
+    return `<div class="manual-entry">
+      <div class="body">
+        <div class="n">${escapeHtml(pr.exercise)}${isBest?` <span style="color:var(--accent);font-size:10px;font-weight:700;letter-spacing:0.06em;">${L.prBestBadge}</span>`:''}</div>
+        <div class="v">${pr.value} ${pr.unit} · ${dateStr}</div>
+      </div>
+      <button class="del" data-pr-del="${pr.id}" type="button">${ICONS.trash}</button>
+    </div>`;
+  }).join('') : `<div class="footer-note" style="text-align:left;padding:2px 0;">${L.noPrsLoggedLabel}</div>`;
+  listEl.querySelectorAll('[data-pr-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=> deletePR(btn.getAttribute('data-pr-del')));
+  });
+}
+document.getElementById('addPrBtn').addEventListener('click', ()=>{
+  const exerciseInput = document.getElementById('prExerciseInput');
+  const exercise = exerciseInput.value.trim();
+  const value = parseFloat(document.getElementById('prValueInput').value);
+  if(!exercise || !(value>0)){ exerciseInput.style.borderColor = 'var(--accent)'; exerciseInput.focus(); return; }
+  exerciseInput.style.borderColor = '';
+  const pr = {id:'pr'+Date.now()+Math.random().toString(36).slice(2,7), exercise, value, unit:state.weightUnit, createdAt:Date.now()};
+  state.prs.push(pr);
+  applyPRToProgression(exercise, value);
+  cloudInsertPR(pr).then(supabaseId=>{ if(supabaseId) pr.supabaseId = supabaseId; });
+  document.getElementById('prExerciseInput').value = '';
+  document.getElementById('prValueInput').value = '';
+  renderPRs();
+  showToast(STR[state.lang].prAddedToast);
+});
+function deletePR(id){
+  const pr = state.prs.find(p=>p.id===id);
+  state.prs = state.prs.filter(p=>p.id!==id);
+  if(pr && pr.supabaseId) cloudDeletePR(pr.supabaseId);
+  renderPRs();
 }
 document.getElementById('progWeeksPrev').addEventListener('click', ()=>{
   if(state.progWindowEnd>PROG_MIN_WINDOW_END){
@@ -4050,6 +4136,32 @@ async function cloudSaveProgressionTarget(session, target){
     }, { onConflict: 'user_id,session_key' });
   }catch(e){ /* best-effort */ }
 }
+async function cloudInsertPR(pr){
+  if(!state.userId) return null;
+  try{
+    const { data, error } = await sb.from('personal_records').insert({
+      user_id: state.userId, exercise: pr.exercise, value: pr.value, unit: pr.unit,
+    }).select('id').maybeSingle();
+    if(error) throw error;
+    return data ? data.id : null;
+  }catch(e){ return null; }
+}
+async function cloudDeletePR(supabaseId){
+  if(!state.userId || !supabaseId) return;
+  try{ await sb.from('personal_records').delete().eq('id', supabaseId); }catch(e){ /* best-effort */ }
+}
+async function loadPRsFromCloud(){
+  if(!state.userId) return;
+  try{
+    const { data } = await sb.from('personal_records').select('id, exercise, value, unit, created_at').eq('user_id', state.userId);
+    if(data){
+      state.prs = data.map(r=>({
+        id:'pr'+r.id, supabaseId:r.id, exercise:r.exercise, value:r.value, unit:r.unit||'lb',
+        createdAt: new Date(r.created_at).getTime(),
+      }));
+    }
+  }catch(e){ /* local state remains authoritative if this fails */ }
+}
 async function cloudSavePlannedSession(dateStr, session){
   if(!state.userId) return;
   try{
@@ -4194,6 +4306,7 @@ document.getElementById('emailSignupBtn').addEventListener('click', async functi
       state.userId = data.user.id;
       await loadProfileFromCloud(); // overwrites userName if a real full_name is on file
       await loadWorkoutDataFromCloud();
+      await loadPRsFromCloud();
       showScreen('loading');
     }
   }catch(err){
@@ -4211,7 +4324,7 @@ sb.auth.onAuthStateChange((event, session)=>{
     state.userEmail = session.user.email;
     state.userName = session.user.email.split('@')[0];
     state.userId = session.user.id;
-    loadProfileFromCloud().then(loadWorkoutDataFromCloud).then(()=> showScreen('home'));
+    loadProfileFromCloud().then(loadWorkoutDataFromCloud).then(loadPRsFromCloud).then(()=> showScreen('home'));
   }
   if(event==='SIGNED_OUT'){
     state.signedIn = false;
@@ -4311,6 +4424,7 @@ showScreen('welcome');
       state.userId = session.user.id;
       await loadProfileFromCloud();
       await loadWorkoutDataFromCloud();
+      await loadPRsFromCloud();
       applyLang();
       showScreen('home');
     }

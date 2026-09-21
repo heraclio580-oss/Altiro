@@ -4,7 +4,7 @@ const { JSDOM } = require('jsdom');
 
 function freshDom(){
   const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
-  return new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/' });
+  return new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/', beforeParse(window){ window.__ALTIRO_TEST_TODAY__ = '2026-09-18'; } });
 }
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 function dump(doc){
@@ -41,6 +41,16 @@ function dump(doc){
   await wait(10);
   goPill('week'); await wait(20);
   console.log('Closing without Apply leaves the real week/plan untouched (still 3-day pattern):', doc.querySelector('.plan-row[data-day="1"][data-week-idx="0"] .prow-title').textContent==='Rest Day' ? 'OK' : 'FAIL');
+
+  // --- Mark Wednesday done for real (past days default to NOT completed now -- no more fabricated
+  // demo history -- so "already done" has to be established through the app's own affordances) ---
+  goPill('home'); await wait(20);
+  doc.querySelector('#weekStrip .day-cell[data-day="2"]').click();
+  await wait(20);
+  doc.getElementById('dayCompleteToggle').click();
+  await wait(10);
+  doc.getElementById('closeDayDetail').click();
+  await wait(10);
 
   // --- Now actually change to a 5-day week (Mon-Fri) and Apply ---
   goPill('home'); await wait(20);

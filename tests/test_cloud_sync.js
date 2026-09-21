@@ -104,7 +104,10 @@ function makeSharedBackend(){
 function openSession(backend){
   const dom = new JSDOM(html, {
     runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/',
-    beforeParse(window){ window.supabase = { createClient: () => backend.createClient() }; },
+    beforeParse(window){
+      window.supabase = { createClient: () => backend.createClient() };
+      window.__ALTIRO_TEST_TODAY__ = '2026-09-18';
+    },
   });
   return dom;
 }

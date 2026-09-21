@@ -1764,8 +1764,18 @@ const DAY_NAMES_SHORT = {en:['MON','TUE','WED','THU','FRI','SAT','SUN'], es:['LU
 const DAY_NAMES_FULL = {en:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], es:['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']};
 const MONTHS_SHORT = {en:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], es:['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']};
 const MONTHS_FULL = {en:['January','February','March','April','May','June','July','August','September','October','November','December'], es:['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']};
-const TODAY_IDX = 4;
-const WEEK_MONDAY = new Date(2026,8,14);
+// Real "today" -- tests pin this via window.__ALTIRO_TEST_TODAY__ (set before the app script
+// runs) so the suite stays deterministic; production always falls through to the real clock.
+function getRealToday(){
+  const override = (typeof window!=='undefined') && window.__ALTIRO_TEST_TODAY__;
+  const d = override ? new Date(override) : new Date();
+  d.setHours(0,0,0,0);
+  return d;
+}
+const REAL_TODAY = getRealToday();
+const TODAY_IDX = (REAL_TODAY.getDay()+6)%7; // JS getDay() is Sun=0..Sat=6; convert to Mon=0..Sun=6
+const WEEK_MONDAY = new Date(REAL_TODAY);
+WEEK_MONDAY.setDate(REAL_TODAY.getDate() - TODAY_IDX);
 function weekDates(offset){
   const days=[];
   for(let i=0;i<7;i++){ const d=new Date(WEEK_MONDAY); d.setDate(d.getDate()+offset*7+i); days.push(d); }
@@ -1908,7 +1918,10 @@ function buildWeek(focusIdx){
   for(let i=0;i<7;i++){
     if(state.trainingDays.includes(i)){
       const src = pool[slot % pool.length];
-      week.push({p:{...src.p}, c:{...src.c}, completed: i<TODAY_IDX});
+      // Past training days default to NOT completed -- there's no real record for them yet, and
+      // claiming they're done would fabricate history. loadWorkoutDataFromCloud() overlays the
+      // real completed_override wherever one actually exists once cloud data loads.
+      week.push({p:{...src.p}, c:{...src.c}, completed: false});
       slot++;
     } else {
       week.push({p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:true});
@@ -1964,11 +1977,6 @@ function dayStatus(i){
 function ensureWeek(){
   if(!state.week){
     state.week = buildWeek(state.focusRatio);
-    if(!state._seeded){
-      const missedCandidate = state.trainingDays.find(i => i < TODAY_IDX);
-      if(missedCandidate !== undefined) state.week[missedCandidate].completed = false;
-      state._seeded = true;
-    }
     state.doneCount = computeDoneCount();
   }
 }

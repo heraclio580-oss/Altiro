@@ -4,7 +4,7 @@ const { JSDOM } = require('jsdom');
 
 function freshDom(){
   const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
-  return new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/' });
+  return new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/', beforeParse(window){ window.__ALTIRO_TEST_TODAY__ = '2026-09-18'; } });
 }
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
@@ -35,6 +35,16 @@ function setSliderToWeightsOnly(doc, window){
     await wait(50);
     const doc = window.document;
     const goPill = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
+
+    // Past days default to NOT completed now (no more fabricated demo history), so "Wednesday is
+    // already done" has to be established for real through the app's own affordances first.
+    goPill('home'); await wait(20);
+    doc.querySelector('#weekStrip .day-cell[data-day="2"]').click();
+    await wait(20);
+    doc.getElementById('dayCompleteToggle').click();
+    await wait(10);
+    doc.getElementById('closeDayDetail').click();
+    await wait(10);
 
     goPill('week'); await wait(20);
     const before = dump(doc);

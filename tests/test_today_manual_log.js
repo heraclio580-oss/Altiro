@@ -3,7 +3,7 @@ const path = require('path');
 const { JSDOM } = require('jsdom');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
-const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/' });
+const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/', beforeParse(window){ window.__ALTIRO_TEST_TODAY__ = '2026-09-18'; } });
 const { window } = dom;
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 

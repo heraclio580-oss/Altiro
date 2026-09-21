@@ -1,0 +1,9 @@
+{
+  "appId": "com.altiro.app",
+  "appName": "Altiro",
+  "webDir": "www",
+  "backgroundColor": "#0a0a0a",
+  "server": {
+    "androidScheme": "https"
+  }
+}

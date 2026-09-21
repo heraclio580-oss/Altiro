@@ -176,12 +176,13 @@ function openSession(backend){
   await wait(20);
   docA.querySelector('#weekStrip .day-cell[data-day="5"]').click();
   await wait(20);
-  docA.getElementById('ddPlanWorkoutBtn').click();
+  docA.getElementById('addWorkoutBtn').click();
   await wait(20);
-  docA.getElementById('planNameInput').value = 'Weekend Trail Run';
-  docA.getElementById('planNameInput').dispatchEvent(new domA.window.Event('input', {bubbles:true}));
-  [...docA.querySelectorAll('#planTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='run').click();
-  docA.getElementById('savePlanWorkout').click();
+  // Saturday is future, so "Mark as Completed" already smart-defaults to OFF (planning mode).
+  docA.getElementById('manualNameInput').value = 'Weekend Trail Run';
+  docA.getElementById('manualNameInput').dispatchEvent(new domA.window.Event('input', {bubbles:true}));
+  [...docA.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='run').click();
+  docA.getElementById('saveManualEntry').click();
   await wait(60);
   console.log('Planned workout synced to cloud (planned_title set on a workout_logs row):',
     Object.values(backend.db.workout_logs).some(r=>r.planned_title==='Weekend Trail Run') ? 'OK' : 'FAIL');

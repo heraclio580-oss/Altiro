@@ -1162,7 +1162,7 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
       </div>
 
       <div class="sheet-section">
-        <div class="st-label" data-i18n="manualNameLabel"></div>
+        <div class="st-label" id="createNameLabel" data-i18n="manualNameLabel"></div>
         <input type="text" class="text-input" id="manualNameInput">
       </div>
 
@@ -1179,6 +1179,31 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
       <div class="sheet-section">
         <div class="st-label" data-i18n="manualNotesLabel"></div>
         <input type="text" class="text-input" id="manualNotesInput">
+      </div>
+
+      <div class="sheet-section" id="createCompletedSection">
+        <div class="toggle-row">
+          <div>
+            <div class="tt" data-i18n="markCompleteTitle"></div>
+            <div class="ts" data-i18n="createCompletedSub"></div>
+          </div>
+          <div class="toggle" id="createCompletedToggle"><div class="knob"></div></div>
+        </div>
+      </div>
+
+      <div class="sheet-section" id="createWeightSection">
+        <div class="st-label" data-i18n="logPerfWeightLabel"></div>
+        <input type="number" inputmode="numeric" class="text-input" id="createWeightInput">
+      </div>
+
+      <div class="sheet-section" id="createRepsSection">
+        <div class="st-label" data-i18n="planTargetRepsLabel"></div>
+        <input type="number" inputmode="numeric" class="text-input" id="createRepsInput">
+      </div>
+
+      <div class="sheet-section" id="createPaceSection">
+        <div class="st-label" data-i18n="planPaceLabel"></div>
+        <input type="text" class="text-input" id="createPaceInput" placeholder="9:30">
       </div>
 
       <button class="btn btn-primary sheet-apply" id="saveManualEntry" data-i18n="saveWorkoutBtn"></button>
@@ -1215,49 +1240,6 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
       </div>
 
       <button class="btn btn-primary sheet-apply" id="saveLogPerf" data-i18n="saveWorkoutBtn"></button>
-    </div>
-  </div>
-
-  <!-- PLAN A WORKOUT SHEET (overlay) -->
-  <div class="sheet-overlay" id="planWorkoutOverlay" hidden>
-    <div class="sheet-panel">
-      <div class="sheet-handle"></div>
-      <div class="sheet-head">
-        <span class="label" data-i18n="planWorkoutTitle"></span>
-        <button class="iconbtn" id="closePlanWorkout"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
-      </div>
-
-      <div class="sheet-section">
-        <div class="st-label" data-i18n="planNameLabel"></div>
-        <input type="text" class="text-input" id="planNameInput">
-      </div>
-
-      <div class="sheet-section">
-        <div class="st-label" data-i18n="manualTypeLabel"></div>
-        <div class="type-select-row" id="planTypeRow"></div>
-      </div>
-
-      <div class="sheet-section">
-        <div class="st-label" data-i18n="manualVolumeLabel"></div>
-        <input type="text" class="text-input" id="planVolumeInput">
-      </div>
-
-      <div class="sheet-section" id="planWeightSection">
-        <div class="st-label" data-i18n="logPerfWeightLabel"></div>
-        <input type="number" inputmode="numeric" class="text-input" id="planWeightInput">
-      </div>
-
-      <div class="sheet-section" id="planRepsSection">
-        <div class="st-label" data-i18n="planTargetRepsLabel"></div>
-        <input type="number" inputmode="numeric" class="text-input" id="planRepsInput">
-      </div>
-
-      <div class="sheet-section" id="planPaceSection">
-        <div class="st-label" data-i18n="planPaceLabel"></div>
-        <input type="text" class="text-input" id="planPaceInput" placeholder="9:30">
-      </div>
-
-      <button class="btn btn-primary sheet-apply" id="savePlanWorkout" data-i18n="planWorkoutSaveBtn"></button>
     </div>
   </div>
 
@@ -1582,9 +1564,10 @@ const STR = {
     markCompleteTitle: "Completed",
     markCompleteSub: "Mark this day as done or not",
     loggedWorkoutsLabel: "Logged Workouts",
-    addWorkoutBtn: "+ Add a Workout",
+    addWorkoutBtn: "+ Create Workout",
     noWorkoutsLoggedLabel: "Nothing logged for this day yet.",
-    manualEntryTitle: "Log a Workout",
+    manualEntryTitle: "Create Workout",
+    createCompletedSub: "On: log it as done. Off: just plan it for later.",
     manualNameLabel: "What did you do?",
     manualNamePlaceholder: "e.g. Push-ups",
     manualTypeLabel: "Type",
@@ -1597,13 +1580,10 @@ const STR = {
     dragHandleHint: "Tap and hold to move this workout to another day",
     nextWeekLabel: "Next Week",
     planLimitReached: "You've planned as far ahead as this preview supports.",
-    planWorkoutBtn: "Plan a Workout",
     resetPlanBtn: "Reset to Suggested Plan",
-    planWorkoutTitle: "Plan a Workout",
     planNameLabel: "What are you planning?",
     planTargetRepsLabel: "Target Reps",
     planPaceLabel: "Target Pace (min/mi, e.g. 9:30)",
-    planWorkoutSaveBtn: "Save Plan",
     workoutPlannedToast: "Workout planned",
   },
   es: {
@@ -1759,9 +1739,10 @@ const STR = {
     markCompleteTitle: "Completado",
     markCompleteSub: "Marca este día como hecho o no",
     loggedWorkoutsLabel: "Entrenamientos registrados",
-    addWorkoutBtn: "+ Agregar un entrenamiento",
+    addWorkoutBtn: "+ Crear entrenamiento",
     noWorkoutsLoggedLabel: "Aún no hay nada registrado este día.",
-    manualEntryTitle: "Registrar un entrenamiento",
+    manualEntryTitle: "Crear entrenamiento",
+    createCompletedSub: "Activado: regístralo como hecho. Desactivado: solo planifícalo para después.",
     manualNameLabel: "¿Qué hiciste?",
     manualNamePlaceholder: "ej. Flexiones",
     manualTypeLabel: "Tipo",
@@ -1774,13 +1755,10 @@ const STR = {
     dragHandleHint: "Mantén presionado para mover este entrenamiento a otro día",
     nextWeekLabel: "Próxima semana",
     planLimitReached: "Has planificado con la mayor anticipación que permite esta vista previa.",
-    planWorkoutBtn: "Planificar un entrenamiento",
     resetPlanBtn: "Restablecer al plan sugerido",
-    planWorkoutTitle: "Planificar un entrenamiento",
     planNameLabel: "¿Qué estás planificando?",
     planTargetRepsLabel: "Repeticiones objetivo",
     planPaceLabel: "Ritmo objetivo (min/mi, ej. 9:30)",
-    planWorkoutSaveBtn: "Guardar plan",
     workoutPlannedToast: "Entrenamiento planificado",
   }
 };
@@ -3098,11 +3076,8 @@ function renderDayDetail(){
   if(dd.p.t!=='rest'){
     actionsHtml += `<button class="watch-demo-btn" id="ddWatchDemoBtn" type="button" style="margin-top:12px;">${ICONS.play}${L.watchDemoBtn}</button>`;
   }
-  if(dd.isToday || dd.isFuture){
-    actionsHtml += `<button class="btn btn-ghost" id="ddPlanWorkoutBtn" type="button" style="width:100%;margin-top:12px;">${L.planWorkoutBtn}</button>`;
-    if(dd.isCustom){
-      actionsHtml += `<button class="btn-text" id="ddResetPlanBtn" type="button" style="width:100%;margin-top:8px;">${L.resetPlanBtn}</button>`;
-    }
+  if(dd.isCustom && (dd.isToday || dd.isFuture)){
+    actionsHtml += `<button class="btn-text" id="ddResetPlanBtn" type="button" style="width:100%;margin-top:12px;">${L.resetPlanBtn}</button>`;
   }
   let rescheduleIdx = -1;
   if(status==='missed'){
@@ -3130,8 +3105,6 @@ function renderDayDetail(){
     closeDayDetail();
     openExerciseDetail(dd.p, activeScreen);
   });
-  const ddPlanBtn = document.getElementById('ddPlanWorkoutBtn');
-  if(ddPlanBtn) ddPlanBtn.addEventListener('click', ()=> openPlanWorkout(state.openDayKey));
   const ddResetBtn = document.getElementById('ddResetPlanBtn');
   if(ddResetBtn) ddResetBtn.addEventListener('click', ()=>{
     resetToSuggestedPlan(state.openDayKey);
@@ -3216,17 +3189,47 @@ function toggleTodayCompleted(){
 }
 
 /* ---------------- manual workout entry sheet ---------------- */
+// "Create Workout" is the single entry point for telling the app about a workout, whether it
+// already happened (logged, like the old "+ Add a Workout") or hasn't yet (planned, like the old
+// "Plan a Workout"). The "Mark as Completed" toggle is what used to be two separate buttons.
 let manualEntryType = 'strength';
+let createMarkCompleted = true;
 function renderManualTypeRow(){
   const row = document.getElementById('manualTypeRow');
   const types = ['run','strength','hike','other'];
   row.innerHTML = types.map(t=>`<button type="button" class="type-btn ${t===manualEntryType?'sel':''}" data-type="${t}">${MANUAL_TYPE_ICON[t]}</button>`).join('');
   row.querySelectorAll('.type-btn').forEach(b=>{
-    b.addEventListener('click', ()=>{ manualEntryType = b.getAttribute('data-type'); renderManualTypeRow(); });
+    b.addEventListener('click', ()=>{ manualEntryType = b.getAttribute('data-type'); renderManualTypeRow(); updateCreateTargetSections(); });
   });
 }
+function updateCreateNameLabel(){
+  document.getElementById('createNameLabel').textContent = createMarkCompleted ? STR[state.lang].manualNameLabel : STR[state.lang].planNameLabel;
+}
+function updateCreateTargetSections(){
+  const showTargets = !createMarkCompleted && (manualEntryType==='strength' || manualEntryType==='run');
+  document.getElementById('createWeightSection').hidden = !(showTargets && manualEntryType==='strength');
+  document.getElementById('createRepsSection').hidden = !(showTargets && manualEntryType==='strength');
+  document.getElementById('createPaceSection').hidden = !(showTargets && manualEntryType==='run');
+}
+function updateCreateCompletedUI(){
+  const dd = getDayData(parseDateKey(state.openDayKey));
+  // Smart default only -- past/today default to "already done", future defaults to "planned" --
+  // but the toggle stays available either way. Logging a future day as done (backfilling, an
+  // early workout before a midnight boundary, whatever the reason) should still be possible.
+  createMarkCompleted = !dd.isFuture;
+  document.getElementById('createCompletedToggle').classList.toggle('on', createMarkCompleted);
+  updateCreateNameLabel();
+  updateCreateTargetSections();
+}
+document.getElementById('createCompletedToggle').addEventListener('click', function(){
+  createMarkCompleted = !createMarkCompleted;
+  this.classList.toggle('on', createMarkCompleted);
+  updateCreateNameLabel();
+  updateCreateTargetSections();
+});
 function openManualEntry(){
   manualEntryType = 'strength';
+  createMarkCompleted = true;
   const L = STR[state.lang];
   document.getElementById('manualNameInput').value = '';
   document.getElementById('manualNameInput').placeholder = L.manualNamePlaceholder;
@@ -3235,7 +3238,11 @@ function openManualEntry(){
   document.getElementById('manualVolumeInput').placeholder = L.manualVolumePlaceholder;
   document.getElementById('manualNotesInput').value = '';
   document.getElementById('manualNotesInput').placeholder = L.manualNotesPlaceholder;
+  document.getElementById('createWeightInput').value = '';
+  document.getElementById('createRepsInput').value = '';
+  document.getElementById('createPaceInput').value = '';
   renderManualTypeRow();
+  updateCreateCompletedUI();
   document.getElementById('manualEntryOverlay').hidden = false;
 }
 function closeManualEntry(){
@@ -3243,31 +3250,49 @@ function closeManualEntry(){
 }
 document.getElementById('addWorkoutBtn').addEventListener('click', openManualEntry);
 document.getElementById('closeManualEntry').addEventListener('click', closeManualEntry);
+function readCreateTarget(){
+  if(manualEntryType==='strength'){
+    const w = parseFloat(document.getElementById('createWeightInput').value);
+    const r = parseFloat(document.getElementById('createRepsInput').value);
+    return (w>0 && r>0) ? {weight:w, reps:r} : null;
+  }
+  if(manualEntryType==='run'){
+    const m = document.getElementById('createPaceInput').value.trim().match(/^(\d+):(\d\d)$/);
+    return m ? {pace: parseInt(m[1],10) + parseInt(m[2],10)/60} : null;
+  }
+  return null;
+}
 document.getElementById('saveManualEntry').addEventListener('click', ()=>{
   const nameInput = document.getElementById('manualNameInput');
   const name = nameInput.value.trim();
   if(!name || !state.openDayKey){ nameInput.style.borderColor = 'var(--accent)'; nameInput.focus(); return; }
   const volume = document.getElementById('manualVolumeInput').value.trim();
   const notes = document.getElementById('manualNotesInput').value.trim();
-  const log = ensureDayLog(state.openDayKey);
-  const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes};
-  log.manualEntries.push(entry);
-  // A fresh log is the clearest possible "this happened" signal, so it should always win over any
-  // earlier explicit "mark as not done" toggle -- otherwise a stale override could silently hide a
-  // workout the user just told the app they did.
-  log.completedOverride = null;
-  cloudInsertManualEntry(state.openDayKey, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
-  const idxInCurrentWeek = currentWeekIdxFor(state.openDayKey);
-  if(idxInCurrentWeek>=0 && idxInCurrentWeek!==TODAY_IDX){
-    state.week[idxInCurrentWeek].completed = true;
+
+  if(createMarkCompleted){
+    const log = ensureDayLog(state.openDayKey);
+    const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes};
+    log.manualEntries.push(entry);
+    // A fresh log is the clearest possible "this happened" signal, so it should always win over any
+    // earlier explicit "mark as not done" toggle -- otherwise a stale override could silently hide a
+    // workout the user just told the app they did.
+    log.completedOverride = null;
+    cloudInsertManualEntry(state.openDayKey, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
+    const idxInCurrentWeek = currentWeekIdxFor(state.openDayKey);
+    if(idxInCurrentWeek>=0 && idxInCurrentWeek!==TODAY_IDX){
+      state.week[idxInCurrentWeek].completed = true;
+    }
+    state.doneCount = computeDoneCount();
+  } else {
+    planCustomWorkout(state.openDayKey, {title:name, type:manualEntryType, detail:volume, target:readCreateTarget()});
   }
-  state.doneCount = computeDoneCount();
+
   closeManualEntry();
   renderDayDetail();
   renderCalendar();
   renderWeek();
   renderHome();
-  showToast(STR[state.lang].workoutLoggedToast);
+  showToast(STR[state.lang][createMarkCompleted ? 'workoutLoggedToast' : 'workoutPlannedToast']);
 });
 function deleteManualEntry(key, id){
   const log = state.dayLog[key];
@@ -3281,64 +3306,6 @@ function deleteManualEntry(key, id){
   renderHome();
   renderWeek();
 }
-
-/* ---------------- plan a workout (today or any future date) ---------------- */
-let planEntryType = 'strength';
-function renderPlanTypeRow(){
-  const row = document.getElementById('planTypeRow');
-  const types = ['run','strength','hike','other'];
-  row.innerHTML = types.map(t=>`<button type="button" class="type-btn ${t===planEntryType?'sel':''}" data-type="${t}">${MANUAL_TYPE_ICON[t]}</button>`).join('');
-  row.querySelectorAll('.type-btn').forEach(b=>{
-    b.addEventListener('click', ()=>{ planEntryType = b.getAttribute('data-type'); renderPlanTypeRow(); updatePlanTargetSections(); });
-  });
-}
-function updatePlanTargetSections(){
-  document.getElementById('planWeightSection').hidden = planEntryType!=='strength';
-  document.getElementById('planRepsSection').hidden = planEntryType!=='strength';
-  document.getElementById('planPaceSection').hidden = planEntryType!=='run';
-}
-function openPlanWorkout(key){
-  state._planningKey = key;
-  planEntryType = 'strength';
-  const L = STR[state.lang];
-  document.getElementById('planNameInput').value = '';
-  document.getElementById('planNameInput').placeholder = L.manualNamePlaceholder;
-  document.getElementById('planNameInput').style.borderColor = '';
-  document.getElementById('planVolumeInput').value = '';
-  document.getElementById('planVolumeInput').placeholder = L.manualVolumePlaceholder;
-  document.getElementById('planWeightInput').value = '';
-  document.getElementById('planRepsInput').value = '';
-  document.getElementById('planPaceInput').value = '';
-  renderPlanTypeRow();
-  updatePlanTargetSections();
-  document.getElementById('planWorkoutOverlay').hidden = false;
-}
-function closePlanWorkout(){
-  document.getElementById('planWorkoutOverlay').hidden = true;
-}
-document.getElementById('closePlanWorkout').addEventListener('click', closePlanWorkout);
-document.getElementById('savePlanWorkout').addEventListener('click', ()=>{
-  const nameInput = document.getElementById('planNameInput');
-  const name = nameInput.value.trim();
-  if(!name || !state._planningKey){ nameInput.style.borderColor = 'var(--accent)'; nameInput.focus(); return; }
-  const detail = document.getElementById('planVolumeInput').value.trim();
-  let target = null;
-  if(planEntryType==='strength'){
-    const w = parseFloat(document.getElementById('planWeightInput').value);
-    const r = parseFloat(document.getElementById('planRepsInput').value);
-    if(w>0 && r>0) target = {weight:w, reps:r};
-  } else if(planEntryType==='run'){
-    const m = document.getElementById('planPaceInput').value.trim().match(/^(\d+):(\d\d)$/);
-    if(m) target = {pace: parseInt(m[1],10) + parseInt(m[2],10)/60};
-  }
-  planCustomWorkout(state._planningKey, {title:name, type:planEntryType, detail, target});
-  closePlanWorkout();
-  renderDayDetail();
-  renderCalendar();
-  renderWeek();
-  renderHome();
-  showToast(STR[state.lang].workoutPlannedToast);
-});
 
 /* ---------------- progress ---------------- */
 function weekStats(offset){

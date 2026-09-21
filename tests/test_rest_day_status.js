@@ -52,10 +52,14 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('Day Detail status pill for untouched rest day reads "Rest Day":', pillText==='Rest Day' ? 'OK' : `FAIL (${pillText})`);
   console.log('Day Detail status pill has no checkmark icon for untouched rest day:', !doc.querySelector('#dayDetailPlanRow .stpill svg') ? 'OK' : 'FAIL');
 
-  // --- Now submit a manual workout on that rest day via the Day Detail "Add Workout" flow ---
+  // --- Now submit a manual workout on that rest day via the unified "Create Workout" flow ---
   const addBtn = doc.getElementById('addWorkoutBtn');
   addBtn.click();
   await wait(20);
+  // Saturday is a future date, so "Mark as Completed" smart-defaults OFF (planning mode) --
+  // explicitly turn it on since this test is logging it as already done.
+  console.log('"Mark as Completed" defaults OFF for a future date:', !doc.getElementById('createCompletedToggle').classList.contains('on') ? 'OK' : 'FAIL');
+  doc.getElementById('createCompletedToggle').click();
   doc.getElementById('manualNameInput').value = 'Evening Walk';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   doc.getElementById('saveManualEntry').click();

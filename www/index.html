@@ -345,6 +345,21 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .r-sess-line{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-2);}
 .r-sess-line svg{width:13px;height:13px;color:var(--text-3);flex-shrink:0;}
 .r-sess-line b{color:var(--text);font-weight:500;}
+.r-exercise-list{list-style:none;margin:2px 0 0 20px;padding:0;display:flex;flex-direction:column;gap:3px;}
+.r-exercise-list.card{margin-left:0;margin-top:6px;}
+.exercise-log-row{margin:0 0 14px;}
+.exercise-log-row .exercise-log-name{font-size:13px;color:var(--text);font-weight:500;margin-bottom:6px;}
+.exercise-log-row .exercise-log-name span{font-family:var(--font-mono);font-weight:400;color:var(--text-3);font-size:11px;margin-left:6px;}
+.exercise-log-row .exercise-log-inputs{display:flex;gap:8px;}
+.exercise-log-row .exercise-log-inputs .text-input{flex:1;}
+.exercise-log-row.bodyweight .exercise-log-inputs{display:none;}
+.summary-exercises{margin:0 20px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 14px;}
+.summary-exercises .se-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;font-size:12.5px;}
+.summary-exercises .se-row+.se-row{border-top:1px solid var(--divider-soft);}
+.summary-exercises .se-name{color:var(--text);}
+.summary-exercises .se-result{font-family:var(--font-mono);color:var(--text-2);flex-shrink:0;}
+.r-exercise-list li{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--text-3);}
+.r-exercise-list li span{font-family:var(--font-mono);color:var(--text-2);flex-shrink:0;}
 .r-inline-btn{margin-top:11px;}
 .r-inline-btn svg{width:14px;height:14px;flex-shrink:0;}
 .reschedule-actions{margin-top:11px;display:flex;gap:8px;flex-wrap:wrap;}
@@ -1092,6 +1107,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sess" id="summarySessTitle"></div>
     </div>
     <div class="stats-grid" id="summaryStats"></div>
+    <div id="summaryExercisesList" class="summary-exercises" hidden></div>
     <div class="summary-note" id="summaryReviewCard" hidden>
       <div class="st-label" data-i18n="rateWorkoutLabel"></div>
       <input type="range" class="rating-slider" id="reviewRatingSlider" min="1" max="5" value="3">
@@ -1279,6 +1295,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <span class="label" data-i18n="logPerfTitle"></span>
         <button class="iconbtn" id="closeLogPerf"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       </div>
+
+      <div id="logPerfExercisesList"></div>
 
       <div class="sheet-section" id="logPerfWeightSection">
         <div class="st-label" data-i18n="logPerfWeightLabel"></div>
@@ -1612,6 +1630,7 @@ const STR = {
     dayStreakSuffix: "DAY STREAK",
     statDistance: "Distance", statTime: "Time", statPace: "Pace", statTempoTarget: "Tempo Target",
     statTotalVolume: "Total Volume", statSetsReps: "Sets x Reps", statTopSet: "Top Set",
+    statExerciseCount: "Exercises",
     statElevGain: "Elevation Gain", statAvgPace: "Avg Pace",
     navToday: "Today", navPlan: "Plan", navCalendar: "Calendar", navProgress: "Progress", navSettings: "Settings",
     greetingRest: "Rest up, {name}.",
@@ -1642,6 +1661,8 @@ const STR = {
     statProgress: "Next Suggested",
     progressionUpMsg: "Nice work — next time we'll suggest {target}.",
     progressionHoldMsg: "Solid effort — we'll suggest the same {target} next time.",
+    progressionUpMsgExercises: "Nice work — {count} of {total} exercises get heavier next time.",
+    progressionHoldMsgExercises: "Solid effort — we'll suggest the same weights next time.",
     rateWorkoutLabel: "Rate this workout",
     reviewNotesPlaceholder: "Anything you want to remember about today? (optional)",
     submitReviewBtn: "Submit Review",
@@ -1816,6 +1837,7 @@ const STR = {
     dayStreakSuffix: "DÍAS ACTIVOS",
     statDistance: "Distancia", statTime: "Tiempo", statPace: "Ritmo", statTempoTarget: "Objetivo de ritmo",
     statTotalVolume: "Volumen total", statSetsReps: "Series x Reps", statTopSet: "Serie máxima",
+    statExerciseCount: "Ejercicios",
     statElevGain: "Desnivel positivo", statAvgPace: "Ritmo promedio",
     navToday: "Hoy", navPlan: "Plan", navCalendar: "Calendario", navProgress: "Progreso", navSettings: "Ajustes",
     greetingRest: "Descansa, {name}.",
@@ -1846,6 +1868,8 @@ const STR = {
     statProgress: "Próximo objetivo",
     progressionUpMsg: "Buen trabajo — la próxima vez sugeriremos {target}.",
     progressionHoldMsg: "Buen esfuerzo — sugeriremos el mismo {target} la próxima vez.",
+    progressionUpMsgExercises: "Buen trabajo — {count} de {total} ejercicios subirán de peso la próxima vez.",
+    progressionHoldMsgExercises: "Buen esfuerzo — sugeriremos los mismos pesos la próxima vez.",
     rateWorkoutLabel: "Califica este entrenamiento",
     reviewNotesPlaceholder: "¿Algo que quieras recordar sobre hoy? (opcional)",
     submitReviewBtn: "Enviar reseña",
@@ -2055,6 +2079,94 @@ const WEEK_TABLES = [
     {p:ses('rest','Rest Day','','Día de descanso',''), c:ses('run','Easy Walk','20 min','Caminata suave','20 min')},
   ],
 ];
+
+// Real exercise breakdowns for the auto-generated plan's strength sessions -- keyed by the
+// session's stable EN title so every focus table's "Upper Body Strength" etc. shares one
+// definition instead of repeating it. `seedFactor` scales the intensity-tier baseline weight
+// ([95,135,195] lb) so a heavy compound lift and a light accessory move don't start at the same
+// load; bodyweight moves carry no seedFactor/weight at all -- just a sets x reps (or duration)
+// prescription. Exercise `key` is the stable, English-only identity used for progression tracking
+// (see exerciseProgressionKey) and is what a matching Personal Record seeds/updates.
+const STRENGTH_TEMPLATES = {
+  'Full Body Strength': [
+    {key:'Goblet Squat', en:'Goblet Squat', es:'Sentadilla Goblet', sets:3, reps:12, seedFactor:0.7},
+    {key:'Push-Up', en:'Push-Up', es:'Flexión de Pecho', sets:3, reps:12, bodyweight:true},
+    {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:3, reps:12, seedFactor:0.6},
+    {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:45, bodyweight:true},
+  ],
+  'Upper Body Strength': [
+    {key:'Bench Press', en:'Bench Press', es:'Press de Banca', sets:4, reps:10, seedFactor:1.0},
+    {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:4, reps:10, seedFactor:0.6},
+    {key:'Overhead Press', en:'Overhead Press', es:'Press Militar', sets:3, reps:10, seedFactor:0.5},
+    {key:'Bicep Curl', en:'Bicep Curl', es:'Curl de Bíceps', sets:3, reps:12, seedFactor:0.25},
+  ],
+  'Lower Body Strength': [
+    {key:'Back Squat', en:'Back Squat', es:'Sentadilla con Barra', sets:4, reps:8, seedFactor:1.0},
+    {key:'Romanian Deadlift', en:'Romanian Deadlift', es:'Peso Muerto Rumano', sets:3, reps:10, seedFactor:0.8},
+    {key:'Walking Lunge', en:'Walking Lunge', es:'Zancada Caminando', sets:3, reps:12, seedFactor:0.4},
+    {key:'Calf Raise', en:'Calf Raise', es:'Elevación de Talones', sets:3, reps:15, bodyweight:true},
+  ],
+  'Push Day Strength': [
+    {key:'Bench Press', en:'Bench Press', es:'Press de Banca', sets:4, reps:8, seedFactor:1.0},
+    {key:'Overhead Press', en:'Overhead Press', es:'Press Militar', sets:3, reps:10, seedFactor:0.5},
+    {key:'Incline Dumbbell Press', en:'Incline Dumbbell Press', es:'Press Inclinado con Mancuernas', sets:3, reps:10, seedFactor:0.4},
+    {key:'Triceps Dip', en:'Triceps Dip', es:'Fondos de Tríceps', sets:3, reps:12, bodyweight:true},
+  ],
+  'Pull Day Strength': [
+    {key:'Deadlift', en:'Deadlift', es:'Peso Muerto', sets:4, reps:6, seedFactor:1.2},
+    {key:'Pull-Up', en:'Pull-Up', es:'Dominada', sets:3, reps:8, bodyweight:true},
+    {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:3, reps:10, seedFactor:0.6},
+    {key:'Face Pull', en:'Face Pull', es:'Face Pull', sets:3, reps:15, seedFactor:0.2},
+  ],
+  'Core Activation': [
+    {key:'Dead Bug', en:'Dead Bug', es:'Dead Bug', sets:3, reps:10, bodyweight:true},
+    {key:'Bird Dog', en:'Bird Dog', es:'Bird Dog', sets:3, reps:10, bodyweight:true},
+    {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:30, bodyweight:true},
+  ],
+  'Core & Mobility': [
+    {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:30, bodyweight:true},
+    {key:'Cat-Cow', en:'Cat-Cow', es:'Gato-Vaca', sets:2, reps:10, bodyweight:true},
+    {key:"World's Greatest Stretch", en:"World's Greatest Stretch", es:'Estiramiento del Mundo', sets:2, reps:6, bodyweight:true},
+  ],
+  'Core Strength': [
+    {key:'Hanging Knee Raise', en:'Hanging Knee Raise', es:'Elevación de Rodillas Colgado', sets:3, reps:12, bodyweight:true},
+    {key:'Russian Twist', en:'Russian Twist', es:'Giro Ruso', sets:3, reps:20, bodyweight:true},
+    {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:45, bodyweight:true},
+  ],
+  'Hip & Glute Activation': [
+    {key:'Glute Bridge', en:'Glute Bridge', es:'Puente de Glúteos', sets:3, reps:15, bodyweight:true},
+    {key:'Clamshell', en:'Clamshell', es:'Almeja', sets:3, reps:15, bodyweight:true},
+    {key:'Monster Walk', en:'Monster Walk', es:'Caminata del Monstruo', sets:2, reps:10, bodyweight:true},
+  ],
+  'Mobility & Stretch': [
+    {key:'Cat-Cow', en:'Cat-Cow', es:'Gato-Vaca', sets:2, reps:10, bodyweight:true},
+    {key:'Hip Flexor Stretch', en:'Hip Flexor Stretch', es:'Estiramiento de Flexores de Cadera', sets:2, durationSec:30, bodyweight:true},
+    {key:'Thoracic Rotation', en:'Thoracic Rotation', es:'Rotación Torácica', sets:2, reps:8, bodyweight:true},
+  ],
+  'Rest & Stretch': [
+    {key:"Child's Pose", en:"Child's Pose", es:'Postura del Niño', sets:2, durationSec:30, bodyweight:true},
+    {key:'Hamstring Stretch', en:'Hamstring Stretch', es:'Estiramiento de Isquiotibiales', sets:2, durationSec:30, bodyweight:true},
+    {key:'Deep Breathing', en:'Deep Breathing', es:'Respiración Profunda', sets:3, durationSec:60, bodyweight:true},
+  ],
+  'Foam Roll & Cooldown': [
+    {key:'Foam Roll Quads', en:'Foam Roll Quads', es:'Rodillo de Espuma – Cuádriceps', sets:1, durationSec:60, bodyweight:true},
+    {key:'Foam Roll Back', en:'Foam Roll Back', es:'Rodillo de Espuma – Espalda', sets:1, durationSec:60, bodyweight:true},
+    {key:'Standing Forward Fold', en:'Standing Forward Fold', es:'Flexión de Pie Hacia Adelante', sets:2, durationSec:30, bodyweight:true},
+  ],
+};
+// Returns this session's exercise breakdown (localized), or null when it's not a strength
+// session with a known template (e.g. a manually-created strength entry with a free-text name).
+function exercisesForSession(session){
+  if(!session || session.t!=='strength') return null;
+  const tpl = STRENGTH_TEMPLATES[session.en.title];
+  if(!tpl) return null;
+  return tpl.map(ex=>({...ex, name: state.lang==='es' ? ex.es : ex.en}));
+}
+function fmtExercisePrescription(ex){
+  const L = STR[state.lang];
+  const setsPrefix = `${ex.sets} x `;
+  return ex.durationSec!=null ? `${setsPrefix}${fmtClock(ex.durationSec)}` : `${setsPrefix}${ex.reps}`;
+}
 
 function pick(arr, seed){ return arr[seed % arr.length]; }
 function loadLang(){
@@ -2726,7 +2838,11 @@ function renderHome(){
   const tip = (SESSION_TIP[eff.t]||SESSION_TIP.rest)[state.lang];
   const comp = state.week[TODAY_IDX].c; const compL = comp ? ST(comp) : null;
   const canStart = eff.t!=='rest' && !state.todayCompleted;
-  const suggestedTarget = (eff.t==='strength'||eff.t==='run') ? getProgressionTarget(eff, state.intensityIdx) : null;
+  // A structured strength session tracks progression per exercise, not for the session as a whole,
+  // so there's no single "Next Suggested" number to show here anymore -- the exercise list itself
+  // (with its own sets x reps prescription) already represents the plan.
+  const hasExerciseList = !!exercisesForSession(eff);
+  const suggestedTarget = (!hasExerciseList && (eff.t==='strength'||eff.t==='run')) ? getProgressionTarget(eff, state.intensityIdx) : null;
   const suggestedTargetStr = suggestedTarget ? (eff.t==='strength' ? `${suggestedTarget.weight} lb x ${suggestedTarget.reps}` : `${fmtPace(suggestedTarget.pace)}/mi`) : null;
 
   document.getElementById('homeGreeting').textContent = (eff.t==='rest' ? L.greetingRest : L.greetingActive).replace('{name}', state.userName.split(' ')[0]);
@@ -2747,6 +2863,7 @@ function renderHome(){
       <span class="eyebrow">${L.todayLabel} &middot; ${DAY_NAMES_FULL[state.lang][TODAY_IDX]}</span>
     </div>
     <div class="title">${effL.title}${effL.detail?', '+effL.detail:''}</div>
+    ${exerciseListHtml(eff).replace('r-exercise-list', 'r-exercise-list card')}
     <div class="session-tip"><p>${tip}</p></div>
     ${suggestedTargetStr ? `<div class="paired"><span>${L.statProgress}: <b>${suggestedTargetStr}</b></span></div>` : ''}
     ${(eff.t!=='rest' && compL) ? `<div class="paired">${TYPE_ICON[comp.t]}<span>${L.pairedWithInline} <b>${compL.title}${compL.detail?', '+compL.detail:''}</b></span></div>` : ''}
@@ -2826,9 +2943,52 @@ function getProgressionTarget(session, intensityIdx){
   }
   return state.progression[key];
 }
+// Per-exercise progression -- exercise weight targets live in the same state.progression map as
+// whole-session targets, just keyed by the exercise's stable name instead of a session title. This
+// is the same key shape (and the same map) that a matching Personal Record already writes into via
+// applyPRToProgression, so a PR for "Bench Press" and a generated Push Day's "Bench Press" exercise
+// share one progression trail automatically.
+function exerciseProgressionKey(exerciseKey){
+  return 'strength:' + exerciseKey;
+}
+function seedExerciseTarget(ex, intensityIdx){
+  if(ex.bodyweight) return null; // nothing to load/track -- just a sets x reps (or duration) prescription
+  const base = [95,135,195][intensityIdx];
+  return {weight: Math.round(base*(ex.seedFactor||0.5)/5)*5, reps: ex.reps || 10};
+}
+function getExerciseTarget(ex, intensityIdx){
+  const key = exerciseProgressionKey(ex.key);
+  if(!state.progression[key]){
+    const seeded = seedExerciseTarget(ex, intensityIdx);
+    if(!seeded) return null;
+    state.progression[key] = seeded;
+  }
+  return state.progression[key];
+}
+function saveExerciseTarget(exerciseKey, target){
+  state.progression[exerciseProgressionKey(exerciseKey)] = target;
+  cloudSaveProgressionTarget({t:'strength', en:{title:exerciseKey}}, target);
+}
 function applyProgressionResult(session, logged){
   state._lastProgressed = false;
-  if(!logged || (session.t!=='strength' && session.t!=='run')) return;
+  if(!logged) return;
+  if(logged.exercises && logged.exercises.length){
+    // Structured strength session -- advance each exercise independently.
+    let advanced = 0, total = 0;
+    logged.exercises.forEach(res=>{
+      if(res.bodyweight) return;
+      total++;
+      const target = state.progression[exerciseProgressionKey(res.key)];
+      if(!target) return;
+      const met = res.reps >= target.reps && logged.feel !== 'hard';
+      if(met){ target.weight += 5; advanced++; saveExerciseTarget(res.key, target); }
+    });
+    state._lastProgressed = advanced>0;
+    state._lastProgressedCount = advanced;
+    state._lastProgressedTotal = total;
+    return;
+  }
+  if(session.t!=='strength' && session.t!=='run') return;
   const target = getProgressionTarget(session, state.intensityIdx);
   if(!target) return;
   if(session.t==='strength'){
@@ -2847,11 +3007,27 @@ function openLogPerformance(){
   const eff = todaySession();
   if(eff.t==='interval'){ openIntervalTimer(); return; }
   state._pendingSession = eff;
+  const exercises = exercisesForSession(eff);
+  const exercisesListEl = document.getElementById('logPerfExercisesList');
+  if(exercises){
+    exercisesListEl.innerHTML = exercises.map(ex=>{
+      const t = getExerciseTarget(ex, state.intensityIdx);
+      return `<div class="exercise-log-row ${ex.bodyweight?'bodyweight':''}" data-exercise-key="${escapeHtml(ex.key)}">
+        <div class="exercise-log-name">${escapeHtml(ex.name)}<span>${fmtExercisePrescription(ex)}</span></div>
+        <div class="exercise-log-inputs">
+          <input type="number" inputmode="numeric" class="text-input" data-field="weight" placeholder="${state.weightUnit}" value="${t?t.weight:''}">
+          <input type="number" inputmode="numeric" class="text-input" data-field="reps" value="${t?t.reps:ex.reps}">
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    exercisesListEl.innerHTML = '';
+  }
   const target = getProgressionTarget(eff, state.intensityIdx);
-  document.getElementById('logPerfWeightSection').hidden = eff.t!=='strength';
-  document.getElementById('logPerfRepsSection').hidden = eff.t!=='strength';
+  document.getElementById('logPerfWeightSection').hidden = !(eff.t==='strength' && !exercises);
+  document.getElementById('logPerfRepsSection').hidden = !(eff.t==='strength' && !exercises);
   document.getElementById('logPerfTimeSection').hidden = eff.t!=='run';
-  if(eff.t==='strength' && target){
+  if(eff.t==='strength' && !exercises && target){
     document.getElementById('logPerfWeightInput').value = target.weight;
     document.getElementById('logPerfRepsInput').value = target.reps;
   }
@@ -2871,7 +3047,18 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   const eff = state._pendingSession || todaySession();
   const target = getProgressionTarget(eff, state.intensityIdx);
   const logged = {};
-  if(eff.t==='strength'){
+  const exercises = exercisesForSession(eff);
+  if(exercises){
+    logged.exercises = [...document.querySelectorAll('#logPerfExercisesList .exercise-log-row')].map(row=>{
+      const key = row.getAttribute('data-exercise-key');
+      const ex = exercises.find(e=>e.key===key);
+      if(ex.bodyweight) return {key, name: ex.name, bodyweight:true, prescription: fmtExercisePrescription(ex)};
+      const t = getExerciseTarget(ex, state.intensityIdx);
+      const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || (t && t.weight) || 0;
+      const reps = parseFloat(row.querySelector('[data-field="reps"]').value) || (t && t.reps) || ex.reps || 0;
+      return {key, name: ex.name, weight, reps};
+    });
+  } else if(eff.t==='strength'){
     logged.weight = parseFloat(document.getElementById('logPerfWeightInput').value) || (target && target.weight) || 0;
     logged.reps = parseFloat(document.getElementById('logPerfRepsInput').value) || (target && target.reps) || 0;
   }
@@ -3399,6 +3586,11 @@ document.getElementById('calNext').addEventListener('click', ()=>{
 });
 
 /* ---------------- day detail sheet ---------------- */
+function exerciseListHtml(session){
+  const exercises = exercisesForSession(session);
+  if(!exercises) return '';
+  return `<ul class="r-exercise-list">${exercises.map(ex=>`<li>${escapeHtml(ex.name)} <span>${fmtExercisePrescription(ex)}</span></li>`).join('')}</ul>`;
+}
 function planRowHtml(dd, status){
   const L = STR[state.lang];
   const effL = ST(dd.p);
@@ -3411,6 +3603,7 @@ function planRowHtml(dd, status){
     </div>
     <div class="r-sessions">
       <div class="r-sess-line">${TYPE_ICON[dd.p.t]}<b>${effL.title}${effL.detail?', '+effL.detail:''}</b></div>
+      ${exerciseListHtml(dd.p)}
     </div>`;
 }
 function openDayDetail(key){
@@ -3841,12 +4034,9 @@ function bestPrValueFor(exercise){
 // actually fire). A PR always updates that exercise's suggested weight; any existing rep target
 // is left alone, since the PR is just a weight number, not a full working-set prescription.
 function applyPRToProgression(exercise, value){
-  const session = {t:'strength', en:{title:exercise}};
-  const key = progressionKey(session);
-  const existing = state.progression[key];
+  const existing = state.progression[exerciseProgressionKey(exercise)];
   const target = {weight: value, reps: (existing && existing.reps) || 5};
-  state.progression[key] = target;
-  cloudSaveProgressionTarget(session, target);
+  saveExerciseTarget(exercise, target);
 }
 function renderPRs(){
   const L = STR[state.lang];
@@ -4077,16 +4267,22 @@ function getSummaryStats(session, intensityIdx, logged){
   }
   if(session.t==='strength'){
     const mins = parseFloat(session.en.detail) || 30;
+    const stats = [
+      {l:L.statTotalVolume, v: tier.vol.toLocaleString()+' lb'},
+      {l:L.statTime, v: mins+' min'},
+    ];
+    if(logged && logged.exercises){
+      // A structured session's real detail lives in the per-exercise results list, not a single
+      // "top set" line -- see getSummaryExercises() / #summaryExercisesList.
+      stats.push({l:L.statExerciseCount, v: logged.exercises.length});
+      return stats;
+    }
     const setsReps = ['3 x 12','4 x 10','5 x 5'][intensityIdx];
     const weight = (logged && logged.weight) || [95,135,195][intensityIdx];
     const reps = (logged && logged.reps) || [12,10,5][intensityIdx];
     const target = getProgressionTarget(session, intensityIdx);
-    const stats = [
-      {l:L.statTotalVolume, v: tier.vol.toLocaleString()+' lb'},
-      {l:L.statTime, v: mins+' min'},
-      {l:L.statSetsReps, v: setsReps},
-      {l:L.statTopSet, v: `${weight} lb x ${reps}`},
-    ];
+    stats.push({l:L.statSetsReps, v: setsReps});
+    stats.push({l:L.statTopSet, v: `${weight} lb x ${reps}`});
     if(target && state._reviewSubmitted) stats.push({l:L.statProgress, v:`${target.weight} lb`});
     return stats;
   }
@@ -4111,6 +4307,13 @@ function getSummaryStats(session, intensityIdx, logged){
   }
   return [];
 }
+function getSummaryExercises(logged){
+  if(!logged || !logged.exercises) return null;
+  return logged.exercises.map(res=>({
+    name: res.name,
+    result: res.bodyweight ? res.prescription : `${res.weight} lb x ${res.reps}`,
+  }));
+}
 function renderSummary(){
   const L = STR[state.lang];
   const session = state._lastSession || todaySession();
@@ -4119,6 +4322,10 @@ function renderSummary(){
   const logged = state._lastLogged;
   const stats = getSummaryStats(session, state.intensityIdx, logged);
   document.getElementById('summaryStats').innerHTML = stats.map(s=>`<div class="cell"><div class="l">${s.l}</div><div class="v">${s.v}</div></div>`).join('');
+  const exercisesEl = document.getElementById('summaryExercisesList');
+  const exResults = getSummaryExercises(logged);
+  exercisesEl.hidden = !exResults;
+  if(exResults) exercisesEl.innerHTML = exResults.map(r=>`<div class="se-row"><span class="se-name">${escapeHtml(r.name)}</span><span class="se-result">${escapeHtml(r.result)}</span></div>`).join('');
   const noteObj = SUMMARY_NOTE[session.t] || SUMMARY_NOTE.run;
   document.getElementById('summaryNote').textContent = noteObj[state.lang];
   document.getElementById('summaryStreakVal').textContent = `${state.streak} ${L.dayStreakSuffix}`;
@@ -4133,6 +4340,12 @@ function renderSummary(){
     renderReviewRatingLabel();
     reviewCardEl.hidden = false;
     progNoteEl.hidden = true;
+  } else if(logged && logged.exercises){
+    reviewCardEl.hidden = true;
+    const msg = (state._lastProgressed ? L.progressionUpMsgExercises : L.progressionHoldMsgExercises)
+      .replace('{count}', state._lastProgressedCount).replace('{total}', state._lastProgressedTotal);
+    document.getElementById('summaryProgressMsg').textContent = msg;
+    progNoteEl.hidden = false;
   } else if((session.t==='strength'||session.t==='run') && logged){
     reviewCardEl.hidden = true;
     const target = getProgressionTarget(session, state.intensityIdx);
@@ -4251,6 +4464,7 @@ async function cloudInsertRecordedSession(dateStr, session, logged){
       user_id: state.userId, log_date: dateStr, session_type: session.t, session_title: session.en.title,
       weight: logged.weight ?? null, reps: logged.reps ?? null, time_min: logged.time ?? null, feel: logged.feel ?? null,
       rating: logged.rating ?? null, review_notes: logged.notes || null,
+      exercises: logged.exercises || null,
     });
   }catch(e){ /* best-effort */ }
 }

@@ -12,10 +12,26 @@ function submitReview(doc, rating){
   doc.getElementById('reviewRatingSlider').dispatchEvent(new window.Event('input', {bubbles:true}));
   doc.getElementById('submitReviewBtn').click();
 }
+function exerciseRows(doc){
+  return [...doc.querySelectorAll('#logPerfExercisesList .exercise-log-row')];
+}
+function readSeeded(doc){
+  return exerciseRows(doc).map(row => ({
+    key: row.getAttribute('data-exercise-key'),
+    weight: parseFloat(row.querySelector('[data-field="weight"]').value),
+    reps: parseFloat(row.querySelector('[data-field="reps"]').value),
+  }));
+}
+function fillRow(row, weight, reps){
+  row.querySelector('[data-field="weight"]').value = weight;
+  row.querySelector('[data-field="reps"]').value = reps;
+}
 
-// Today's default session (Upper Body Strength) is a strength session, which is exactly what we need
-// to exercise the new Log Performance sheet + post-workout review + progression engine end to end
-// via pure DOM interaction (the app's script is wrapped in an IIFE, so internal state/functions are
+// Today's default session (Upper Body Strength) is a strength session with a real 4-exercise
+// template (Bench Press, Bent-Over Row, Overhead Press, Bicep Curl -- all weighted, none
+// bodyweight), which is exactly what's needed to exercise the new per-exercise Log Performance
+// sheet + post-workout review + per-exercise progression engine end to end via pure DOM
+// interaction (the app's script is wrapped in an IIFE, so internal state/functions are
 // intentionally not exposed on window -- matching every other test file in this suite).
 (async () => {
   await wait(50);
@@ -27,74 +43,68 @@ function submitReview(doc, rating){
 
   const title = doc.getElementById('sessionCard').querySelector('.title').textContent;
   console.log('Today\'s session is a strength session:', title.includes('Upper Body Strength') ? 'OK' : `FAIL (${title})`);
+  console.log('Home shows the exercise list for today\'s session:', doc.getElementById('sessionCard').textContent.includes('Bench Press') ? 'OK' : 'FAIL');
 
   const recordBtn = doc.getElementById('recordBtn');
   console.log('Record button actionable:', !recordBtn.classList.contains('disabled') && !recordBtn.classList.contains('done') ? 'OK' : 'FAIL');
-  console.log('Home shows a Next Suggested hint before recording:', doc.getElementById('sessionCard').textContent.includes('lb') ? 'OK' : 'FAIL');
 
   recordBtn.click();
   await wait(950);
 
   console.log('Log Performance sheet opened after recording pulse:', doc.getElementById('logPerfOverlay').hidden===false ? 'OK' : 'FAIL');
-  console.log('Weight/Reps sections visible for strength:', !doc.getElementById('logPerfWeightSection').hidden && !doc.getElementById('logPerfRepsSection').hidden ? 'OK' : 'FAIL');
+  console.log('The single session-level weight/reps inputs are hidden (structured exercises replace them):', doc.getElementById('logPerfWeightSection').hidden && doc.getElementById('logPerfRepsSection').hidden ? 'OK' : 'FAIL');
   console.log('Time section hidden for strength:', doc.getElementById('logPerfTimeSection').hidden ? 'OK' : 'FAIL');
-  console.log('No feel chips in Log Performance anymore (moved to the post-workout review):', !doc.getElementById('logPerfFeelChips') ? 'OK' : 'FAIL');
-  const seededWeight = parseFloat(doc.getElementById('logPerfWeightInput').value);
-  const seededReps = parseFloat(doc.getElementById('logPerfRepsInput').value);
-  console.log('Seeded weight/reps look sane:', seededWeight>0 && seededReps>0 ? `OK (${seededWeight} lb x ${seededReps})` : 'FAIL');
+  const rows1 = exerciseRows(doc);
+  console.log('One row per exercise in the template (4):', rows1.length===4 ? 'OK' : `FAIL (${rows1.length})`);
+  const expectedNames = ['Bench Press','Bent-Over Row','Overhead Press','Bicep Curl'];
+  console.log('Rows match the Upper Body Strength template, in order:', expectedNames.every((n,i)=>rows1[i].getAttribute('data-exercise-key')===n) ? 'OK' : `FAIL (${rows1.map(r=>r.getAttribute('data-exercise-key'))})`);
 
-  doc.getElementById('logPerfWeightInput').value = seededWeight;
-  doc.getElementById('logPerfRepsInput').value = seededReps;
+  const seeded1 = readSeeded(doc);
+  console.log('Seeded weight/reps for every exercise look sane:', seeded1.every(s=>s.weight>0 && s.reps>0) ? `OK (${JSON.stringify(seeded1)})` : `FAIL (${JSON.stringify(seeded1)})`);
+
+  // Meet every exercise's rep target as-is (seeded values already meet themselves) and save.
   doc.getElementById('saveLogPerf').click();
   await wait(30);
 
   console.log('Navigated to Summary screen:', doc.getElementById('screen-summary').hidden===false ? 'OK' : 'FAIL');
-  console.log('Summary shows the actual logged weight/reps:', doc.getElementById('summaryStats').textContent.includes(`${seededWeight} lb x ${seededReps}`) ? 'OK' : 'FAIL');
+  const summaryExText = doc.getElementById('summaryExercisesList').textContent;
+  console.log('Summary\'s exercise list shows all 4 logged results:', seeded1.every(s=>summaryExText.includes(`${s.weight} lb x ${s.reps}`)) ? 'OK' : `FAIL (${summaryExText})`);
   console.log('Review card is shown before any progression result:', doc.getElementById('summaryReviewCard').hidden===false ? 'OK' : 'FAIL');
-  console.log('No Next Suggested stat yet (review not submitted):', !doc.getElementById('summaryStats').textContent.includes('Next Suggested') ? 'OK' : 'FAIL');
   console.log('No progression note yet either:', doc.getElementById('summaryProgressNote').hidden===true ? 'OK' : 'FAIL');
 
-  // Meet the target reps with a great (non-"hard") rating -> should progress next time.
+  // Great (non-"hard") rating, reps met -> every exercise should advance.
   submitReview(doc, 5);
   await wait(30);
 
   console.log('Review card hides after submitting:', doc.getElementById('summaryReviewCard').hidden===true ? 'OK' : 'FAIL');
-  console.log('Summary NOW includes a Next Suggested stat:', doc.getElementById('summaryStats').textContent.includes('Next Suggested') ? 'OK' : 'FAIL');
   console.log('Progression note visible:', doc.getElementById('summaryProgressNote').hidden===false ? 'OK' : 'FAIL');
-  const upMsgExpected = `Nice work — next time we'll suggest ${seededWeight+5} lb.`;
-  console.log('Progression note shows the "up" message with +5 lb target:', doc.getElementById('summaryProgressMsg').textContent === upMsgExpected ? 'OK' : `FAIL (got: ${doc.getElementById('summaryProgressMsg').textContent})`);
+  console.log('Progression note reports all 4 exercises advancing:', doc.getElementById('summaryProgressMsg').textContent === 'Nice work — 4 of 4 exercises get heavier next time.' ? 'OK' : `FAIL (got: ${doc.getElementById('summaryProgressMsg').textContent})`);
 
-  // Go back to Home; the suggested target for the SAME session title should now be 5 lb higher.
+  // Go back to Home; reopen today's slot via the Completed toggle, purely through the same DOM
+  // affordance an end user has -- no internal state poking.
   goPill('home');
   await wait(20);
   console.log('Record button correctly shows done for today:', doc.getElementById('recordBtn').classList.contains('done') ? 'OK' : 'FAIL');
-
-  // Reopen today's slot via the Completed toggle (flips the stale-override back to "not done"),
-  // purely through the same DOM affordance an end user has -- no internal state poking.
-  doc.getElementById('homeEntriesWrap'); // ensure home is fully rendered
-  const scrollTarget = doc.getElementById('sessionCard');
-  doc.getElementById('screen-home').scrollTop = scrollTarget.offsetTop;
-  const completeToggle = doc.getElementById('homeCompleteToggle');
-  completeToggle.click();
+  doc.getElementById('screen-home').scrollTop = doc.getElementById('sessionCard').offsetTop;
+  doc.getElementById('homeCompleteToggle').click();
   await wait(20);
   console.log('Record button actionable again after toggling not-done:', !doc.getElementById('recordBtn').classList.contains('done') ? 'OK' : 'FAIL');
 
   doc.getElementById('recordBtn').click();
   await wait(950);
-  const secondSeededWeight = parseFloat(doc.getElementById('logPerfWeightInput').value);
-  console.log('Second round reseeds with the progressed (+5 lb) weight:', secondSeededWeight === seededWeight+5 ? 'OK' : `FAIL (${secondSeededWeight} vs expected ${seededWeight+5})`);
+  const seeded2 = readSeeded(doc);
+  console.log('Second round reseeds every exercise +5 lb from last time:', seeded1.every((s,i)=>seeded2[i].weight===s.weight+5) ? 'OK' : `FAIL (${JSON.stringify(seeded2)} vs +5 of ${JSON.stringify(seeded1)})`);
 
-  // This time, miss the rep target AND give it a rough (hard) rating -> should hold steady.
-  doc.getElementById('logPerfWeightInput').value = secondSeededWeight;
-  doc.getElementById('logPerfRepsInput').value = 1;
+  // This time, miss every rep target AND give it a rough (hard) rating -> should hold steady.
+  const rows2 = exerciseRows(doc);
+  rows2.forEach((row,i)=> fillRow(row, seeded2[i].weight, 1));
   doc.getElementById('saveLogPerf').click();
   await wait(30);
   submitReview(doc, 1);
   await wait(30);
-  const holdMsgExpected = `Solid effort — we'll suggest the same ${secondSeededWeight} lb next time.`;
-  console.log('Progression note shows the "hold steady" message after a hard/missed session:', doc.getElementById('summaryProgressMsg').textContent === holdMsgExpected ? 'OK' : `FAIL (got: ${doc.getElementById('summaryProgressMsg').textContent})`);
+  console.log('Progression note reports 0 exercises advancing on a hard/missed session:', doc.getElementById('summaryProgressMsg').textContent === "Solid effort — we'll suggest the same weights next time." ? 'OK' : `FAIL (got: ${doc.getElementById('summaryProgressMsg').textContent})`);
 
-  // Third round: verify the target genuinely held steady (didn't creep up or down) and that
+  // Third round: verify weights genuinely held steady (didn't creep up or down), and that
   // canceling the Log Performance sheet doesn't get the user stuck or falsely mark the day done.
   goPill('home');
   await wait(20);
@@ -103,8 +113,8 @@ function submitReview(doc, rating){
   await wait(20);
   doc.getElementById('recordBtn').click();
   await wait(950);
-  const thirdSeededWeight = parseFloat(doc.getElementById('logPerfWeightInput').value);
-  console.log('Weight held steady (no change) after the missed/hard session:', thirdSeededWeight === secondSeededWeight ? 'OK' : `FAIL (${thirdSeededWeight} vs expected ${secondSeededWeight})`);
+  const seeded3 = readSeeded(doc);
+  console.log('Weights held steady (no change) after the missed/hard session:', seeded2.every((s,i)=>seeded3[i].weight===s.weight) ? 'OK' : `FAIL (${JSON.stringify(seeded3)} vs ${JSON.stringify(seeded2)})`);
 
   doc.getElementById('closeLogPerf').click();
   await wait(10);

@@ -186,7 +186,9 @@ function openSession(backend){
   console.log('Recorded session synced to cloud:', backend.db.recorded_sessions.length===1 ? 'OK' : `FAIL (${backend.db.recorded_sessions.length})`);
   console.log('Rating and notes from the review landed on that cloud row:',
     backend.db.recorded_sessions[0] && backend.db.recorded_sessions[0].rating===5 && backend.db.recorded_sessions[0].review_notes==='Felt strong today' ? 'OK' : `FAIL (${JSON.stringify(backend.db.recorded_sessions[0])})`);
-  console.log('Progression target synced to cloud:', Object.keys(backend.db.progression_targets).length===1 ? 'OK' : `FAIL (${Object.keys(backend.db.progression_targets).length})`);
+  // A structured strength session progresses each of its (non-bodyweight) exercises independently,
+  // so a templated session can write several progression_targets rows in one go, not just one.
+  console.log('Progression target(s) synced to cloud:', Object.keys(backend.db.progression_targets).length>=1 ? 'OK' : `FAIL (${Object.keys(backend.db.progression_targets).length})`);
   docA.getElementById('closeLogPerf').click();
   await wait(10);
 
@@ -259,7 +261,9 @@ function openSession(backend){
   console.log('Session B: the manual entry logged in Session A is visible after signing in:', docB.getElementById('homeEntriesWrap').textContent.includes('Evening Mobility Work') ? 'OK' : 'FAIL');
   console.log('Session B: today shows as completed (from Session A\'s recorded workout):', docB.getElementById('recordBtn').classList.contains('done') ? 'OK' : 'FAIL');
   if(isStrength){
-    console.log('Session B: Home shows a Next Suggested target carried over from Session A:', docB.getElementById('sessionCard').textContent.includes('lb') ? 'OK' : 'FAIL');
+    // Every generated strength title now has a real exercise breakdown, so there's no single
+    // session-level "Next Suggested" number anymore -- confirm the exercise list itself carried over.
+    console.log('Session B: Home shows the exercise breakdown carried over from Session A:', !!docB.querySelector('#sessionCard .r-exercise-list') ? 'OK' : 'FAIL');
   }
 
   docB.querySelector('#weekStrip .day-cell[data-day="5"]').click();

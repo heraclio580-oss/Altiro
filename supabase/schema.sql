@@ -81,12 +81,17 @@ create table if not exists recorded_sessions (
   feel text,                         -- 'easy' | 'ok' | 'hard' -- derived from `rating` below
   rating int,                        -- 1-5, given on the post-workout review (Summary screen)
   review_notes text,                 -- optional free-text note from that same review
+  exercises jsonb,                   -- structured strength sessions: [{key, name, weight, reps}, ...]
   created_at timestamptz default now()
 );
 alter table recorded_sessions add column if not exists rating int;
 alter table recorded_sessions add column if not exists review_notes text;
+alter table recorded_sessions add column if not exists exercises jsonb;
 
--- progression_targets: current suggested target per (user, session_title)
+-- progression_targets: current suggested target per (user, session_title). Also doubles as the
+-- per-exercise progression store for structured strength sessions -- an exercise's target is saved
+-- with session_key = 'strength:<exercise name>' (see exerciseProgressionKey in the app), the exact
+-- same key shape a matching Personal Record writes into, so the two share one progression trail.
 create table if not exists progression_targets (
   user_id uuid not null references auth.users(id) on delete cascade,
   session_key text not null,         -- e.g. 'strength:Upper Body Strength'

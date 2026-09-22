@@ -39,6 +39,7 @@
   --today-ring:#3B82F6;
   --today-ring-tint:rgba(59,130,246,0.16);
   --today-ring-text:#9EC5FF;
+  --warn:#E5A93B;
   --ring:#F0F1F3;
   --weather-icon:#E0B24A;
   --r-sm:10px;
@@ -84,6 +85,7 @@
   --today-ring:var(--accent);
   --today-ring-tint:var(--accent-tint);
   --today-ring-text:var(--today-tint-text);
+  --warn:#B7791F;
   --ring:#FFFFFF;
 }
 *{box-sizing:border-box;}
@@ -317,6 +319,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
 /* ---------- week / plan / calendar rows ---------- */
 .day-row{margin:0 20px 10px;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:var(--r-lg);padding:12px 13px;}
+.day-row.editable{cursor:pointer;}
+.day-row.editable:hover{border-color:var(--hover-border);}
 .week-block-label{font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ok-icon);margin:14px 20px 2px;}
 .week-block:first-child .week-block-label{margin-top:0;}
 .day-row.today{border-left-color:var(--today-ring);}
@@ -387,8 +391,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .mo-cell.today{border-color:var(--today-ring);background:linear-gradient(0deg,var(--today-ring-tint),var(--today-ring-tint)),var(--card);}
 .mo-cell.today .mo-num{color:var(--text);}
 .mo-cell.today .mo-dot{background:var(--today-ring);}
+.mo-cell.upcoming{border-color:var(--warn);}
+.mo-cell.upcoming .mo-dot{background:var(--warn);}
 .mo-cell.done{border-color:var(--ok-border);}
 .mo-cell.done .mo-dot{background:var(--ok-icon);}
+.mo-cell.missed{border-color:var(--alert);}
 .mo-cell.missed .mo-num{color:var(--alert);}
 .mo-cell.missed .mo-dot{background:var(--alert);}
 .mo-cell.has-log{box-shadow:inset 0 0 0 1px var(--accent);}
@@ -1197,7 +1204,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <span class="label" data-i18n="manualEntryTitle"></span>
+        <span class="label" id="manualEntryTitleLabel" data-i18n="manualEntryTitle"></span>
         <button class="iconbtn" id="closeManualEntry"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       </div>
 
@@ -1256,6 +1263,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <button class="btn btn-primary sheet-apply" id="saveManualEntry" data-i18n="saveWorkoutBtn"></button>
+      <button class="btn-text" id="clearWorkoutBtn" type="button" style="width:100%;margin-top:2px;color:var(--alert);" data-i18n="clearWorkoutBtn" hidden></button>
     </div>
   </div>
 
@@ -1683,6 +1691,9 @@ const STR = {
     intervalWorkLabel: "Round Duration (min:sec)",
     intervalRestLabel: "Rest Duration (min:sec)",
     workoutPlannedToast: "Workout planned",
+    editWorkoutTitle: "Edit Workout",
+    clearWorkoutBtn: "Clear Workout",
+    workoutClearedToast: "Workout cleared",
   },
   es: {
     welcomeHeadline: "Encontrar tiempo para entrenar es difícil. Saber por dónde empezar no debería serlo.",
@@ -1882,6 +1893,9 @@ const STR = {
     intervalWorkLabel: "Duración de la ronda (min:seg)",
     intervalRestLabel: "Duración del descanso (min:seg)",
     workoutPlannedToast: "Entrenamiento planificado",
+    editWorkoutTitle: "Editar entrenamiento",
+    clearWorkoutBtn: "Borrar entrenamiento",
+    workoutClearedToast: "Entrenamiento borrado",
   }
 };
 
@@ -2141,8 +2155,8 @@ function dayStatus(i){
     const log = state.dayLog[dateKey(weekDates(0)[i])];
     return (log && log.manualEntries.length>0) ? 'done' : 'rest';
   }
-  if(i < TODAY_IDX) return d.completed ? 'done' : 'missed';
-  return 'upcoming';
+  if(d.completed) return 'done';
+  return i < TODAY_IDX ? 'missed' : 'upcoming';
 }
 function ensureWeek(){
   if(!state.week){
@@ -2197,8 +2211,8 @@ function getDayData(date){
 function dayDataStatus(dd){
   if(dd.isToday) return dd.completed ? 'done' : 'today';
   if(dd.p.t==='rest') return dd.manualEntries.length>0 ? 'done' : 'rest';
-  if(dd.isFuture) return 'upcoming';
-  return dd.completed ? 'done' : 'missed';
+  if(dd.completed) return 'done';
+  return dd.isFuture ? 'upcoming' : 'missed';
 }
 function ensureDayLog(key){
   if(!state.dayLog[key]) state.dayLog[key] = {completedOverride:null, manualEntries:[], session:null};
@@ -3353,6 +3367,12 @@ function closeDayDetail(){
   state.openDayKey = null;
 }
 document.getElementById('closeDayDetail').addEventListener('click', closeDayDetail);
+document.getElementById('dayDetailPlanRow').addEventListener('click', ()=>{
+  if(!state.openDayKey) return;
+  const dd = getDayData(parseDateKey(state.openDayKey));
+  if(!dd.isCustom) return;
+  openManualEntryForEdit(dd);
+});
 function renderDayDetail(){
   if(!state.openDayKey) return;
   const L = STR[state.lang];
@@ -3362,7 +3382,7 @@ function renderDayDetail(){
   const dow = (date.getDay()+6)%7;
 
   document.getElementById('dayDetailTitle').textContent = `${DAY_NAMES_FULL[state.lang][dow]}, ${MONTHS_SHORT[state.lang][date.getMonth()]} ${date.getDate()}`;
-  document.getElementById('dayDetailPlanRow').className = `day-row ${(status==='upcoming'||status==='rest')?'':status}`;
+  document.getElementById('dayDetailPlanRow').className = `day-row ${(status==='upcoming'||status==='rest')?'':status} ${dd.isCustom?'editable':''}`;
   document.getElementById('dayDetailPlanRow').innerHTML = planRowHtml(dd, status);
 
   const actionsEl = document.getElementById('dayDetailActions');
@@ -3554,13 +3574,62 @@ function openManualEntry(){
   document.getElementById('createRestDurationInput').placeholder = '1:00';
   renderManualTypeRow();
   updateCreateCompletedUI();
+  const titleLabel = document.getElementById('manualEntryTitleLabel');
+  titleLabel.setAttribute('data-i18n', 'manualEntryTitle');
+  titleLabel.textContent = L.manualEntryTitle;
+  document.getElementById('clearWorkoutBtn').hidden = true;
   document.getElementById('manualEntryOverlay').hidden = false;
+}
+// Re-opens Create Workout pre-filled with an existing custom-planned day (dd.isCustom) so the
+// user can revise and resubmit it, instead of only being able to start over from a blank sheet.
+function openManualEntryForEdit(dd){
+  openManualEntry();
+  const L = STR[state.lang];
+  manualEntryType = dd.p.t;
+  // A custom plan bubble is, by construction, always a planned (not-yet-logged) workout --
+  // resubmitting it should keep updating that same plan, not fork off a separate manual log entry.
+  createMarkCompleted = false;
+  document.getElementById('createCompletedToggle').classList.toggle('on', false);
+  document.getElementById('manualNameInput').value = dd.p.en.title;
+  document.getElementById('manualVolumeInput').value = dd.p.en.detail || '';
+  renderManualTypeRow();
+  updateCreateNameLabel();
+  updateCreateTargetSections();
+  if(dd.p.t==='interval' && dd.p.interval){
+    document.getElementById('createRoundsInput').value = dd.p.interval.rounds;
+    document.getElementById('createWorkDurationInput').value = fmtClock(dd.p.interval.workSec);
+    document.getElementById('createRestDurationInput').value = fmtClock(dd.p.interval.restSec);
+  } else {
+    const target = state.progression[progressionKey(dd.p)];
+    if(target){
+      if(dd.p.t==='strength'){
+        if(target.weight!=null) document.getElementById('createWeightInput').value = target.weight;
+        if(target.reps!=null) document.getElementById('createRepsInput').value = target.reps;
+      } else if(dd.p.t==='run' && target.pace!=null){
+        document.getElementById('createPaceInput').value = fmtPace(target.pace);
+      }
+    }
+  }
+  const titleLabel = document.getElementById('manualEntryTitleLabel');
+  titleLabel.setAttribute('data-i18n', 'editWorkoutTitle');
+  titleLabel.textContent = L.editWorkoutTitle;
+  document.getElementById('clearWorkoutBtn').hidden = false;
 }
 function closeManualEntry(){
   document.getElementById('manualEntryOverlay').hidden = true;
 }
 document.getElementById('addWorkoutBtn').addEventListener('click', openManualEntry);
 document.getElementById('closeManualEntry').addEventListener('click', closeManualEntry);
+document.getElementById('clearWorkoutBtn').addEventListener('click', ()=>{
+  if(!state.openDayKey) return;
+  resetToSuggestedPlan(state.openDayKey);
+  closeManualEntry();
+  renderDayDetail();
+  renderCalendar();
+  renderWeek();
+  renderHome();
+  showToast(STR[state.lang].workoutClearedToast);
+});
 function readCreateTarget(){
   if(manualEntryType==='strength'){
     const w = parseFloat(document.getElementById('createWeightInput').value);

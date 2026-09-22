@@ -71,7 +71,7 @@ function fillRow(doc, key, weight, reps){
 
   console.log('Navigated to Summary screen:', doc.getElementById('screen-summary').hidden===false ? 'OK' : 'FAIL');
   const summaryExText = doc.getElementById('summaryExercisesList').textContent;
-  console.log('Summary\'s exercise list shows every weighted result logged:', seeded1.every(s=>summaryExText.includes(`${s.weight} lb x ${s.reps}`)) ? 'OK' : `FAIL (${summaryExText})`);
+  console.log('Summary\'s exercise list shows every weighted result logged:', seeded1.every(s=>summaryExText.includes(`${s.weight}x${s.reps}`)) ? 'OK' : `FAIL (${summaryExText})`);
   console.log('Review card is shown before any progression result:', doc.getElementById('summaryReviewCard').hidden===false ? 'OK' : 'FAIL');
   console.log('No progression note yet either:', doc.getElementById('summaryProgressNote').hidden===true ? 'OK' : 'FAIL');
 

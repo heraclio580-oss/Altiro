@@ -370,11 +370,18 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .r-exercise-list{list-style:none;margin:2px 0 0 20px;padding:0;display:flex;flex-direction:column;gap:3px;}
 .r-exercise-list.card{margin-left:0;margin-top:6px;}
 .exercise-log-row{margin:0 0 14px;}
-.exercise-log-row .exercise-log-name{font-size:13px;color:var(--text);font-weight:500;margin-bottom:6px;}
+.exercise-log-row .exercise-log-name{display:flex;align-items:center;font-size:13px;color:var(--text);font-weight:500;margin-bottom:6px;}
 .exercise-log-row .exercise-log-name span{font-family:var(--font-mono);font-weight:400;color:var(--text-3);font-size:11px;margin-left:6px;}
+.set-stepper{display:flex;align-items:center;gap:4px;margin-left:auto;padding-left:6px;}
+.set-stepper-btn{width:20px;height:20px;flex-shrink:0;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--text-2);font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.set-stepper-btn:hover{border-color:var(--hover-border);color:var(--text);}
 .exercise-log-row .exercise-log-inputs{display:flex;gap:8px;}
 .exercise-log-row .exercise-log-inputs .text-input{flex:1;}
 .exercise-log-row.bodyweight .exercise-log-inputs{display:none;}
+.set-log-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+.set-log-row .set-log-num{width:14px;flex-shrink:0;font-family:var(--font-mono);font-size:11px;color:var(--text-3);text-align:center;}
+.set-log-row .text-input{flex:1;min-width:0;}
+.set-log-row .set-check-dot{flex-shrink:0;}
 .exercise-log-row{padding:8px;border-radius:var(--r-md);border:1px solid transparent;transition:border-color .15s;cursor:pointer;}
 .exercise-log-row.current-exercise{border-color:var(--accent);background:var(--well);}
 .exercise-log-row.set-complete .exercise-log-name{color:var(--ok-icon);}
@@ -3316,16 +3323,80 @@ function refreshLogPerfRowState(rowEl, ex){
   const checks = logPerfSetChecks[ex.key];
   const allChecked = checks.every(Boolean);
   rowEl.classList.toggle('set-complete', allChecked);
-  const dotsEl = rowEl.querySelector('.set-check-row');
-  dotsEl.innerHTML = checks.map((c,i)=>`<button type="button" class="set-check-dot ${c?'checked':''}" data-set-idx="${i}">${c?ICONS.checkSm:i+1}</button>`).join('');
-  dotsEl.querySelectorAll('.set-check-dot').forEach(dot=>{
-    dot.addEventListener('click', ()=>{
+  if(ex.bodyweight){
+    // No per-set weight/reps to preserve here, so it's safe to just fully redraw the dots.
+    const dotsEl = rowEl.querySelector('.set-check-row');
+    dotsEl.innerHTML = checks.map((c,i)=>`<button type="button" class="set-check-dot ${c?'checked':''}" data-set-idx="${i}">${c?ICONS.checkSm:i+1}</button>`).join('');
+    dotsEl.querySelectorAll('.set-check-dot').forEach(dot=>{
+      dot.addEventListener('click', ()=>{
+        const idx = parseInt(dot.getAttribute('data-set-idx'),10);
+        checks[idx] = !checks[idx];
+        refreshLogPerfRowState(rowEl, ex);
+        refreshLogPerfCurrentHighlight();
+      });
+    });
+  } else {
+    // Each set has its own weight/reps inputs (so a pyramid/wave set -- 60x10, 70x10, 90x5 -- can
+    // be logged as it actually happened) that must never get wiped by a re-render, so only the
+    // check button's own state is touched here, not the row's markup.
+    rowEl.querySelectorAll('.set-check-dot').forEach(dot=>{
       const idx = parseInt(dot.getAttribute('data-set-idx'),10);
+      dot.classList.toggle('checked', checks[idx]);
+      dot.innerHTML = checks[idx] ? ICONS.checkSm : String(idx+1);
+    });
+  }
+}
+function updateLogPerfPrescriptionLabel(rowEl, ex){
+  const label = rowEl.querySelector('.exercise-log-name span');
+  if(label) label.textContent = fmtExercisePrescription({...ex, sets: logPerfSetChecks[ex.key].length});
+}
+const LOG_PERF_MAX_SETS = 12;
+// The prescribed set count is just a starting suggestion -- the user might do one more, or cut a
+// set short, so it's editable live while the workout is being logged.
+function addLogPerfSet(rowEl, ex){
+  const checks = logPerfSetChecks[ex.key];
+  if(checks.length>=LOG_PERF_MAX_SETS) return;
+  const idx = checks.length;
+  checks.push(false);
+  if(!ex.bodyweight){
+    const setRowsEl = rowEl.querySelector('.set-rows');
+    const existingRows = [...setRowsEl.querySelectorAll('.set-log-row')];
+    const last = existingRows[existingRows.length-1];
+    const t = getExerciseTarget(ex, state.intensityIdx);
+    // A new set starts from whatever the last set currently shows -- closer to what the user
+    // will actually do next than resetting back to the original seeded target.
+    const lastWeight = last ? last.querySelector('[data-field="weight"]').value : (t?t.weight:'');
+    const lastReps = last ? last.querySelector('[data-field="reps"]').value : (t?t.reps:ex.reps);
+    const div = document.createElement('div');
+    div.className = 'set-log-row';
+    div.setAttribute('data-set-idx', String(idx));
+    div.innerHTML = `<span class="set-log-num">${idx+1}</span>
+      <input type="number" inputmode="numeric" class="text-input" data-field="weight" data-set-idx="${idx}" placeholder="${state.weightUnit}" value="${escapeHtml(lastWeight)}">
+      <input type="number" inputmode="numeric" class="text-input" data-field="reps" data-set-idx="${idx}" value="${escapeHtml(lastReps)}">
+      <button type="button" class="set-check-dot" data-set-idx="${idx}">${idx+1}</button>`;
+    setRowsEl.appendChild(div);
+    div.querySelector('.set-check-dot').addEventListener('click', ()=>{
       checks[idx] = !checks[idx];
       refreshLogPerfRowState(rowEl, ex);
       refreshLogPerfCurrentHighlight();
     });
-  });
+  }
+  updateLogPerfPrescriptionLabel(rowEl, ex);
+  refreshLogPerfRowState(rowEl, ex);
+  refreshLogPerfCurrentHighlight();
+}
+function removeLogPerfSet(rowEl, ex){
+  const checks = logPerfSetChecks[ex.key];
+  if(checks.length<=1) return;
+  checks.pop();
+  if(!ex.bodyweight){
+    const setRowsEl = rowEl.querySelector('.set-rows');
+    const rowsEls = setRowsEl.querySelectorAll('.set-log-row');
+    rowsEls[rowsEls.length-1].remove();
+  }
+  updateLogPerfPrescriptionLabel(rowEl, ex);
+  refreshLogPerfRowState(rowEl, ex);
+  refreshLogPerfCurrentHighlight();
 }
 // "Select the next workout and sets" -- once an exercise's sets are all checked off, highlight the
 // next not-yet-finished exercise as the current one automatically, unless the user has explicitly
@@ -3359,18 +3430,53 @@ function openLogPerformance(extraId){
   if(exercises){
     exercisesListEl.innerHTML = exercises.map(ex=>{
       const t = getExerciseTarget(ex, state.intensityIdx);
-      logPerfSetChecks[ex.key] = new Array(ex.sets||1).fill(false);
-      return `<div class="exercise-log-row ${ex.bodyweight?'bodyweight':''}" data-exercise-key="${escapeHtml(ex.key)}">
-        <div class="exercise-log-name">${escapeHtml(ex.name)}<span>${fmtExercisePrescription(ex)}</span></div>
-        <div class="set-check-row"></div>
-        <div class="exercise-log-inputs">
-          <input type="number" inputmode="numeric" class="text-input" data-field="weight" placeholder="${state.weightUnit}" value="${t?t.weight:''}">
-          <input type="number" inputmode="numeric" class="text-input" data-field="reps" value="${t?t.reps:ex.reps}">
-        </div>
+      const setCount = ex.sets||1;
+      logPerfSetChecks[ex.key] = new Array(setCount).fill(false);
+      const stepperHtml = `<span class="set-stepper">
+          <button type="button" class="set-stepper-btn" data-step="-1" title="Remove a set">−</button>
+          <button type="button" class="set-stepper-btn" data-step="1" title="Add a set">+</button>
+        </span>`;
+      if(ex.bodyweight){
+        return `<div class="exercise-log-row bodyweight" data-exercise-key="${escapeHtml(ex.key)}">
+          <div class="exercise-log-name">${escapeHtml(ex.name)}<span>${fmtExercisePrescription(ex)}</span>${stepperHtml}</div>
+          <div class="set-check-row"></div>
+        </div>`;
+      }
+      // Each set gets its own weight/reps pair -- a real set is rarely identical to the last (a
+      // pyramid or a wave-loaded set varies on purpose), so the sheet needs to capture what
+      // actually happened set by set, not one number applied to all of them.
+      const setRows = Array.from({length:setCount}, (_,i)=>`
+        <div class="set-log-row" data-set-idx="${i}">
+          <span class="set-log-num">${i+1}</span>
+          <input type="number" inputmode="numeric" class="text-input" data-field="weight" data-set-idx="${i}" placeholder="${state.weightUnit}" value="${t?t.weight:''}">
+          <input type="number" inputmode="numeric" class="text-input" data-field="reps" data-set-idx="${i}" value="${t?t.reps:ex.reps}">
+          <button type="button" class="set-check-dot" data-set-idx="${i}">${i+1}</button>
+        </div>`).join('');
+      return `<div class="exercise-log-row" data-exercise-key="${escapeHtml(ex.key)}">
+        <div class="exercise-log-name">${escapeHtml(ex.name)}<span>${fmtExercisePrescription(ex)}</span>${stepperHtml}</div>
+        <div class="set-rows">${setRows}</div>
       </div>`;
     }).join('');
     exercisesListEl.querySelectorAll('.exercise-log-row').forEach(rowEl=>{
       const ex = exercises.find(e=>e.key===rowEl.getAttribute('data-exercise-key'));
+      rowEl.querySelectorAll('.set-stepper-btn').forEach(btn=>{
+        btn.addEventListener('click', (e)=>{
+          e.stopPropagation(); // don't also fire the row's "pick as current exercise" click below
+          const step = parseInt(btn.getAttribute('data-step'),10);
+          if(step>0) addLogPerfSet(rowEl, ex); else removeLogPerfSet(rowEl, ex);
+        });
+      });
+      if(!ex.bodyweight){
+        const checks = logPerfSetChecks[ex.key];
+        rowEl.querySelectorAll('.set-check-dot').forEach(dot=>{
+          dot.addEventListener('click', ()=>{
+            const idx = parseInt(dot.getAttribute('data-set-idx'),10);
+            checks[idx] = !checks[idx];
+            refreshLogPerfRowState(rowEl, ex);
+            refreshLogPerfCurrentHighlight();
+          });
+        });
+      }
       refreshLogPerfRowState(rowEl, ex);
       // Tapping anywhere on an exercise -- its name, sets, or the weight/reps fields -- picks it
       // as the one being worked on right now, regardless of what order the list shows.
@@ -3415,11 +3521,20 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     logged.exercises = [...document.querySelectorAll('#logPerfExercisesList .exercise-log-row')].map(row=>{
       const key = row.getAttribute('data-exercise-key');
       const ex = exercises.find(e=>e.key===key);
-      if(ex.bodyweight) return {key, name: ex.name, bodyweight:true, prescription: fmtExercisePrescription(ex)};
+      if(ex.bodyweight){
+        const actualSets = row.querySelectorAll('.set-check-dot').length;
+        return {key, name: ex.name, bodyweight:true, prescription: fmtExercisePrescription({...ex, sets: actualSets})};
+      }
       const t = getExerciseTarget(ex, state.intensityIdx);
-      const weight = parseFloat(row.querySelector('[data-field="weight"]').value) || (t && t.weight) || 0;
-      const reps = parseFloat(row.querySelector('[data-field="reps"]').value) || (t && t.reps) || ex.reps || 0;
-      return {key, name: ex.name, weight, reps};
+      const sets = [...row.querySelectorAll('.set-log-row')].map(setRow=>({
+        weight: parseFloat(setRow.querySelector('[data-field="weight"]').value) || (t && t.weight) || 0,
+        reps: parseFloat(setRow.querySelector('[data-field="reps"]').value) || (t && t.reps) || ex.reps || 0,
+      }));
+      // Progression tracks the heaviest ("top") set actually logged -- the same "top set" idea the
+      // app already uses for a single-target strength session -- since a pyramid/wave set means
+      // there's no one number that represents the whole exercise otherwise.
+      const top = sets.reduce((best,s)=> s.weight>best.weight ? s : best, sets[0]);
+      return {key, name: ex.name, weight: top.weight, reps: top.reps, sets};
     });
   } else if(eff.t==='strength'){
     logged.weight = parseFloat(document.getElementById('logPerfWeightInput').value) || (target && target.weight) || 0;
@@ -4865,10 +4980,13 @@ function getSummaryStats(session, intensityIdx, logged){
 }
 function getSummaryExercises(logged){
   if(!logged || !logged.exercises) return null;
-  return logged.exercises.map(res=>({
-    name: res.name,
-    result: res.bodyweight ? res.prescription : `${res.weight} lb x ${res.reps}`,
-  }));
+  return logged.exercises.map(res=>{
+    let result;
+    if(res.bodyweight) result = res.prescription;
+    else if(res.sets && res.sets.length>1) result = res.sets.map(s=>`${s.weight}x${s.reps}`).join(', ');
+    else result = `${res.weight} lb x ${res.reps}`;
+    return {name: res.name, result};
+  });
 }
 function renderSummary(){
   const L = STR[state.lang];

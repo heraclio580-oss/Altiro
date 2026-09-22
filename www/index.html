@@ -4289,6 +4289,10 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
     state.week = regenerateUpcomingWeek(state.focusRatio, state.trainingDays);
     state.doneCount = computeDoneCount();
   }
+  // Without this, Apply only ever updated local state -- a refresh would reload the profile from
+  // Supabase and silently revert training days/focus/intensity back to whatever was last saved
+  // (e.g. the onboarding default), even though the app itself looked like it had applied the change.
+  saveProfileToCloud();
   closeAdjustSheet();
   const activeScreen = SCREEN_IDS.find(s=>elFor(s) && !elFor(s).hidden);
   if(activeScreen==='home') renderHome();

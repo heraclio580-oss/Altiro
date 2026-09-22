@@ -283,6 +283,41 @@ function openSession(backend){
   await wait(20);
   console.log('Session B: the Deadlift PR from Session A round-trips correctly:', docB.getElementById('prList').textContent.includes('Deadlift') && docB.getElementById('prList').textContent.includes('315') ? 'OK' : 'FAIL');
 
+  // ---- Regression test: Adjust Plan -> 0 training days must persist to the cloud. Applying used to
+  // only update local state and never call saveProfileToCloud(), so a refresh (or, here, a fresh
+  // sign-in) would silently revert training days back to whatever was last actually saved -- e.g.
+  // the onboarding default -- bringing a 3-day plan right back onto the calendar. ----
+  goPillA('adjust');
+  await wait(20);
+  [...docA.querySelectorAll('#adjWeekdayChips .chip')].forEach(c => { if(c.classList.contains('sel')) c.click(); });
+  await wait(10);
+  console.log('Session A: all weekday chips deselected:', [...docA.querySelectorAll('#adjWeekdayChips .chip')].every(c=>!c.classList.contains('sel')) ? 'OK' : 'FAIL');
+  docA.getElementById('applyAdjust').click();
+  await wait(60);
+  console.log('Session A: 0 training days persisted to the cloud profile:',
+    Object.values(backend.db.profiles).some(p=>Array.isArray(p.training_days) && p.training_days.length===0) ? 'OK' : `FAIL (${JSON.stringify(backend.db.profiles)})`);
+
+  const domC = openSession(backend);
+  await wait(80);
+  const docC = domC.window.document;
+  const goPillC = id => [...docC.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
+  goPillC('onb-account');
+  await wait(20);
+  docC.getElementById('toggleAuthMode').click();
+  docC.getElementById('emailInput').value = 'runner@example.com';
+  docC.getElementById('emailInput').dispatchEvent(new domC.window.Event('input', {bubbles:true}));
+  docC.getElementById('passwordInput').value = 'hunter22';
+  docC.getElementById('passwordInput').dispatchEvent(new domC.window.Event('input', {bubbles:true}));
+  docC.getElementById('emailSignupBtn').click();
+  await wait(100);
+  goPillC('home');
+  await wait(20);
+  console.log('Session C (a fresh sign-in): today has no fabricated workout -- shows Rest Day:', docC.getElementById('sessionCard').textContent.includes('Rest Day') ? 'OK' : `FAIL (${docC.getElementById('sessionCard').querySelector('.title')?.textContent})`);
+  goPillC('adjust');
+  await wait(20);
+  console.log('Session C: Adjust sheet also shows 0 days selected, not the 3-day default:',
+    ![...docC.querySelectorAll('#adjWeekdayChips .chip')].some(c=>c.classList.contains('sel')) ? 'OK' : 'FAIL');
+
   console.log('ALL DONE');
   process.exit(0);
 })().catch(e => { console.log('TEST THREW:', e.stack || e); process.exit(1); });

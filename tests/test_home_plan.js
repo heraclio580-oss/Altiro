@@ -52,6 +52,24 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('closeDayDetail').click();
   await wait(10);
 
+  // Past days default to blank/rest now (no fabricated content), so a real missed Monday plan has
+  // to be established through the app's own affordances before the reschedule flow below has
+  // anything to reschedule.
+  goPill('home');
+  await wait(20);
+  mondayCell.click();
+  await wait(20);
+  doc.getElementById('addWorkoutBtn').click();
+  await wait(20);
+  doc.getElementById('manualNameInput').value = 'Monday Strength';
+  doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+  [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='strength').click();
+  if(doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
+  doc.getElementById('saveManualEntry').click();
+  await wait(20);
+  doc.getElementById('closeDayDetail').click();
+  await wait(10);
+
   // --- PLAN: rows are now compact (single line); reschedule now lives inside Day Detail ---
   goPill('week');
   await wait(20);

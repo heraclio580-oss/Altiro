@@ -115,9 +115,20 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('closeDayDetail').click();
 
   // Current-week, non-today day (Monday, 2026-09-14) -- toggling here must sync to the Plan/Week tab.
+  // Past days default to blank/rest now (no fabricated content), and a blank/rest day hides its own
+  // Completed toggle (nothing to mark done without saying what it was) -- so give Monday a real
+  // planned workout first, left incomplete, the same way an end user would.
   const monCell = doc.querySelector('.mo-cell[data-date="2026-09-14"]');
   console.log('monday cell found:', !!monCell);
   monCell.click();
+  await wait(10);
+  doc.getElementById('addWorkoutBtn').click();
+  await wait(10);
+  doc.getElementById('manualNameInput').value = 'Monday Strength';
+  doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+  [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='strength').click();
+  if(doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
+  doc.getElementById('saveManualEntry').click();
   await wait(10);
   console.log('complete section hidden for past in-week day:', doc.getElementById('dayDetailCompleteSection').hidden === false ? 'OK (visible)' : 'FAIL');
   const monToggle = doc.getElementById('dayCompleteToggle');

@@ -2221,10 +2221,18 @@ function buildWeek(focusIdx){
   let slot = 0;
   const week = [];
   for(let i=0;i<7;i++){
-    if(state.trainingDays.includes(i)){
+    // Days before today have no real record -- fabricating what the rotation "would have
+    // suggested" would just be invented history, so the calendar starts truly blank there instead
+    // of showing a workout the user never actually saw. This reruns on every sign-in, so it applies
+    // consistently, not just at first signup. Any real logged data for these dates (a manual entry,
+    // a custom plan) is layered on separately by loadWorkoutDataFromCloud()/getDayData(), same as
+    // any other day.
+    if(i < TODAY_IDX){
+      week.push({p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:true});
+    } else if(state.trainingDays.includes(i)){
       const src = pool[slot % pool.length];
-      // Past training days default to NOT completed -- there's no real record for them yet, and
-      // claiming they're done would fabricate history. loadWorkoutDataFromCloud() overlays the
+      // Today/future training days default to NOT completed -- there's no real record for them yet,
+      // and claiming they're done would fabricate history. loadWorkoutDataFromCloud() overlays the
       // real completed_override wherever one actually exists once cloud data loads.
       week.push({p:{...src.p}, c:{...src.c}, completed: false});
       slot++;
@@ -2291,6 +2299,11 @@ function ensureWeek(){
 
 /* ---------------- calendar day lookups (any date, past or future) ---------------- */
 function sessionForDate(date){
+  if(date.getTime() < TODAY_DATE.getTime()){
+    // No real record for a past date with no explicit log -- see buildWeek() for the same rule
+    // applied to the current week.
+    return {p: ses('rest','Rest Day','','Día de descanso',''), c: null};
+  }
   const dow = (date.getDay()+6)%7;
   if(!state.trainingDays.includes(dow)){
     return {p: ses('rest','Rest Day','','Día de descanso',''), c: null};

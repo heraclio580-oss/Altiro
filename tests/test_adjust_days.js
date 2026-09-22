@@ -42,13 +42,37 @@ function dump(doc){
   goPill('week'); await wait(20);
   console.log('Closing without Apply leaves the real week/plan untouched (still 3-day pattern):', doc.querySelector('.plan-row[data-day="1"][data-week-idx="0"] .prow-title').textContent==='Rest Day' ? 'OK' : 'FAIL');
 
-  // --- Mark Wednesday done for real (past days default to NOT completed now -- no more fabricated
-  // demo history -- so "already done" has to be established through the app's own affordances) ---
+  // --- Establish a REAL missed Monday (past days no longer auto-fabricate a workout at all -- see
+  // buildWeek()/sessionForDate() -- so "missed" now only happens for a real plan the user actually
+  // set for that day, left incomplete) ---
+  goPill('home'); await wait(20);
+  doc.querySelector('#weekStrip .day-cell[data-day="0"]').click();
+  await wait(20);
+  doc.getElementById('addWorkoutBtn').click();
+  await wait(20);
+  doc.getElementById('manualNameInput').value = 'Morning Strength';
+  doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+  [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='strength').click();
+  if(doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
+  doc.getElementById('saveManualEntry').click();
+  await wait(20);
+  doc.getElementById('closeDayDetail').click();
+  await wait(10);
+
+  // --- Mark Wednesday done for real (past days default to blank/rest now -- no fabricated content
+  // to toggle at all -- so "already done" has to come from an actual logged entry, same as Monday's
+  // missed plan above; a blank/rest day's own Completed toggle no longer applies here) ---
   goPill('home'); await wait(20);
   doc.querySelector('#weekStrip .day-cell[data-day="2"]').click();
   await wait(20);
-  doc.getElementById('dayCompleteToggle').click();
-  await wait(10);
+  doc.getElementById('addWorkoutBtn').click();
+  await wait(20);
+  doc.getElementById('manualNameInput').value = 'Midweek Core';
+  doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+  [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='strength').click();
+  // Wednesday is in the past, so "Mark as Completed" already smart-defaults ON.
+  doc.getElementById('saveManualEntry').click();
+  await wait(20);
   doc.getElementById('closeDayDetail').click();
   await wait(10);
 

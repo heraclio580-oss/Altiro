@@ -36,13 +36,33 @@ function setSliderToWeightsOnly(doc, window){
     const doc = window.document;
     const goPill = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
 
-    // Past days default to NOT completed now (no more fabricated demo history), so "Wednesday is
-    // already done" has to be established for real through the app's own affordances first.
+    // Past days default to blank/rest now (no more fabricated demo history), so both "Monday is
+    // missed" and "Wednesday is already done" have to be established for real through the app's
+    // own affordances first -- a missed real plan for Monday, a real logged entry for Wednesday.
+    goPill('home'); await wait(20);
+    doc.querySelector('#weekStrip .day-cell[data-day="0"]').click();
+    await wait(20);
+    doc.getElementById('addWorkoutBtn').click();
+    await wait(20);
+    doc.getElementById('manualNameInput').value = 'Morning Strength';
+    doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+    [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='strength').click();
+    if(doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
+    doc.getElementById('saveManualEntry').click();
+    await wait(20);
+    doc.getElementById('closeDayDetail').click();
+    await wait(10);
+
     goPill('home'); await wait(20);
     doc.querySelector('#weekStrip .day-cell[data-day="2"]').click();
     await wait(20);
-    doc.getElementById('dayCompleteToggle').click();
-    await wait(10);
+    doc.getElementById('addWorkoutBtn').click();
+    await wait(20);
+    doc.getElementById('manualNameInput').value = 'Midweek Core';
+    doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+    [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='strength').click();
+    doc.getElementById('saveManualEntry').click();
+    await wait(20);
     doc.getElementById('closeDayDetail').click();
     await wait(10);
 

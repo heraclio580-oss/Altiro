@@ -12,20 +12,16 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const doc = window.document;
   const goPill = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
 
-  // ---- Calendar ring: 'missed' (Monday 2026-09-14 is a past, non-rest, uncompleted day by default) ----
-  goPill('calendar');
+  // ---- Non-custom bubble pre-fill: today always has a real auto-suggested (non-custom) plan,
+  // unlike past days which now default to blank (see buildWeek()/sessionForDate()) ----
+  goPill('home');
   await wait(20);
-  const mondayCell = doc.querySelector('.mo-cell[data-date="2026-09-14"]');
-  console.log('Missed day shows the missed ring class on the calendar grid:', mondayCell.classList.contains('missed') ? 'OK' : `FAIL (${mondayCell.className})`);
-
-  mondayCell.click();
+  const todayPlanRow = doc.getElementById('sessionCard');
+  const suggestedTitle = todayPlanRow.querySelector('.title').textContent;
+  doc.querySelector('#weekStrip .day-cell.today').click();
   await wait(20);
-  console.log('Day Detail opened for the missed day:', doc.getElementById('dayDetailOverlay').hidden===false ? 'OK' : 'FAIL');
   const planRow = doc.getElementById('dayDetailPlanRow');
   console.log('Default (non-custom) plan bubble is also marked editable:', planRow.classList.contains('editable') ? 'OK' : 'FAIL');
-  const suggestedTitle = planRow.querySelector('.r-sess-line b').textContent;
-
-  // Clicking a non-custom bubble should now open the editor too, pre-filled with the auto-suggested session.
   planRow.click();
   await wait(20);
   console.log('Clicking a non-custom bubble opens the Create Workout sheet:', doc.getElementById('manualEntryOverlay').hidden===false ? 'OK' : 'FAIL');
@@ -33,8 +29,19 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('Pre-filled with the auto-suggested title:', prefillName.length>0 && suggestedTitle.includes(prefillName) ? 'OK' : `FAIL (${prefillName} vs ${suggestedTitle})`);
   doc.getElementById('closeManualEntry').click();
   await wait(10);
+  doc.getElementById('closeDayDetail').click();
+  await wait(10);
 
-  // ---- Submit a custom workout for that missed day, then edit and clear it ----
+  // ---- Calendar ring: 'missed' -- past days no longer auto-fabricate a workout (see
+  // buildWeek()/sessionForDate()), so "missed" now only happens for a real plan the user actually
+  // set for that day, left incomplete. Submit one for Monday, then edit and clear it. ----
+  goPill('calendar');
+  await wait(20);
+  const mondayCell = doc.querySelector('.mo-cell[data-date="2026-09-14"]');
+  mondayCell.click();
+  await wait(20);
+  console.log('Day Detail opened for Monday:', doc.getElementById('dayDetailOverlay').hidden===false ? 'OK' : 'FAIL');
+
   doc.getElementById('addWorkoutBtn').click();
   await wait(20);
   doc.getElementById('manualNameInput').value = 'Retro Leg Day';

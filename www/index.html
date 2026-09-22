@@ -3145,12 +3145,19 @@ function playTone(freq, durationMs){
     const gain = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.value = freq;
+    // Quick attack up to a loud peak, HOLD there for most of the tone's length (rather than an
+    // instant spike-and-decay), then a short fade-out -- makes it read as a genuinely loud tone
+    // rather than a quiet click. The actual loudness the user hears still scales with the device's
+    // own volume control, same as any other audio -- this just raises what we ask for at 100%.
+    const durSec = durationMs/1000;
+    const decayStart = Math.max(0.015, durSec - 0.06);
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime+0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+durationMs/1000);
+    gain.gain.exponentialRampToValueAtTime(0.85, ctx.currentTime+0.015);
+    gain.gain.exponentialRampToValueAtTime(0.85, ctx.currentTime+decayStart);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+durSec);
     osc.connect(gain); gain.connect(ctx.destination);
     osc.start();
-    osc.stop(ctx.currentTime + durationMs/1000 + 0.02);
+    osc.stop(ctx.currentTime + durSec + 0.02);
   }catch(e){ /* audio is a nice-to-have, never block the timer over it */ }
 }
 function playBeep(){ playTone(880, 140); }
@@ -3160,6 +3167,7 @@ function speakCue(text){
     if(!window.speechSynthesis || typeof SpeechSynthesisUtterance==='undefined') return;
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 1.1;
+    utter.volume = 1; // already the default, set explicitly -- actual loudness still follows the device's own volume control
     utter.lang = state.lang==='es' ? 'es-ES' : 'en-US';
     window.speechSynthesis.cancel(); // don't let cues queue/overlap if triggered in quick succession
     window.speechSynthesis.speak(utter);

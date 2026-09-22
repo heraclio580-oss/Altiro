@@ -440,6 +440,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .stepper span{font-family:var(--font-mono);font-size:12.5px;color:var(--text);flex:1;text-align:center;}
 .timer-controls{display:flex;gap:10px;}
 .timer-controls .btn{flex:1;}
+.hold-end-btn{position:relative;overflow:hidden;width:100%;background:none;border:1px solid var(--alert);border-radius:var(--r-pill);padding:12px;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--alert);cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:none;}
+.hold-end-btn[hidden]{display:none;}
+.hold-end-fill{position:absolute;left:0;top:0;bottom:0;width:0%;background:var(--alert);opacity:0.22;pointer-events:none;}
+.hold-end-label{position:relative;z-index:1;}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;}
 .sheet-head .label{font-size:14px;}
 .sheet-section{margin-top:20px;}
@@ -1321,6 +1325,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="btn btn-ghost" id="timerResetBtn" data-i18n="timerResetBtn"></button>
       </div>
       <button class="btn btn-primary" id="timerFinishBtn" style="width:100%;margin-top:12px;" data-i18n="timerFinishBtn" hidden></button>
+      <button class="hold-end-btn" id="timerHoldEndBtn" type="button" style="width:100%;margin-top:10px;" hidden>
+        <span class="hold-end-fill"></span>
+        <span class="hold-end-label" data-i18n="timerHoldEndBtn"></span>
+      </button>
     </div>
   </div>
 
@@ -1618,6 +1626,7 @@ const STR = {
     timerResumeBtn: "Resume",
     timerResetBtn: "Reset",
     timerFinishBtn: "Finish Workout",
+    timerHoldEndBtn: "Hold to End Workout",
     timerWorkPhase: "Work",
     timerRestPhase: "Rest",
     timerRoundOf: "Round {n} of {total}",
@@ -1820,6 +1829,7 @@ const STR = {
     timerResumeBtn: "Reanudar",
     timerResetBtn: "Reiniciar",
     timerFinishBtn: "Finalizar entrenamiento",
+    timerHoldEndBtn: "Mantén presionado para finalizar",
     timerWorkPhase: "Trabajo",
     timerRestPhase: "Descanso",
     timerRoundOf: "Ronda {n} de {total}",
@@ -2947,6 +2957,7 @@ function openIntervalTimer(){
 }
 function closeIntervalTimer(){
   stopTimerTick();
+  cancelHoldEnd();
   document.getElementById('intervalTimerOverlay').hidden = true;
 }
 document.getElementById('closeIntervalTimer').addEventListener('click', closeIntervalTimer);
@@ -2965,6 +2976,7 @@ function renderTimerUI(){
   const startPauseBtn = document.getElementById('timerStartPauseBtn');
   const resetBtn = document.getElementById('timerResetBtn');
   const finishBtn = document.getElementById('timerFinishBtn');
+  const holdEndBtn = document.getElementById('timerHoldEndBtn');
   if(ts.phase==='done'){
     phaseEl.textContent = L.timerCompleteLabel;
     phaseEl.className = 'timer-phase';
@@ -2974,11 +2986,14 @@ function renderTimerUI(){
     startPauseBtn.hidden = true;
     resetBtn.hidden = true;
     finishBtn.hidden = false;
+    holdEndBtn.hidden = true;
+    cancelHoldEnd();
     return;
   }
   finishBtn.hidden = true;
   startPauseBtn.hidden = false;
   resetBtn.hidden = false;
+  holdEndBtn.hidden = !ts.started;
   phaseEl.textContent = ts.phase==='work' ? L.timerWorkPhase : L.timerRestPhase;
   phaseEl.className = 'timer-phase ' + ts.phase;
   roundEl.textContent = L.timerRoundOf.replace('{n}', ts.roundNum).replace('{total}', ts.rounds);
@@ -3038,9 +3053,42 @@ document.getElementById('timerStartPauseBtn').addEventListener('click', ()=>{
 document.getElementById('timerResetBtn').addEventListener('click', ()=>{
   if(!timerState) return;
   stopTimerTick();
+  cancelHoldEnd();
   timerState = defaultTimerState({rounds:timerState.rounds, workSec:timerState.workSec, restSec:timerState.restSec});
   renderTimerUI();
 });
+// Ending mid-workout requires a deliberate press-and-hold (rather than a single tap) so an
+// accidental touch on the timer screen can't cut a real workout short.
+const HOLD_END_MS = 1100;
+let holdEndRAF = null, holdEndTimeout = null, holdEndStart = 0;
+function cancelHoldEnd(){
+  if(holdEndTimeout){ clearTimeout(holdEndTimeout); holdEndTimeout = null; }
+  if(holdEndRAF){ cancelAnimationFrame(holdEndRAF); holdEndRAF = null; }
+  const fill = document.querySelector('#timerHoldEndBtn .hold-end-fill');
+  if(fill) fill.style.width = '0%';
+}
+function tickHoldEndFill(){
+  const fill = document.querySelector('#timerHoldEndBtn .hold-end-fill');
+  const pct = Math.min(100, (Date.now()-holdEndStart)/HOLD_END_MS*100);
+  if(fill) fill.style.width = pct+'%';
+  if(pct<100) holdEndRAF = requestAnimationFrame(tickHoldEndFill);
+}
+function concludeWorkoutEarly(){
+  if(!timerState) return;
+  const rounds = timerState.roundNum;
+  stopTimerTick();
+  closeIntervalTimer();
+  startWorkout({rounds});
+}
+const holdEndBtn = document.getElementById('timerHoldEndBtn');
+holdEndBtn.addEventListener('pointerdown', (e)=>{
+  e.preventDefault();
+  if(!timerState || timerState.phase==='done') return;
+  holdEndStart = Date.now();
+  tickHoldEndFill();
+  holdEndTimeout = setTimeout(concludeWorkoutEarly, HOLD_END_MS);
+});
+['pointerup','pointerleave','pointercancel'].forEach(evt=>holdEndBtn.addEventListener(evt, cancelHoldEnd));
 document.querySelectorAll('#intervalTimerOverlay [data-field]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     if(!timerState || timerState.started) return; // locked once the timer has actually run

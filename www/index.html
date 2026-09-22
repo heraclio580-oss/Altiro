@@ -5149,7 +5149,12 @@ document.getElementById('emailSignupBtn').addEventListener('click', async functi
       await loadProfileFromCloud(); // overwrites userName if a real full_name is on file
       await loadWorkoutDataFromCloud();
       await loadPRsFromCloud();
-      showScreen('loading');
+      // Go straight to Home, not the "Building your plan" loading screen -- that screen's
+      // animation ends by regenerating state.week from scratch, which would silently wipe out
+      // the real planned/logged workouts just merged in above (a returning user's plan already
+      // exists, there's nothing to "build"). The signup branch above still uses it, since a
+      // brand-new account genuinely has no plan yet.
+      showScreen('home');
     }
   }catch(err){
     errEl.style.color = 'var(--accent)';

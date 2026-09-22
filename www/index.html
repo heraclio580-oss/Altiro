@@ -460,9 +460,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .manual-entry .body{flex:1;min-width:0;}
 .manual-entry .body .n{font-size:13px;font-weight:600;color:var(--text);}
 .manual-entry .body .v{font-family:var(--font-mono);font-size:10.5px;color:var(--text-3);margin-top:1px;}
-.manual-entry .del{background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px;flex-shrink:0;}
-.manual-entry .del svg{width:14px;height:14px;display:block;}
-.manual-entry .del:hover{color:var(--accent-hover);}
+.del{background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px;flex-shrink:0;}
+.del svg{width:14px;height:14px;display:block;}
+.del:hover{color:var(--accent-hover);}
 
 /* ---------- sheet ---------- */
 .sheet-overlay{position:absolute;inset:0;background:rgba(10,10,11,0.55);display:flex;align-items:flex-end;z-index:80;}
@@ -724,7 +724,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .trial-box .s{font-size:11.5px;color:var(--text-2);margin-top:3px;}
 
 /* ---------- progress tab ---------- */
-.barchart{display:flex;align-items:flex-end;gap:10px;height:100px;margin-top:12px;padding:0 2px;}
+.barchart{display:flex;align-items:flex-end;gap:10px;height:100px;margin-top:12px;padding:0 2px;border-bottom:1px solid var(--divider);}
 .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;cursor:pointer;}
 .bar-col .col-bar{width:100%;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-sm) var(--r-sm) 0 0;min-height:4px;}
 .bar-col.selected .col-bar{background:var(--accent);border-color:var(--accent);}
@@ -4152,8 +4152,12 @@ function updateCreateNameLabel(){
 }
 function updateCreateTargetSections(){
   const showTargets = !createMarkCompleted && (manualEntryType==='strength' || manualEntryType==='run');
-  document.getElementById('createWeightSection').hidden = !(showTargets && manualEntryType==='strength');
-  document.getElementById('createRepsSection').hidden = !(showTargets && manualEntryType==='strength');
+  // Once a real exercise breakdown is being built, the single session-level weight x reps target
+  // is redundant (and its progression data would go unused, since a structured session progresses
+  // each exercise on its own) -- so it only shows while the exercise list is still empty.
+  const hasExercises = manualEntryType==='strength' && manualExercises.length>0;
+  document.getElementById('createWeightSection').hidden = !(showTargets && manualEntryType==='strength') || hasExercises;
+  document.getElementById('createRepsSection').hidden = !(showTargets && manualEntryType==='strength') || hasExercises;
   document.getElementById('createPaceSection').hidden = !(showTargets && manualEntryType==='run');
   document.getElementById('createIntervalSection').hidden = manualEntryType!=='interval';
   // Available for any strength entry, planned or already-done -- separate from the single weight x
@@ -4177,6 +4181,7 @@ function renderManualExercisesList(){
       renderManualExercisesList();
     });
   });
+  updateCreateTargetSections();
 }
 document.getElementById('addExerciseBtn').addEventListener('click', ()=>{
   const nameInput = document.getElementById('newExerciseName');

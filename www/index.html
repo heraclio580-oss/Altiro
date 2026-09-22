@@ -1653,8 +1653,6 @@ const STR = {
     timerRestPhase: "Rest",
     timerRoundOf: "Round {n} of {total}",
     timerCompleteLabel: "All rounds complete!",
-    timerGoCue: "Go",
-    timerStopCue: "Stop",
     recordRestLabel: "Rest Day",
     recordDoneLabel: "Completed",
     recordingLabel: "Recording…",
@@ -1863,8 +1861,6 @@ const STR = {
     timerRestPhase: "Descanso",
     timerRoundOf: "Ronda {n} de {total}",
     timerCompleteLabel: "¡Todas las rondas completadas!",
-    timerGoCue: "Adelante",
-    timerStopCue: "Alto",
     recordRestLabel: "Día de descanso",
     recordDoneLabel: "Completado",
     recordingLabel: "Grabando…",
@@ -3162,13 +3158,16 @@ function playTone(freq, durationMs){
 }
 function playBeep(){ playTone(880, 140); }
 function playBell(){ playTone(1200, 500); }
+// "Ready"/"Go"/"Stop" are always spoken in English regardless of the app's display language --
+// they're short, universal gym-timer commands, not content that needs translating.
+const TIMER_VOICE_CUES = {ready:'Ready', go:'Go', stop:'Stop'};
 function speakCue(text){
   try{
     if(!window.speechSynthesis || typeof SpeechSynthesisUtterance==='undefined') return;
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 1.1;
     utter.volume = 1; // already the default, set explicitly -- actual loudness still follows the device's own volume control
-    utter.lang = state.lang==='es' ? 'es-ES' : 'en-US';
+    utter.lang = 'en-US';
     window.speechSynthesis.cancel(); // don't let cues queue/overlap if triggered in quick succession
     window.speechSynthesis.speak(utter);
   }catch(e){ /* speech is a nice-to-have, never block the timer over it */ }
@@ -3243,16 +3242,18 @@ function stopTimerTick(){
 }
 function advanceTimerPhase(){
   const ts = timerState;
-  const L = STR[state.lang];
   ts.lastBeepSecond = null;
+  // The voice cue is spoken first (before the tone) since text-to-speech engines have a startup
+  // delay before any sound actually comes out -- firing it first, then the near-instant Web Audio
+  // tone, lands the two closer together than the other order would.
   if(ts.phase==='countdown'){
+    speakCue(TIMER_VOICE_CUES.go);
     playBell();
-    speakCue(L.timerGoCue);
     ts.phase = 'work';
     ts.remainingMs = ts.workSec*1000;
   } else if(ts.phase==='work'){
+    speakCue(TIMER_VOICE_CUES.stop);
     playBell();
-    speakCue(L.timerStopCue);
     ts.phase = 'rest';
     ts.remainingMs = ts.restSec*1000;
   } else if(ts.roundNum >= ts.rounds){
@@ -3263,8 +3264,8 @@ function advanceTimerPhase(){
     renderTimerUI();
     return;
   } else {
+    speakCue(TIMER_VOICE_CUES.go);
     playBell();
-    speakCue(L.timerGoCue);
     ts.roundNum += 1;
     ts.phase = 'work';
     ts.remainingMs = ts.workSec*1000;
@@ -3273,6 +3274,9 @@ function advanceTimerPhase(){
 }
 function startTimerTick(){
   const ts = timerState;
+  // "Ready" fires once, right when the pre-start countdown first begins -- not on every
+  // resume-from-pause, which is why this checks !ts.started before that flips to true below.
+  if(ts.phase==='countdown' && !ts.started) speakCue(TIMER_VOICE_CUES.ready);
   ts.running = true;
   ts.started = true;
   ts.lastTick = Date.now();

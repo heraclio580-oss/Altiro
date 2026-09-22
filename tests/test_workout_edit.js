@@ -22,12 +22,17 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   console.log('Day Detail opened for the missed day:', doc.getElementById('dayDetailOverlay').hidden===false ? 'OK' : 'FAIL');
   const planRow = doc.getElementById('dayDetailPlanRow');
-  console.log('Default (non-custom) plan bubble is not marked editable:', !planRow.classList.contains('editable') ? 'OK' : 'FAIL');
+  console.log('Default (non-custom) plan bubble is also marked editable:', planRow.classList.contains('editable') ? 'OK' : 'FAIL');
+  const suggestedTitle = planRow.querySelector('.r-sess-line b').textContent;
 
-  // Clicking a non-custom bubble should do nothing (no editor pop-up).
+  // Clicking a non-custom bubble should now open the editor too, pre-filled with the auto-suggested session.
   planRow.click();
   await wait(20);
-  console.log('Clicking a non-custom bubble does not open the Create Workout sheet:', doc.getElementById('manualEntryOverlay').hidden===true ? 'OK' : 'FAIL');
+  console.log('Clicking a non-custom bubble opens the Create Workout sheet:', doc.getElementById('manualEntryOverlay').hidden===false ? 'OK' : 'FAIL');
+  const prefillName = doc.getElementById('manualNameInput').value;
+  console.log('Pre-filled with the auto-suggested title:', prefillName.length>0 && suggestedTitle.includes(prefillName) ? 'OK' : `FAIL (${prefillName} vs ${suggestedTitle})`);
+  doc.getElementById('closeManualEntry').click();
+  await wait(10);
 
   // ---- Submit a custom workout for that missed day, then edit and clear it ----
   doc.getElementById('addWorkoutBtn').click();
@@ -76,11 +81,12 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   console.log('Editor closed after Clear Workout:', doc.getElementById('manualEntryOverlay').hidden===true ? 'OK' : 'FAIL');
   console.log('Plan bubble no longer shows the cleared custom title:', !doc.getElementById('dayDetailPlanRow').textContent.includes('Retro Leg Day') ? 'OK' : 'FAIL');
-  console.log('Plan bubble is no longer editable after clearing:', !doc.getElementById('dayDetailPlanRow').classList.contains('editable') ? 'OK' : 'FAIL');
+  console.log('Plan bubble is still editable after clearing (now showing the suggested plan):', doc.getElementById('dayDetailPlanRow').classList.contains('editable') ? 'OK' : 'FAIL');
   doc.getElementById('closeDayDetail').click();
   await wait(10);
 
-  // ---- Calendar ring: 'upcoming' -> 'done' transition on a future day ----
+  // ---- Calendar ring: 'upcoming' -> 'done' transition on a future day, checked on BOTH the
+  // month grid (Calendar tab) and the week strip (Today page) since they share the same status. ----
   doc.querySelector('#weekStrip .day-cell[data-day="5"]').click(); // Saturday, future
   await wait(20);
   doc.getElementById('addWorkoutBtn').click();
@@ -92,10 +98,14 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   doc.getElementById('closeDayDetail').click();
   await wait(10);
+
+  const satStripBefore = doc.querySelector('#weekStrip .day-cell[data-day="5"]');
+  console.log('Week strip on the Today page shows the upcoming (yellow) ring:', satStripBefore.classList.contains('upcoming') ? 'OK' : `FAIL (${satStripBefore.className})`);
+
   goPill('calendar');
   await wait(20);
   const satCellBefore = doc.querySelector('.mo-cell[data-date="2026-09-19"]');
-  console.log('Future scheduled day shows the upcoming (yellow) ring:', satCellBefore.classList.contains('upcoming') ? 'OK' : `FAIL (${satCellBefore.className})`);
+  console.log('Calendar grid shows the same upcoming (yellow) ring:', satCellBefore.classList.contains('upcoming') ? 'OK' : `FAIL (${satCellBefore.className})`);
 
   satCellBefore.click();
   await wait(20);
@@ -104,7 +114,22 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('closeDayDetail').click();
   await wait(20);
   const satCellAfter = doc.querySelector('.mo-cell[data-date="2026-09-19"]');
-  console.log('Marking it completed turns the ring green (done):', satCellAfter.classList.contains('done') ? 'OK' : `FAIL (${satCellAfter.className})`);
+  console.log('Marking it completed turns the calendar ring green (done):', satCellAfter.classList.contains('done') ? 'OK' : `FAIL (${satCellAfter.className})`);
+
+  goPill('home');
+  await wait(20);
+  const satStripAfter = doc.querySelector('#weekStrip .day-cell[data-day="5"]');
+  console.log('Week strip also turns green (done) for that same Saturday:', satStripAfter.classList.contains('done') ? 'OK' : `FAIL (${satStripAfter.className})`);
+
+  // ---- Tapping a rest day's bubble opens a blank Create Workout instead of trying to pre-fill "rest" ----
+  doc.querySelector('#weekStrip .day-cell[data-day="6"]').click(); // Sunday, a rest day by default in this fixture
+  await wait(20);
+  const restPlanRow = doc.getElementById('dayDetailPlanRow');
+  console.log('Rest day bubble is still tappable/editable:', restPlanRow.classList.contains('editable') ? 'OK' : 'FAIL');
+  restPlanRow.click();
+  await wait(20);
+  console.log('Tapping a rest day bubble opens a blank Create Workout sheet:', doc.getElementById('manualEntryOverlay').hidden===false && doc.getElementById('manualNameInput').value==='' ? 'OK' : `FAIL (name=${doc.getElementById('manualNameInput').value})`);
+  console.log('Sheet title stays "Create Workout" (nothing to edit on a rest day):', !doc.getElementById('manualEntryTitleLabel').textContent.includes('Edit') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');
   process.exit(0);

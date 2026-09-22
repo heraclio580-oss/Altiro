@@ -302,8 +302,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .day-cell.today{border-color:var(--today-ring);background:linear-gradient(0deg,var(--today-ring-tint),var(--today-ring-tint)),var(--card);}
 .day-cell.today .dd{color:var(--text);}
 .day-cell.today .dot{background:var(--today-ring);}
+.day-cell.upcoming{border-color:var(--warn);}
+.day-cell.upcoming .dot{background:var(--warn);}
+.day-cell.done{border-color:var(--ok-border);}
 .day-cell.done .dot{background:var(--ok-icon);}
 .day-cell.done .dd{color:var(--text-2);}
+.day-cell.missed{border-color:var(--alert);}
 .day-cell.missed .dot{background:var(--alert);}
 .day-cell.missed .dd{color:var(--alert);}
 
@@ -2704,7 +2708,7 @@ function renderHome(){
   const strip = document.getElementById('weekStrip');
   strip.innerHTML = state.week.map((d,i)=>{
     const status = dayStatus(i);
-    const cls = (status==='upcoming' || status==='rest') ? '' : status;
+    const cls = status==='rest' ? '' : status;
     return `<div class="day-cell ${cls}" data-day="${i}">
       <span class="dn">${DAY_NAMES_SHORT[state.lang][i]}</span><span class="dd">${DAY_DATES[i]}</span><span class="dot"></span>
     </div>`;
@@ -3418,7 +3422,8 @@ document.getElementById('closeDayDetail').addEventListener('click', closeDayDeta
 document.getElementById('dayDetailPlanRow').addEventListener('click', ()=>{
   if(!state.openDayKey) return;
   const dd = getDayData(parseDateKey(state.openDayKey));
-  if(!dd.isCustom) return;
+  // A rest day has no workout content to pre-fill -- tapping it just opens a blank Create Workout.
+  if(dd.p.t==='rest'){ openManualEntry(); return; }
   openManualEntryForEdit(dd);
 });
 function renderDayDetail(){
@@ -3430,7 +3435,7 @@ function renderDayDetail(){
   const dow = (date.getDay()+6)%7;
 
   document.getElementById('dayDetailTitle').textContent = `${DAY_NAMES_FULL[state.lang][dow]}, ${MONTHS_SHORT[state.lang][date.getMonth()]} ${date.getDate()}`;
-  document.getElementById('dayDetailPlanRow').className = `day-row ${(status==='upcoming'||status==='rest')?'':status} ${dd.isCustom?'editable':''}`;
+  document.getElementById('dayDetailPlanRow').className = `day-row ${(status==='upcoming'||status==='rest')?'':status} editable`;
   document.getElementById('dayDetailPlanRow').innerHTML = planRowHtml(dd, status);
 
   const actionsEl = document.getElementById('dayDetailActions');
@@ -3628,8 +3633,8 @@ function openManualEntry(){
   document.getElementById('clearWorkoutBtn').hidden = true;
   document.getElementById('manualEntryOverlay').hidden = false;
 }
-// Re-opens Create Workout pre-filled with an existing custom-planned day (dd.isCustom) so the
-// user can revise and resubmit it, instead of only being able to start over from a blank sheet.
+// Re-opens Create Workout pre-filled with the day's current session (custom or auto-suggested) so
+// the user can revise and resubmit it, instead of only being able to start over from a blank sheet.
 function openManualEntryForEdit(dd){
   openManualEntry();
   const L = STR[state.lang];

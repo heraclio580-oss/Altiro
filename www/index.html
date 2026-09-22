@@ -1,3 +1,6 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Altiro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -91,6 +94,7 @@
   --ring:#FFFFFF;
 }
 *{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
 body{
   background:
     repeating-linear-gradient(115deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 68px),
@@ -126,11 +130,28 @@ body{
 .device::before{content:"";position:absolute;top:10px;left:50%;transform:translateX(-50%);width:84px;height:5px;background:#0d0e10;border-radius:3px;z-index:50;}
 .screen{position:absolute;inset:0;background:var(--screen-bg);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
 .screen[hidden]{display:none;}
+/* On an actual phone-width viewport the app fills the screen edge-to-edge like a real mobile web
+   app instead of showing a shrunk-down mockup of itself -- the bezel/notch/shadow chrome below is
+   a desktop-only presentation choice. Tablet and desktop keep the framed device look. */
+@media (max-width:480px){
+  body{padding-inline:0;gap:8px;height:100vh;height:100dvh;overflow:hidden;}
+  .proto-nav{max-width:none;padding-inline:14px;flex-shrink:0;}
+  /* The device fills whatever height is left under the prototype navigator, rather than a flat
+     100dvh -- otherwise the nav's own height would push the app below the visible viewport. */
+  .device-wrap{max-width:none;margin-bottom:0;flex:1;min-height:0;}
+  .device{
+    width:100%;height:100%;aspect-ratio:auto;
+    border:none;border-radius:0;box-shadow:none;
+  }
+  .device::before{display:none;}
+  /* No more bezel to sit content below, so screens must clear a real notch/status bar themselves. */
+  .screen{padding-top:env(safe-area-inset-top,0px);}
+}
 .screen.anim{animation:screenIn .3s ease both;}
 @keyframes screenIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
 @media (prefers-reduced-motion: reduce){.screen.anim{animation:none;}}
 .screen::-webkit-scrollbar{width:0;height:0;}
-.tab-screen{padding-bottom:70px;}
+.tab-screen{padding-bottom:calc(70px + env(safe-area-inset-bottom,0px));}
 
 .pad{padding:34px 20px 24px;}
 .grow{flex:1;}
@@ -1010,7 +1031,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   <!-- 10. PLAN (week view) -->
   <section class="screen tab-screen" id="screen-week" data-title="Plan" hidden>
     <div class="topbar" style="justify-content:space-between;padding-right:20px;">
-      <span class="label" data-i18n="weekViewTitle"></span>
+      <span class="label" data-i18n="planTabTitle"></span>
       <button class="iconbtn" data-open-adjust title="Adjust plan"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13.5 3a3.5 3.5 0 0 0-4.6 4.2L3 13.1V17h3.9l5.9-5.9A3.5 3.5 0 0 0 17 6.5l-2.6 2.6-2-2L15 4.4"/></svg></button>
     </div>
     <div class="grow" style="padding-top:16px;" id="weekList"></div>
@@ -1663,6 +1684,7 @@ const STR = {
     statStreakLabel: "Day Streak",
     pairedWithInline: "Paired with:",
     weekViewTitle: "This Week",
+    planTabTitle: "Plan",
     statusToday: "Today", statusDone: "Done", statusUpcoming: "Upcoming", statusMissed: "Missed", statusRest: "Rest Day",
     completedTodayInline: "Completed today",
     startWorkoutBtn: "Start Workout",
@@ -1884,6 +1906,7 @@ const STR = {
     statStreakLabel: "Días Activos",
     pairedWithInline: "Combinado con:",
     weekViewTitle: "Esta semana",
+    planTabTitle: "Plan",
     statusToday: "Hoy", statusDone: "Completado", statusUpcoming: "Próximo", statusMissed: "Perdido", statusRest: "Descanso",
     completedTodayInline: "Completado hoy",
     startWorkoutBtn: "Comenzar entrenamiento",
@@ -2688,12 +2711,26 @@ const NAV_MAP = [
   ['summary','16 · Summary'],
   ['exercise-detail','17 · Exercise Demo'],
 ];
+// Real navigation (the bottom nav) can never be tapped while a sheet is open -- the sheet's own
+// dark backdrop sits above it and blocks the tap. The prototype navigator's screen-jump pills
+// bypass that backdrop entirely, so without this they can leave a sheet from a previous jump
+// stranded open over whatever screen is jumped to next.
+function closeAllOverlays(){
+  if(!document.getElementById('logPerfOverlay').hidden) closeLogPerformance();
+  if(!document.getElementById('intervalTimerOverlay').hidden) closeIntervalTimer();
+  if(!document.getElementById('dayDetailOverlay').hidden) closeDayDetail();
+  if(!document.getElementById('manualEntryOverlay').hidden) closeManualEntry();
+  if(!document.getElementById('editNameOverlay').hidden) closeEditName();
+  if(!document.getElementById('adjustOverlay').hidden) closeAdjustSheet();
+  if(!document.getElementById('tutorialOverlay').hidden) closeTutorial();
+}
 const pillsWrap = document.getElementById('protoPills');
 NAV_MAP.forEach(([id,label])=>{
   const b = document.createElement('button');
   b.className='proto-pill'; b.textContent=label; b.dataset.navId=id;
   b.addEventListener('click', ()=>{
     ensureWeek();
+    closeAllOverlays();
     if(id==='adjust'){ showScreen('home'); openAdjustSheet(); }
     else if(id==='exercise-detail'){ openExerciseDetail(todaySession(), 'home'); }
     else if(id==='progress'){ state.calendarViewMode='progress'; showScreen('calendar'); }

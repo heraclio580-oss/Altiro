@@ -38,13 +38,13 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   const todayCellAfter = doc.querySelector(`#weekStrip .day-cell[data-day="${todayDayIdx}"]`);
   console.log('After a manual log (no Record Workout press), today\'s specific cell flips to "done":', todayCellAfter.classList.contains('done') ? 'OK' : `FAIL (${todayCellAfter.className})`);
-  console.log('That same cell no longer carries "today":', !todayCellAfter.classList.contains('today') ? 'OK' : 'FAIL');
+  console.log('That same cell still carries "today" (blue ring persists once done):', todayCellAfter.classList.contains('today') ? 'OK' : 'FAIL');
 
   goPill('calendar');
   await wait(20);
   const calTodayCellAfter = doc.querySelector(`#calGrid .mo-cell[data-date="${todayDateKey}"]`);
   console.log('Calendar agrees: today\'s specific cell is now "done" from the manual log alone:', calTodayCellAfter.classList.contains('done') ? 'OK' : `FAIL (${calTodayCellAfter.className})`);
-  console.log('Calendar\'s today cell no longer carries "today":', !calTodayCellAfter.classList.contains('today') ? 'OK' : 'FAIL');
+  console.log('Calendar\'s today cell still carries "today" (blue ring persists once done):', calTodayCellAfter.classList.contains('today') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');
   process.exit(0);

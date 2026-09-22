@@ -37,7 +37,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   goPill('home');
   await wait(20);
   const todayCellAfterOn = doc.querySelector(`#weekStrip .day-cell[data-day="${todayDayIdx}"]`);
-  console.log('Home: today\'s specific cell now shows "done" (no longer "today"):', todayCellAfterOn.classList.contains('done') && !todayCellAfterOn.classList.contains('today') ? 'OK' : `FAIL (${todayCellAfterOn.className})`);
+  console.log('Home: today\'s specific cell shows "done" AND keeps its "today" blue ring:', todayCellAfterOn.classList.contains('done') && todayCellAfterOn.classList.contains('today') ? 'OK' : `FAIL (${todayCellAfterOn.className})`);
   console.log('Home: Record Workout circle now shows the done state:', doc.getElementById('recordBtn').classList.contains('done') ? 'OK' : 'FAIL');
   console.log('Home: "This Week" workouts count increased by 1 from the toggle alone:', doc.getElementById('ovWorkoutsVal').textContent !== workoutsBefore ? `OK (${workoutsBefore} -> ${doc.getElementById('ovWorkoutsVal').textContent})` : `FAIL (stayed ${workoutsBefore})`);
 
@@ -49,7 +49,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   goPill('calendar');
   await wait(20);
-  console.log('Calendar: today\'s cell now carries "done", not "today":', !!doc.querySelector('#calGrid .mo-cell.done') && !doc.querySelector('#calGrid .mo-cell.today') ? 'OK' : 'FAIL');
+  console.log('Calendar: today\'s cell carries BOTH "done" and "today":', !!doc.querySelector('#calGrid .mo-cell.done.today') ? 'OK' : 'FAIL');
 
   // --- Clicking Record Workout after toggling done should be a no-op (already marked done) ---
   goPill('home');

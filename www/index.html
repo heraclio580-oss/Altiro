@@ -2226,6 +2226,12 @@ function dayDataStatus(dd){
   if(dd.completed) return 'done';
   return dd.isFuture ? 'upcoming' : 'missed';
 }
+// dayDataStatus()/dayStatus() collapse to a single status string, so a completed today loses its
+// "today" class entirely once done -- this keeps "today" as a class on its own so the blue ring
+// still marks which day is today even after that day's workout is completed.
+function statusClassFor(status, isToday){
+  return (isToday && status!=='today') ? `${status} today` : status;
+}
 function ensureDayLog(key){
   if(!state.dayLog[key]) state.dayLog[key] = {completedOverride:null, manualEntries:[], session:null};
   return state.dayLog[key];
@@ -2706,7 +2712,7 @@ function renderHome(){
   const strip = document.getElementById('weekStrip');
   strip.innerHTML = state.week.map((d,i)=>{
     const status = dayStatus(i);
-    const cls = status==='rest' ? '' : status;
+    const cls = statusClassFor(status==='rest' ? '' : status, i===TODAY_IDX);
     return `<div class="day-cell ${cls}" data-day="${i}">
       <span class="dn">${DAY_NAMES_SHORT[state.lang][i]}</span><span class="dd">${DAY_DATES[i]}</span><span class="dot"></span>
     </div>`;
@@ -3156,7 +3162,7 @@ function planListRowHtml(weekIdx, i, date){
     : status==='today' ? `<span class="prow-status today">${L.statusToday}</span>`
     : '';
 
-  return `<div class="plan-row ${status}" data-day="${i}" data-week-idx="${weekIdx}" ${draggable?'data-draggable="1"':''}>
+  return `<div class="plan-row ${statusClassFor(status, dd.isToday)}" data-day="${i}" data-week-idx="${weekIdx}" ${draggable?'data-draggable="1"':''}>
     <div class="prow-date">
       <span class="prow-dow">${DAY_NAMES_SHORT[state.lang][i]}</span>
       <span class="prow-num">${date.getDate()}</span>
@@ -3372,7 +3378,7 @@ function renderCalendar(){
     if(dayNum<1 || dayNum>numDays){ html += `<div class="mo-cell outside"></div>`; continue; }
     const date = new Date(year, month, dayNum);
     const dd = getDayData(date);
-    const status = dayDataStatus(dd);
+    const status = statusClassFor(dayDataStatus(dd), dd.isToday);
     const hasLog = dd.manualEntries.length>0;
     html += `<div class="mo-cell ${status} ${hasLog?'has-log':''}" data-date="${dd.key}">
       <span class="mo-num">${dayNum}</span>
@@ -3433,7 +3439,7 @@ function renderDayDetail(){
   const dow = (date.getDay()+6)%7;
 
   document.getElementById('dayDetailTitle').textContent = `${DAY_NAMES_FULL[state.lang][dow]}, ${MONTHS_SHORT[state.lang][date.getMonth()]} ${date.getDate()}`;
-  document.getElementById('dayDetailPlanRow').className = `day-row ${(status==='upcoming'||status==='rest')?'':status} editable`;
+  document.getElementById('dayDetailPlanRow').className = `day-row ${statusClassFor((status==='upcoming'||status==='rest')?'':status, dd.isToday)} editable`;
   document.getElementById('dayDetailPlanRow').innerHTML = planRowHtml(dd, status);
 
   const actionsEl = document.getElementById('dayDetailActions');

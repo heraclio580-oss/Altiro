@@ -45,19 +45,22 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const homeTodayCellAfter = doc.querySelector('#weekStrip .day-cell[data-day]');
   const idxToday = [...doc.querySelectorAll('#weekStrip .day-cell')].findIndex(c=>c.classList.contains('done') || c.classList.contains('today'));
 
-  // Direct, unambiguous checks: today's cell should now carry "done" and NOT "today".
+  // Today should now show BOTH "done" (green dot, since it's completed) and "today" (blue ring stays,
+  // since it's still the current day) -- the blue ring marks which day is today independently of
+  // whether that day's workout is done yet.
   const homeCellsAfter = [...doc.querySelectorAll('#weekStrip .day-cell')];
   const doneCell = homeCellsAfter.find(c=>c.classList.contains('done'));
   console.log('Home week strip: some cell is now marked "done" after completing today:', !!doneCell ? 'OK' : 'FAIL');
-  console.log('Home week strip: no cell is still marked "today" after completing (fully replaced by done):', !doc.querySelector('#weekStrip .day-cell.today') ? 'OK' : 'FAIL');
+  console.log('Home week strip: that same cell still carries "today" (blue ring persists after completing):', doneCell && doneCell.classList.contains('today') ? 'OK' : 'FAIL');
 
   goPill('week');
   await wait(20);
   console.log('Plan row for today now shows the done checkmark, not the TODAY badge:', !!doc.querySelector('.prow-status.done') && !doc.querySelector('.prow-status.today') ? 'OK' : 'FAIL');
+  console.log('That row still carries the "today" class itself (blue accent stays on the row):', !!doc.querySelector('.plan-row.today.done') ? 'OK' : 'FAIL');
 
   goPill('calendar');
   await wait(20);
-  console.log("Calendar: today's cell now carries done (green ring+dot), not today:", !!doc.querySelector('#calGrid .mo-cell.done') && !doc.querySelector('#calGrid .mo-cell.today') ? 'OK' : 'FAIL');
+  console.log("Calendar: today's cell now carries BOTH done (green dot) and today (blue ring):", !!doc.querySelector('#calGrid .mo-cell.done.today') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');
   process.exit(0);

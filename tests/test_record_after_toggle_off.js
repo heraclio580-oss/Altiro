@@ -51,7 +51,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   goPill('calendar');
   await wait(20);
-  console.log('Calendar also shows today as done (green), not the blue today-ring:', !!doc.querySelector('#calGrid .mo-cell.done') && !doc.querySelector('#calGrid .mo-cell.today') ? 'OK' : 'FAIL');
+  console.log('Calendar shows today as both done (green dot) and still the blue today-ring:', !!doc.querySelector('#calGrid .mo-cell.done.today') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');
   process.exit(0);

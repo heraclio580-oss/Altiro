@@ -375,7 +375,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .exercise-log-row .exercise-log-inputs{display:flex;gap:8px;}
 .exercise-log-row .exercise-log-inputs .text-input{flex:1;}
 .exercise-log-row.bodyweight .exercise-log-inputs{display:none;}
-.exercise-log-row{padding:8px;border-radius:var(--r-md);border:1px solid transparent;transition:border-color .15s;}
+.exercise-log-row{padding:8px;border-radius:var(--r-md);border:1px solid transparent;transition:border-color .15s;cursor:pointer;}
 .exercise-log-row.current-exercise{border-color:var(--accent);background:var(--well);}
 .exercise-log-row.set-complete .exercise-log-name{color:var(--ok-icon);}
 .set-check-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
@@ -3308,6 +3308,10 @@ function applyProgressionResult(session, logged){
 // exercise auto-highlighted), reset fresh every time the sheet opens. It doesn't change what
 // actually gets saved -- the weight/reps fields next to it remain the source of truth for that.
 let logPerfSetChecks = {}; // {exerciseKey: [bool, ...]}
+// Which exercise the user has explicitly tapped to work on -- overrides the "first unfinished
+// exercise" auto-highlight, so someone who can't do them in the listed order (e.g. the squat rack
+// is taken) can jump straight to whichever one they're actually doing next.
+let logPerfSelectedKey = null;
 function refreshLogPerfRowState(rowEl, ex){
   const checks = logPerfSetChecks[ex.key];
   const allChecked = checks.every(Boolean);
@@ -3324,10 +3328,20 @@ function refreshLogPerfRowState(rowEl, ex){
   });
 }
 // "Select the next workout and sets" -- once an exercise's sets are all checked off, highlight the
-// next not-yet-finished exercise as the current one automatically.
+// next not-yet-finished exercise as the current one automatically, unless the user has explicitly
+// picked a different (still-unfinished) one to work on instead.
 function refreshLogPerfCurrentHighlight(){
+  const rows = [...document.querySelectorAll('#logPerfExercisesList .exercise-log-row')];
+  const selectedRow = logPerfSelectedKey
+    ? rows.find(r=>r.getAttribute('data-exercise-key')===logPerfSelectedKey && !r.classList.contains('set-complete'))
+    : null;
+  if(selectedRow){
+    rows.forEach(r=> r.classList.toggle('current-exercise', r===selectedRow));
+    return;
+  }
+  logPerfSelectedKey = null; // the picked exercise finished (or was never valid) -- fall back to auto
   let foundCurrent = false;
-  document.querySelectorAll('#logPerfExercisesList .exercise-log-row').forEach(r=>{
+  rows.forEach(r=>{
     const isCurrent = !r.classList.contains('set-complete') && !foundCurrent;
     if(isCurrent) foundCurrent = true;
     r.classList.toggle('current-exercise', isCurrent);
@@ -3341,6 +3355,7 @@ function openLogPerformance(extraId){
   const exercises = exercisesForSession(eff);
   const exercisesListEl = document.getElementById('logPerfExercisesList');
   logPerfSetChecks = {};
+  logPerfSelectedKey = null;
   if(exercises){
     exercisesListEl.innerHTML = exercises.map(ex=>{
       const t = getExerciseTarget(ex, state.intensityIdx);
@@ -3357,6 +3372,12 @@ function openLogPerformance(extraId){
     exercisesListEl.querySelectorAll('.exercise-log-row').forEach(rowEl=>{
       const ex = exercises.find(e=>e.key===rowEl.getAttribute('data-exercise-key'));
       refreshLogPerfRowState(rowEl, ex);
+      // Tapping anywhere on an exercise -- its name, sets, or the weight/reps fields -- picks it
+      // as the one being worked on right now, regardless of what order the list shows.
+      rowEl.addEventListener('click', ()=>{
+        logPerfSelectedKey = ex.key;
+        refreshLogPerfCurrentHighlight();
+      });
     });
     refreshLogPerfCurrentHighlight();
   } else {

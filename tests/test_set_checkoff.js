@@ -27,6 +27,18 @@ function rows(doc){ return [...doc.querySelectorAll('#logPerfExercisesList .exer
   console.log('First exercise starts as the highlighted "current" one:', r[0].classList.contains('current-exercise') ? 'OK' : 'FAIL');
   console.log('No dots checked yet:', firstDots.every(d=>!d.classList.contains('checked')) ? 'OK' : 'FAIL');
 
+  // The user should be free to work through exercises in whatever order suits them (e.g. the
+  // squat rack is busy) -- tapping a later exercise picks it as "current" even though an earlier
+  // one is still unfinished, overriding the automatic first-unfinished highlight.
+  if(r.length>=3){
+    r[2].click();
+    console.log('Tapping a later exercise makes IT the current one, out of order:', r[2].classList.contains('current-exercise') && !r[0].classList.contains('current-exercise') ? 'OK' : 'FAIL');
+    r[0].click();
+    console.log('Tapping back on the first exercise re-selects it as current:', r[0].classList.contains('current-exercise') && !r[2].classList.contains('current-exercise') ? 'OK' : 'FAIL');
+  } else {
+    console.log('Tapping a later exercise makes IT the current one, out of order: SKIP (fewer than 3 exercises this run)');
+  }
+
   firstDots[0].click();
   console.log('Tapping a dot checks that set:', doc.querySelector('#logPerfExercisesList .exercise-log-row .set-check-dot').classList.contains('checked') ? 'OK' : 'FAIL');
   console.log('Row not yet marked complete (other sets still unchecked):', firstDots.length>1 ? (!r[0].classList.contains('set-complete') ? 'OK' : 'FAIL') : 'SKIP (single-set exercise)');
@@ -38,6 +50,18 @@ function rows(doc){ return [...doc.querySelectorAll('#logPerfExercisesList .exer
   console.log('First exercise now marked complete once every set is checked:', r[0].classList.contains('set-complete') ? 'OK' : 'FAIL');
   if(r.length>1){
     console.log('Current-exercise highlight auto-advances to the next incomplete exercise:', !r[0].classList.contains('current-exercise') && r[1].classList.contains('current-exercise') ? 'OK' : `FAIL (row0 current=${r[0].classList.contains('current-exercise')}, row1 current=${r[1].classList.contains('current-exercise')})`);
+  }
+
+  // Jump ahead to the last exercise out of order again and finish IT -- once it's done, the manual
+  // pick should fall back to auto mode and land back on the actual first unfinished one (r[1]),
+  // not get stuck on the now-finished exercise or skip past r[1].
+  if(r.length>=3){
+    r[2].click();
+    console.log('Jumping ahead to the last exercise selects it as current:', r[2].classList.contains('current-exercise') ? 'OK' : 'FAIL');
+    [...r[2].querySelectorAll('.set-check-dot')].forEach(d=>{ if(!d.classList.contains('checked')) d.click(); });
+    console.log('Finishing that manually-picked exercise falls back to the real first-unfinished one, not stuck or skipping ahead:',
+      r[2].classList.contains('set-complete') && r[1].classList.contains('current-exercise') && !r[2].classList.contains('current-exercise') ? 'OK'
+      : `FAIL (r1 current=${r[1].classList.contains('current-exercise')}, r2 current=${r[2].classList.contains('current-exercise')})`);
   }
 
   // Checking off sets doesn't clobber the weight/reps the seeded/typed values.

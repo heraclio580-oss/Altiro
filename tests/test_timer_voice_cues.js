@@ -5,8 +5,16 @@ const { JSDOM } = require('jsdom');
 const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
 const spoken = [];
 class FakeUtterance {
-  constructor(text){ this.text = text; this.lang = ''; this.rate = 1; this.volume = 1; }
+  constructor(text){ this.text = text; this.lang = ''; this.rate = 1; this.volume = 1; this.pitch = 1; this.voice = null; }
 }
+// A realistic mixed voice list (male + female English, plus a non-English one) to verify the
+// male-voice picker actually favors a recognizably male name over a female one.
+const FAKE_VOICES = [
+  {name:'Google español', lang:'es-ES'},
+  {name:'Samantha', lang:'en-US'},
+  {name:'Daniel', lang:'en-GB'},
+  {name:'Victoria', lang:'en-US'},
+];
 const dom = new JSDOM(html, {
   runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/',
   beforeParse(window){
@@ -14,7 +22,8 @@ const dom = new JSDOM(html, {
     window.SpeechSynthesisUtterance = FakeUtterance;
     window.speechSynthesis = {
       cancel(){},
-      speak(utter){ spoken.push({text: utter.text, lang: utter.lang}); },
+      getVoices(){ return FAKE_VOICES; },
+      speak(utter){ spoken.push({text: utter.text, lang: utter.lang, volume: utter.volume, pitch: utter.pitch, voiceName: utter.voice ? utter.voice.name : null}); },
     };
   },
 });
@@ -72,6 +81,9 @@ function texts(){ return spoken.map(s=>s.text); }
   console.log('"Go" is spoken again for round 2:', texts()[3]==='Go' ? 'OK' : `FAIL (${JSON.stringify(texts())})`);
   console.log('Only 4 voice cues so far (Ready, Go, Stop, Go):', spoken.length===4 ? 'OK' : `FAIL (${JSON.stringify(texts())})`);
   console.log('Every cue was spoken in English:', spoken.every(s=>s.lang==='en-US') ? 'OK' : `FAIL (${JSON.stringify(spoken)})`);
+  console.log('Volume is at the API max (1):', spoken.every(s=>s.volume===1) ? 'OK' : `FAIL (${JSON.stringify(spoken)})`);
+  console.log('Pitch is lowered for a deeper, more male-sounding voice:', spoken.every(s=>s.pitch===0.8) ? 'OK' : `FAIL (${JSON.stringify(spoken)})`);
+  console.log('The male-named voice (Daniel) was picked over the female ones (Samantha/Victoria):', spoken.every(s=>s.voiceName==='Daniel') ? 'OK' : `FAIL (${JSON.stringify(spoken.map(s=>s.voiceName))})`);
 
   console.log('ALL DONE');
   process.exit(0);

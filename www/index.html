@@ -3161,13 +3161,32 @@ function playBell(){ playTone(1200, 500); }
 // "Ready"/"Go"/"Stop" are always spoken in English regardless of the app's display language --
 // they're short, universal gym-timer commands, not content that needs translating.
 const TIMER_VOICE_CUES = {ready:'Ready', go:'Go', stop:'Stop'};
+// Web Speech API voices don't carry a real "gender" field -- this is a best-effort name match
+// against common male voice names across Chrome/Safari/Android/iOS, falling back to whatever
+// isn't a recognizably female name, then to whatever's available at all.
+function pickMaleVoice(){
+  try{
+    const voices = window.speechSynthesis.getVoices() || [];
+    if(!voices.length) return null;
+    const english = voices.filter(v=>v.lang && v.lang.toLowerCase().startsWith('en'));
+    const pool = english.length ? english : voices;
+    const maleHint = /\bmale\b|david|daniel|alex\b|fred|george|james|mark\b|tom\b|guy|ryan|brian|aaron|arthur|gordon|oliver|thomas/i;
+    const femaleHint = /\bfemale\b|samantha|victoria|karen|susan|zira|siri|fiona|moira|tessa|kate\b|amy\b|emma\b|joanna|salli|kimberly|allison|ava\b/i;
+    return pool.find(v=>maleHint.test(v.name))
+      || pool.find(v=>!femaleHint.test(v.name))
+      || pool[0];
+  }catch(e){ return null; }
+}
 function speakCue(text){
   try{
     if(!window.speechSynthesis || typeof SpeechSynthesisUtterance==='undefined') return;
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 1.1;
-    utter.volume = 1; // already the default, set explicitly -- actual loudness still follows the device's own volume control
+    utter.volume = 1; // the Web Speech API's ceiling -- there's no way to amplify a voice past this
+    utter.pitch = 0.8; // a deeper pitch reads as a fuller, more male, more commanding voice
     utter.lang = 'en-US';
+    const voice = pickMaleVoice();
+    if(voice) utter.voice = voice;
     window.speechSynthesis.cancel(); // don't let cues queue/overlap if triggered in quick succession
     window.speechSynthesis.speak(utter);
   }catch(e){ /* speech is a nice-to-have, never block the timer over it */ }

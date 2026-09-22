@@ -10,7 +10,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 // Two separate JSDOM "sessions" below share ONE of these (one `db`), which is what lets this test
 // prove real write-in-session-A / read-in-session-B persistence, not just "the call didn't throw."
 function makeSharedBackend(){
-  const db = { profiles:{}, workout_logs:{}, manual_entries:{}, recorded_sessions:[], progression_targets:{}, personal_records:{} };
+  const db = { profiles:{}, workout_logs:{}, manual_entries:{}, recorded_sessions:[], progression_targets:{}, personal_records:{}, planned_workouts:{} };
   const authUsers = {};
   let nextId = 1;
   const newId = () => 'id' + (nextId++);
@@ -69,6 +69,13 @@ function makeSharedBackend(){
           return {data: Object.values(db.personal_records).filter(r=>!f || r.user_id===f[1]).map(r=>({
             id:r.id, exercise:r.exercise, value:r.value, unit:r.unit, created_at: r.created_at || new Date().toISOString(),
           })), error:null};
+        }
+        if(table==='planned_workouts'){
+          if(pendingInsert){ const id=newId(); db.planned_workouts[id]={id,...pendingInsert}; return {data:{id}, error:null}; }
+          if(pendingUpdate){ const f=filters.find(x=>x[0]==='id'); if(f && db.planned_workouts[f[1]]) Object.assign(db.planned_workouts[f[1]], pendingUpdate); return {data:null, error:null}; }
+          if(pendingDelete){ const f=filters.find(x=>x[0]==='id'); if(f) delete db.planned_workouts[f[1]]; return {data:null, error:null}; }
+          const f = filters.find(x=>x[0]==='user_id');
+          return {data: Object.values(db.planned_workouts).filter(r=>!f || r.user_id===f[1]), error:null};
         }
         if(table==='progression_targets'){
           if(pendingUpsert){
@@ -207,6 +214,19 @@ function openSession(backend){
   await wait(60);
   console.log('Planned workout synced to cloud (planned_title set on a workout_logs row):',
     Object.values(backend.db.workout_logs).some(r=>r.planned_title==='Weekend Trail Run') ? 'OK' : 'FAIL');
+
+  // Add a SECOND workout to that same Saturday -- it must not overwrite the first, and it should
+  // sync to the new planned_workouts table instead of the workout_logs row.
+  docA.getElementById('addWorkoutBtn').click();
+  await wait(20);
+  docA.getElementById('manualNameInput').value = 'Bodyweight Circuit';
+  docA.getElementById('manualNameInput').dispatchEvent(new domA.window.Event('input', {bubbles:true}));
+  docA.getElementById('saveManualEntry').click();
+  await wait(60);
+  console.log('Second workout for the same day synced to the planned_workouts cloud table:',
+    Object.values(backend.db.planned_workouts).some(r=>r.title==='Bodyweight Circuit') ? 'OK' : `FAIL (${JSON.stringify(backend.db.planned_workouts)})`);
+  console.log('The first (primary) planned workout is untouched by the second sync:',
+    Object.values(backend.db.workout_logs).some(r=>r.planned_title==='Weekend Trail Run') ? 'OK' : 'FAIL');
   docA.getElementById('closeDayDetail').click();
   await wait(10);
 
@@ -270,6 +290,7 @@ function openSession(backend){
   await wait(20);
   console.log('Session B: Saturday\'s custom-planned workout from Session A round-trips correctly:', docB.getElementById('dayDetailPlanRow').textContent.includes('Weekend Trail Run') ? 'OK' : 'FAIL');
   console.log('Session B: "Reset to Suggested Plan" is offered (it knows this day is custom):', !!docB.getElementById('ddResetPlanBtn') ? 'OK' : 'FAIL');
+  console.log('Session B: the second (extra) workout for Saturday also round-trips from the cloud:', docB.getElementById('dayDetailExtraWorkouts').textContent.includes('Bodyweight Circuit') ? 'OK' : `FAIL (${docB.getElementById('dayDetailExtraWorkouts').textContent})`);
   docB.getElementById('closeDayDetail').click();
   await wait(10);
 

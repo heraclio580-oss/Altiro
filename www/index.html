@@ -5005,6 +5005,21 @@ async function loadWorkoutDataFromCloud(){
         }
       });
     }
+    const { data: extras } = await sb.from('planned_workouts')
+      .select('id, log_date, session_type, title, detail, exercises, interval_rounds, interval_work_sec, interval_rest_sec, completed')
+      .eq('user_id', state.userId);
+    if(extras){
+      extras.forEach(row=>{
+        const key = row.log_date;
+        const session = ses(row.session_type, row.title, row.detail||'', row.title, row.detail||'');
+        if(row.exercises) session.exercises = row.exercises;
+        if(row.session_type==='interval' && row.interval_rounds!=null){
+          session.interval = {rounds: row.interval_rounds, workSec: row.interval_work_sec, restSec: row.interval_rest_sec};
+        }
+        const log = ensureDayLog(key);
+        log.extraWorkouts.push({ id:'w'+row.id, supabaseId: row.id, session, completed: !!row.completed, notes:'' });
+      });
+    }
     const { data: targets } = await sb.from('progression_targets').select('*').eq('user_id', state.userId);
     if(targets){
       const prog = {};

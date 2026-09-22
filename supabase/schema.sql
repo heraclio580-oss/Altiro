@@ -88,6 +88,29 @@ alter table recorded_sessions add column if not exists rating int;
 alter table recorded_sessions add column if not exists review_notes text;
 alter table recorded_sessions add column if not exists exercises jsonb;
 
+-- planned_workouts: any ADDITIONAL workout added to a day beyond the primary plan slot (which still
+-- lives on workout_logs.planned_* as above) -- a day can hold several of these, each independently
+-- completable/deletable, since workout_logs is one row per (user, day) and can't hold more than one
+-- plan itself.
+create table if not exists planned_workouts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  log_date date not null,
+  session_type text not null,        -- 'run' | 'strength' | 'interval'
+  title text not null,
+  detail text,
+  exercises jsonb,                   -- structured strength sets/reps list, same shape as a planned session's
+  interval_rounds int,
+  interval_work_sec int,
+  interval_rest_sec int,
+  completed boolean default false,
+  created_at timestamptz default now()
+);
+alter table planned_workouts enable row level security;
+drop policy if exists "own planned workouts" on planned_workouts;
+create policy "own planned workouts" on planned_workouts
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 -- progression_targets: current suggested target per (user, session_title). Also doubles as the
 -- per-exercise progression store for structured strength sessions -- an exercise's target is saved
 -- with session_key = 'strength:<exercise name>' (see exerciseProgressionKey in the app), the exact

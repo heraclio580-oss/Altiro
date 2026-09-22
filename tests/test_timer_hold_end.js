@@ -38,7 +38,11 @@ function firePointer(el, type){
 
   doc.getElementById('timerStartPauseBtn').click();
   await wait(50);
-  console.log('Hold-to-end button appears once the timer has started:', doc.getElementById('timerHoldEndBtn').hidden===false ? 'OK' : 'FAIL');
+  console.log('Hold-to-end button stays hidden during the pre-start countdown:', doc.getElementById('timerHoldEndBtn').hidden===true ? 'OK' : 'FAIL');
+  console.log('Phase shows Get Ready during the countdown:', doc.getElementById('timerPhaseLabel').textContent==='Get Ready' ? 'OK' : `FAIL (${doc.getElementById('timerPhaseLabel').textContent})`);
+
+  await wait(5300); // the 5s pre-start countdown finishes, work phase begins
+  console.log('Hold-to-end button appears once the work phase actually starts:', doc.getElementById('timerHoldEndBtn').hidden===false ? 'OK' : 'FAIL');
 
   // A short hold that's released early should NOT end the workout.
   const holdBtn = doc.getElementById('timerHoldEndBtn');

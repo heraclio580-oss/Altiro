@@ -73,7 +73,7 @@ function setSlider(doc, val){
   console.log('Timer pre-loads the 1 round / 1s work / 1s rest just configured:', doc.getElementById('timerRoundsVal').textContent==='1' && doc.getElementById('timerWorkVal').textContent==='0:01' && doc.getElementById('timerRestVal').textContent==='0:01' ? 'OK' : 'FAIL');
 
   doc.getElementById('timerStartPauseBtn').click();
-  await wait(2600); // 1s work + 1s rest + tick overhead -> should reach "done" with 1 round
+  await wait(7400); // 5s pre-start countdown + 1s work + 1s rest + tick overhead -> should reach "done" with 1 round
   console.log('Timer reaches "all rounds complete" and offers Finish:', doc.getElementById('timerFinishBtn').hidden===false ? 'OK' : `FAIL (phase: ${doc.getElementById('timerPhaseLabel').textContent})`);
 
   doc.getElementById('timerFinishBtn').click();

@@ -2189,87 +2189,167 @@ const WEEK_TABLES = [
 
 // Real exercise breakdowns for the auto-generated plan's strength sessions -- keyed by the
 // session's stable EN title so every focus table's "Upper Body Strength" etc. shares one
-// definition instead of repeating it. `seedFactor` scales the intensity-tier baseline weight
-// ([95,135,195] lb) so a heavy compound lift and a light accessory move don't start at the same
-// load; bodyweight moves carry no seedFactor/weight at all -- just a sets x reps (or duration)
-// prescription. Exercise `key` is the stable, English-only identity used for progression tracking
-// (see exerciseProgressionKey) and is what a matching Personal Record seeds/updates.
+// definition instead of repeating it. Each session is a fixed list of movement-pattern SLOTS
+// (e.g. "squat", "horizontal push"), and each slot carries a small pool of real candidate
+// exercises rather than one fixed move -- exercisesForSession() rotates through a slot's pool
+// week to week (see weekSeedForDate) so the same session title doesn't mean the exact same
+// exercises forever, the way a real program varies accessory work over time.
+// `seedFactor` scales the intensity-tier baseline weight ([95,135,195] lb) so a heavy compound
+// lift and a light accessory move don't start at the same load; bodyweight moves carry no
+// seedFactor/weight at all -- just a sets x reps (or duration) prescription. Exercise `key` is the
+// stable, English-only identity used for progression tracking (see exerciseProgressionKey) and is
+// what a matching Personal Record seeds/updates -- the same lift (e.g. "Bench Press") appearing in
+// more than one session template shares that one progression trail.
 const STRENGTH_TEMPLATES = {
   'Full Body Strength': [
-    {key:'Goblet Squat', en:'Goblet Squat', es:'Sentadilla Goblet', sets:3, reps:12, seedFactor:0.7},
-    {key:'Push-Up', en:'Push-Up', es:'Flexión de Pecho', sets:3, reps:12, bodyweight:true},
-    {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:3, reps:12, seedFactor:0.6},
-    {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:45, bodyweight:true},
+    [ {key:'Goblet Squat', en:'Goblet Squat', es:'Sentadilla Goblet', sets:3, reps:12, seedFactor:0.7},
+      {key:'Kettlebell Sumo Squat', en:'Kettlebell Sumo Squat', es:'Sentadilla Sumo con Pesa Rusa', sets:3, reps:12, seedFactor:0.6},
+      {key:'Dumbbell Step-Up', en:'Dumbbell Step-Up', es:'Subida al Cajón con Mancuernas', sets:3, reps:10, seedFactor:0.4} ],
+    [ {key:'Push-Up', en:'Push-Up', es:'Flexión de Pecho', sets:3, reps:12, bodyweight:true},
+      {key:'Dumbbell Bench Press', en:'Dumbbell Bench Press', es:'Press de Banca con Mancuernas', sets:3, reps:10, seedFactor:0.8},
+      {key:'Incline Push-Up', en:'Incline Push-Up', es:'Flexión Inclinada', sets:3, reps:12, bodyweight:true} ],
+    [ {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:3, reps:12, seedFactor:0.6},
+      {key:'Dumbbell Row', en:'Dumbbell Row', es:'Remo con Mancuerna', sets:3, reps:10, seedFactor:0.5},
+      {key:'Resistance Band Row', en:'Resistance Band Row', es:'Remo con Banda de Resistencia', sets:3, reps:15, bodyweight:true} ],
+    [ {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:45, bodyweight:true},
+      {key:'Dead Bug', en:'Dead Bug', es:'Dead Bug', sets:3, reps:10, bodyweight:true},
+      {key:'Side Plank', en:'Side Plank', es:'Plancha Lateral', sets:2, durationSec:30, bodyweight:true} ],
   ],
   'Upper Body Strength': [
-    {key:'Bench Press', en:'Bench Press', es:'Press de Banca', sets:4, reps:10, seedFactor:1.0},
-    {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:4, reps:10, seedFactor:0.6},
-    {key:'Overhead Press', en:'Overhead Press', es:'Press Militar', sets:3, reps:10, seedFactor:0.5},
-    {key:'Bicep Curl', en:'Bicep Curl', es:'Curl de Bíceps', sets:3, reps:12, seedFactor:0.25},
+    [ {key:'Bench Press', en:'Bench Press', es:'Press de Banca', sets:4, reps:10, seedFactor:1.0},
+      {key:'Dumbbell Bench Press', en:'Dumbbell Bench Press', es:'Press de Banca con Mancuernas', sets:4, reps:10, seedFactor:0.8},
+      {key:'Incline Dumbbell Press', en:'Incline Dumbbell Press', es:'Press Inclinado con Mancuernas', sets:4, reps:10, seedFactor:0.7} ],
+    [ {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:4, reps:10, seedFactor:0.6},
+      {key:'Seated Cable Row', en:'Seated Cable Row', es:'Remo Sentado en Polea', sets:4, reps:10, seedFactor:0.6},
+      {key:'Dumbbell Row', en:'Dumbbell Row', es:'Remo con Mancuerna', sets:4, reps:10, seedFactor:0.5} ],
+    [ {key:'Overhead Press', en:'Overhead Press', es:'Press Militar', sets:3, reps:10, seedFactor:0.5},
+      {key:'Arnold Press', en:'Arnold Press', es:'Press Arnold', sets:3, reps:10, seedFactor:0.45},
+      {key:'Dumbbell Shoulder Press', en:'Dumbbell Shoulder Press', es:'Press de Hombro con Mancuernas', sets:3, reps:10, seedFactor:0.45} ],
+    [ {key:'Bicep Curl', en:'Bicep Curl', es:'Curl de Bíceps', sets:3, reps:12, seedFactor:0.25},
+      {key:'Triceps Pushdown', en:'Triceps Pushdown', es:'Extensión de Tríceps en Polea', sets:3, reps:12, seedFactor:0.25},
+      {key:'Hammer Curl', en:'Hammer Curl', es:'Curl Martillo', sets:3, reps:12, seedFactor:0.25} ],
   ],
   'Lower Body Strength': [
-    {key:'Back Squat', en:'Back Squat', es:'Sentadilla con Barra', sets:4, reps:8, seedFactor:1.0},
-    {key:'Romanian Deadlift', en:'Romanian Deadlift', es:'Peso Muerto Rumano', sets:3, reps:10, seedFactor:0.8},
-    {key:'Walking Lunge', en:'Walking Lunge', es:'Zancada Caminando', sets:3, reps:12, seedFactor:0.4},
-    {key:'Calf Raise', en:'Calf Raise', es:'Elevación de Talones', sets:3, reps:15, bodyweight:true},
+    [ {key:'Back Squat', en:'Back Squat', es:'Sentadilla con Barra', sets:4, reps:8, seedFactor:1.0},
+      {key:'Front Squat', en:'Front Squat', es:'Sentadilla Frontal', sets:4, reps:8, seedFactor:0.85},
+      {key:'Leg Press', en:'Leg Press', es:'Prensa de Piernas', sets:4, reps:10, seedFactor:0.9} ],
+    [ {key:'Romanian Deadlift', en:'Romanian Deadlift', es:'Peso Muerto Rumano', sets:3, reps:10, seedFactor:0.8},
+      {key:'Hip Thrust', en:'Hip Thrust', es:'Empuje de Cadera', sets:3, reps:10, seedFactor:0.9},
+      {key:'Good Morning', en:'Good Morning', es:'Buenos Días', sets:3, reps:10, seedFactor:0.5} ],
+    [ {key:'Walking Lunge', en:'Walking Lunge', es:'Zancada Caminando', sets:3, reps:12, seedFactor:0.4},
+      {key:'Bulgarian Split Squat', en:'Bulgarian Split Squat', es:'Sentadilla Búlgara', sets:3, reps:10, seedFactor:0.4},
+      {key:'Step-Up', en:'Step-Up', es:'Subida al Cajón', sets:3, reps:10, seedFactor:0.4} ],
+    [ {key:'Calf Raise', en:'Calf Raise', es:'Elevación de Talones', sets:3, reps:15, bodyweight:true},
+      {key:'Single-Leg Calf Raise', en:'Single-Leg Calf Raise', es:'Elevación de Talón a Una Pierna', sets:3, reps:12, bodyweight:true} ],
   ],
   'Push Day Strength': [
-    {key:'Bench Press', en:'Bench Press', es:'Press de Banca', sets:4, reps:8, seedFactor:1.0},
-    {key:'Overhead Press', en:'Overhead Press', es:'Press Militar', sets:3, reps:10, seedFactor:0.5},
-    {key:'Incline Dumbbell Press', en:'Incline Dumbbell Press', es:'Press Inclinado con Mancuernas', sets:3, reps:10, seedFactor:0.4},
-    {key:'Triceps Dip', en:'Triceps Dip', es:'Fondos de Tríceps', sets:3, reps:12, bodyweight:true},
+    [ {key:'Bench Press', en:'Bench Press', es:'Press de Banca', sets:4, reps:8, seedFactor:1.0},
+      {key:'Incline Barbell Press', en:'Incline Barbell Press', es:'Press Inclinado con Barra', sets:4, reps:8, seedFactor:0.9},
+      {key:'Dumbbell Bench Press', en:'Dumbbell Bench Press', es:'Press de Banca con Mancuernas', sets:4, reps:8, seedFactor:0.8} ],
+    [ {key:'Overhead Press', en:'Overhead Press', es:'Press Militar', sets:3, reps:10, seedFactor:0.5},
+      {key:'Arnold Press', en:'Arnold Press', es:'Press Arnold', sets:3, reps:10, seedFactor:0.45},
+      {key:'Push Press', en:'Push Press', es:'Press de Empuje', sets:3, reps:8, seedFactor:0.55} ],
+    [ {key:'Incline Dumbbell Press', en:'Incline Dumbbell Press', es:'Press Inclinado con Mancuernas', sets:3, reps:10, seedFactor:0.4},
+      {key:'Chest Fly', en:'Chest Fly', es:'Aperturas de Pecho', sets:3, reps:12, seedFactor:0.3},
+      {key:'Cable Fly', en:'Cable Fly', es:'Aperturas en Polea', sets:3, reps:12, seedFactor:0.3} ],
+    [ {key:'Triceps Dip', en:'Triceps Dip', es:'Fondos de Tríceps', sets:3, reps:12, bodyweight:true},
+      {key:'Triceps Pushdown', en:'Triceps Pushdown', es:'Extensión de Tríceps en Polea', sets:3, reps:12, seedFactor:0.2},
+      {key:'Overhead Triceps Extension', en:'Overhead Triceps Extension', es:'Extensión de Tríceps por Encima de la Cabeza', sets:3, reps:12, seedFactor:0.2} ],
   ],
   'Pull Day Strength': [
-    {key:'Deadlift', en:'Deadlift', es:'Peso Muerto', sets:4, reps:6, seedFactor:1.2},
-    {key:'Pull-Up', en:'Pull-Up', es:'Dominada', sets:3, reps:8, bodyweight:true},
-    {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:3, reps:10, seedFactor:0.6},
-    {key:'Face Pull', en:'Face Pull', es:'Face Pull', sets:3, reps:15, seedFactor:0.2},
+    [ {key:'Deadlift', en:'Deadlift', es:'Peso Muerto', sets:4, reps:6, seedFactor:1.2},
+      {key:'Trap Bar Deadlift', en:'Trap Bar Deadlift', es:'Peso Muerto con Barra Hexagonal', sets:4, reps:6, seedFactor:1.1},
+      {key:'Rack Pull', en:'Rack Pull', es:'Peso Muerto Parcial', sets:4, reps:6, seedFactor:1.1} ],
+    [ {key:'Pull-Up', en:'Pull-Up', es:'Dominada', sets:3, reps:8, bodyweight:true},
+      {key:'Lat Pulldown', en:'Lat Pulldown', es:'Jalón al Pecho', sets:3, reps:10, seedFactor:0.6},
+      {key:'Chin-Up', en:'Chin-Up', es:'Dominada Supina', sets:3, reps:8, bodyweight:true} ],
+    [ {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:3, reps:10, seedFactor:0.6},
+      {key:'Seated Cable Row', en:'Seated Cable Row', es:'Remo Sentado en Polea', sets:3, reps:10, seedFactor:0.6},
+      {key:'T-Bar Row', en:'T-Bar Row', es:'Remo en T', sets:3, reps:10, seedFactor:0.6} ],
+    [ {key:'Face Pull', en:'Face Pull', es:'Face Pull', sets:3, reps:15, seedFactor:0.2},
+      {key:'Reverse Fly', en:'Reverse Fly', es:'Aperturas Invertidas', sets:3, reps:15, seedFactor:0.15},
+      {key:'Band Pull-Apart', en:'Band Pull-Apart', es:'Apertura de Banda', sets:3, reps:15, bodyweight:true} ],
   ],
   'Core Activation': [
-    {key:'Dead Bug', en:'Dead Bug', es:'Dead Bug', sets:3, reps:10, bodyweight:true},
-    {key:'Bird Dog', en:'Bird Dog', es:'Bird Dog', sets:3, reps:10, bodyweight:true},
-    {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:30, bodyweight:true},
+    [ {key:'Dead Bug', en:'Dead Bug', es:'Dead Bug', sets:3, reps:10, bodyweight:true},
+      {key:'Hollow Body Hold', en:'Hollow Body Hold', es:'Sostén de Cuerpo Hueco', sets:3, durationSec:20, bodyweight:true} ],
+    [ {key:'Bird Dog', en:'Bird Dog', es:'Bird Dog', sets:3, reps:10, bodyweight:true},
+      {key:'Side Plank', en:'Side Plank', es:'Plancha Lateral', sets:2, durationSec:30, bodyweight:true} ],
+    [ {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:30, bodyweight:true},
+      {key:'Mountain Climber', en:'Mountain Climber', es:'Escalador', sets:3, reps:20, bodyweight:true} ],
   ],
   'Core & Mobility': [
-    {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:30, bodyweight:true},
-    {key:'Cat-Cow', en:'Cat-Cow', es:'Gato-Vaca', sets:2, reps:10, bodyweight:true},
-    {key:"World's Greatest Stretch", en:"World's Greatest Stretch", es:'Estiramiento del Mundo', sets:2, reps:6, bodyweight:true},
+    [ {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:30, bodyweight:true},
+      {key:'Side Plank', en:'Side Plank', es:'Plancha Lateral', sets:2, durationSec:30, bodyweight:true} ],
+    [ {key:'Cat-Cow', en:'Cat-Cow', es:'Gato-Vaca', sets:2, reps:10, bodyweight:true},
+      {key:'Thoracic Rotation', en:'Thoracic Rotation', es:'Rotación Torácica', sets:2, reps:8, bodyweight:true} ],
+    [ {key:"World's Greatest Stretch", en:"World's Greatest Stretch", es:'Estiramiento del Mundo', sets:2, reps:6, bodyweight:true},
+      {key:'Hip Flexor Stretch', en:'Hip Flexor Stretch', es:'Estiramiento de Flexores de Cadera', sets:2, durationSec:30, bodyweight:true} ],
   ],
   'Core Strength': [
-    {key:'Hanging Knee Raise', en:'Hanging Knee Raise', es:'Elevación de Rodillas Colgado', sets:3, reps:12, bodyweight:true},
-    {key:'Russian Twist', en:'Russian Twist', es:'Giro Ruso', sets:3, reps:20, bodyweight:true},
-    {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:45, bodyweight:true},
+    [ {key:'Hanging Knee Raise', en:'Hanging Knee Raise', es:'Elevación de Rodillas Colgado', sets:3, reps:12, bodyweight:true},
+      {key:'Reverse Crunch', en:'Reverse Crunch', es:'Crunch Inverso', sets:3, reps:15, bodyweight:true} ],
+    [ {key:'Russian Twist', en:'Russian Twist', es:'Giro Ruso', sets:3, reps:20, bodyweight:true},
+      {key:'Bicycle Crunch', en:'Bicycle Crunch', es:'Crunch de Bicicleta', sets:3, reps:20, bodyweight:true} ],
+    [ {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:45, bodyweight:true},
+      {key:'Ab Wheel Rollout', en:'Ab Wheel Rollout', es:'Rueda Abdominal', sets:3, reps:10, bodyweight:true} ],
   ],
   'Hip & Glute Activation': [
-    {key:'Glute Bridge', en:'Glute Bridge', es:'Puente de Glúteos', sets:3, reps:15, bodyweight:true},
-    {key:'Clamshell', en:'Clamshell', es:'Almeja', sets:3, reps:15, bodyweight:true},
-    {key:'Monster Walk', en:'Monster Walk', es:'Caminata del Monstruo', sets:2, reps:10, bodyweight:true},
+    [ {key:'Glute Bridge', en:'Glute Bridge', es:'Puente de Glúteos', sets:3, reps:15, bodyweight:true},
+      {key:'Single-Leg Glute Bridge', en:'Single-Leg Glute Bridge', es:'Puente de Glúteos a Una Pierna', sets:3, reps:12, bodyweight:true} ],
+    [ {key:'Clamshell', en:'Clamshell', es:'Almeja', sets:3, reps:15, bodyweight:true},
+      {key:'Side-Lying Leg Raise', en:'Side-Lying Leg Raise', es:'Elevación de Pierna de Lado', sets:3, reps:15, bodyweight:true} ],
+    [ {key:'Monster Walk', en:'Monster Walk', es:'Caminata del Monstruo', sets:2, reps:10, bodyweight:true},
+      {key:'Lateral Band Walk', en:'Lateral Band Walk', es:'Caminata Lateral con Banda', sets:2, reps:10, bodyweight:true} ],
   ],
   'Mobility & Stretch': [
-    {key:'Cat-Cow', en:'Cat-Cow', es:'Gato-Vaca', sets:2, reps:10, bodyweight:true},
-    {key:'Hip Flexor Stretch', en:'Hip Flexor Stretch', es:'Estiramiento de Flexores de Cadera', sets:2, durationSec:30, bodyweight:true},
-    {key:'Thoracic Rotation', en:'Thoracic Rotation', es:'Rotación Torácica', sets:2, reps:8, bodyweight:true},
+    [ {key:'Cat-Cow', en:'Cat-Cow', es:'Gato-Vaca', sets:2, reps:10, bodyweight:true},
+      {key:'Thread the Needle', en:'Thread the Needle', es:'Enhebrar la Aguja', sets:2, reps:8, bodyweight:true} ],
+    [ {key:'Hip Flexor Stretch', en:'Hip Flexor Stretch', es:'Estiramiento de Flexores de Cadera', sets:2, durationSec:30, bodyweight:true},
+      {key:'Pigeon Stretch', en:'Pigeon Stretch', es:'Estiramiento de la Paloma', sets:2, durationSec:30, bodyweight:true} ],
+    [ {key:'Thoracic Rotation', en:'Thoracic Rotation', es:'Rotación Torácica', sets:2, reps:8, bodyweight:true},
+      {key:'Arm Circles', en:'Arm Circles', es:'Círculos de Brazos', sets:2, reps:15, bodyweight:true} ],
   ],
   'Rest & Stretch': [
-    {key:"Child's Pose", en:"Child's Pose", es:'Postura del Niño', sets:2, durationSec:30, bodyweight:true},
-    {key:'Hamstring Stretch', en:'Hamstring Stretch', es:'Estiramiento de Isquiotibiales', sets:2, durationSec:30, bodyweight:true},
-    {key:'Deep Breathing', en:'Deep Breathing', es:'Respiración Profunda', sets:3, durationSec:60, bodyweight:true},
+    [ {key:"Child's Pose", en:"Child's Pose", es:'Postura del Niño', sets:2, durationSec:30, bodyweight:true},
+      {key:'Seated Forward Fold', en:'Seated Forward Fold', es:'Flexión Sentada Hacia Adelante', sets:2, durationSec:30, bodyweight:true} ],
+    [ {key:'Hamstring Stretch', en:'Hamstring Stretch', es:'Estiramiento de Isquiotibiales', sets:2, durationSec:30, bodyweight:true},
+      {key:'Standing Quad Stretch', en:'Standing Quad Stretch', es:'Estiramiento de Cuádriceps de Pie', sets:2, durationSec:30, bodyweight:true} ],
+    [ {key:'Deep Breathing', en:'Deep Breathing', es:'Respiración Profunda', sets:3, durationSec:60, bodyweight:true},
+      {key:'Box Breathing', en:'Box Breathing', es:'Respiración de Caja', sets:3, durationSec:60, bodyweight:true} ],
   ],
   'Foam Roll & Cooldown': [
-    {key:'Foam Roll Quads', en:'Foam Roll Quads', es:'Rodillo de Espuma – Cuádriceps', sets:1, durationSec:60, bodyweight:true},
-    {key:'Foam Roll Back', en:'Foam Roll Back', es:'Rodillo de Espuma – Espalda', sets:1, durationSec:60, bodyweight:true},
-    {key:'Standing Forward Fold', en:'Standing Forward Fold', es:'Flexión de Pie Hacia Adelante', sets:2, durationSec:30, bodyweight:true},
+    [ {key:'Foam Roll Quads', en:'Foam Roll Quads', es:'Rodillo de Espuma – Cuádriceps', sets:1, durationSec:60, bodyweight:true},
+      {key:'Foam Roll Hamstrings', en:'Foam Roll Hamstrings', es:'Rodillo de Espuma – Isquiotibiales', sets:1, durationSec:60, bodyweight:true} ],
+    [ {key:'Foam Roll Back', en:'Foam Roll Back', es:'Rodillo de Espuma – Espalda', sets:1, durationSec:60, bodyweight:true},
+      {key:'Foam Roll Lats', en:'Foam Roll Lats', es:'Rodillo de Espuma – Dorsales', sets:1, durationSec:60, bodyweight:true} ],
+    [ {key:'Standing Forward Fold', en:'Standing Forward Fold', es:'Flexión de Pie Hacia Adelante', sets:2, durationSec:30, bodyweight:true},
+      {key:'Seated Forward Fold', en:'Seated Forward Fold', es:'Flexión Sentada Hacia Adelante', sets:2, durationSec:30, bodyweight:true} ],
   ],
 };
+// A stable "which week is this" number for a date -- the same for every day within one Mon-Sun
+// week, and one higher for the next week, so exercise selection rotates week to week but stays
+// put for the whole week rather than changing on every render/every day.
+const ROTATION_EPOCH_MONDAY = new Date(2020,0,6); // an arbitrary real Monday, used only as an anchor
+function weekSeedForDate(date){
+  const days = Math.floor((date.getTime() - ROTATION_EPOCH_MONDAY.getTime()) / 86400000);
+  return Math.floor(days / 7);
+}
 // Returns this session's exercise breakdown, or null when it's not a strength session with any
 // exercises -- either a manually-built list (session.exercises, already has a plain .name since the
-// user typed it directly, no locale split needed) or, failing that, a known generated template.
-function exercisesForSession(session){
+// user typed it directly, no locale split needed) or, failing that, a known generated template,
+// rotated to that particular week's picks (date defaults to today, for callers -- Home, Log
+// Performance -- that only ever mean "today").
+function exercisesForSession(session, date){
   if(!session || session.t!=='strength') return null;
   if(session.exercises && session.exercises.length) return session.exercises;
-  const tpl = STRENGTH_TEMPLATES[session.en.title];
-  if(!tpl) return null;
-  return tpl.map(ex=>({...ex, name: state.lang==='es' ? ex.es : ex.en}));
+  const slots = STRENGTH_TEMPLATES[session.en.title];
+  if(!slots) return null;
+  const seed = weekSeedForDate(date || TODAY_DATE);
+  return slots.map((options, i)=>{
+    const ex = options[(seed + i) % options.length];
+    return {...ex, name: state.lang==='es' ? ex.es : ex.en};
+  });
 }
 function fmtExercisePrescription(ex){
   const L = STR[state.lang];
@@ -3921,8 +4001,8 @@ document.getElementById('calNext').addEventListener('click', ()=>{
 });
 
 /* ---------------- day detail sheet ---------------- */
-function exerciseListHtml(session){
-  const exercises = exercisesForSession(session);
+function exerciseListHtml(session, date){
+  const exercises = exercisesForSession(session, date);
   if(!exercises) return '';
   return `<ul class="r-exercise-list">${exercises.map(ex=>`<li>${escapeHtml(ex.name)} <span>${fmtExercisePrescription(ex)}</span></li>`).join('')}</ul>`;
 }
@@ -3938,7 +4018,7 @@ function planRowHtml(dd, status){
     </div>
     <div class="r-sessions">
       <div class="r-sess-line">${TYPE_ICON[dd.p.t]}<b>${effL.title}${effL.detail?', '+effL.detail:''}</b></div>
-      ${exerciseListHtml(dd.p)}
+      ${exerciseListHtml(dd.p, dd.date)}
     </div>`;
 }
 function openDayDetail(key){
@@ -4062,7 +4142,7 @@ function renderDayDetail(){
       <div class="body">
         <div class="n">${escapeHtml(effL.title)}</div>
         <div class="v">${escapeHtml(effL.detail||'')}</div>
-        ${exerciseListHtml(w.session)}
+        ${exerciseListHtml(w.session, dd.date)}
       </div>
       ${startOrDone}
       <button class="del" data-del-extra="${w.id}" type="button">${ICONS.trash}</button>

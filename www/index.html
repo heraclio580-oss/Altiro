@@ -353,6 +353,20 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .exercise-log-row .exercise-log-inputs{display:flex;gap:8px;}
 .exercise-log-row .exercise-log-inputs .text-input{flex:1;}
 .exercise-log-row.bodyweight .exercise-log-inputs{display:none;}
+.exercise-log-row{padding:8px;border-radius:var(--r-md);border:1px solid transparent;transition:border-color .15s;}
+.exercise-log-row.current-exercise{border-color:var(--accent);background:var(--well);}
+.exercise-log-row.set-complete .exercise-log-name{color:var(--ok-icon);}
+.set-check-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.set-check-dot{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--text-2);font-family:var(--font-mono);font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.set-check-dot svg{width:13px;height:13px;}
+.set-check-dot.checked{background:var(--ok-icon);border-color:var(--ok-icon);color:#fff;}
+.exercise-build-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;font-size:12.5px;border-bottom:1px solid var(--divider-soft);}
+.exercise-build-row .eb-name{color:var(--text);}
+.exercise-build-row .eb-presc{font-family:var(--font-mono);color:var(--text-2);margin-left:6px;}
+.exercise-add-row{display:flex;gap:6px;margin-top:4px;}
+.exercise-add-row input{min-width:0;}
+.exercise-add-row #newExerciseName{flex:2;}
+.exercise-add-row #newExerciseSets,.exercise-add-row #newExerciseReps{flex:1;}
 .summary-exercises{margin:0 20px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 14px;}
 .summary-exercises .se-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;font-size:12.5px;}
 .summary-exercises .se-row+.se-row{border-top:1px solid var(--divider-soft);}
@@ -1220,6 +1234,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div id="dayDetailActions" hidden></div>
       </div>
 
+      <div class="sheet-section" id="dayDetailExtraSection" hidden>
+        <div class="st-label" data-i18n="additionalWorkoutsLabel"></div>
+        <div id="dayDetailExtraWorkouts"></div>
+      </div>
+
       <div class="sheet-section" id="dayDetailCompleteSection">
         <div class="toggle-row">
           <div>
@@ -1301,6 +1320,18 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <input type="text" class="text-input" id="createRestDurationInput" placeholder="1:00">
       </div>
 
+      <div class="sheet-section" id="createExercisesSection">
+        <div class="st-label" data-i18n="exercisesLabel"></div>
+        <div class="footer-note" style="text-align:left;margin:2px 0 10px;" data-i18n="exercisesSub"></div>
+        <div id="createExercisesList"></div>
+        <div class="exercise-add-row">
+          <input type="text" class="text-input" id="newExerciseName">
+          <input type="number" inputmode="numeric" class="text-input" id="newExerciseSets">
+          <input type="number" inputmode="numeric" class="text-input" id="newExerciseReps">
+        </div>
+        <button class="btn-text" id="addExerciseBtn" type="button" data-i18n="addExerciseBtn"></button>
+      </div>
+
       <button class="btn btn-primary sheet-apply" id="saveManualEntry" data-i18n="saveWorkoutBtn"></button>
       <button class="btn-text" id="clearWorkoutBtn" type="button" style="width:100%;margin-top:2px;color:var(--alert);" data-i18n="clearWorkoutBtn" hidden></button>
     </div>
@@ -1330,6 +1361,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section" id="logPerfTimeSection">
         <div class="st-label" data-i18n="logPerfTimeLabel"></div>
         <input type="number" inputmode="numeric" class="text-input" id="logPerfTimeInput">
+      </div>
+
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="workoutNotesLabel"></div>
+        <textarea class="text-input" id="logPerfNotesInput" rows="3"></textarea>
       </div>
 
       <button class="btn btn-primary sheet-apply" id="saveLogPerf" data-i18n="saveWorkoutBtn"></button>
@@ -1682,6 +1718,8 @@ const STR = {
     logPerfWeightLabel: "Top Set Weight (lb)",
     logPerfRepsLabel: "Reps Completed",
     logPerfTimeLabel: "Total Time (min)",
+    workoutNotesLabel: "Notes",
+    workoutNotesPlaceholder: "How did it feel? Anything to remember for next time?",
     statProgress: "Next Suggested",
     progressionUpMsg: "Nice work — next time we'll suggest {target}.",
     progressionHoldMsg: "Solid effort — we'll suggest the same {target} next time.",
@@ -1716,6 +1754,7 @@ const STR = {
     signOutBtn: "Sign Out",
     signOutToast: "Signed out",
     scheduledLabel: "Scheduled",
+    additionalWorkoutsLabel: "Additional Workouts",
     markCompleteTitle: "Completed",
     markCompleteSub: "Mark this day as done or not",
     loggedWorkoutsLabel: "Logged Workouts",
@@ -1745,6 +1784,12 @@ const STR = {
     intervalRoundsLabel: "Rounds",
     intervalWorkLabel: "Round Duration (min:sec)",
     intervalRestLabel: "Rest Duration (min:sec)",
+    exercisesLabel: "Exercises (optional)",
+    exercisesSub: "Add exercises to track sets and reps as you go — leave this empty for a simple entry.",
+    addExerciseBtn: "+ Add Exercise",
+    newExerciseNamePlaceholder: "Exercise",
+    newExerciseSetsPlaceholder: "Sets",
+    newExerciseRepsPlaceholder: "Reps",
     workoutPlannedToast: "Workout planned",
     editWorkoutTitle: "Edit Workout",
     clearWorkoutBtn: "Clear Workout",
@@ -1894,6 +1939,8 @@ const STR = {
     logPerfWeightLabel: "Peso de la serie máxima (lb)",
     logPerfRepsLabel: "Repeticiones completadas",
     logPerfTimeLabel: "Tiempo total (min)",
+    workoutNotesLabel: "Notas",
+    workoutNotesPlaceholder: "¿Cómo te sentiste? ¿Algo que recordar para la próxima?",
     statProgress: "Próximo objetivo",
     progressionUpMsg: "Buen trabajo — la próxima vez sugeriremos {target}.",
     progressionHoldMsg: "Buen esfuerzo — sugeriremos el mismo {target} la próxima vez.",
@@ -1928,6 +1975,7 @@ const STR = {
     signOutBtn: "Cerrar sesión",
     signOutToast: "Sesión cerrada",
     scheduledLabel: "Programado",
+    additionalWorkoutsLabel: "Entrenamientos adicionales",
     markCompleteTitle: "Completado",
     markCompleteSub: "Marca este día como hecho o no",
     loggedWorkoutsLabel: "Entrenamientos registrados",
@@ -1957,6 +2005,12 @@ const STR = {
     intervalRoundsLabel: "Rondas",
     intervalWorkLabel: "Duración de la ronda (min:seg)",
     intervalRestLabel: "Duración del descanso (min:seg)",
+    exercisesLabel: "Ejercicios (opcional)",
+    exercisesSub: "Agrega ejercicios para hacer seguimiento de series y repeticiones — déjalo vacío para una entrada simple.",
+    addExerciseBtn: "+ Agregar ejercicio",
+    newExerciseNamePlaceholder: "Ejercicio",
+    newExerciseSetsPlaceholder: "Series",
+    newExerciseRepsPlaceholder: "Reps",
     workoutPlannedToast: "Entrenamiento planificado",
     editWorkoutTitle: "Editar entrenamiento",
     clearWorkoutBtn: "Borrar entrenamiento",
@@ -2183,10 +2237,12 @@ const STRENGTH_TEMPLATES = {
     {key:'Standing Forward Fold', en:'Standing Forward Fold', es:'Flexión de Pie Hacia Adelante', sets:2, durationSec:30, bodyweight:true},
   ],
 };
-// Returns this session's exercise breakdown (localized), or null when it's not a strength
-// session with a known template (e.g. a manually-created strength entry with a free-text name).
+// Returns this session's exercise breakdown, or null when it's not a strength session with any
+// exercises -- either a manually-built list (session.exercises, already has a plain .name since the
+// user typed it directly, no locale split needed) or, failing that, a known generated template.
 function exercisesForSession(session){
   if(!session || session.t!=='strength') return null;
+  if(session.exercises && session.exercises.length) return session.exercises;
   const tpl = STRENGTH_TEMPLATES[session.en.title];
   if(!tpl) return null;
   return tpl.map(ex=>({...ex, name: state.lang==='es' ? ex.es : ex.en}));
@@ -2300,9 +2356,19 @@ function todaySession(){
 }
 function isTodayDone(){
   const log = state.dayLog[dateKey(weekDates(0)[TODAY_IDX])];
-  let done = state.todayCompleted || (log && log.manualEntries.length>0);
+  let done = state.todayCompleted || (log && log.manualEntries.length>0) || (log && log.extraWorkouts && log.extraWorkouts.some(w=>w.completed));
   if(log && typeof log.completedOverride === 'boolean') done = log.completedOverride;
   return !!done;
+}
+// Which of today's active workouts the record flow (Log Performance / Interval Timer) is currently
+// targeting -- null means the day's primary session, an id targets a specific extra workout, so
+// completing it only marks that workout done instead of the whole day's primary slot.
+function activeSession(){
+  if(state._activeExtraId){
+    const w = findExtraWorkout(dateKey(TODAY_DATE), state._activeExtraId);
+    if(w) return w.session;
+  }
+  return todaySession();
 }
 function computeDoneCount(){
   return state.week.filter((d,i) => d.p.t !== 'rest' && (i===TODAY_IDX ? isTodayDone() : d.completed)).length;
@@ -2365,10 +2431,11 @@ function getDayData(date){
   }
   const log = state.dayLog[key];
   const manualEntries = (log && log.manualEntries) ? log.manualEntries : [];
-  let completed = planCompleted || manualEntries.length>0;
+  const extraWorkouts = (log && log.extraWorkouts) ? log.extraWorkouts : [];
+  let completed = planCompleted || manualEntries.length>0 || extraWorkouts.some(w=>w.completed);
   if(log && typeof log.completedOverride === 'boolean') completed = log.completedOverride;
   return {
-    key, date, p, c, completed, manualEntries, isCustom,
+    key, date, p, c, completed, manualEntries, isCustom, extraWorkouts,
     isToday: key===dateKey(TODAY_DATE),
     isPast: date.getTime() < TODAY_DATE.getTime(),
     isFuture: date.getTime() > TODAY_DATE.getTime(),
@@ -2387,8 +2454,32 @@ function statusClassFor(status, isToday){
   return (isToday && status!=='today') ? `${status} today` : status;
 }
 function ensureDayLog(key){
-  if(!state.dayLog[key]) state.dayLog[key] = {completedOverride:null, manualEntries:[], session:null};
+  if(!state.dayLog[key]) state.dayLog[key] = {completedOverride:null, manualEntries:[], session:null, extraWorkouts:[]};
+  if(!state.dayLog[key].extraWorkouts) state.dayLog[key].extraWorkouts = []; // back-compat for logs created before this existed
   return state.dayLog[key];
+}
+// A day can hold more than one user-added workout -- the first custom workout for a day still
+// takes the "primary" plan slot (dd.p, unchanged from before), but every additional one goes here
+// instead of overwriting it, so creating a second workout for a day never deletes the first.
+function getExtraWorkouts(key){
+  return ensureDayLog(key).extraWorkouts;
+}
+function addExtraWorkout(key, session){
+  const log = ensureDayLog(key);
+  const entry = {id:'w'+Date.now()+Math.random().toString(36).slice(2,7), session, completed:false, notes:''};
+  log.extraWorkouts.push(entry);
+  cloudInsertExtraWorkout(key, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
+  return entry;
+}
+function deleteExtraWorkout(key, id){
+  const log = state.dayLog[key];
+  if(!log) return;
+  const entry = (log.extraWorkouts||[]).find(w=>w.id===id);
+  log.extraWorkouts = (log.extraWorkouts||[]).filter(w=>w.id!==id);
+  if(entry && entry.supabaseId) cloudDeleteExtraWorkout(entry.supabaseId);
+}
+function findExtraWorkout(key, id){
+  return getExtraWorkouts(key).find(w=>w.id===id) || null;
 }
 function currentWeekIdxFor(key){
   return weekDates(0).findIndex(d => dateKey(d)===key);
@@ -2422,7 +2513,18 @@ function writeDaySlot(date, slot){
 function planCustomWorkout(key, opts){
   const session = ses(opts.type, opts.title, opts.detail||'', opts.title, opts.detail||'');
   if(opts.interval) session.interval = opts.interval; // {rounds, workSec, restSec} -- read by the interval timer
-  writeDaySlot(parseDateKey(key), {p: session, c: null, completed: false, isCustom: true});
+  if(opts.exercises && opts.exercises.length) session.exercises = opts.exercises; // user-built sets/reps list
+  // The first custom workout for a day still takes the primary slot (unchanged behavior), and
+  // explicitly revising that existing primary (tapping its bubble to edit) keeps updating it in
+  // place. Otherwise, once a day already has a custom primary workout, a newly-added one goes into
+  // extraWorkouts instead of replacing it, so adding a second workout to a day never deletes the first.
+  const existing = getRawDaySlot(parseDateKey(key));
+  if(existing.isCustom && !opts.replacePrimary){
+    addExtraWorkout(key, session);
+  } else {
+    writeDaySlot(parseDateKey(key), {p: session, c: null, completed: false, isCustom: true});
+    cloudSavePlannedSession(key, session);
+  }
   if(opts.target){
     const target = {};
     if(opts.type==='strength'){ target.weight = opts.target.weight; target.reps = opts.target.reps; }
@@ -2430,7 +2532,6 @@ function planCustomWorkout(key, opts){
     state.progression[progressionKey(session)] = target;
     cloudSaveProgressionTarget(session, target);
   }
-  cloudSavePlannedSession(key, session);
 }
 function resetToSuggestedPlan(key){
   const date = parseDateKey(key);
@@ -2900,6 +3001,7 @@ function renderHome(){
 
   const todayKey = dateKey(TODAY_DATE);
   const todayEntries = (state.dayLog[todayKey] && state.dayLog[todayKey].manualEntries) || [];
+  const todayExtras = (state.dayLog[todayKey] && state.dayLog[todayKey].extraWorkouts) || [];
   document.getElementById('sessionCard').innerHTML = `
     <div class="top-row">
       <span class="eyebrow">${L.todayLabel} &middot; ${DAY_NAMES_FULL[state.lang][TODAY_IDX]}</span>
@@ -2929,6 +3031,23 @@ function renderHome(){
         </div>
         <button class="del" data-del="${en.id}" type="button">${ICONS.trash}</button>
       </div>`).join('') : `<div class="footer-note" style="text-align:left;padding:2px 0;">${L.noWorkoutsLoggedLabel}</div>`}</div>
+    ${todayExtras.length ? `
+    <div class="st-label" style="margin-top:14px;">${L.additionalWorkoutsLabel}</div>
+    <div id="homeExtraWorkoutsWrap" style="margin-top:8px;">${todayExtras.map(w=>{
+      const wL = ST(w.session);
+      return `<div class="manual-entry" data-extra-id="${w.id}">
+        <span class="ic">${TYPE_ICON[w.session.t]}</span>
+        <div class="body">
+          <div class="n">${escapeHtml(wL.title)}</div>
+          <div class="v">${escapeHtml(wL.detail||'')}</div>
+          ${exerciseListHtml(w.session)}
+        </div>
+        ${w.completed
+          ? `<span class="r-inline-btn" style="display:flex;align-items:center;gap:4px;color:var(--ok-icon);font-size:11px;white-space:nowrap;">${ICONS.checkSm}${L.recordDoneLabel}</span>`
+          : `<button class="btn-text" data-start-extra="${w.id}" type="button" style="white-space:nowrap;">${L.startWorkoutBtn}</button>`}
+        <button class="del" data-del-extra="${w.id}" type="button">${ICONS.trash}</button>
+      </div>`;
+    }).join('')}</div>` : ''}
   `;
   const watchDemoBtn = document.getElementById('watchDemoBtn');
   if(watchDemoBtn) watchDemoBtn.addEventListener('click', ()=> openExerciseDetail(eff, 'home'));
@@ -2944,6 +3063,22 @@ function renderHome(){
   document.getElementById('homeEntriesWrap').querySelectorAll('[data-del]').forEach(btn=>{
     btn.addEventListener('click', ()=> deleteManualEntry(todayKey, btn.getAttribute('data-del')));
   });
+  const homeExtraWrap = document.getElementById('homeExtraWorkoutsWrap');
+  if(homeExtraWrap){
+    homeExtraWrap.querySelectorAll('[data-start-extra]').forEach(btn=>{
+      btn.addEventListener('click', ()=> openLogPerformance(btn.getAttribute('data-start-extra')));
+    });
+    homeExtraWrap.querySelectorAll('[data-del-extra]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        deleteExtraWorkout(todayKey, btn.getAttribute('data-del-extra'));
+        renderHome();
+        renderCalendar();
+        renderWeek();
+        if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail();
+        showToast(STR[state.lang].toastUpdated);
+      });
+    });
+  }
   const recBtn = document.getElementById('recordBtn');
   const recIcon = document.getElementById('recordIcon');
   const recLabel = document.getElementById('recordLabel');
@@ -3045,23 +3180,62 @@ function applyProgressionResult(session, logged){
 }
 
 /* ---------------- log performance sheet ---------------- */
-function openLogPerformance(){
-  const eff = todaySession();
-  if(eff.t==='interval'){ openIntervalTimer(); return; }
+// Live, per-set completion tracking while a structured strength workout is being logged -- purely
+// a doing-the-workout UX aid (ticking off each set as it's finished, with the next unfinished
+// exercise auto-highlighted), reset fresh every time the sheet opens. It doesn't change what
+// actually gets saved -- the weight/reps fields next to it remain the source of truth for that.
+let logPerfSetChecks = {}; // {exerciseKey: [bool, ...]}
+function refreshLogPerfRowState(rowEl, ex){
+  const checks = logPerfSetChecks[ex.key];
+  const allChecked = checks.every(Boolean);
+  rowEl.classList.toggle('set-complete', allChecked);
+  const dotsEl = rowEl.querySelector('.set-check-row');
+  dotsEl.innerHTML = checks.map((c,i)=>`<button type="button" class="set-check-dot ${c?'checked':''}" data-set-idx="${i}">${c?ICONS.checkSm:i+1}</button>`).join('');
+  dotsEl.querySelectorAll('.set-check-dot').forEach(dot=>{
+    dot.addEventListener('click', ()=>{
+      const idx = parseInt(dot.getAttribute('data-set-idx'),10);
+      checks[idx] = !checks[idx];
+      refreshLogPerfRowState(rowEl, ex);
+      refreshLogPerfCurrentHighlight();
+    });
+  });
+}
+// "Select the next workout and sets" -- once an exercise's sets are all checked off, highlight the
+// next not-yet-finished exercise as the current one automatically.
+function refreshLogPerfCurrentHighlight(){
+  let foundCurrent = false;
+  document.querySelectorAll('#logPerfExercisesList .exercise-log-row').forEach(r=>{
+    const isCurrent = !r.classList.contains('set-complete') && !foundCurrent;
+    if(isCurrent) foundCurrent = true;
+    r.classList.toggle('current-exercise', isCurrent);
+  });
+}
+function openLogPerformance(extraId){
+  state._activeExtraId = extraId || null;
+  const eff = activeSession();
+  if(eff.t==='interval'){ openIntervalTimer(extraId); return; }
   state._pendingSession = eff;
   const exercises = exercisesForSession(eff);
   const exercisesListEl = document.getElementById('logPerfExercisesList');
+  logPerfSetChecks = {};
   if(exercises){
     exercisesListEl.innerHTML = exercises.map(ex=>{
       const t = getExerciseTarget(ex, state.intensityIdx);
+      logPerfSetChecks[ex.key] = new Array(ex.sets||1).fill(false);
       return `<div class="exercise-log-row ${ex.bodyweight?'bodyweight':''}" data-exercise-key="${escapeHtml(ex.key)}">
         <div class="exercise-log-name">${escapeHtml(ex.name)}<span>${fmtExercisePrescription(ex)}</span></div>
+        <div class="set-check-row"></div>
         <div class="exercise-log-inputs">
           <input type="number" inputmode="numeric" class="text-input" data-field="weight" placeholder="${state.weightUnit}" value="${t?t.weight:''}">
           <input type="number" inputmode="numeric" class="text-input" data-field="reps" value="${t?t.reps:ex.reps}">
         </div>
       </div>`;
     }).join('');
+    exercisesListEl.querySelectorAll('.exercise-log-row').forEach(rowEl=>{
+      const ex = exercises.find(e=>e.key===rowEl.getAttribute('data-exercise-key'));
+      refreshLogPerfRowState(rowEl, ex);
+    });
+    refreshLogPerfCurrentHighlight();
   } else {
     exercisesListEl.innerHTML = '';
   }
@@ -3077,6 +3251,9 @@ function openLogPerformance(){
     const dist = parseFloat(eff.en.detail) || 3;
     document.getElementById('logPerfTimeInput').value = Math.round(target.pace*dist);
   }
+  const notesInput = document.getElementById('logPerfNotesInput');
+  notesInput.value = '';
+  notesInput.placeholder = STR[state.lang].workoutNotesPlaceholder;
   document.getElementById('logPerfOverlay').hidden = false;
 }
 function closeLogPerformance(){
@@ -3086,7 +3263,7 @@ function closeLogPerformance(){
 }
 document.getElementById('closeLogPerf').addEventListener('click', closeLogPerformance);
 document.getElementById('saveLogPerf').addEventListener('click', function(){
-  const eff = state._pendingSession || todaySession();
+  const eff = state._pendingSession || activeSession();
   const target = getProgressionTarget(eff, state.intensityIdx);
   const logged = {};
   const exercises = exercisesForSession(eff);
@@ -3108,6 +3285,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     const dist = parseFloat(eff.en.detail) || 3;
     logged.time = parseFloat(document.getElementById('logPerfTimeInput').value) || ((target ? target.pace : 9.5)*dist);
   }
+  logged.notes = document.getElementById('logPerfNotesInput').value.trim();
   document.getElementById('logPerfOverlay').hidden = true;
   startWorkout(logged);
 });
@@ -3121,23 +3299,36 @@ document.getElementById('recordBtn').addEventListener('click', function(){
 });
 
 function startWorkout(logged){
-  const eff = todaySession();
-  state.todayCompleted = true;
-  // Actually recording a workout is the strongest possible "this is done" signal there is, so it
-  // must always win over an earlier explicit "mark as not done" toggle -- otherwise a stale
-  // override could silently hide a workout the user just completed for real.
-  const log = state.dayLog[dateKey(TODAY_DATE)];
-  if(log) log.completedOverride = null;
-  cloudSetCompletedOverride(dateKey(TODAY_DATE), null);
-  state.doneCount = computeDoneCount();
-  state.streak += 1;
-  if(state.streak > state.bestStreak) state.bestStreak = state.streak;
-  if(eff.t==='run'){
-    const mi = parseFloat(eff.en.detail)||0;
-    state.mileage = +(state.mileage+mi).toFixed(1);
-    state.totalDistance = +(state.totalDistance+mi).toFixed(1);
+  const eff = activeSession();
+  const extraId = state._activeExtraId;
+  if(extraId){
+    // Completing an extra (non-primary) workout for today only marks that one workout done -- the
+    // primary slot, streak, mileage and total-workouts count stay exactly as they were, the same
+    // way logging a plain manual entry already doesn't touch those either.
+    const w = findExtraWorkout(dateKey(TODAY_DATE), extraId);
+    if(w){
+      w.completed = true;
+      if(w.supabaseId) cloudSetExtraWorkoutCompleted(w.supabaseId, true);
+    }
+    state.doneCount = computeDoneCount();
+  } else {
+    state.todayCompleted = true;
+    // Actually recording a workout is the strongest possible "this is done" signal there is, so it
+    // must always win over an earlier explicit "mark as not done" toggle -- otherwise a stale
+    // override could silently hide a workout the user just completed for real.
+    const log = state.dayLog[dateKey(TODAY_DATE)];
+    if(log) log.completedOverride = null;
+    cloudSetCompletedOverride(dateKey(TODAY_DATE), null);
+    state.doneCount = computeDoneCount();
+    state.streak += 1;
+    if(state.streak > state.bestStreak) state.bestStreak = state.streak;
+    if(eff.t==='run'){
+      const mi = parseFloat(eff.en.detail)||0;
+      state.mileage = +(state.mileage+mi).toFixed(1);
+      state.totalDistance = +(state.totalDistance+mi).toFixed(1);
+    }
+    state.totalWorkouts += 1;
   }
-  state.totalWorkouts += 1;
   state._lastSession = eff;
   state._lastLogged = logged || null;
   // Progression isn't calculated yet -- it waits for the post-workout review (rating gates whether
@@ -3226,8 +3417,9 @@ function defaultTimerState(cfg){
     running: false, started: false, tickHandle: null, lastBeepSecond: null,
   };
 }
-function openIntervalTimer(){
-  const eff = todaySession();
+function openIntervalTimer(extraId){
+  state._activeExtraId = extraId || null;
+  const eff = activeSession();
   const cfg = eff.interval || {rounds:6, workSec:180, restSec:60};
   timerState = defaultTimerState(cfg);
   renderTimerUI();
@@ -3812,6 +4004,45 @@ function renderDayDetail(){
   completeSection.hidden = dd.isFuture || dd.p.t==='rest';
   document.getElementById('dayCompleteToggle').classList.toggle('on', dd.completed);
 
+  const extraSection = document.getElementById('dayDetailExtraSection');
+  const extraWrap = document.getElementById('dayDetailExtraWorkouts');
+  extraSection.hidden = dd.extraWorkouts.length===0;
+  extraWrap.innerHTML = dd.extraWorkouts.map(w=>{
+    const effL = ST(w.session);
+    const startOrDone = dd.isToday
+      ? (w.completed
+          ? `<span class="r-inline-btn" style="display:flex;align-items:center;gap:4px;color:var(--ok-icon);font-size:11px;white-space:nowrap;">${ICONS.checkSm}${L.recordDoneLabel}</span>`
+          : `<button class="btn-text" data-start-extra="${w.id}" type="button" style="white-space:nowrap;">${L.startWorkoutBtn}</button>`)
+      : '';
+    return `<div class="manual-entry">
+      <span class="ic">${TYPE_ICON[w.session.t]}</span>
+      <div class="body">
+        <div class="n">${escapeHtml(effL.title)}</div>
+        <div class="v">${escapeHtml(effL.detail||'')}</div>
+        ${exerciseListHtml(w.session)}
+      </div>
+      ${startOrDone}
+      <button class="del" data-del-extra="${w.id}" type="button">${ICONS.trash}</button>
+    </div>`;
+  }).join('');
+  extraWrap.querySelectorAll('[data-start-extra]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.getAttribute('data-start-extra');
+      closeDayDetail();
+      openLogPerformance(id);
+    });
+  });
+  extraWrap.querySelectorAll('[data-del-extra]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      deleteExtraWorkout(state.openDayKey, btn.getAttribute('data-del-extra'));
+      renderDayDetail();
+      renderCalendar();
+      renderWeek();
+      renderHome();
+      showToast(STR[state.lang].toastUpdated);
+    });
+  });
+
   const entriesWrap = document.getElementById('dayDetailEntries');
   entriesWrap.innerHTML = dd.manualEntries.length ? dd.manualEntries.map(en=>`
     <div class="manual-entry">
@@ -3865,6 +4096,11 @@ function toggleTodayCompleted(){
 // "Plan a Workout"). The "Mark as Completed" toggle is what used to be two separate buttons.
 let manualEntryType = 'strength';
 let createMarkCompleted = true;
+let manualExercises = []; // {key, name, sets, reps} -- optional, user-built sets/reps list for a strength entry
+// true when Create Workout was opened by tapping the day's existing primary plan bubble to revise
+// it -- saving should update that same plan in place, not fork off a second/"extra" workout for
+// the day. False (the default, from the "+ Create Workout" button) always adds a fresh workout.
+let manualEntryEditingPrimary = false;
 function renderManualTypeRow(){
   const L = STR[state.lang];
   const row = document.getElementById('manualTypeRow');
@@ -3883,10 +4119,42 @@ function updateCreateTargetSections(){
   document.getElementById('createRepsSection').hidden = !(showTargets && manualEntryType==='strength');
   document.getElementById('createPaceSection').hidden = !(showTargets && manualEntryType==='run');
   document.getElementById('createIntervalSection').hidden = manualEntryType!=='interval';
+  // Available for any strength entry, planned or already-done -- separate from the single weight x
+  // reps target above, which stays as a fallback for a quick plan that doesn't need a full exercise
+  // breakdown.
+  document.getElementById('createExercisesSection').hidden = manualEntryType!=='strength';
   // An interval workout is completed by actually running its timer, not by a checkbox, so the
   // usual "Mark as Completed" toggle doesn't apply here -- always plan it, never a plain log entry.
   document.getElementById('createCompletedSection').hidden = manualEntryType==='interval';
 }
+function renderManualExercisesList(){
+  const L = STR[state.lang];
+  const listEl = document.getElementById('createExercisesList');
+  listEl.innerHTML = manualExercises.map((ex,i)=>`<div class="exercise-build-row" data-idx="${i}">
+    <span><span class="eb-name">${escapeHtml(ex.name)}</span><span class="eb-presc">${fmtExercisePrescription(ex)}</span></span>
+    <button class="del" data-del-exercise="${i}" type="button">${ICONS.trash}</button>
+  </div>`).join('');
+  listEl.querySelectorAll('[data-del-exercise]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      manualExercises.splice(parseInt(btn.getAttribute('data-del-exercise'),10), 1);
+      renderManualExercisesList();
+    });
+  });
+}
+document.getElementById('addExerciseBtn').addEventListener('click', ()=>{
+  const nameInput = document.getElementById('newExerciseName');
+  const name = nameInput.value.trim();
+  if(!name){ nameInput.style.borderColor = 'var(--accent)'; nameInput.focus(); return; }
+  nameInput.style.borderColor = '';
+  const sets = Math.max(1, parseInt(document.getElementById('newExerciseSets').value,10) || 3);
+  const reps = Math.max(1, parseInt(document.getElementById('newExerciseReps').value,10) || 10);
+  manualExercises.push({key:name, name, sets, reps});
+  renderManualExercisesList();
+  document.getElementById('newExerciseName').value = '';
+  document.getElementById('newExerciseSets').value = '';
+  document.getElementById('newExerciseReps').value = '';
+  nameInput.focus();
+});
 function updateCreateCompletedUI(){
   const dd = getDayData(parseDateKey(state.openDayKey));
   // Smart default only -- past/today default to "already done", future defaults to "planned" --
@@ -3906,6 +4174,7 @@ document.getElementById('createCompletedToggle').addEventListener('click', funct
 function openManualEntry(){
   manualEntryType = 'strength';
   createMarkCompleted = true;
+  manualEntryEditingPrimary = false;
   const L = STR[state.lang];
   document.getElementById('manualNameInput').value = '';
   document.getElementById('manualNameInput').placeholder = L.manualNamePlaceholder;
@@ -3922,6 +4191,15 @@ function openManualEntry(){
   document.getElementById('createWorkDurationInput').placeholder = '3:00';
   document.getElementById('createRestDurationInput').value = '';
   document.getElementById('createRestDurationInput').placeholder = '1:00';
+  document.getElementById('newExerciseName').value = '';
+  document.getElementById('newExerciseName').placeholder = L.newExerciseNamePlaceholder;
+  document.getElementById('newExerciseName').style.borderColor = '';
+  document.getElementById('newExerciseSets').value = '';
+  document.getElementById('newExerciseSets').placeholder = L.newExerciseSetsPlaceholder;
+  document.getElementById('newExerciseReps').value = '';
+  document.getElementById('newExerciseReps').placeholder = L.newExerciseRepsPlaceholder;
+  manualExercises = [];
+  renderManualExercisesList();
   renderManualTypeRow();
   updateCreateCompletedUI();
   const titleLabel = document.getElementById('manualEntryTitleLabel');
@@ -3934,6 +4212,7 @@ function openManualEntry(){
 // the user can revise and resubmit it, instead of only being able to start over from a blank sheet.
 function openManualEntryForEdit(dd){
   openManualEntry();
+  manualEntryEditingPrimary = true;
   const L = STR[state.lang];
   manualEntryType = dd.p.t;
   // A custom plan bubble is, by construction, always a planned (not-yet-logged) workout --
@@ -3949,6 +4228,9 @@ function openManualEntryForEdit(dd){
     document.getElementById('createRoundsInput').value = dd.p.interval.rounds;
     document.getElementById('createWorkDurationInput').value = fmtClock(dd.p.interval.workSec);
     document.getElementById('createRestDurationInput').value = fmtClock(dd.p.interval.restSec);
+  } else if(dd.p.t==='strength' && dd.p.exercises && dd.p.exercises.length){
+    manualExercises = dd.p.exercises.map(ex=>({...ex}));
+    renderManualExercisesList();
   } else {
     const target = state.progression[progressionKey(dd.p)];
     if(target){
@@ -4012,7 +4294,7 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
   if(manualEntryType==='interval'){
     // An interval workout is completed by running its timer, not logged as an instant fact --
     // it always becomes the day's actual planned session (like Plan a Workout), never a plain entry.
-    planCustomWorkout(state.openDayKey, {title:name, type:'interval', detail:volume, target:null, interval:readIntervalConfig()});
+    planCustomWorkout(state.openDayKey, {title:name, type:'interval', detail:volume, target:null, interval:readIntervalConfig(), replacePrimary:manualEntryEditingPrimary});
     closeManualEntry();
     renderDayDetail();
     renderCalendar();
@@ -4037,7 +4319,7 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     }
     state.doneCount = computeDoneCount();
   } else {
-    planCustomWorkout(state.openDayKey, {title:name, type:manualEntryType, detail:volume, target:readCreateTarget()});
+    planCustomWorkout(state.openDayKey, {title:name, type:manualEntryType, detail:volume, target:readCreateTarget(), exercises: manualEntryType==='strength' ? manualExercises.slice() : null, replacePrimary:manualEntryEditingPrimary});
   }
 
   closeManualEntry();
@@ -4460,7 +4742,9 @@ function renderSummary(){
     // Right after finishing -- ask for the review before showing any progression result, since
     // the rating given here is what decides whether a met target actually counts as "advance".
     document.getElementById('reviewRatingSlider').value = 3;
-    document.getElementById('reviewNotesInput').value = '';
+    // Pre-fill with whatever notes were jotted down live while the workout was being logged --
+    // the reviewer can still edit/extend them before submitting.
+    document.getElementById('reviewNotesInput').value = (logged && logged.notes) || '';
     document.getElementById('reviewNotesInput').placeholder = L.reviewNotesPlaceholder;
     renderReviewRatingLabel();
     reviewCardEl.hidden = false;
@@ -4582,6 +4866,33 @@ async function cloudInsertManualEntry(dateStr, entry){
 async function cloudDeleteManualEntry(supabaseId){
   if(!state.userId || !supabaseId) return;
   try{ await sb.from('manual_entries').delete().eq('id', supabaseId); }catch(e){ /* best-effort */ }
+}
+// planned_workouts: any ADDITIONAL workout added to a day beyond the primary plan slot (which still
+// lives on workout_logs.planned_* as before) -- a day can hold several of these, each independently
+// deletable, since workout_logs is one row per (user, day) and can't hold more than one plan itself.
+async function cloudInsertExtraWorkout(dateStr, entry){
+  if(!state.userId) return null;
+  try{
+    const s = entry.session;
+    const { data, error } = await sb.from('planned_workouts').insert({
+      user_id: state.userId, log_date: dateStr, session_type: s.t, title: s.en.title, detail: s.en.detail || null,
+      exercises: s.exercises || null,
+      interval_rounds: s.interval ? s.interval.rounds : null,
+      interval_work_sec: s.interval ? s.interval.workSec : null,
+      interval_rest_sec: s.interval ? s.interval.restSec : null,
+      completed: !!entry.completed,
+    }).select('id').maybeSingle();
+    if(error) throw error;
+    return data ? data.id : null;
+  }catch(e){ return null; }
+}
+async function cloudDeleteExtraWorkout(supabaseId){
+  if(!state.userId || !supabaseId) return;
+  try{ await sb.from('planned_workouts').delete().eq('id', supabaseId); }catch(e){ /* best-effort */ }
+}
+async function cloudSetExtraWorkoutCompleted(supabaseId, completed){
+  if(!state.userId || !supabaseId) return;
+  try{ await sb.from('planned_workouts').update({completed}).eq('id', supabaseId); }catch(e){ /* best-effort */ }
 }
 async function cloudInsertRecordedSession(dateStr, session, logged){
   if(!state.userId || !logged) return;

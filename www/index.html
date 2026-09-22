@@ -334,6 +334,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .view-week-link{padding:10px 20px 0;text-align:right;}
 
 .session-card{margin:18px 20px 0;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--r-lg);padding:16px;}
+.session-desc-tap{cursor:pointer;}
 .session-card .top-row{display:flex;justify-content:space-between;align-items:center;}
 .session-card .title{font-family:var(--font-display);font-weight:600;font-size:19px;color:var(--text);margin-top:8px;}
 .session-tip{margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-soft);}
@@ -3040,14 +3041,16 @@ function renderHome(){
   const todayEntries = (state.dayLog[todayKey] && state.dayLog[todayKey].manualEntries) || [];
   const todayExtras = (state.dayLog[todayKey] && state.dayLog[todayKey].extraWorkouts) || [];
   document.getElementById('sessionCard').innerHTML = `
-    <div class="top-row">
-      <span class="eyebrow">${L.todayLabel} &middot; ${DAY_NAMES_FULL[state.lang][TODAY_IDX]}</span>
+    <div class="session-desc-tap" id="sessionDescTap">
+      <div class="top-row">
+        <span class="eyebrow">${L.todayLabel} &middot; ${DAY_NAMES_FULL[state.lang][TODAY_IDX]}</span>
+      </div>
+      <div class="title">${effL.title}${effL.detail?', '+effL.detail:''}</div>
+      ${exerciseListHtml(eff).replace('r-exercise-list', 'r-exercise-list card')}
+      <div class="session-tip"><p>${tip}</p></div>
+      ${suggestedTargetStr ? `<div class="paired"><span>${L.statProgress}: <b>${suggestedTargetStr}</b></span></div>` : ''}
+      ${(eff.t!=='rest' && compL) ? `<div class="paired">${TYPE_ICON[comp.t]}<span>${L.pairedWithInline} <b>${compL.title}${compL.detail?', '+compL.detail:''}</b></span></div>` : ''}
     </div>
-    <div class="title">${effL.title}${effL.detail?', '+effL.detail:''}</div>
-    ${exerciseListHtml(eff).replace('r-exercise-list', 'r-exercise-list card')}
-    <div class="session-tip"><p>${tip}</p></div>
-    ${suggestedTargetStr ? `<div class="paired"><span>${L.statProgress}: <b>${suggestedTargetStr}</b></span></div>` : ''}
-    ${(eff.t!=='rest' && compL) ? `<div class="paired">${TYPE_ICON[comp.t]}<span>${L.pairedWithInline} <b>${compL.title}${compL.detail?', '+compL.detail:''}</b></span></div>` : ''}
     ${eff.t!=='rest' ? `<button class="watch-demo-btn" id="watchDemoBtn" type="button">${ICONS.play}${L.watchDemoBtn}</button>` : ''}
     <button class="watch-demo-btn" id="addTodayWorkoutBtn" type="button">${ICONS.plus}${L.addWorkoutBtn}</button>
     ${eff.t!=='rest' ? `
@@ -3086,6 +3089,9 @@ function renderHome(){
       </div>`;
     }).join('')}</div>` : ''}
   `;
+  // Tapping the workout description opens the same Day Detail sheet as tapping today's cell in the
+  // week strip above -- one consistent way to see the full schedule/actions for today.
+  document.getElementById('sessionDescTap').addEventListener('click', ()=> openDayDetail(todayKey));
   const watchDemoBtn = document.getElementById('watchDemoBtn');
   if(watchDemoBtn) watchDemoBtn.addEventListener('click', ()=> openExerciseDetail(eff, 'home'));
   document.getElementById('addTodayWorkoutBtn').addEventListener('click', ()=>{

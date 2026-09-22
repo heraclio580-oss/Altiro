@@ -1538,6 +1538,7 @@ const STR = {
     daysSub: "Pick a number, then choose which days work for you. You can shift things around anytime.",
     whichDaysLabel: "Which days?",
     daysSelectedSuffix: "days a week",
+    noTrainingDaysNote: "No fixed days — plan each day yourself from Create Workout.",
     eyebrowAccount: "Account",
     accountHeadline: "Save your plan",
     accountSub: "Sign in with Google in one tap, or create an account with your email.",
@@ -1741,6 +1742,7 @@ const STR = {
     daysSub: "Elige un número y luego selecciona qué días te funcionan. Puedes reorganizarlo cuando quieras.",
     whichDaysLabel: "¿Qué días?",
     daysSelectedSuffix: "días a la semana",
+    noTrainingDaysNote: "Sin días fijos — planifica cada día tú mismo desde Crear entrenamiento.",
     eyebrowAccount: "Cuenta",
     accountHeadline: "Guarda tu plan",
     accountSub: "Inicia sesión con Google en un toque, o crea una cuenta con tu correo.",
@@ -3993,7 +3995,7 @@ function renderAdjDaysChips(){
       const i = parseInt(c.getAttribute('data-weekday'),10);
       const idx = draft.trainingDays.indexOf(i);
       if(idx>=0){
-        if(draft.trainingDays.length>1) draft.trainingDays.splice(idx,1);
+        draft.trainingDays.splice(idx,1);
       } else {
         draft.trainingDays.push(i);
       }
@@ -4001,7 +4003,9 @@ function renderAdjDaysChips(){
       renderAdjDaysChips();
     });
   });
-  document.getElementById('adjDaysSummary').textContent = `${draft.trainingDays.length} ${L.daysSelectedSuffix}`;
+  document.getElementById('adjDaysSummary').textContent = draft.trainingDays.length===0
+    ? L.noTrainingDaysNote
+    : `${draft.trainingDays.length} ${L.daysSelectedSuffix}`;
 }
 
 document.getElementById('applyAdjust').addEventListener('click', ()=>{

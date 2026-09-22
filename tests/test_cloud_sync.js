@@ -287,6 +287,17 @@ function openSession(backend){
   // only update local state and never call saveProfileToCloud(), so a refresh (or, here, a fresh
   // sign-in) would silently revert training days back to whatever was last actually saved -- e.g.
   // the onboarding default -- bringing a 3-day plan right back onto the calendar. ----
+  // ---- Editing the display name should also persist to the cloud (full_name on profiles). ----
+  goPillA('settings');
+  await wait(20);
+  docA.getElementById('editNameBtn').click();
+  await wait(20);
+  docA.getElementById('editNameInput').value = 'Jordan Rivera-Chen';
+  docA.getElementById('saveEditName').click();
+  await wait(60);
+  console.log('Session A: edited name persisted to the cloud profile:',
+    Object.values(backend.db.profiles).some(p=>p.full_name==='Jordan Rivera-Chen') ? 'OK' : `FAIL (${JSON.stringify(backend.db.profiles)})`);
+
   goPillA('adjust');
   await wait(20);
   [...docA.querySelectorAll('#adjWeekdayChips .chip')].forEach(c => { if(c.classList.contains('sel')) c.click(); });
@@ -313,6 +324,9 @@ function openSession(backend){
   goPillC('home');
   await wait(20);
   console.log('Session C (a fresh sign-in): today has no fabricated workout -- shows Rest Day:', docC.getElementById('sessionCard').textContent.includes('Rest Day') ? 'OK' : `FAIL (${docC.getElementById('sessionCard').querySelector('.title')?.textContent})`);
+  goPillC('settings');
+  await wait(20);
+  console.log('Session C: the edited name from Session A round-trips correctly:', docC.getElementById('profileName').textContent==='Jordan Rivera-Chen' ? 'OK' : `FAIL (${docC.getElementById('profileName').textContent})`);
   goPillC('adjust');
   await wait(20);
   console.log('Session C: Adjust sheet also shows 0 days selected, not the 3-day default:',

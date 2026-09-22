@@ -704,6 +704,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 /* ---------- settings tab ---------- */
 .profile-card{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;}
 .profile-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent-hover),var(--accent));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--on-accent);flex-shrink:0;}
+.profile-card-info{flex:1;min-width:0;}
 .profile-name{font-family:var(--font-body);font-weight:600;font-size:14px;color:var(--text);}
 .profile-email{font-size:12px;color:var(--text-3);margin-top:2px;}
 
@@ -1055,10 +1056,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     <div class="pad" style="padding-top:18px;">
       <div class="profile-card">
         <div class="profile-avatar" id="profileAvatar"></div>
-        <div>
+        <div class="profile-card-info">
           <div class="profile-name" id="profileName"></div>
           <div class="profile-email" id="profileEmail"></div>
         </div>
+        <button class="iconbtn" id="editNameBtn" type="button" title="Edit name"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13.5 3a3.5 3.5 0 0 0-4.6 4.2L3 13.1V17h3.9l5.9-5.9A3.5 3.5 0 0 0 17 6.5l-2.6 2.6-2-2L15 4.4"/></svg></button>
       </div>
 
       <div class="sheet-section">
@@ -1145,6 +1147,22 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="footer-note" data-i18n="demoPlaceholderNote" style="margin-top:18px;text-align:left;"></div>
     </div>
   </section>
+
+  <!-- EDIT NAME SHEET (overlay) -->
+  <div class="sheet-overlay" id="editNameOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="editNameTitle"></span>
+        <button class="iconbtn" id="closeEditName"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="editNameLabel"></div>
+        <input type="text" class="text-input" id="editNameInput">
+      </div>
+      <button class="btn btn-primary sheet-apply" id="saveEditName" data-i18n="saveNameBtn"></button>
+    </div>
+  </div>
 
   <!-- ADJUST SHEET (overlay) -->
   <div class="sheet-overlay" id="adjustOverlay" hidden>
@@ -1622,6 +1640,10 @@ const STR = {
     intensityLabel: "Intensity",
     trainingDaysLabel: "Training Days",
     trainingDaysMidWeekNote: "Applies to the rest of this week — days you've already done or missed stay as they are.",
+    editNameTitle: "Edit Name",
+    editNameLabel: "Your name",
+    saveNameBtn: "Save Name",
+    nameUpdatedToast: "Name updated",
     languageLabel: "Language",
     applyBtn: "Apply",
     toastUpdated: "Plan updated",
@@ -1830,6 +1852,10 @@ const STR = {
     intensityLabel: "Intensidad",
     trainingDaysLabel: "Días de entrenamiento",
     trainingDaysMidWeekNote: "Se aplica al resto de esta semana — los días que ya completaste o perdiste no cambian.",
+    editNameTitle: "Editar nombre",
+    editNameLabel: "Tu nombre",
+    saveNameBtn: "Guardar nombre",
+    nameUpdatedToast: "Nombre actualizado",
     languageLabel: "Idioma",
     applyBtn: "Aplicar",
     toastUpdated: "Plan actualizado",
@@ -4177,6 +4203,27 @@ function renderSettings(){
   document.getElementById('notifToggle').classList.toggle('on', state.notifications);
   document.getElementById('themeToggle').classList.toggle('on', state.theme==='light');
 }
+// Email is the account's real login credential (changing it needs Supabase's own confirmation
+// flow to be done safely), so only the display name is editable here.
+function openEditName(){
+  document.getElementById('editNameInput').value = state.userName;
+  document.getElementById('editNameOverlay').hidden = false;
+}
+function closeEditName(){
+  document.getElementById('editNameOverlay').hidden = true;
+}
+document.getElementById('editNameBtn').addEventListener('click', openEditName);
+document.getElementById('closeEditName').addEventListener('click', closeEditName);
+document.getElementById('saveEditName').addEventListener('click', ()=>{
+  const val = document.getElementById('editNameInput').value.trim();
+  if(!val) return;
+  state.userName = val;
+  renderSettings();
+  renderHome();
+  saveProfileToCloud();
+  closeEditName();
+  showToast(STR[state.lang].nameUpdatedToast);
+});
 document.getElementById('notifToggle').addEventListener('click', function(){
   state.notifications = !state.notifications;
   this.classList.toggle('on', state.notifications);
@@ -4477,6 +4524,7 @@ async function saveProfileToCloud(){
   if(!state.userId) return;
   try{
     await sb.from('profiles').update({
+      full_name: state.userName,
       goal: state.goal,
       level: state.level,
       training_days: state.trainingDays,

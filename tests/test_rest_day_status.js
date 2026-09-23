@@ -65,21 +65,44 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('saveManualEntry').click();
   await wait(20);
 
-  // A rest day never turns "done" (green), even with a real logged workout on it -- only an
-  // actual scheduled workout day turns green when completed. The logged entry itself still shows
-  // in the day's content (and via the has-log marker on Calendar); the status pill/dot just stays
-  // neutral "Rest Day" rather than claiming the day itself was completed.
-  console.log('After logging a workout, Day Detail pill still reads Rest Day, not Done:', doc.querySelector('#dayDetailPlanRow .stpill').textContent.trim()==='Rest Day' ? 'OK' : `FAIL (${doc.querySelector('#dayDetailPlanRow .stpill').textContent.trim()})`);
+  // A genuinely logged workout now promotes itself to the day's primary session too (instead of
+  // leaving a stale "Rest Day" sitting next to the thing that actually happened), so the day turns
+  // green/"Done" and shows the real workout name, exactly like any other completed training day.
+  console.log('After logging a workout, Day Detail pill now reads Done (the rest day was promoted):', doc.querySelector('#dayDetailPlanRow .stpill').textContent.trim()==='Done' ? 'OK' : `FAIL (${doc.querySelector('#dayDetailPlanRow .stpill').textContent.trim()})`);
+  console.log('Day Detail now shows the logged workout\'s name as the day\'s content, not "Rest Day":',
+    doc.querySelector('#dayDetailPlanRow .r-sess-line').textContent.includes('Evening Walk') ? 'OK' : `FAIL (${doc.querySelector('#dayDetailPlanRow .r-sess-line').textContent})`);
 
   goPill('home');
   await wait(20);
   const satCellAfterLog = doc.querySelector('#weekStrip .day-cell[data-day="5"]');
-  console.log('Home week strip: rest day WITH a logged workout still does NOT get the "done" class:', !satCellAfterLog.classList.contains('done') ? 'OK' : 'FAIL');
+  console.log('Home week strip: rest day WITH a logged workout now gets the "done" class:', satCellAfterLog.classList.contains('done') ? 'OK' : 'FAIL');
 
   goPill('week');
   await wait(20);
   const satRowAfterLog = doc.querySelector('.plan-row[data-day="5"][data-week-idx="0"]');
-  console.log('Plan row: rest day WITH a logged workout still shows no done checkmark badge:', !satRowAfterLog.querySelector('.prow-status.done') ? 'OK' : 'FAIL');
+  console.log('Plan row: rest day WITH a logged workout now shows the done checkmark badge:', !!satRowAfterLog.querySelector('.prow-status.done') ? 'OK' : 'FAIL');
+  console.log('Plan row title is the logged workout, not "Rest Day":', satRowAfterLog.querySelector('.prow-title').textContent==='Evening Walk' ? 'OK' : `FAIL (${satRowAfterLog.querySelector('.prow-title').textContent})`);
+
+  // --- The day is now genuinely custom -- "Reset to Suggested Plan" should reflect that, and a
+  // SECOND logged entry for the same day must NOT re-promote/overwrite the primary again (it just
+  // logs alongside it, same as adding a second entry to any other already-custom day). ---
+  goPill('home');
+  await wait(20);
+  doc.querySelector('#weekStrip .day-cell[data-day="5"]').click();
+  await wait(20);
+  console.log('"Reset to Suggested Plan" now offered, since this day is genuinely custom now:', !!doc.getElementById('ddResetPlanBtn') ? 'OK' : 'FAIL');
+
+  doc.getElementById('addWorkoutBtn').click();
+  await wait(20);
+  if(!doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
+  doc.getElementById('manualNameInput').value = 'Extra Stretch';
+  doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+  doc.getElementById('saveManualEntry').click();
+  await wait(20);
+  console.log('A second logged entry does NOT overwrite the already-promoted primary:',
+    doc.querySelector('#dayDetailPlanRow .r-sess-line').textContent.includes('Evening Walk') ? 'OK' : `FAIL (${doc.querySelector('#dayDetailPlanRow .r-sess-line').textContent})`);
+  console.log('...it just logs alongside it in the entries list instead:',
+    doc.getElementById('dayDetailEntries').textContent.includes('Extra Stretch') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');
   process.exit(0);

@@ -2724,6 +2724,29 @@ function planCustomWorkout(key, opts){
     cloudSaveProgressionTarget(session, target);
   }
 }
+// A freshly-logged manual entry only ever appends to manualEntries -- it never touched the day's
+// primary session, so logging a real workout on a genuine Rest Day left "Rest Day" sitting as the
+// headline right next to the thing that actually happened. This promotes that logged workout into
+// the primary slot too (same as planning one already does), but ONLY when nothing has claimed the
+// slot yet (still the untouched auto-generated default) -- a day that already has its own custom
+// plan keeps it, and the new entry just logs alongside it as before. Deliberately leaves
+// completed/completedOverride untouched: the caller already manages those, and forcing a value here
+// risks re-baking a stale override the same way an over-eager "completed" default corrupted rest
+// days into cascades before (see reorderAcrossPlan). Local-only -- the caller handles the cloud side
+// (cloudSavePlannedSession), sequenced after whatever else is already writing to this date's
+// workout_logs row (e.g. the manual entry this promotion happens alongside), since both would
+// otherwise race to get-or-create that row independently and end up as two separate rows.
+function promotePrimaryFromLog(key, session){
+  const idxInCurrentWeek = currentWeekIdxFor(key);
+  if(idxInCurrentWeek>=0){
+    state.week[idxInCurrentWeek].p = session;
+    state.week[idxInCurrentWeek].c = null;
+    state.week[idxInCurrentWeek].isCustom = true;
+  } else {
+    const log = ensureDayLog(key);
+    log.session = {p: session, c: null, isCustom: true};
+  }
+}
 function resetToSuggestedPlan(key){
   const date = parseDateKey(key);
   const gen = sessionForDate(date);
@@ -4855,7 +4878,17 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     } else {
       const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes, distance:cardioDistance, durationMin:cardioDuration};
       ensureDayLog(targetDayKey).manualEntries.push(entry);
-      cloudInsertManualEntry(targetDayKey, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
+      const insertPromise = cloudInsertManualEntry(targetDayKey, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
+      // Nothing has claimed this day's headline yet (still a Rest Day or an untouched suggestion) --
+      // let this genuinely-logged workout take over as the primary session too, instead of leaving
+      // a stale "Rest Day" sitting above the very thing that actually happened.
+      if(!getRawDaySlot(parseDateKey(targetDayKey)).isCustom){
+        const loggedSession = ses(manualEntryType, name, volume||'', name, volume||'');
+        promotePrimaryFromLog(targetDayKey, loggedSession);
+        // Wait for the manual entry's own get-or-create workout_logs row before syncing the plan
+        // onto it, so both land on the SAME row instead of racing to create two.
+        insertPromise.then(()=> cloudSavePlannedSession(targetDayKey, loggedSession));
+      }
     }
     // A fresh log is the clearest possible "this happened" signal, so it should always win over any
     // earlier explicit "mark as not done" toggle -- otherwise a stale override could silently hide a

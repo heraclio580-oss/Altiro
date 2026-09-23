@@ -347,7 +347,12 @@ function openSession(backend){
   await wait(100);
   goPillC('home');
   await wait(20);
-  console.log('Session C (a fresh sign-in): today has no fabricated workout -- shows Rest Day:', docC.getElementById('sessionCard').textContent.includes('Rest Day') ? 'OK' : `FAIL (${docC.getElementById('sessionCard').querySelector('.title')?.textContent})`);
+  // Today's real logged entry ("Evening Mobility Work", logged earlier in Session A) now promotes
+  // itself to the day's primary session too, and -- like any other custom/logged day -- survives a
+  // trainingDays change untouched, so it's still what shows here, not a freshly fabricated workout
+  // from the new (0-training-day) generator, and not "Rest Day" either.
+  console.log('Session C (a fresh sign-in): today shows the real logged workout, not a fabricated one:',
+    docC.getElementById('sessionCard').textContent.includes('Evening Mobility Work') ? 'OK' : `FAIL (${docC.getElementById('sessionCard').querySelector('.title')?.textContent})`);
   goPillC('settings');
   await wait(20);
   console.log('Session C: the edited name from Session A round-trips correctly:', docC.getElementById('profileName').textContent==='Jordan Rivera-Chen' ? 'OK' : `FAIL (${docC.getElementById('profileName').textContent})`);

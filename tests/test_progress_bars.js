@@ -11,11 +11,8 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(50);
   const doc = window.document;
   const goPill = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
-  const goProgress = () => { goPill('calendar'); return wait(20); };
 
-  await goProgress();
-  const progBtn = doc.querySelector('#calProgToggle .tab-btn[data-view="progress"]');
-  progBtn.click();
+  goPill('progress');
   await wait(20);
 
   // --- Initial render: 4 bars, "Now" selected by default, current bar bolded ---

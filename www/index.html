@@ -1047,11 +1047,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
   <!-- 11. CALENDAR -->
   <section class="screen tab-screen" id="screen-calendar" data-title="Calendar" hidden>
-    <div class="topbar"><span class="label" id="calProgTitle"></span></div>
-    <div class="tabs-row" id="calProgToggle" style="margin:14px 20px 0;">
-      <div class="tab-btn" data-view="calendar"><div class="t" data-i18n="navCalendar"></div></div>
-      <div class="tab-btn" data-view="progress"><div class="t" data-i18n="navProgress"></div></div>
-    </div>
+    <div class="topbar"><span class="label" data-i18n="navCalendar"></span></div>
     <div id="calendarViewPane">
       <div class="cal-switcher">
         <button class="iconbtn" id="calPrev" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 4l-6 6 6 6"/></svg></button>
@@ -1061,39 +1057,42 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="cal-weekday-row" id="calWeekdayRow"></div>
       <div class="mo-grid" id="calGrid"></div>
     </div>
-    <div id="progressViewPane" hidden>
-      <div class="pad" style="padding-top:18px;">
-        <div class="stats-grid" style="padding:0;">
-          <div class="cell"><div class="l" data-i18n="statStreakLabel"></div><div class="v" id="progStreak"></div></div>
-          <div class="cell"><div class="l" data-i18n="bestStreakLabel"></div><div class="v" id="progBest"></div></div>
-          <div class="cell"><div class="l" data-i18n="totalWorkoutsLabel"></div><div class="v" id="progTotalWorkouts"></div></div>
-          <div class="cell"><div class="l" data-i18n="totalDistanceLabel"></div><div class="v" id="progTotalDistance"></div></div>
-        </div>
-        <div class="sheet-section" style="margin-top:26px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div class="st-label" data-i18n="last4WeeksLabel" style="margin-bottom:0;"></div>
-            <div style="display:flex;gap:6px;">
-              <button class="iconbtn" id="progWeeksPrev" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 4l-6 6 6 6"/></svg></button>
-              <button class="iconbtn" id="progWeeksNext" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M8 4l6 6-6 6"/></svg></button>
-            </div>
+  </section>
+
+  <!-- 13. PROGRESS -->
+  <section class="screen tab-screen" id="screen-progress" data-title="Progress" hidden>
+    <div class="topbar"><span class="label" data-i18n="navProgress"></span></div>
+    <div class="pad" style="padding-top:18px;">
+      <div class="stats-grid" style="padding:0;">
+        <div class="cell"><div class="l" data-i18n="statStreakLabel"></div><div class="v" id="progStreak"></div></div>
+        <div class="cell"><div class="l" data-i18n="bestStreakLabel"></div><div class="v" id="progBest"></div></div>
+        <div class="cell"><div class="l" data-i18n="totalWorkoutsLabel"></div><div class="v" id="progTotalWorkouts"></div></div>
+        <div class="cell"><div class="l" data-i18n="totalDistanceLabel"></div><div class="v" id="progTotalDistance"></div></div>
+      </div>
+      <div class="sheet-section" style="margin-top:26px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div class="st-label" data-i18n="last4WeeksLabel" style="margin-bottom:0;"></div>
+          <div style="display:flex;gap:6px;">
+            <button class="iconbtn" id="progWeeksPrev" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 4l-6 6 6 6"/></svg></button>
+            <button class="iconbtn" id="progWeeksNext" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M8 4l6 6-6 6"/></svg></button>
           </div>
-          <div class="barchart" id="progBarChart"></div>
-          <div class="week-detail-card" id="progWeekDetail"></div>
         </div>
-        <div class="sheet-section" style="margin-top:26px;">
-          <div class="st-label" data-i18n="prSectionLabel"></div>
-          <div id="prList"></div>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <input type="text" class="text-input" id="prExerciseInput">
-            <input type="number" inputmode="decimal" class="text-input" id="prValueInput" style="max-width:84px;">
-          </div>
-          <button class="btn btn-ghost" id="addPrBtn" style="margin-top:10px;width:100%;" data-i18n="addPrBtn"></button>
+        <div class="barchart" id="progBarChart"></div>
+        <div class="week-detail-card" id="progWeekDetail"></div>
+      </div>
+      <div class="sheet-section" style="margin-top:26px;">
+        <div class="st-label" data-i18n="prSectionLabel"></div>
+        <div id="prList"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <input type="text" class="text-input" id="prExerciseInput">
+          <input type="number" inputmode="decimal" class="text-input" id="prValueInput" style="max-width:84px;">
         </div>
+        <button class="btn btn-ghost" id="addPrBtn" style="margin-top:10px;width:100%;" data-i18n="addPrBtn"></button>
       </div>
     </div>
   </section>
 
-  <!-- 13. SETTINGS -->
+  <!-- 14. SETTINGS -->
   <section class="screen tab-screen" id="screen-settings" data-title="Settings" hidden>
     <div class="topbar"><span class="label" data-i18n="navSettings"></span></div>
     <div class="pad" style="padding-top:18px;">
@@ -1522,6 +1521,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     <button class="nav-tab" data-go="week" data-tab="week">
       <span class="nav-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="2.5" width="6" height="6"/><rect x="11.5" y="2.5" width="6" height="6"/><rect x="2.5" y="11.5" width="6" height="6"/><rect x="11.5" y="11.5" width="6" height="6"/></svg></span>
       <span data-i18n="navPlan"></span>
+    </button>
+    <button class="nav-tab" data-go="progress" data-tab="progress">
+      <span class="nav-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15.5V9M10 15.5V4M16 15.5v-6"/></svg></span>
+      <span data-i18n="navProgress"></span>
     </button>
     <button class="nav-tab" data-go="calendar" data-tab="calendar">
       <span class="nav-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="14" height="13" rx="0.5"/><path d="M3 8h14M7 2v4M13 2v4"/></svg></span>
@@ -2396,7 +2399,6 @@ const defaultState = () => ({
   weeklyWorkoutGoal:5, weeklyDistanceGoal:15,
   totalWorkouts:47, totalDistance:212.4,
   calMonthOffset:0,
-  calendarViewMode:'calendar',
   progWindowEnd:0,
   progSelectedOffset:0,
   dayLog:{},
@@ -2706,8 +2708,8 @@ function moveSessionTo(fromIdx, toIdx){
 }
 
 /* ---------------- navigation ---------------- */
-const SCREEN_IDS = ['welcome','onb-goal','onb-level','onb-days','onb-info','onb-focus','onb-intensity','onb-account','loading','home','week','calendar','settings','summary','exercise-detail'];
-const TAB_SCREENS = ['home','week','calendar','settings'];
+const SCREEN_IDS = ['welcome','onb-goal','onb-level','onb-days','onb-info','onb-focus','onb-intensity','onb-account','loading','home','week','progress','calendar','settings','summary','exercise-detail'];
+const TAB_SCREENS = ['home','week','progress','calendar','settings'];
 function elFor(id){return document.getElementById('screen-'+id);}
 
 function showScreen(id){
@@ -2728,6 +2730,7 @@ function showScreen(id){
   if(id==='home') renderHome();
   if(id==='week') renderWeek();
   if(id==='calendar') renderCalendarScreen();
+  if(id==='progress') renderProgress();
   if(id==='settings') renderSettings();
   if(id==='summary') renderSummary();
   if(id==='onb-focus'){ onbSlider.paint(); updateOnbSliderLabels(state.focusRatio); }
@@ -2770,6 +2773,7 @@ function applyLang(){
   renderHome();
   renderWeek();
   renderCalendarScreen();
+  renderProgress();
   renderSettings();
   if(!document.getElementById('adjustOverlay').hidden && state.adjustDraft){
     adjSlider.paint();
@@ -2832,7 +2836,6 @@ NAV_MAP.forEach(([id,label])=>{
     closeAllOverlays();
     if(id==='adjust'){ showScreen('home'); openAdjustSheet(); }
     else if(id==='exercise-detail'){ openExerciseDetail(todaySession(), 'home'); }
-    else if(id==='progress'){ state.calendarViewMode='progress'; showScreen('calendar'); }
     else{ showScreen(id); }
   });
   pillsWrap.appendChild(b);
@@ -4100,22 +4103,8 @@ function setupDayRowInteraction(wrap){
 
 /* ---------------- calendar ---------------- */
 function renderCalendarScreen(){
-  const L = STR[state.lang];
-  document.getElementById('calProgTitle').textContent = state.calendarViewMode==='progress' ? L.navProgress : L.navCalendar;
-  document.getElementById('calProgToggle').querySelectorAll('.tab-btn').forEach(b=>{
-    b.classList.toggle('sel', b.getAttribute('data-view')===state.calendarViewMode);
-  });
-  document.getElementById('calendarViewPane').hidden = state.calendarViewMode!=='calendar';
-  document.getElementById('progressViewPane').hidden = state.calendarViewMode!=='progress';
   renderCalendar();
-  renderProgress();
 }
-document.getElementById('calProgToggle').addEventListener('click', (e)=>{
-  const btn = e.target.closest('.tab-btn');
-  if(!btn) return;
-  state.calendarViewMode = btn.getAttribute('data-view');
-  renderCalendarScreen();
-});
 function renderCalendar(){
   ensureWeek();
   const base = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth(), 1);

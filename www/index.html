@@ -463,6 +463,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .type-btn span{font-size:10.5px;line-height:1.1;text-align:center;}
 .type-btn.sel{border-color:var(--accent);background:var(--accent-tint);color:var(--text);}
 .manual-entry{display:flex;align-items:center;gap:10px;background:var(--well);border:1px solid var(--border);border-radius:var(--r-md);padding:9px 10px;margin-top:8px;}
+.manual-entry.editable{cursor:pointer;}
+.manual-entry.editable:hover{border-color:var(--hover-border);}
 .manual-entry .ic{width:26px;height:26px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--text-2);flex-shrink:0;}
 .manual-entry .ic svg{width:14px;height:14px;}
 .manual-entry .body{flex:1;min-width:0;}
@@ -4358,7 +4360,7 @@ function renderDayDetail(){
 
   const entriesWrap = document.getElementById('dayDetailEntries');
   entriesWrap.innerHTML = dd.manualEntries.length ? dd.manualEntries.map(en=>`
-    <div class="manual-entry">
+    <div class="manual-entry editable" data-entry-id="${en.id}">
       <span class="ic">${MANUAL_TYPE_ICON[en.type]}</span>
       <div class="body">
         <div class="n">${escapeHtml(en.name)}</div>
@@ -4366,6 +4368,15 @@ function renderDayDetail(){
       </div>
       <button class="del" data-del="${en.id}" type="button">${ICONS.trash}</button>
     </div>`).join('') : `<div class="footer-note" style="text-align:left;padding:2px 0;">${L.noWorkoutsLoggedLabel}</div>`;
+  // Tapping a logged workout bubble opens it for editing in place -- only the explicit trash icon
+  // deletes it, so the tap target for "view/edit this workout" and "delete it" stay unambiguous.
+  entriesWrap.querySelectorAll('[data-entry-id]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-del]')) return;
+      const entry = dd.manualEntries.find(x=>x.id===el.getAttribute('data-entry-id'));
+      if(entry) openManualEntryForEditLoggedEntry(entry);
+    });
+  });
   entriesWrap.querySelectorAll('[data-del]').forEach(btn=>{
     btn.addEventListener('click', ()=> deleteManualEntry(state.openDayKey, btn.getAttribute('data-del')));
   });
@@ -4414,6 +4425,11 @@ let manualExercises = []; // {key, name, sets, reps} -- optional, user-built set
 // it -- saving should update that same plan in place, not fork off a second/"extra" workout for
 // the day. False (the default, from the "+ Create Workout" button) always adds a fresh workout.
 let manualEntryEditingPrimary = false;
+// Set to an existing manualEntries id when Create Workout was opened by tapping an already-logged
+// workout bubble in the "Logged Workouts" list to revise it -- saving updates that same entry in
+// place instead of appending a new one. Null (the default, from the "+ Create Workout" button)
+// always logs a genuinely new entry.
+let manualEntryEditingId = null;
 function renderManualTypeRow(){
   const L = STR[state.lang];
   const row = document.getElementById('manualTypeRow');
@@ -4493,6 +4509,7 @@ function openManualEntry(){
   manualEntryType = 'strength';
   createMarkCompleted = true;
   manualEntryEditingPrimary = false;
+  manualEntryEditingId = null;
   const L = STR[state.lang];
   document.getElementById('manualNameInput').value = '';
   document.getElementById('manualNameInput').placeholder = L.manualNamePlaceholder;
@@ -4565,6 +4582,27 @@ function openManualEntryForEdit(dd){
   titleLabel.textContent = L.editWorkoutTitle;
   document.getElementById('clearWorkoutBtn').hidden = false;
 }
+// Re-opens Create Workout pre-filled with an already-logged workout bubble so the user can revise
+// and resave it in place -- tapping a past workout to view/correct it used to have no edit path at
+// all (only delete), so fixing a typo meant deleting it and logging a new one, which just appended
+// a duplicate to the bottom of the list instead of updating the original.
+function openManualEntryForEditLoggedEntry(entry){
+  openManualEntry();
+  manualEntryEditingId = entry.id;
+  const L = STR[state.lang];
+  manualEntryType = entry.type;
+  createMarkCompleted = true; // an already-logged entry is, by construction, already done
+  document.getElementById('createCompletedToggle').classList.toggle('on', true);
+  document.getElementById('manualNameInput').value = entry.name;
+  document.getElementById('manualVolumeInput').value = entry.volume || '';
+  document.getElementById('manualNotesInput').value = entry.notes || '';
+  renderManualTypeRow();
+  updateCreateNameLabel();
+  updateCreateTargetSections();
+  const titleLabel = document.getElementById('manualEntryTitleLabel');
+  titleLabel.setAttribute('data-i18n', 'editWorkoutTitle');
+  titleLabel.textContent = L.editWorkoutTitle;
+}
 function closeManualEntry(){
   document.getElementById('manualEntryOverlay').hidden = true;
 }
@@ -4624,18 +4662,27 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
 
   if(createMarkCompleted){
     const log = ensureDayLog(state.openDayKey);
-    const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes};
-    log.manualEntries.push(entry);
+    // Editing an existing logged bubble updates it in place -- only the explicit "+ Create Workout"
+    // entry point (which never sets manualEntryEditingId) appends a genuinely new one.
+    const existing = manualEntryEditingId ? log.manualEntries.find(e=>e.id===manualEntryEditingId) : null;
+    if(existing){
+      existing.name = name; existing.type = manualEntryType; existing.volume = volume; existing.notes = notes;
+      if(existing.supabaseId) cloudUpdateManualEntry(existing.supabaseId, existing);
+    } else {
+      const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes};
+      log.manualEntries.push(entry);
+      cloudInsertManualEntry(state.openDayKey, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
+    }
     // A fresh log is the clearest possible "this happened" signal, so it should always win over any
     // earlier explicit "mark as not done" toggle -- otherwise a stale override could silently hide a
     // workout the user just told the app they did.
     log.completedOverride = null;
-    cloudInsertManualEntry(state.openDayKey, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
     const idxInCurrentWeek = currentWeekIdxFor(state.openDayKey);
     if(idxInCurrentWeek>=0 && idxInCurrentWeek!==TODAY_IDX){
       state.week[idxInCurrentWeek].completed = true;
     }
     state.doneCount = computeDoneCount();
+    manualEntryEditingId = null;
   } else {
     planCustomWorkout(state.openDayKey, {title:name, type:manualEntryType, detail:volume, target:readCreateTarget(), exercises: manualEntryType==='strength' ? manualExercises.slice() : null, replacePrimary:manualEntryEditingPrimary});
   }
@@ -5214,6 +5261,14 @@ async function cloudInsertManualEntry(dateStr, entry){
 async function cloudDeleteManualEntry(supabaseId){
   if(!state.userId || !supabaseId) return;
   try{ await sb.from('manual_entries').delete().eq('id', supabaseId); }catch(e){ /* best-effort */ }
+}
+async function cloudUpdateManualEntry(supabaseId, entry){
+  if(!state.userId || !supabaseId) return;
+  try{
+    await sb.from('manual_entries').update({
+      name: entry.name, type: entry.type, volume: entry.volume, notes: entry.notes,
+    }).eq('id', supabaseId);
+  }catch(e){ /* best-effort */ }
 }
 // planned_workouts: any ADDITIONAL workout added to a day beyond the primary plan slot (which still
 // lives on workout_logs.planned_* as before) -- a day can hold several of these, each independently

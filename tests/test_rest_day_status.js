@@ -65,17 +65,21 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('saveManualEntry').click();
   await wait(20);
 
-  console.log('After logging a workout, Day Detail pill now reads Done:', doc.querySelector('#dayDetailPlanRow .stpill').textContent.trim()==='Done' ? 'OK' : `FAIL (${doc.querySelector('#dayDetailPlanRow .stpill').textContent.trim()})`);
+  // A rest day never turns "done" (green), even with a real logged workout on it -- only an
+  // actual scheduled workout day turns green when completed. The logged entry itself still shows
+  // in the day's content (and via the has-log marker on Calendar); the status pill/dot just stays
+  // neutral "Rest Day" rather than claiming the day itself was completed.
+  console.log('After logging a workout, Day Detail pill still reads Rest Day, not Done:', doc.querySelector('#dayDetailPlanRow .stpill').textContent.trim()==='Rest Day' ? 'OK' : `FAIL (${doc.querySelector('#dayDetailPlanRow .stpill').textContent.trim()})`);
 
   goPill('home');
   await wait(20);
   const satCellAfterLog = doc.querySelector('#weekStrip .day-cell[data-day="5"]');
-  console.log('Home week strip: rest day WITH a logged workout now gets the "done" class (green dot):', satCellAfterLog.classList.contains('done') ? 'OK' : 'FAIL');
+  console.log('Home week strip: rest day WITH a logged workout still does NOT get the "done" class:', !satCellAfterLog.classList.contains('done') ? 'OK' : 'FAIL');
 
   goPill('week');
   await wait(20);
   const satRowAfterLog = doc.querySelector('.plan-row[data-day="5"][data-week-idx="0"]');
-  console.log('Plan row: rest day WITH a logged workout now shows the done checkmark badge:', !!satRowAfterLog.querySelector('.prow-status.done') ? 'OK' : 'FAIL');
+  console.log('Plan row: rest day WITH a logged workout still shows no done checkmark badge:', !satRowAfterLog.querySelector('.prow-status.done') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');
   process.exit(0);

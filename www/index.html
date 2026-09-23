@@ -2571,8 +2571,18 @@ function getDayData(date){
   };
 }
 function dayDataStatus(dd){
+  if(dd.p.t==='rest'){
+    // A GENUINE rest day (not a training day under the current plan) never shows the green "done"
+    // status, even if something extra was logged on it -- only a real workout turns green when
+    // completed. A day that WAS a training day but has since fallen into the past has its content
+    // blanked to "Rest Day" by buildWeek() (no fabricated history for days before today) -- for
+    // that specific case a real logged entry is the only surviving record of what actually
+    // happened, so it still counts as done (this is what past-day completion tests rely on).
+    const dow = (dd.date.getDay()+6)%7;
+    if(state.trainingDays.includes(dow) && dd.manualEntries.length>0) return 'done';
+    return 'rest';
+  }
   if(dd.isToday) return dd.completed ? 'done' : 'today';
-  if(dd.p.t==='rest') return dd.manualEntries.length>0 ? 'done' : 'rest';
   if(dd.completed) return 'done';
   return dd.isFuture ? 'upcoming' : 'missed';
 }

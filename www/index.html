@@ -4024,7 +4024,10 @@ function planListRowHtml(weekIdx, i, date){
   const dd = getDayData(date);
   const eff = dd.p; const effL = ST(eff);
   const status = dayDataStatus(dd);
-  const draggable = !dd.isPast && (!dd.isToday || !isTodayDone());
+  // A day is locked in place only once it's actually completed -- a missed (past, not-done) day is
+  // just as free to move as any future one, so a missed workout can be dragged forward into today's
+  // slot (or today's rest slid back to replace it) instead of being stuck behind an isPast check.
+  const draggable = !dd.completed;
   const hasLog = dd.manualEntries.length>0;
   const flatIdx = weekIdx*7+i;
   const isReorderSource = reorderSource===flatIdx;

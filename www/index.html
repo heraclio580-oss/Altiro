@@ -412,7 +412,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .cal-stat{margin-top:7px;font-family:var(--font-mono);font-size:11px;color:var(--text-3);}
 
 /* ---------- compact plan list row ---------- */
-.plan-row{display:flex;align-items:center;gap:10px;margin:0 20px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.plan-row{display:flex;align-items:center;gap:10px;margin:0 20px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;}
 .week-block:last-of-type .plan-row:last-child{border-bottom:none;}
 .prow-date{display:flex;flex-direction:column;align-items:center;width:32px;flex-shrink:0;}
 .prow-dow{font-family:var(--font-mono);font-size:9px;letter-spacing:0.05em;color:var(--text-3);text-transform:uppercase;}
@@ -436,6 +436,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 #weekList .plan-row[data-draggable="1"]{cursor:grab;touch-action:none;}
 .plan-row.dragging{position:relative;z-index:50;background:var(--card);border-radius:var(--r-md);box-shadow:0 12px 26px rgba(0,0,0,0.5);opacity:0.94;cursor:grabbing;touch-action:none;pointer-events:none;}
 .plan-row.drop-target{background:linear-gradient(0deg,var(--accent-tint),var(--accent-tint)),var(--card);border-radius:var(--r-md);}
+.plan-row.reorder-source{background:linear-gradient(0deg,var(--accent-tint),var(--accent-tint)),var(--card);border-radius:var(--r-md);box-shadow:inset 0 0 0 1.5px var(--accent);}
+.plan-row.reorder-target{background:var(--card);border-radius:var(--r-md);box-shadow:inset 0 0 0 1px var(--divider-soft);}
 .plan-row.shifting{transition:transform .18s ease;}
 @media (prefers-reduced-motion: reduce){.plan-row.shifting{transition:none;}}
 
@@ -1755,6 +1757,7 @@ const STR = {
     languageLabel: "Language",
     applyBtn: "Apply",
     toastUpdated: "Plan updated",
+    tapAnotherDayToast: "Now tap another day to move it there",
     workoutCompleteTitle: "Workout Complete",
     backToTodayBtn: "Back to Today",
     streakLine: "Current streak — keep it going",
@@ -1849,7 +1852,7 @@ const STR = {
     manualNotesPlaceholder: "Anything else worth noting",
     saveWorkoutBtn: "Save Workout",
     workoutLoggedToast: "Workout logged",
-    dragHandleHint: "Tap and hold to move this workout to another day",
+    dragHandleHint: "Tap to move this workout to another day (or drag)",
     nextWeekLabel: "Next Week",
     planLimitReached: "You've planned as far ahead as this preview supports.",
     resetPlanBtn: "Reset to Suggested Plan",
@@ -1979,6 +1982,7 @@ const STR = {
     languageLabel: "Idioma",
     applyBtn: "Aplicar",
     toastUpdated: "Plan actualizado",
+    tapAnotherDayToast: "Ahora toca otro día para moverlo ahí",
     workoutCompleteTitle: "Entrenamiento completado",
     backToTodayBtn: "Volver a hoy",
     streakLine: "Días activos actuales — sigue así",
@@ -2073,7 +2077,7 @@ const STR = {
     manualNotesPlaceholder: "Algo más que quieras anotar",
     saveWorkoutBtn: "Guardar entrenamiento",
     workoutLoggedToast: "Entrenamiento registrado",
-    dragHandleHint: "Mantén presionado para mover este entrenamiento a otro día",
+    dragHandleHint: "Toca para mover este entrenamiento a otro día (o arrástralo)",
     nextWeekLabel: "Próxima semana",
     planLimitReached: "Has planificado con la mayor anticipación que permite esta vista previa.",
     resetPlanBtn: "Restablecer al plan sugerido",
@@ -3999,13 +4003,15 @@ function planListRowHtml(weekIdx, i, date){
   const status = dayDataStatus(dd);
   const draggable = !dd.isPast && (!dd.isToday || !isTodayDone());
   const hasLog = dd.manualEntries.length>0;
+  const isReorderSource = !!(reorderSource && reorderSource.weekIdx===weekIdx && reorderSource.idx===i);
+  const isReorderTarget = !!(reorderSource && reorderSource.weekIdx===weekIdx && reorderSource.idx!==i && draggable);
 
   const statusBit = status==='done' ? `<span class="prow-status done">${ICONS.checkSm}</span>`
     : status==='missed' ? `<span class="prow-status missed">${L.statusMissed}</span>`
     : status==='today' ? `<span class="prow-status today">${L.statusToday}</span>`
     : '';
 
-  return `<div class="plan-row ${statusClassFor(status, dd.isToday)}" data-day="${i}" data-week-idx="${weekIdx}" ${draggable?'data-draggable="1"':''}>
+  return `<div class="plan-row ${statusClassFor(status, dd.isToday)} ${isReorderSource?'reorder-source':''} ${isReorderTarget?'reorder-target':''}" data-day="${i}" data-week-idx="${weekIdx}" ${draggable?'data-draggable="1"':''}>
     <div class="prow-date">
       <span class="prow-dow">${DAY_NAMES_SHORT[state.lang][i]}</span>
       <span class="prow-num">${date.getDate()}</span>
@@ -4059,12 +4065,18 @@ const DRAG_LONG_PRESS_MS = 220;
 // touch jitter (not an intentional scroll) could cancel the long-press before it ever armed,
 // making the drag hard to trigger reliably on a phone.
 const DRAG_MOVE_CANCEL_PX = 28;
+// Tap-to-move: tap a row's grip handle to "pick it up" (no press-and-hold, no drag distance --
+// just two taps), then tap any other day in the same week to swap it there, reusing the exact same
+// reorderWithinWeek() the press-and-drag gesture commits with. Long-press-drag stays available for
+// whoever it already works for; this is a second, gesture-free path to the same action for anyone
+// who finds sustained touch-and-drag unreliable on their device.
+let reorderSource = null; // {weekIdx, idx} of the row currently picked up, or null
 function setupDayRowInteraction(wrap){
   wrap.querySelectorAll('.plan-row').forEach(row=>{
     const idx = parseInt(row.getAttribute('data-day'),10);
     const weekIdx = parseInt(row.getAttribute('data-week-idx'),10);
     const draggable = row.getAttribute('data-draggable')==='1';
-    let timer=null, dragging=false, moved=false, startX=0, startY=0, lastY=0, targetRow=null, previewRows=[], slotCenters=null;
+    let timer=null, dragging=false, moved=false, startX=0, startY=0, lastY=0, lastDownTarget=null, targetRow=null, previewRows=[], slotCenters=null;
 
     function clearTimer(){ if(timer){ clearTimeout(timer); timer=null; } }
     function rowAt(dayIdx){
@@ -4160,17 +4172,50 @@ function setupDayRowInteraction(wrap){
     function onUp(){
       const wasDragging = dragging;
       const wasMoved = moved;
+      const tappedHandle = !!(lastDownTarget && lastDownTarget.closest('.drag-handle'));
       endDrag(true);
-      if(!wasDragging && !wasMoved){
-        openDayDetail(dateKey(weekDates(weekIdx)[idx]));
+      if(wasDragging || wasMoved) return;
+      // A plain tap (no hold, no movement) -- either resolves a pending tap-to-move pick, starts a
+      // new one, or falls through to the normal "open Day Detail" behavior.
+      if(reorderSource && reorderSource.weekIdx===weekIdx){
+        if(reorderSource.idx===idx){
+          reorderSource = null; // tapping the picked-up row again cancels
+          renderWeek();
+          return;
+        }
+        if(draggable){
+          reorderWithinWeek(weekIdx, reorderSource.idx, idx);
+          reorderSource = null;
+          renderWeek(); renderHome(); renderCalendar();
+          showToast(STR[state.lang].toastUpdated);
+          return;
+        }
+        // Tapped an ineligible day (e.g. a past date) while a move was pending -- cancel the
+        // pending move and just open this day normally rather than silently swallowing the tap.
+        reorderSource = null;
+      } else if(reorderSource){
+        // A pending move from a DIFFERENT week block -- reorderWithinWeek only moves within one
+        // week, so tapping outside it can't complete anything; just clear the stale pick.
+        reorderSource = null;
+        renderWeek();
       }
+      if(tappedHandle && draggable){
+        reorderSource = {weekIdx, idx};
+        renderWeek();
+        showToast(STR[state.lang].tapAnotherDayToast);
+        return;
+      }
+      openDayDetail(dateKey(weekDates(weekIdx)[idx]));
     }
     function onCancel(){ endDrag(false); }
 
     row.addEventListener('pointerdown', (e)=>{
       if(e.target.closest('button, .chip')) return;
+      lastDownTarget = e.target;
       startX = e.clientX; startY = e.clientY; lastY = e.clientY; moved = false;
-      if(draggable){
+      // Starting a long-press-drag directly from the grip handle would fight with its own tap-to-pick
+      // behavior above, so only the rest of the row arms the timer -- the grip is tap-only.
+      if(draggable && !e.target.closest('.drag-handle')){
         timer = setTimeout(()=>{
           dragging = true;
           captureSlotGeometry();

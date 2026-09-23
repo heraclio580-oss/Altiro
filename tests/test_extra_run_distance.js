@@ -18,10 +18,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const doc = window.document;
   const goPill = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
 
-  goPill('progress');
-  await wait(20);
   const mileageBaseline = () => parseFloat(doc.getElementById('ovDistanceVal').textContent);
-  const totalDistBaseline = parseFloat(doc.getElementById('progTotalDistance').textContent);
 
   goPill('home');
   await wait(20);
@@ -76,10 +73,6 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   goPill('progress');
   await wait(20);
-  const totalDistAfter = parseFloat(doc.getElementById('progTotalDistance').textContent);
-  console.log('Progress "Total Distance" increased by the extra run\'s actual distance:',
-    +(totalDistAfter - totalDistBaseline).toFixed(1) === actualDist ? `OK (${totalDistBaseline} -> ${totalDistAfter})` : `FAIL (${totalDistBaseline} -> ${totalDistAfter}, expected +${actualDist})`);
-
   const weekDetailText = doc.getElementById('progWeekDetail').textContent;
   console.log('Progress week-detail distance includes the extra run\'s actual distance:',
     weekDetailText.includes(`${actualDist.toFixed(1)} mi`) ? 'OK' : `FAIL (${weekDetailText})`);

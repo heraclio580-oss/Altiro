@@ -33,10 +33,6 @@ function submitReview(doc, rating){
   doc.getElementById('applyAdjust').click();
   await wait(20);
 
-  goPill('progress');
-  await wait(20);
-  const totalDistBefore = parseFloat(doc.getElementById('progTotalDistance').textContent);
-
   goPill('home');
   await wait(20);
   const mileageBefore = parseFloat(doc.getElementById('ovDistanceVal').textContent);
@@ -80,10 +76,6 @@ function submitReview(doc, rating){
 
   goPill('progress');
   await wait(20);
-  const totalDistAfter = parseFloat(doc.getElementById('progTotalDistance').textContent);
-  console.log('Progress "Total Distance" increased by exactly the actual run distance (not the plan\'s):',
-    +(totalDistAfter - totalDistBefore).toFixed(1) === actualDist ? `OK (${totalDistBefore} -> ${totalDistAfter})` : `FAIL (${totalDistBefore} -> ${totalDistAfter}, expected +${actualDist})`);
-
   const weekDetailText = doc.getElementById('progWeekDetail').textContent;
   console.log('Progress week-detail distance reflects the actual run distance, not the plan\'s:',
     weekDetailText.includes(`${actualDist.toFixed(1)} mi`) ? 'OK' : `FAIL (${weekDetailText})`);

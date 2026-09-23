@@ -1076,13 +1076,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   <section class="screen tab-screen" id="screen-progress" data-title="Progress" hidden>
     <div class="topbar"><span class="label" data-i18n="navProgress"></span></div>
     <div class="pad" style="padding-top:18px;">
-      <div class="stats-grid" style="padding:0;">
-        <div class="cell"><div class="l" data-i18n="statStreakLabel"></div><div class="v" id="progStreak"></div></div>
-        <div class="cell"><div class="l" data-i18n="bestStreakLabel"></div><div class="v" id="progBest"></div></div>
-        <div class="cell"><div class="l" data-i18n="totalWorkoutsLabel"></div><div class="v" id="progTotalWorkouts"></div></div>
-        <div class="cell"><div class="l" data-i18n="totalDistanceLabel"></div><div class="v" id="progTotalDistance"></div></div>
-      </div>
-      <div class="sheet-section" style="margin-top:26px;">
+      <div class="sheet-section">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div class="st-label" data-i18n="last4WeeksLabel" style="margin-bottom:0;"></div>
           <div style="display:flex;gap:6px;">
@@ -1738,7 +1732,6 @@ const STR = {
     viewFullWeekLink: "View full week",
     todayLabel: "Today",
     completedTodayMsg: "Completed today — nice work",
-    statStreakLabel: "Day Streak",
     pairedWithInline: "Paired with:",
     weekViewTitle: "This Week",
     planTabTitle: "Plan",
@@ -1808,9 +1801,6 @@ const STR = {
     rateWorkoutLabel: "Rate this workout",
     reviewNotesPlaceholder: "Anything you want to remember about today? (optional)",
     submitReviewBtn: "Submit Review",
-    bestStreakLabel: "Best Streak",
-    totalWorkoutsLabel: "Total Workouts",
-    totalDistanceLabel: "Total Distance",
     last4WeeksLabel: "Last 4 Weeks",
     prSectionLabel: "Personal Records",
     prExercisePlaceholder: "Exercise, e.g. Bench Press",
@@ -1966,7 +1956,6 @@ const STR = {
     viewFullWeekLink: "Ver semana completa",
     todayLabel: "Hoy",
     completedTodayMsg: "Completado hoy — buen trabajo",
-    statStreakLabel: "Días Activos",
     pairedWithInline: "Combinado con:",
     weekViewTitle: "Esta semana",
     planTabTitle: "Plan",
@@ -2036,9 +2025,6 @@ const STR = {
     rateWorkoutLabel: "Califica este entrenamiento",
     reviewNotesPlaceholder: "¿Algo que quieras recordar sobre hoy? (opcional)",
     submitReviewBtn: "Enviar reseña",
-    bestStreakLabel: "Récord de días activos",
-    totalWorkoutsLabel: "Entrenamientos totales",
-    totalDistanceLabel: "Distancia total",
     last4WeeksLabel: "Últimas 4 semanas",
     prSectionLabel: "Récords personales",
     prExercisePlaceholder: "Ejercicio, ej. Press de banca",
@@ -4836,10 +4822,6 @@ function weekBarLabel(offset){
 const PROG_MIN_WINDOW_END = -(PROG_MAX_BACK - PROG_WEEKS_SHOWN);
 function renderProgress(){
   const L = STR[state.lang];
-  document.getElementById('progStreak').textContent = state.streak;
-  document.getElementById('progBest').textContent = state.bestStreak;
-  document.getElementById('progTotalWorkouts').textContent = state.totalWorkouts;
-  document.getElementById('progTotalDistance').textContent = state.totalDistance.toFixed(1)+' mi';
 
   const offsets = [];
   for(let o=state.progWindowEnd-(PROG_WEEKS_SHOWN-1); o<=state.progWindowEnd; o++) offsets.push(o);

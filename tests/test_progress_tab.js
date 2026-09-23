@@ -28,8 +28,8 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   // --- Progress is its own standalone screen now, not embedded inside Calendar ---
   console.log('#screen-progress exists as its own screen:', !!doc.getElementById('screen-progress') ? 'OK' : 'FAIL');
-  console.log('#progStreak lives inside #screen-progress, not #screen-calendar:',
-    doc.querySelector('#screen-progress #progStreak') && !doc.querySelector('#screen-calendar #progStreak') ? 'OK' : 'FAIL');
+  console.log('#progBarChart lives inside #screen-progress, not #screen-calendar:',
+    doc.querySelector('#screen-progress #progBarChart') && !doc.querySelector('#screen-calendar #progBarChart') ? 'OK' : 'FAIL');
   console.log('No leftover calendar/progress toggle control:', !doc.getElementById('calProgToggle') ? 'OK' : 'FAIL');
 
   // --- Tapping the Progress tab goes straight there in one tap, with stats already populated ---
@@ -39,7 +39,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('Calendar screen NOT visible:', doc.getElementById('screen-calendar').hidden===true ? 'OK' : 'FAIL');
   console.log('Progress tab marked active in the bottom nav:',
     doc.querySelector('#bottomNav .nav-tab[data-tab="progress"]').classList.contains('active') ? 'OK' : 'FAIL');
-  console.log('Progress stat values populated:', doc.getElementById('progStreak').textContent.length>0 ? 'OK' : 'FAIL');
+  console.log('Progress week-detail values populated:', doc.getElementById('progWeekDetail').textContent.length>0 ? 'OK' : 'FAIL');
   console.log('Progress bar chart populated:', doc.getElementById('progBarChart').children.length>0 ? 'OK' : 'FAIL');
 
   // --- Calendar, visited separately, is now a pure month-grid screen with no Progress content ---

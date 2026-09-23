@@ -14,10 +14,25 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 // then recording again to fix a mistaken entry, which happens constantly during real use and
 // testing) -- each re-record silently counted as a brand new distinct day and stacked its distance
 // on top of the previous one instead of replacing it.
+//
+// The Progress screen's own Total Workouts/Total Distance bubbles were later removed (the user
+// wanted only the bar chart / week-detail / PRs kept), so this reads the underlying totals through
+// what's still on screen instead: the "This Week" week-detail card (workouts/distance for the
+// selected week) and Home's streak chip. Since this test never leaves the current week, "this
+// week" and the running lifetime totals move identically throughout.
 (async () => {
   await wait(50);
   const doc = window.document;
   const goPill = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
+
+  const readWeekDetail = () => {
+    const vals = [...doc.querySelectorAll('#progWeekDetail .wd-stat .v')];
+    return { workouts: parseInt(vals[0].textContent,10), distance: parseFloat(vals[1].textContent) };
+  };
+  const readStreak = () => {
+    goPill('home');
+    return parseInt(doc.getElementById('streakChip').textContent, 10);
+  };
 
   // Force today to be a run session so distance is exercised too.
   goPill('adjust');
@@ -30,9 +45,8 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   goPill('progress');
   await wait(20);
-  const workoutsBefore = parseInt(doc.getElementById('progTotalWorkouts').textContent, 10);
-  const distBefore = parseFloat(doc.getElementById('progTotalDistance').textContent);
-  const streakBefore = parseInt(doc.getElementById('progStreak').textContent, 10);
+  const { workouts: workoutsBefore, distance: distBefore } = readWeekDetail();
+  const streakBefore = readStreak();
 
   const recordRun = (dist) => {
     doc.getElementById('recordBtn').click();
@@ -54,12 +68,11 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   goPill('progress');
   await wait(20);
-  console.log('First record: Total Workouts +1:',
-    parseInt(doc.getElementById('progTotalWorkouts').textContent,10)===workoutsBefore+1 ? 'OK' : `FAIL (${doc.getElementById('progTotalWorkouts').textContent})`);
-  console.log('First record: Total Distance +4.0:',
-    +(parseFloat(doc.getElementById('progTotalDistance').textContent)-distBefore).toFixed(1)===4.0 ? 'OK' : `FAIL (${doc.getElementById('progTotalDistance').textContent})`);
-  console.log('First record: Streak +1:',
-    parseInt(doc.getElementById('progStreak').textContent,10)===streakBefore+1 ? 'OK' : `FAIL (${doc.getElementById('progStreak').textContent})`);
+  const afterFirst = readWeekDetail();
+  console.log('First record: Total Workouts +1:', afterFirst.workouts===workoutsBefore+1 ? 'OK' : `FAIL (${afterFirst.workouts})`);
+  console.log('First record: Total Distance +4.0:', +(afterFirst.distance-distBefore).toFixed(1)===4.0 ? 'OK' : `FAIL (${afterFirst.distance})`);
+  const streakAfterFirst = readStreak();
+  console.log('First record: Streak +1:', streakAfterFirst===streakBefore+1 ? 'OK' : `FAIL (${streakAfterFirst})`);
 
   // Toggle "not done" then re-record the SAME day with a corrected (different) distance -- a real,
   // common flow (fixing a typo'd distance), not a contrived edge case.
@@ -76,12 +89,14 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   goPill('progress');
   await wait(20);
+  const afterSecond = readWeekDetail();
   console.log('Re-recording the same day does NOT bump Total Workouts a second time:',
-    parseInt(doc.getElementById('progTotalWorkouts').textContent,10)===workoutsBefore+1 ? 'OK' : `FAIL (${doc.getElementById('progTotalWorkouts').textContent}, expected still ${workoutsBefore+1})`);
+    afterSecond.workouts===workoutsBefore+1 ? 'OK' : `FAIL (${afterSecond.workouts}, expected still ${workoutsBefore+1})`);
+  const streakAfterSecond = readStreak();
   console.log('Re-recording does NOT bump the streak a second time:',
-    parseInt(doc.getElementById('progStreak').textContent,10)===streakBefore+1 ? 'OK' : `FAIL (${doc.getElementById('progStreak').textContent}, expected still ${streakBefore+1})`);
+    streakAfterSecond===streakBefore+1 ? 'OK' : `FAIL (${streakAfterSecond}, expected still ${streakBefore+1})`);
   console.log('Total Distance reflects the CORRECTED distance (6.0), not both stacked (4.0+6.0=10.0):',
-    +(parseFloat(doc.getElementById('progTotalDistance').textContent)-distBefore).toFixed(1)===6.0 ? 'OK' : `FAIL (${doc.getElementById('progTotalDistance').textContent}, expected +6.0)`);
+    +(afterSecond.distance-distBefore).toFixed(1)===6.0 ? 'OK' : `FAIL (${afterSecond.distance}, expected +6.0)`);
 
   console.log('ALL DONE');
   process.exit(0);

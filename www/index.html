@@ -419,18 +419,21 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .prow-num{font-family:var(--font-mono);font-weight:600;font-size:15px;color:var(--text-2);}
 .plan-row.missed .prow-num{color:var(--alert);}
 .prow-body{flex:1;min-width:0;}
-.prow-pill{border-left:3px solid var(--accent);padding-left:8px;display:flex;flex-direction:column;min-width:0;}
+.prow-pill{background:var(--well);border-left:3px solid var(--accent);border-radius:var(--r-md);padding:8px 10px;display:flex;align-items:center;gap:8px;min-width:0;}
 .prow-pill.rest{border-left-color:var(--border);}
+.prow-pill-main{flex:1;min-width:0;display:flex;flex-direction:column;}
 .prow-title{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .prow-pill.rest .prow-title{color:var(--text-3);font-weight:500;}
 .prow-detail{font-family:var(--font-mono);font-size:10.5px;color:var(--text-3);margin-top:1px;}
-.prow-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.prow-pill-side{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .prow-status{font-family:var(--font-mono);font-size:9px;letter-spacing:0.06em;text-transform:uppercase;padding:3px 7px;border-radius:var(--r-pill);display:flex;align-items:center;}
 .prow-status.done{color:var(--ok-icon);background:var(--ok-bg);}
 .prow-status.done svg{width:11px;height:11px;}
-.prow-status.missed{color:var(--alert);background:var(--well);}
-.prow-status.today{color:var(--text-2);background:var(--well);}
+.prow-status.missed{color:var(--alert);background:var(--card);}
+.prow-status.today{color:var(--text-2);background:var(--card);}
 .prow-log-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+.prow-add{display:flex;align-items:center;gap:2px;flex-shrink:0;background:none;border:none;font-family:var(--font-mono);font-size:10px;color:var(--text-3);padding:8px 4px;margin:-8px -4px -8px 0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.prow-add svg{width:11px;height:11px;}
 #weekList .plan-row{cursor:pointer;}
 #weekList .plan-row[data-draggable="1"]{cursor:grab;touch-action:none;}
 .plan-row.dragging{position:relative;z-index:50;background:var(--card);border-radius:var(--r-md);box-shadow:0 12px 26px rgba(0,0,0,0.5);opacity:0.94;cursor:grabbing;touch-action:none;pointer-events:none;}
@@ -1853,6 +1856,7 @@ const STR = {
     saveWorkoutBtn: "Save Workout",
     workoutLoggedToast: "Workout logged",
     dragHandleHint: "Tap to move this workout to another day (or drag)",
+    planAddWorkoutLabel: "Add",
     nextWeekLabel: "Next Week",
     planLimitReached: "You've planned as far ahead as this preview supports.",
     resetPlanBtn: "Reset to Suggested Plan",
@@ -2078,6 +2082,7 @@ const STR = {
     saveWorkoutBtn: "Guardar entrenamiento",
     workoutLoggedToast: "Entrenamiento registrado",
     dragHandleHint: "Toca para mover este entrenamiento a otro día (o arrástralo)",
+    planAddWorkoutLabel: "Añadir",
     nextWeekLabel: "Próxima semana",
     planLimitReached: "Has planificado con la mayor anticipación que permite esta vista previa.",
     resetPlanBtn: "Restablecer al plan sugerido",
@@ -4031,15 +4036,18 @@ function planListRowHtml(weekIdx, i, date){
     </div>
     <div class="prow-body">
       <div class="prow-pill ${eff.t==='rest'?'rest':''}">
-        <span class="prow-title">${effL.title}</span>
-        ${effL.detail ? `<span class="prow-detail">${effL.detail}</span>` : ''}
+        <div class="prow-pill-main">
+          <span class="prow-title">${effL.title}</span>
+          ${effL.detail ? `<span class="prow-detail">${effL.detail}</span>` : ''}
+        </div>
+        <div class="prow-pill-side">
+          ${hasLog ? `<span class="prow-log-dot" title="${L.loggedWorkoutsLabel}"></span>` : ''}
+          ${statusBit}
+          ${draggable ? `<span class="drag-handle" title="${L.dragHandleHint}">${ICONS.grip}</span>` : ''}
+        </div>
       </div>
     </div>
-    <div class="prow-right">
-      ${hasLog ? `<span class="prow-log-dot" title="${L.loggedWorkoutsLabel}"></span>` : ''}
-      ${statusBit}
-      ${draggable ? `<span class="drag-handle" title="${L.dragHandleHint}">${ICONS.grip}</span>` : ''}
-    </div>
+    <button type="button" class="prow-add" title="${L.planAddWorkoutLabel}">${ICONS.plus}<span>${L.planAddWorkoutLabel}</span></button>
   </div>`;
 }
 function renderWeek(){
@@ -4091,6 +4099,13 @@ function setupDayRowInteraction(wrap){
     const idx = parseInt(row.getAttribute('data-flat-idx'),10);
     const draggable = row.getAttribute('data-draggable')==='1';
     let timer=null, dragging=false, moved=false, startX=0, startY=0, lastY=0, lastDownTarget=null, targetRow=null, previewRows=[], slotCenters=null;
+
+    const addBtn = row.querySelector('.prow-add');
+    if(addBtn){
+      addBtn.addEventListener('click', ()=>{
+        addWorkoutForDate(dateKey(allPlanDates()[idx]));
+      });
+    }
 
     function clearTimer(){ if(timer){ clearTimeout(timer); timer=null; } }
     function rowAt(flatIdx){
@@ -4317,6 +4332,13 @@ function openDayDetail(key){
 function closeDayDetail(){
   document.getElementById('dayDetailOverlay').hidden = true;
   state.openDayKey = null;
+}
+// Lets the Plan list's own "+ Add" button on a day jump straight into Create Workout for that date,
+// without requiring a stop through Day Detail first -- same flow Day Detail's own "+ Create Workout"
+// button already uses (openManualEntry reads state.openDayKey), just entered from a different place.
+function addWorkoutForDate(key){
+  state.openDayKey = key;
+  openManualEntry();
 }
 document.getElementById('closeDayDetail').addEventListener('click', closeDayDetail);
 document.getElementById('dayDetailPlanRow').addEventListener('click', ()=>{

@@ -2395,9 +2395,11 @@ const defaultState = () => ({
   focusRatio:2, intensityIdx:1,
   week:null,
   todayCompleted:false,
-  streak:12, bestStreak:18, mileage:14.2, doneCount:0,
+  // Real stats for a real user always start at zero -- these are never seeded with placeholder
+  // numbers, so nothing shows on Progress until the user actually records something themselves.
+  streak:0, bestStreak:0, mileage:0, doneCount:0,
   weeklyWorkoutGoal:5, weeklyDistanceGoal:15,
-  totalWorkouts:47, totalDistance:212.4,
+  totalWorkouts:0, totalDistance:0,
   lastCountedDate:null, // dateKey of the last day counted toward streak/totalWorkouts -- guards startWorkout() against double-counting a day that's recorded more than once (see startWorkout())
   calMonthOffset:0,
   progWindowEnd:0,

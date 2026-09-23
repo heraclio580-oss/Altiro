@@ -29,6 +29,7 @@ create table if not exists profiles (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+alter table profiles add column if not exists last_counted_date date; -- last day counted toward streak/total_workouts, guards startWorkout() against double-counting a day recorded more than once
 
 -- ---------------------------------------------------------------------------
 -- workout_logs: one row per (user, calendar day) -- mirrors state.dayLog[dateKey]

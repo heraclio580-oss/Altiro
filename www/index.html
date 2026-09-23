@@ -2398,6 +2398,7 @@ const defaultState = () => ({
   streak:12, bestStreak:18, mileage:14.2, doneCount:0,
   weeklyWorkoutGoal:5, weeklyDistanceGoal:15,
   totalWorkouts:47, totalDistance:212.4,
+  lastCountedDate:null, // dateKey of the last day counted toward streak/totalWorkouts -- guards startWorkout() against double-counting a day that's recorded more than once (see startWorkout())
   calMonthOffset:0,
   progWindowEnd:0,
   progSelectedOffset:0,
@@ -3590,36 +3591,56 @@ function startWorkout(logged){
     if(w){
       w.completed = true;
       if(eff.t==='run'){
+        // Re-logging the same extra workout (e.g. correcting a mistaken distance) replaces its
+        // previous contribution instead of stacking on top of it -- otherwise re-recording the
+        // same workout twice silently inflates the running mileage totals a second time.
         const mi = (logged && logged.distance!=null) ? logged.distance : (parseFloat(eff.en.detail)||0);
+        const prevMi = w.actualDistance!=null ? w.actualDistance : 0;
+        const delta = +(mi-prevMi).toFixed(1);
         w.actualDistance = mi;
-        state.mileage = +(state.mileage+mi).toFixed(1);
-        state.totalDistance = +(state.totalDistance+mi).toFixed(1);
+        state.mileage = +(state.mileage+delta).toFixed(1);
+        state.totalDistance = +(state.totalDistance+delta).toFixed(1);
         if(w.supabaseId) cloudSetExtraWorkoutDistance(w.supabaseId, mi);
       }
       if(w.supabaseId) cloudSetExtraWorkoutCompleted(w.supabaseId, true);
     }
     state.doneCount = computeDoneCount();
   } else {
+    // Recording today's primary session again -- correcting a mistaken entry, or re-recording after
+    // toggling "not done" back on to unlock the Record button again -- must not count as a SECOND
+    // distinct day trained. isTodayDone() can't tell the two cases apart (toggling "not done" resets
+    // it), so this tracks the actual calendar date last counted instead: only the FIRST time a given
+    // day is recorded bumps streak/total-workouts, no matter how many times it's re-recorded after.
+    const todayKeyStr = dateKey(TODAY_DATE);
+    const alreadyCountedToday = state.lastCountedDate === todayKeyStr;
     state.todayCompleted = true;
     // Actually recording a workout is the strongest possible "this is done" signal there is, so it
     // must always win over an earlier explicit "mark as not done" toggle -- otherwise a stale
     // override could silently hide a workout the user just completed for real.
-    const log = state.dayLog[dateKey(TODAY_DATE)];
+    const log = state.dayLog[todayKeyStr];
     if(log) log.completedOverride = null;
-    cloudSetCompletedOverride(dateKey(TODAY_DATE), null);
+    cloudSetCompletedOverride(todayKeyStr, null);
     state.doneCount = computeDoneCount();
-    state.streak += 1;
-    if(state.streak > state.bestStreak) state.bestStreak = state.streak;
+    if(!alreadyCountedToday){
+      state.streak += 1;
+      if(state.streak > state.bestStreak) state.bestStreak = state.streak;
+      state.totalWorkouts += 1;
+      state.lastCountedDate = todayKeyStr;
+    }
     if(eff.t==='run'){
       // The distance actually run (from the Log Performance sheet) is what should count toward
       // mileage totals -- falling back to the plan's prescribed distance only if none was entered.
+      // Re-recording today replaces its previous distance contribution rather than stacking on top
+      // of it, for the same reason as the streak/totalWorkouts guard above.
       const mi = (logged && logged.distance!=null) ? logged.distance : (parseFloat(eff.en.detail)||0);
-      state.mileage = +(state.mileage+mi).toFixed(1);
-      state.totalDistance = +(state.totalDistance+mi).toFixed(1);
-      ensureDayLog(dateKey(TODAY_DATE)).actualRunDistance = mi;
+      const dayLog = ensureDayLog(dateKey(TODAY_DATE));
+      const prevMi = dayLog.actualRunDistance!=null ? dayLog.actualRunDistance : 0;
+      const delta = +(mi-prevMi).toFixed(1);
+      state.mileage = +(state.mileage+delta).toFixed(1);
+      state.totalDistance = +(state.totalDistance+delta).toFixed(1);
+      dayLog.actualRunDistance = mi;
       cloudSetActualRunDistance(dateKey(TODAY_DATE), mi);
     }
-    state.totalWorkouts += 1;
   }
   state._lastSession = eff;
   state._lastLogged = logged || null;
@@ -5097,12 +5118,13 @@ async function loadProfileFromCloud(){
   if(data.best_streak!=null) state.bestStreak = data.best_streak;
   if(data.total_workouts!=null) state.totalWorkouts = data.total_workouts;
   if(data.total_distance!=null) state.totalDistance = data.total_distance;
+  if(data.last_counted_date) state.lastCountedDate = data.last_counted_date;
   state.week = buildWeek(state.focusRatio);
 }
 async function saveProfileToCloud(){
   if(!state.userId) return;
   try{
-    await sb.from('profiles').update({
+    const payload = {
       full_name: state.userName,
       goal: state.goal,
       level: state.level,
@@ -5117,8 +5139,17 @@ async function saveProfileToCloud(){
       best_streak: state.bestStreak,
       total_workouts: state.totalWorkouts,
       total_distance: state.totalDistance,
+      last_counted_date: state.lastCountedDate,
       updated_at: new Date().toISOString(),
-    }).eq('id', state.userId);
+    };
+    const { error } = await sb.from('profiles').update(payload).eq('id', state.userId);
+    if(error){
+      // last_counted_date may not exist yet if this migration hasn't been applied to this
+      // project's live database -- retry without it so the rest of the profile (streak, totals,
+      // etc.) still saves instead of the whole update silently failing over one missing column.
+      delete payload.last_counted_date;
+      await sb.from('profiles').update(payload).eq('id', state.userId);
+    }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }
 }
 

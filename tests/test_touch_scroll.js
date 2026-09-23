@@ -12,13 +12,15 @@ function firePointer(el, type, opts){
 
 // jsdom has no real layout; the app picks a drop target from getBoundingClientRect-derived
 // geometry (not elementFromPoint, which would hit the floating dragged row itself in a real
-// browser), so give every .plan-row a synthetic rect purely from its own data-day.
+// browser), so give every .plan-row a synthetic rect purely from its FLAT index (spans every
+// loaded week block now). Everything in this file stays within week 0, where flat index and
+// data-day are numerically identical, so rowCenterY(dayIdx) still works unchanged.
 const ROW_H = 50;
 function rowCenterY(dayIdx){ return dayIdx*ROW_H + ROW_H/2; }
 window.Element.prototype.getBoundingClientRect = function(){
-  const dayAttr = this.getAttribute && this.getAttribute('data-day');
-  if(this.classList && this.classList.contains('plan-row') && dayAttr!==null){
-    const top = parseInt(dayAttr,10)*ROW_H;
+  const flatAttr = this.getAttribute && this.getAttribute('data-flat-idx');
+  if(this.classList && this.classList.contains('plan-row') && flatAttr!==null){
+    const top = parseInt(flatAttr,10)*ROW_H;
     return { top, bottom: top+ROW_H, left:0, right:300, width:300, height:ROW_H, x:0, y:top };
   }
   return { top:0, bottom:0, left:0, right:0, width:0, height:0, x:0, y:0 };

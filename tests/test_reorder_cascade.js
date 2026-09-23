@@ -12,21 +12,24 @@ function firePointer(el, type, opts){
 
 // jsdom has no real layout; the app picks a drop target from getBoundingClientRect-derived
 // geometry (not elementFromPoint, which would hit the floating dragged row itself in a real
-// browser), so give every .plan-row a synthetic rect purely from its own data-day.
+// browser), so give every .plan-row a synthetic rect purely from its FLAT index -- its position
+// across the whole loaded Plan list, spanning every week block, not just its own week's 0-6 slot
+// (two different weeks' "Monday" used to share a data-day value; a real position is needed now
+// that dragging/tapping can cascade across week boundaries).
 const ROW_H = 50;
-function rowCenterY(dayIdx){ return dayIdx*ROW_H + ROW_H/2; }
+function rowCenterY(flatIdx){ return flatIdx*ROW_H + ROW_H/2; }
 window.Element.prototype.getBoundingClientRect = function(){
-  const dayAttr = this.getAttribute && this.getAttribute('data-day');
-  if(this.classList && this.classList.contains('plan-row') && dayAttr!==null){
-    const top = parseInt(dayAttr,10)*ROW_H;
+  const flatAttr = this.getAttribute && this.getAttribute('data-flat-idx');
+  if(this.classList && this.classList.contains('plan-row') && flatAttr!==null){
+    const top = parseInt(flatAttr,10)*ROW_H;
     return { top, bottom: top+ROW_H, left:0, right:300, width:300, height:ROW_H, x:0, y:top };
   }
   return { top:0, bottom:0, left:0, right:0, width:0, height:0, x:0, y:0 };
 };
 
 async function dragDrop(doc, srcRow, dstRow){
-  const srcIdx = parseInt(srcRow.getAttribute('data-day'),10);
-  const dstIdx = parseInt(dstRow.getAttribute('data-day'),10);
+  const srcIdx = parseInt(srcRow.getAttribute('data-flat-idx'),10);
+  const dstIdx = parseInt(dstRow.getAttribute('data-flat-idx'),10);
   firePointer(srcRow, 'pointerdown', {clientX:100, clientY:rowCenterY(srcIdx)});
   await wait(380);
   firePointer(srcRow, 'pointermove', {clientX:100, clientY:rowCenterY(dstIdx)});
@@ -82,13 +85,31 @@ async function dragDrop(doc, srcRow, dstRow){
   console.log('Fri now holds old Thu content:', after2[4]===before2[3] ? 'OK' : 'FAIL');
   console.log('Sat/Sun unaffected (outside the drag range):', (after2[5]===before2[5] && after2[6]===before2[6]) ? 'OK' : 'FAIL');
 
-  // --- Cross-week isolation still holds for the cascade ---
+  // --- A cascade confined to week 1 still leaves week 0 and week 2 alone ---
   const week0Before = titles(0);
   const week2Before = titles(2);
   rows = rowsOfWeek(1);
   await dragDrop(doc, rows[1], rows[3]); // another cascade within week 1
-  console.log('Week 0 unaffected by week-1 cascade:', JSON.stringify(titles(0))===JSON.stringify(week0Before) ? 'OK' : 'FAIL');
-  console.log('Week 2 unaffected by week-1 cascade:', JSON.stringify(titles(2))===JSON.stringify(week2Before) ? 'OK' : 'FAIL');
+  console.log('Week 0 unaffected by a cascade confined to week 1:', JSON.stringify(titles(0))===JSON.stringify(week0Before) ? 'OK' : 'FAIL');
+  console.log('Week 2 unaffected by a cascade confined to week 1:', JSON.stringify(titles(2))===JSON.stringify(week2Before) ? 'OK' : 'FAIL');
+
+  // --- Dragging ACROSS a week boundary now cascades freely instead of being blocked at the
+  // boundary -- the whole point of removing the per-week-block restriction. Drag week 1's Sunday
+  // (the last row of week 1) onto week 2's Wednesday (a few rows into the next block): everything
+  // strictly between the two endpoints -- week 2's Mon and Tue -- shifts back by one to make room,
+  // exactly like an in-week cascade, just spanning the block boundary. ---
+  const week1Before3 = titles(1);
+  const week2Before3 = titles(2);
+  const sunWeek1 = rowsOfWeek(1)[6]; // last row of week 1
+  const wedWeek2 = rowsOfWeek(2)[2]; // a few rows into week 2
+  await dragDrop(doc, sunWeek1, wedWeek2);
+  const week1After3 = titles(1);
+  const week2After3 = titles(2);
+  console.log('Week 1\'s Sunday now holds what was week 2\'s Monday (shifted back across the boundary):', week1After3[6]===week2Before3[0] ? 'OK' : `FAIL (${JSON.stringify(week1After3)})`);
+  console.log('Week 2\'s Monday now holds what was week 2\'s Tuesday:', week2After3[0]===week2Before3[1] ? 'OK' : `FAIL (${JSON.stringify(week2After3)})`);
+  console.log('Week 2\'s Tuesday now holds what was week 2\'s Wednesday:', week2After3[1]===week2Before3[2] ? 'OK' : `FAIL (${JSON.stringify(week2After3)})`);
+  console.log('Week 2\'s Wednesday now holds week 1 Sunday\'s original dragged content:', week2After3[2]===week1Before3[6] ? 'OK' : `FAIL (${JSON.stringify(week2After3)})`);
+  console.log('Days outside the drag range (week 2 Thu onward) unaffected:', JSON.stringify(week2After3.slice(3))===JSON.stringify(week2Before3.slice(3)) ? 'OK' : `FAIL (${JSON.stringify(week2After3)})`);
 
   console.log('ALL DONE');
   process.exit(0);

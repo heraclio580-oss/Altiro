@@ -12,13 +12,15 @@ function firePointer(el, type, opts){
 
 // jsdom has no real layout; the app picks a drop target from getBoundingClientRect-derived
 // geometry (not elementFromPoint, which would hit the floating dragged row itself in a real
-// browser), so give every .plan-row a synthetic rect purely from its own data-day.
+// browser), so give every .plan-row a synthetic rect purely from its FLAT index -- its position
+// across the whole loaded Plan list, spanning every week block, since dragging/tapping can now
+// cascade freely across week boundaries instead of being confined to one week block.
 const ROW_H = 50;
-function rowCenterY(dayIdx){ return dayIdx*ROW_H + ROW_H/2; }
+function rowCenterY(flatIdx){ return flatIdx*ROW_H + ROW_H/2; }
 window.Element.prototype.getBoundingClientRect = function(){
-  const dayAttr = this.getAttribute && this.getAttribute('data-day');
-  if(this.classList && this.classList.contains('plan-row') && dayAttr!==null){
-    const top = parseInt(dayAttr,10)*ROW_H;
+  const flatAttr = this.getAttribute && this.getAttribute('data-flat-idx');
+  if(this.classList && this.classList.contains('plan-row') && flatAttr!==null){
+    const top = parseInt(flatAttr,10)*ROW_H;
     return { top, bottom: top+ROW_H, left:0, right:300, width:300, height:ROW_H, x:0, y:top };
   }
   return { top:0, bottom:0, left:0, right:0, width:0, height:0, x:0, y:0 };
@@ -86,8 +88,8 @@ const MONTHS_FULL_EN = ['January','February','March','April','May','June','July'
   const dstBefore = dstRow.querySelector('.prow-title').textContent;
   console.log('Week 2 swap candidates -> src:', srcBefore, '| dst:', dstBefore);
 
-  const srcIdx = parseInt(srcRow.getAttribute('data-day'),10);
-  const dstIdx = parseInt(dstRow.getAttribute('data-day'),10);
+  const srcIdx = parseInt(srcRow.getAttribute('data-flat-idx'),10);
+  const dstIdx = parseInt(dstRow.getAttribute('data-flat-idx'),10);
   firePointer(srcRow, 'pointerdown', {clientX:100, clientY:rowCenterY(srcIdx)});
   await wait(450);
   firePointer(srcRow, 'pointermove', {clientX:100, clientY:rowCenterY(dstIdx)});
@@ -106,29 +108,40 @@ const MONTHS_FULL_EN = ['January','February','March','April','May','June','July'
   console.log('Week 1 unaffected by week-2 swap:', JSON.stringify(week1Before)===JSON.stringify(week1After) ? 'OK' : 'FAIL');
   console.log('Week 3 unaffected by week-2 swap:', JSON.stringify(week3Before)===JSON.stringify(week3After) ? 'OK' : 'FAIL');
 
-  // --- Cross-week drag must NOT swap (drop target restricted to the same week block) ---
-  const week4RowsBefore = [...wl2.querySelectorAll('.week-block[data-week-idx="4"] .plan-row .prow-title')].map(b=>b.textContent);
+  // --- Cross-week drag now cascades freely across the week-block boundary instead of being
+  // blocked at it -- dragging week 2's Monday all the way onto week 3's Monday shifts every day
+  // in between back by one (week 2 shifts up within itself, pulling week 3's Monday in at the
+  // end), exactly like an in-week cascade just spanning the block boundary. ---
+  const weekTitles = w => [...wl2.querySelectorAll(`.week-block[data-week-idx="${w}"] .plan-row .prow-title`)].map(b=>b.textContent);
+  const week2Before4 = weekTitles(2);
+  const week3Before4 = weekTitles(3);
+  const week4RowsBefore = weekTitles(4);
+  const combinedBefore4 = week2Before4.concat(week3Before4);
   const week2RowForCrossTest = wl2.querySelectorAll('.week-block[data-week-idx="2"] .plan-row[data-draggable="1"]')[0];
-  const week4RowForCrossTest = wl2.querySelector('.week-block[data-week-idx="4"] .plan-row[data-draggable="1"]');
-  const crossSrcBefore = week2RowForCrossTest.querySelector('.prow-title').textContent;
+  const week3RowForCrossTest = wl2.querySelector('.week-block[data-week-idx="3"] .plan-row[data-draggable="1"]');
 
-  const crossSrcIdx = parseInt(week2RowForCrossTest.getAttribute('data-day'),10);
+  const crossSrcIdx = parseInt(week2RowForCrossTest.getAttribute('data-flat-idx'),10);
+  const crossDstIdx = parseInt(week3RowForCrossTest.getAttribute('data-flat-idx'),10);
   firePointer(week2RowForCrossTest, 'pointerdown', {clientX:100, clientY:rowCenterY(crossSrcIdx)});
   await wait(450);
-  // Slot geometry is captured only within the dragged row's own .week-block, so a coordinate far
-  // outside week 2's own row range (regardless of what's visually there in a different week's
-  // block) must resolve to "no target" -- this is what actually enforces the cross-week isolation.
-  firePointer(week2RowForCrossTest, 'pointermove', {clientX:100, clientY:rowCenterY(50)});
+  firePointer(week2RowForCrossTest, 'pointermove', {clientX:100, clientY:rowCenterY(crossDstIdx)});
   await wait(10);
-  console.log('Cross-week row NOT highlighted as drop-target:', !week4RowForCrossTest.classList.contains('drop-target') ? 'OK' : 'FAIL');
-  firePointer(week2RowForCrossTest, 'pointerup', {clientX:100, clientY:rowCenterY(50)});
+  console.log('Cross-week row IS highlighted as drop-target now that cascading is unrestricted:', week3RowForCrossTest.classList.contains('drop-target') ? 'OK' : 'FAIL');
+  firePointer(week2RowForCrossTest, 'pointerup', {clientX:100, clientY:rowCenterY(crossDstIdx)});
   await wait(20);
 
   const wl3 = doc.getElementById('weekList');
-  const crossSrcAfter = wl3.querySelectorAll('.week-block[data-week-idx="2"] .plan-row[data-draggable="1"]')[0].querySelector('.prow-title').textContent;
+  const week2After4 = [...wl3.querySelectorAll('.week-block[data-week-idx="2"] .plan-row .prow-title')].map(b=>b.textContent);
+  const week3After4 = [...wl3.querySelectorAll('.week-block[data-week-idx="3"] .plan-row .prow-title')].map(b=>b.textContent);
+  const combinedAfter4 = week2After4.concat(week3After4);
+  // Everything strictly between the two endpoints shifts back by one, and the boundary slot
+  // (week 3's Monday) receives the originally-dragged content -- the same math reorderAcrossPlan
+  // uses internally, expressed here as a plain array shift so the expectation doesn't depend on
+  // re-deriving the app's own arithmetic.
+  const expectedCombined4 = combinedBefore4.slice(1,8).concat([combinedBefore4[0]], combinedBefore4.slice(8,14));
+  console.log('Cross-week-boundary cascade produced the expected shift:', JSON.stringify(combinedAfter4)===JSON.stringify(expectedCombined4) ? 'OK' : `FAIL (got ${JSON.stringify(combinedAfter4)}, expected ${JSON.stringify(expectedCombined4)})`);
   const week4RowsAfter = [...wl3.querySelectorAll('.week-block[data-week-idx="4"] .plan-row .prow-title')].map(b=>b.textContent);
-  console.log('Cross-week drag did NOT swap source content:', crossSrcAfter===crossSrcBefore ? 'OK' : 'FAIL');
-  console.log('Cross-week drag did NOT alter week 4:', JSON.stringify(week4RowsBefore)===JSON.stringify(week4RowsAfter) ? 'OK' : 'FAIL');
+  console.log('Week 4 (beyond the drag range) unaffected:', JSON.stringify(week4RowsBefore)===JSON.stringify(week4RowsAfter) ? 'OK' : 'FAIL');
 
   // --- Tap-to-open Day Detail still works in a future week block ---
   const week3Row = wl3.querySelector('.week-block[data-week-idx="3"] .plan-row');
@@ -140,9 +153,12 @@ const MONTHS_FULL_EN = ['January','February','March','April','May','June','July'
   console.log('Complete toggle hidden for a future day:', doc.getElementById('dayDetailCompleteSection').hidden===true ? 'OK' : 'FAIL');
   doc.getElementById('closeDayDetail').click();
 
-  // --- Cross-screen consistency: the week-2 swap should also show up in Calendar's month view for that date ---
+  // --- Cross-screen consistency: week 2's final content should also show up in Calendar's month view for that date ---
   // Week 2 is weekDates(2); its first draggable (non-today) row is index 0 (Monday) since week 2 is fully future.
+  // The expected content is week2After4[0] (post cross-week-cascade), not the earlier dstBefore --
+  // the boundary-crossing drag above moved this same slot's content again.
   const swappedDate = weekDates2Global()[0];
+  const finalMondayContent = week2After4[0];
   goPill('calendar');
   await wait(20);
   // Navigate forward the right number of months to land on the swapped date's month.
@@ -155,7 +171,7 @@ const MONTHS_FULL_EN = ['January','February','March','April','May','June','July'
   cell.click();
   await wait(10);
   const calPlanText = doc.getElementById('dayDetailPlanRow').textContent;
-  console.log('Calendar day-detail for swapped date shows swapped content:', calPlanText.includes(dstBefore) ? 'OK' : 'FAIL', '| got:', calPlanText.replace(/\s+/g,' ').trim());
+  console.log('Calendar day-detail for swapped date shows the final swapped content:', calPlanText.includes(finalMondayContent) ? 'OK' : 'FAIL', '| got:', calPlanText.replace(/\s+/g,' ').trim());
   doc.getElementById('closeDayDetail').click();
 
   console.log('ALL DONE');

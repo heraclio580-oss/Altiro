@@ -94,7 +94,7 @@
   --ring:#FFFFFF;
 }
 *{box-sizing:border-box;}
-html,body{margin:0;padding:0;height:100%;}
+html,body{margin:0;padding:0;height:100%;-webkit-tap-highlight-color:transparent;}
 body{
   background:
     repeating-linear-gradient(115deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 68px),
@@ -2719,15 +2719,27 @@ function resetToSuggestedPlan(key){
   writeDaySlot(date, {p: gen.p, c: gen.c, completed: false, isCustom: false});
   cloudClearPlannedSession(key);
 }
-function reorderWithinWeek(weekIdx, sourceIdx, targetIdx){
-  if(sourceIdx === targetIdx) return;
-  const dates = weekDates(weekIdx);
-  const step = sourceIdx < targetIdx ? 1 : -1;
-  const movingSlot = getRawDaySlot(dates[sourceIdx]);
-  for(let i=sourceIdx; i!==targetIdx; i+=step){
+function allPlanDates(){
+  const dates = [];
+  for(let w=0; w<state.planWeeksLoaded; w++) dates.push(...weekDates(w));
+  return dates;
+}
+// Cascading move across the ENTIRE loaded Plan list, not just the current week block --
+// sourceFlatIdx/targetFlatIdx are positions into allPlanDates() (flat index = weekIdx*7 + the
+// day's index within that week). getRawDaySlot()/writeDaySlot() already transparently handle both
+// storage shapes a day can use (the current week's live state.week[] array, or a dayLog-based
+// override for every other day), so the same cascade works seamlessly whether source and target
+// land in the same week block or different ones -- nothing about moving a workout should be
+// artificially capped at a week boundary that only exists for display grouping.
+function reorderAcrossPlan(sourceFlatIdx, targetFlatIdx){
+  if(sourceFlatIdx === targetFlatIdx) return;
+  const dates = allPlanDates();
+  const step = sourceFlatIdx < targetFlatIdx ? 1 : -1;
+  const movingSlot = getRawDaySlot(dates[sourceFlatIdx]);
+  for(let i=sourceFlatIdx; i!==targetFlatIdx; i+=step){
     writeDaySlot(dates[i], getRawDaySlot(dates[i+step]));
   }
-  writeDaySlot(dates[targetIdx], movingSlot);
+  writeDaySlot(dates[targetFlatIdx], movingSlot);
 }
 
 /* ---------------- reschedule (missed day) ----------------
@@ -4003,15 +4015,16 @@ function planListRowHtml(weekIdx, i, date){
   const status = dayDataStatus(dd);
   const draggable = !dd.isPast && (!dd.isToday || !isTodayDone());
   const hasLog = dd.manualEntries.length>0;
-  const isReorderSource = !!(reorderSource && reorderSource.weekIdx===weekIdx && reorderSource.idx===i);
-  const isReorderTarget = !!(reorderSource && reorderSource.weekIdx===weekIdx && reorderSource.idx!==i && draggable);
+  const flatIdx = weekIdx*7+i;
+  const isReorderSource = reorderSource===flatIdx;
+  const isReorderTarget = reorderSource!=null && reorderSource!==flatIdx && draggable;
 
   const statusBit = status==='done' ? `<span class="prow-status done">${ICONS.checkSm}</span>`
     : status==='missed' ? `<span class="prow-status missed">${L.statusMissed}</span>`
     : status==='today' ? `<span class="prow-status today">${L.statusToday}</span>`
     : '';
 
-  return `<div class="plan-row ${statusClassFor(status, dd.isToday)} ${isReorderSource?'reorder-source':''} ${isReorderTarget?'reorder-target':''}" data-day="${i}" data-week-idx="${weekIdx}" ${draggable?'data-draggable="1"':''}>
+  return `<div class="plan-row ${statusClassFor(status, dd.isToday)} ${isReorderSource?'reorder-source':''} ${isReorderTarget?'reorder-target':''}" data-day="${i}" data-week-idx="${weekIdx}" data-flat-idx="${flatIdx}" ${draggable?'data-draggable="1"':''}>
     <div class="prow-date">
       <span class="prow-dow">${DAY_NAMES_SHORT[state.lang][i]}</span>
       <span class="prow-num">${date.getDate()}</span>
@@ -4066,34 +4079,34 @@ const DRAG_LONG_PRESS_MS = 220;
 // making the drag hard to trigger reliably on a phone.
 const DRAG_MOVE_CANCEL_PX = 28;
 // Tap-to-move: tap a row's grip handle to "pick it up" (no press-and-hold, no drag distance --
-// just two taps), then tap any other day in the same week to swap it there, reusing the exact same
-// reorderWithinWeek() the press-and-drag gesture commits with. Long-press-drag stays available for
-// whoever it already works for; this is a second, gesture-free path to the same action for anyone
-// who finds sustained touch-and-drag unreliable on their device.
-let reorderSource = null; // {weekIdx, idx} of the row currently picked up, or null
+// just two taps), then tap any other day -- in any loaded week -- to swap it there, reusing the
+// exact same reorderAcrossPlan() the press-and-drag gesture commits with. Long-press-drag stays
+// available for whoever it already works for; this is a second, gesture-free path to the same
+// action for anyone who finds sustained touch-and-drag unreliable on their device. Both use flat
+// indices (position across the WHOLE loaded Plan list, not per-week-block) so a move can cascade
+// freely across week boundaries instead of being capped at the current week block.
+let reorderSource = null; // flat index of the row currently picked up, or null
 function setupDayRowInteraction(wrap){
   wrap.querySelectorAll('.plan-row').forEach(row=>{
-    const idx = parseInt(row.getAttribute('data-day'),10);
-    const weekIdx = parseInt(row.getAttribute('data-week-idx'),10);
+    const idx = parseInt(row.getAttribute('data-flat-idx'),10);
     const draggable = row.getAttribute('data-draggable')==='1';
     let timer=null, dragging=false, moved=false, startX=0, startY=0, lastY=0, lastDownTarget=null, targetRow=null, previewRows=[], slotCenters=null;
 
     function clearTimer(){ if(timer){ clearTimeout(timer); timer=null; } }
-    function rowAt(dayIdx){
-      const scope = row.closest('.week-block') || wrap;
-      return scope.querySelector(`.plan-row[data-day="${dayIdx}"]`);
+    function rowAt(flatIdx){
+      return wrap.querySelector(`.plan-row[data-flat-idx="${flatIdx}"]`);
     }
     function captureSlotGeometry(){
-      // Snapshot each draggable row's un-transformed center once, before any live-preview
-      // shifting starts. Using this static geometry (rather than elementFromPoint) to pick the
-      // drop target means it keeps working correctly even once other rows start animating out
-      // of the way -- elementFromPoint would otherwise hit whatever row has animated to that
-      // pixel, not the row that logically belongs there.
-      const scope = row.closest('.week-block') || wrap;
+      // Snapshot each draggable row's un-transformed center once, across the WHOLE loaded Plan
+      // list (every week block), before any live-preview shifting starts. Using this static
+      // geometry (rather than elementFromPoint) to pick the drop target means it keeps working
+      // correctly even once other rows start animating out of the way -- elementFromPoint would
+      // otherwise hit whatever row has animated to that pixel, not the row that logically belongs
+      // there.
       slotCenters = [];
-      scope.querySelectorAll('.plan-row[data-draggable="1"]').forEach(r=>{
+      wrap.querySelectorAll('.plan-row[data-draggable="1"]').forEach(r=>{
         const rect = r.getBoundingClientRect();
-        slotCenters.push({ dayIdx: parseInt(r.getAttribute('data-day'),10), center: rect.top+rect.height/2, top: rect.top, bottom: rect.top+rect.height });
+        slotCenters.push({ flatIdx: parseInt(r.getAttribute('data-flat-idx'),10), center: rect.top+rect.height/2, top: rect.top, bottom: rect.top+rect.height });
       });
     }
     function nearestSlot(clientY){
@@ -4106,7 +4119,7 @@ function setupDayRowInteraction(wrap){
         const d = Math.abs(clientY-s.center);
         if(d<bestDist){ bestDist=d; best=s; }
       }
-      return best.dayIdx;
+      return best.flatIdx;
     }
     function clearPreview(){
       previewRows.forEach(r=>{ r.style.transform=''; r.classList.remove('shifting'); });
@@ -4144,7 +4157,7 @@ function setupDayRowInteraction(wrap){
         targetRow = nextTarget;
         if(targetRow){
           targetRow.classList.add('drop-target');
-          applyPreview(parseInt(targetRow.getAttribute('data-day'),10));
+          applyPreview(parseInt(targetRow.getAttribute('data-flat-idx'),10));
         } else {
           clearPreview();
         }
@@ -4158,8 +4171,8 @@ function setupDayRowInteraction(wrap){
         if(targetRow) targetRow.classList.remove('drop-target');
         clearPreview();
         if(commit && targetRow){
-          const targetIdx = parseInt(targetRow.getAttribute('data-day'),10);
-          reorderWithinWeek(weekIdx, idx, targetIdx);
+          const targetIdx = parseInt(targetRow.getAttribute('data-flat-idx'),10);
+          reorderAcrossPlan(idx, targetIdx);
           renderWeek(); renderHome(); renderCalendar();
           showToast(STR[state.lang].toastUpdated);
         }
@@ -4177,14 +4190,14 @@ function setupDayRowInteraction(wrap){
       if(wasDragging || wasMoved) return;
       // A plain tap (no hold, no movement) -- either resolves a pending tap-to-move pick, starts a
       // new one, or falls through to the normal "open Day Detail" behavior.
-      if(reorderSource && reorderSource.weekIdx===weekIdx){
-        if(reorderSource.idx===idx){
+      if(reorderSource!=null){
+        if(reorderSource===idx){
           reorderSource = null; // tapping the picked-up row again cancels
           renderWeek();
           return;
         }
         if(draggable){
-          reorderWithinWeek(weekIdx, reorderSource.idx, idx);
+          reorderAcrossPlan(reorderSource, idx);
           reorderSource = null;
           renderWeek(); renderHome(); renderCalendar();
           showToast(STR[state.lang].toastUpdated);
@@ -4193,19 +4206,14 @@ function setupDayRowInteraction(wrap){
         // Tapped an ineligible day (e.g. a past date) while a move was pending -- cancel the
         // pending move and just open this day normally rather than silently swallowing the tap.
         reorderSource = null;
-      } else if(reorderSource){
-        // A pending move from a DIFFERENT week block -- reorderWithinWeek only moves within one
-        // week, so tapping outside it can't complete anything; just clear the stale pick.
-        reorderSource = null;
-        renderWeek();
       }
       if(tappedHandle && draggable){
-        reorderSource = {weekIdx, idx};
+        reorderSource = idx;
         renderWeek();
         showToast(STR[state.lang].tapAnotherDayToast);
         return;
       }
-      openDayDetail(dateKey(weekDates(weekIdx)[idx]));
+      openDayDetail(dateKey(allPlanDates()[idx]));
     }
     function onCancel(){ endDrag(false); }
 

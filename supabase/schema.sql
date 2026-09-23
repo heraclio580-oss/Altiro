@@ -108,6 +108,7 @@ create table if not exists planned_workouts (
   completed boolean default false,
   created_at timestamptz default now()
 );
+alter table planned_workouts add column if not exists actual_distance numeric; -- run extras: the actual distance covered, same idea as workout_logs.actual_run_distance
 alter table planned_workouts enable row level security;
 drop policy if exists "own planned workouts" on planned_workouts;
 create policy "own planned workouts" on planned_workouts

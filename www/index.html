@@ -3582,11 +3582,20 @@ function startWorkout(logged){
   const extraId = state._activeExtraId;
   if(extraId){
     // Completing an extra (non-primary) workout for today only marks that one workout done -- the
-    // primary slot, streak, mileage and total-workouts count stay exactly as they were, the same
-    // way logging a plain manual entry already doesn't touch those either.
+    // primary slot, streak, and total-workouts count stay exactly as they were, the same way
+    // logging a plain manual entry already doesn't touch those either. Distance is the one
+    // exception: a run is a run regardless of which slot it was logged under, so an extra run's
+    // actual distance still counts toward weekly/lifetime mileage (see weekStats()).
     const w = findExtraWorkout(dateKey(TODAY_DATE), extraId);
     if(w){
       w.completed = true;
+      if(eff.t==='run'){
+        const mi = (logged && logged.distance!=null) ? logged.distance : (parseFloat(eff.en.detail)||0);
+        w.actualDistance = mi;
+        state.mileage = +(state.mileage+mi).toFixed(1);
+        state.totalDistance = +(state.totalDistance+mi).toFixed(1);
+        if(w.supabaseId) cloudSetExtraWorkoutDistance(w.supabaseId, mi);
+      }
       if(w.supabaseId) cloudSetExtraWorkoutCompleted(w.supabaseId, true);
     }
     state.doneCount = computeDoneCount();
@@ -4627,6 +4636,13 @@ function weekStats(offset){
     if(dd.p.t==='run' && done){
       distance += dd.actualRunDistance!=null ? dd.actualRunDistance : (parseFloat(ST(dd.p).detail) || 0);
     }
+    // A run logged as an extra (secondary) workout for the day still counts toward weekly/lifetime
+    // distance -- it's a real run regardless of which slot it was logged under.
+    dd.extraWorkouts.forEach(w=>{
+      if(w.completed && w.session && w.session.t==='run' && w.actualDistance!=null){
+        distance += w.actualDistance;
+      }
+    });
   });
   return {workouts, distance};
 }
@@ -5181,6 +5197,10 @@ async function cloudSetExtraWorkoutCompleted(supabaseId, completed){
   if(!state.userId || !supabaseId) return;
   try{ await sb.from('planned_workouts').update({completed}).eq('id', supabaseId); }catch(e){ /* best-effort */ }
 }
+async function cloudSetExtraWorkoutDistance(supabaseId, distance){
+  if(!state.userId || !supabaseId) return;
+  try{ await sb.from('planned_workouts').update({actual_distance: distance}).eq('id', supabaseId); }catch(e){ /* best-effort */ }
+}
 async function cloudInsertRecordedSession(dateStr, session, logged){
   if(!state.userId || !logged) return;
   try{
@@ -5304,9 +5324,17 @@ async function loadWorkoutDataFromCloud(){
         }
       });
     }
-    const { data: extras } = await sb.from('planned_workouts')
-      .select('id, log_date, session_type, title, detail, exercises, interval_rounds, interval_work_sec, interval_rest_sec, completed')
+    // Same defensive fallback as the workout_logs select above -- actual_distance can ship in code
+    // before its migration is applied to a given project's live database.
+    let extrasRes = await sb.from('planned_workouts')
+      .select('id, log_date, session_type, title, detail, exercises, interval_rounds, interval_work_sec, interval_rest_sec, completed, actual_distance')
       .eq('user_id', state.userId);
+    if(extrasRes.error){
+      extrasRes = await sb.from('planned_workouts')
+        .select('id, log_date, session_type, title, detail, exercises, interval_rounds, interval_work_sec, interval_rest_sec, completed')
+        .eq('user_id', state.userId);
+    }
+    const extras = extrasRes.data;
     if(extras){
       extras.forEach(row=>{
         const key = row.log_date;
@@ -5316,7 +5344,7 @@ async function loadWorkoutDataFromCloud(){
           session.interval = {rounds: row.interval_rounds, workSec: row.interval_work_sec, restSec: row.interval_rest_sec};
         }
         const log = ensureDayLog(key);
-        log.extraWorkouts.push({ id:'w'+row.id, supabaseId: row.id, session, completed: !!row.completed, notes:'' });
+        log.extraWorkouts.push({ id:'w'+row.id, supabaseId: row.id, session, completed: !!row.completed, notes:'', actualDistance: row.actual_distance ?? null });
       });
     }
     const { data: targets } = await sb.from('progression_targets').select('*').eq('user_id', state.userId);

@@ -5266,9 +5266,20 @@ async function cloudClearPlannedSession(dateStr){
 async function loadWorkoutDataFromCloud(){
   if(!state.userId) return;
   try{
-    const { data: logs } = await sb.from('workout_logs')
+    // Select every workout_logs column individually, one call per newer column, falling back to
+    // dropping just that column on error rather than losing the whole week's plan -- a schema
+    // migration (e.g. adding actual_run_distance) can ship in code before it's been applied to a
+    // given Supabase project's live database, and the client doesn't throw on a bad column name,
+    // it just returns no rows, which previously wiped out every planned workout from view.
+    let logsRes = await sb.from('workout_logs')
       .select('log_date, completed_override, planned_type, planned_title, planned_detail, planned_interval_rounds, planned_interval_work_sec, planned_interval_rest_sec, actual_run_distance, manual_entries(id, name, type, volume, notes)')
       .eq('user_id', state.userId);
+    if(logsRes.error){
+      logsRes = await sb.from('workout_logs')
+        .select('log_date, completed_override, planned_type, planned_title, planned_detail, planned_interval_rounds, planned_interval_work_sec, planned_interval_rest_sec, manual_entries(id, name, type, volume, notes)')
+        .eq('user_id', state.userId);
+    }
+    const logs = logsRes.data;
     if(logs){
       logs.forEach(row=>{
         const key = row.log_date; // Postgres `date` serializes as 'YYYY-MM-DD', same shape as dateKey()

@@ -2747,10 +2747,21 @@ function reorderAcrossPlan(sourceFlatIdx, targetFlatIdx){
   const dates = allPlanDates();
   const step = sourceFlatIdx < targetFlatIdx ? 1 : -1;
   const movingSlot = getRawDaySlot(dates[sourceFlatIdx]);
-  for(let i=sourceFlatIdx; i!==targetFlatIdx; i+=step){
-    writeDaySlot(dates[i], getRawDaySlot(dates[i+step]));
+  // A drag reassigns which content lives on which date, so every date the cascade touches has to be
+  // treated -- and persisted -- as an explicit custom plan for that date from here on. Without this,
+  // the reorder was purely local: nothing about it was ever saved to the cloud, so signing out and
+  // back in re-loaded each date's original auto-generated content and the rearrangement was gone.
+  function writeCustom(date, slot){
+    const stamped = {...slot, isCustom:true};
+    writeDaySlot(date, stamped);
+    const key = dateKey(date);
+    cloudSavePlannedSession(key, stamped.p);
+    cloudSetCompletedOverride(key, stamped.completed);
   }
-  writeDaySlot(dates[targetFlatIdx], movingSlot);
+  for(let i=sourceFlatIdx; i!==targetFlatIdx; i+=step){
+    writeCustom(dates[i], getRawDaySlot(dates[i+step]));
+  }
+  writeCustom(dates[targetFlatIdx], movingSlot);
 }
 
 /* ---------------- reschedule (missed day) ----------------

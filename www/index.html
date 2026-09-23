@@ -1853,7 +1853,6 @@ const STR = {
     nextWeekLabel: "Next Week",
     planLimitReached: "You've planned as far ahead as this preview supports.",
     resetPlanBtn: "Reset to Suggested Plan",
-    moveToTodayBtn: "Move to Today",
     planNameLabel: "What are you planning?",
     planTargetRepsLabel: "Target Reps",
     planPaceLabel: "Target Pace (min/mi, e.g. 9:30)",
@@ -2078,7 +2077,6 @@ const STR = {
     nextWeekLabel: "Próxima semana",
     planLimitReached: "Has planificado con la mayor anticipación que permite esta vista previa.",
     resetPlanBtn: "Restablecer al plan sugerido",
-    moveToTodayBtn: "Mover a hoy",
     planNameLabel: "¿Qué estás planificando?",
     planTargetRepsLabel: "Repeticiones objetivo",
     planPaceLabel: "Ritmo objetivo (min/mi, ej. 9:30)",
@@ -4297,14 +4295,6 @@ function renderDayDetail(){
   if(dd.isCustom && (dd.isToday || dd.isFuture)){
     actionsHtml += `<button class="btn-text" id="ddResetPlanBtn" type="button" style="width:100%;margin-top:12px;">${L.resetPlanBtn}</button>`;
   }
-  // Explicit alternative to dragging a row on the Plan page (which some devices/gestures handle
-  // unreliably) -- swaps this future day's content with today's directly, reusing the exact same
-  // logic the drag interaction commits with, so the result is identical either way.
-  const moveToTodayIdx = currentWeekIdxFor(state.openDayKey);
-  const canMoveToToday = dd.isFuture && moveToTodayIdx>=0 && moveToTodayIdx!==TODAY_IDX && !isTodayDone();
-  if(canMoveToToday){
-    actionsHtml += `<button class="btn-text" id="ddMoveToTodayBtn" type="button" style="width:100%;margin-top:12px;">${L.moveToTodayBtn}</button>`;
-  }
   let rescheduleIdx = -1;
   if(status==='missed'){
     rescheduleIdx = currentWeekIdxFor(state.openDayKey);
@@ -4338,15 +4328,6 @@ function renderDayDetail(){
     renderCalendar();
     renderWeek();
     renderHome();
-    showToast(STR[state.lang].toastUpdated);
-  });
-  const ddMoveToTodayBtn = document.getElementById('ddMoveToTodayBtn');
-  if(ddMoveToTodayBtn) ddMoveToTodayBtn.addEventListener('click', ()=>{
-    reorderWithinWeek(0, moveToTodayIdx, TODAY_IDX);
-    closeDayDetail();
-    renderWeek();
-    renderHome();
-    renderCalendar();
     showToast(STR[state.lang].toastUpdated);
   });
   const ddShiftBtn = document.getElementById('ddShiftBtn');

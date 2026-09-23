@@ -65,11 +65,15 @@ integrations.
       All writes are fire-and-forget (best-effort, wrapped in try/catch) —
       local state stays the source of truth for the current session even
       if a write fails, so nothing blocks on network latency.
-- [ ] Paywall UI + entitlement gating.
-- [ ] RevenueCat SDK integration + subscription products configured in App
-      Store Connect / Play Console.
+- [x] "Today" always reflects the real calendar date (`getRealToday()` reads
+      the real clock; only the test suite pins a fixed date, via
+      `window.__ALTIRO_TEST_TODAY__`, set before the app script runs).
 - [ ] Capacitor iOS/Android platforms added, tested on simulator/device.
 - [ ] Store listings, privacy policy, account deletion flow, App Review submission.
+- [ ] Paywall UI + entitlement gating (deferred deliberately — decide the
+      free vs. paid feature split once real users are on the app).
+- [ ] RevenueCat SDK integration + subscription products configured in App
+      Store Connect / Play Console.
 
 ## Run it
 
@@ -100,16 +104,9 @@ npm test
 | [Google Play Console](https://play.google.com/console/) | $25 one-time | Android Play Store distribution |
 | [RevenueCat](https://www.revenuecat.com) | free tier to start | cross-platform subscription management |
 
-## Known limitation worth knowing about
-
-"Today" is currently pinned to a fixed simulated date (carried over from the
-original Artifact prototype's demo scaffolding), not the real calendar date —
-`TODAY_DATE`/`WEEK_MONDAY` in `www/index.html`. This doesn't break anything
-built so far (cloud sync round-trips correctly against whatever "today" the
-app considers it to be), but it means the app won't naturally advance to a
-new day on its own yet. Worth fixing before real day-to-day use — not yet
-scheduled.
-
 ## Next step
 
-Paywall UI + entitlement gating, then RevenueCat SDK integration.
+Add the Capacitor iOS and Android native platforms (`npm run cap:add:ios`,
+`npm run cap:add:android`), then get each building and running on a
+simulator/device. Paywall/RevenueCat work is deliberately deferred until
+after real users are on the app.

@@ -2494,19 +2494,21 @@ function activeSession(){
   return todaySession();
 }
 function computeDoneCount(){
-  return state.week.filter((d,i) => d.p.t !== 'rest' && (i===TODAY_IDX ? isTodayDone() : d.completed)).length;
+  // Reads through getDayData() (the same override-aware source Calendar/Progress/Plan all use)
+  // rather than state.week[i].completed directly -- a day whose completedOverride was set while it
+  // was still "today" (via ensureDayLog(...).completedOverride, not state.week[idx].completed) must
+  // still count as done here once it's no longer "today", or the ring undercounts real completions.
+  return weekDates(0).filter(date=>{
+    const dd = getDayData(date);
+    return dd.p.t !== 'rest' && dd.completed;
+  }).length;
 }
 function dayStatus(i){
-  if(i === TODAY_IDX){
-    return isTodayDone() ? 'done' : 'today';
-  }
-  const d = state.week[i];
-  if(d.p.t === 'rest'){
-    const log = state.dayLog[dateKey(weekDates(0)[i])];
-    return (log && log.manualEntries.length>0) ? 'done' : 'rest';
-  }
-  if(d.completed) return 'done';
-  return i < TODAY_IDX ? 'missed' : 'upcoming';
+  // Delegates to getDayData()/dayDataStatus() -- the same status source every other screen
+  // (Calendar, Progress, Plan, Day Detail) already uses -- instead of reading state.week[i].completed
+  // directly, which misses a completedOverride set while this day was still "today" (see
+  // computeDoneCount() above for the same fix and why it matters).
+  return dayDataStatus(getDayData(weekDates(0)[i]));
 }
 function ensureWeek(){
   if(!state.week){
@@ -5347,12 +5349,20 @@ async function loadWorkoutDataFromCloud(){
         if(idx>=0){
           if(idx!==TODAY_IDX && typeof row.completed_override==='boolean'){
             state.week[idx].completed = row.completed_override;
+          } else if(idx!==TODAY_IDX && customSession){
+            // A freshly-loaded custom plan with no completion record yet defaults to not-done,
+            // matching buildWeek()'s own default for a future/today training day -- but only when
+            // there's no completed_override to respect. This used to run unconditionally AFTER the
+            // override mirror above, silently clobbering a real completion back to false for any
+            // custom day that was actually completed while it was still "today" -- the Home week
+            // strip (which reads state.week directly) would show it as missed even though Calendar/
+            // Progress/Day Detail (which read completedOverride straight off dayLog) had it right.
+            state.week[idx].completed = false;
           }
           if(customSession){
             state.week[idx].p = customSession;
             state.week[idx].c = null;
             state.week[idx].isCustom = true;
-            if(idx!==TODAY_IDX) state.week[idx].completed = false;
           }
         }
       });

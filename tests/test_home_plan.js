@@ -42,6 +42,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('Home: day detail overlay stayed closed:', doc.getElementById('dayDetailOverlay').hidden===true ? 'OK' : 'FAIL');
   doc.getElementById('manualNameInput').value = 'Push-ups';
   doc.getElementById('manualVolumeInput').value = '10 x 10';
+  // Create Workout always defaults to "just planned" now -- mark it done so this becomes a real
+  // logged entry (manualEntries), which is what this test verifies shows up under Day Detail.
+  if(!doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
   doc.getElementById('saveManualEntry').click();
   await wait(20);
   console.log('Home: manual entry overlay closed after save:', doc.getElementById('manualEntryOverlay').hidden===true ? 'OK' : 'FAIL');

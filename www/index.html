@@ -2482,7 +2482,7 @@ function buildWeek(focusIdx){
     // a custom plan) is layered on separately by loadWorkoutDataFromCloud()/getDayData(), same as
     // any other day.
     if(i < TODAY_IDX){
-      week.push({p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:true});
+      week.push({p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:false});
     } else if(state.trainingDays.includes(i)){
       const src = pool[slot % pool.length];
       // Today/future training days default to NOT completed -- there's no real record for them yet,
@@ -2491,7 +2491,13 @@ function buildWeek(focusIdx){
       week.push({p:{...src.p}, c:{...src.c}, completed: false});
       slot++;
     } else {
-      week.push({p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:true});
+      // Rest days never carry a "completed" flag -- there's nothing to complete, and marking them
+      // done anyway was corrupting later dates: a cascade drag persists whatever "completed" value
+      // a day's raw slot carried as an explicit completedOverride (see writeDaySlot()), so a rest
+      // day dragged into a future week silently baked in "done" there too. Once that date eventually
+      // became "today" in a later session, the stale override made it look already completed and
+      // therefore undraggable -- exactly the bug reported.
+      week.push({p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:false});
     }
   }
   return week;
@@ -2514,7 +2520,7 @@ function regenerateUpcomingWeek(focusIdx, newTrainingDays){
       week[i] = {p:{...src.p}, c:{...src.c}, completed:false};
       slot++;
     } else {
-      week[i] = {p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:true};
+      week[i] = {p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:false};
     }
   }
   return week;
@@ -2597,7 +2603,7 @@ function getDayData(date){
       ? {p:{...overrideLog.session.p}, c: overrideLog.session.c ? {...overrideLog.session.c} : null}
       : sessionForDate(date);
     p = gen.p; c = gen.c;
-    planCompleted = p.t==='rest' ? true : date.getTime() < TODAY_DATE.getTime();
+    planCompleted = p.t==='rest' ? false : date.getTime() < TODAY_DATE.getTime();
     isCustom = !!(overrideLog && overrideLog.session && overrideLog.session.isCustom);
   }
   const log = state.dayLog[key];
@@ -2761,7 +2767,7 @@ function shiftWeekFromMissed(missedIdx){
 
   state.week[missedIdx].p = ses('rest','Rest Day','','Día de descanso','');
   state.week[missedIdx].c = null;
-  state.week[missedIdx].completed = true;
+  state.week[missedIdx].completed = false;
 
   movable.forEach((idx,k)=>{
     state.week[idx].p = contents[k].p;
@@ -2776,7 +2782,7 @@ function moveSessionTo(fromIdx, toIdx){
   state.week[toIdx].completed = false;
   state.week[fromIdx].p = ses('rest','Rest Day','','Día de descanso','');
   state.week[fromIdx].c = null;
-  state.week[fromIdx].completed = true;
+  state.week[fromIdx].completed = false;
   state.doneCount = computeDoneCount();
 }
 
@@ -4622,11 +4628,10 @@ document.getElementById('addExerciseBtn').addEventListener('click', ()=>{
   nameInput.focus();
 });
 function updateCreateCompletedUI(){
-  const dd = getDayData(parseDateKey(state.openDayKey));
-  // Smart default only -- past/today default to "already done", future defaults to "planned" --
-  // but the toggle stays available either way. Logging a future day as done (backfilling, an
-  // early workout before a midnight boundary, whatever the reason) should still be possible.
-  createMarkCompleted = !dd.isFuture;
+  // Adding or revising a workout always starts as "just planned" -- the user has to explicitly
+  // flip this on to log it as already done, regardless of what day it's for. Defaulting today's
+  // entries to "done" made it too easy to accidentally mark a day complete just by adding it.
+  createMarkCompleted = false;
   document.getElementById('createCompletedToggle').classList.toggle('on', createMarkCompleted);
   updateCreateNameLabel();
   updateCreateTargetSections();

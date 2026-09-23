@@ -34,6 +34,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='strength').click();
   doc.getElementById('manualVolumeInput').value = '3x10';
   doc.getElementById('manualVolumeInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+  // Create Workout always defaults to "just planned" now -- mark it done so this becomes a real
+  // logged entry (manualEntries), which is what this whole test is exercising.
+  if(!doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
   doc.getElementById('saveManualEntry').click();
   await wait(20);
 
@@ -65,6 +68,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('A fresh "+ Create Workout" open is NOT pre-filled from the previous edit:', doc.getElementById('manualNameInput').value==='' ? 'OK' : `FAIL (${doc.getElementById('manualNameInput').value})`);
   doc.getElementById('manualNameInput').value = 'Evening Stretch';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+  if(!doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
   doc.getElementById('saveManualEntry').click();
   await wait(20);
 

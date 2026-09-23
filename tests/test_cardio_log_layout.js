@@ -27,12 +27,21 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='run').click();
   await wait(10);
-  console.log('Switching to Run (already-done by default) shows the cardio section, hides Volume:',
+  // Create Workout now always defaults to "just planned" (not done), regardless of day -- so
+  // switching to Run while still in that default state shows the pace-target field, not the
+  // cardio log rows (those are reserved for "already done" logging).
+  console.log('Run defaults to planning mode (Completed off) -- pace-target field shown, cardio section hidden:',
+    doc.getElementById('cardioLogSection').hidden && !doc.getElementById('createPaceSection').hidden ? 'OK' : 'FAIL');
+
+  // Marking it "already done" is what reveals the cardio log rows.
+  doc.getElementById('createCompletedToggle').click();
+  await wait(10);
+  console.log('Marking Run as already done shows the cardio section, hides Volume:',
     doc.getElementById('manualVolumeSection').hidden && !doc.getElementById('cardioLogSection').hidden ? 'OK' : 'FAIL');
   console.log('Date defaults to the day Day Detail was opened for:', doc.getElementById('manualDateInput').value.length>0 ? `OK (${doc.getElementById('manualDateInput').value})` : 'FAIL');
   console.log('Pace shows the empty placeholder before anything is entered:', doc.getElementById('manualPaceDisplay').textContent==='-:--/mi' ? 'OK' : `FAIL (${doc.getElementById('manualPaceDisplay').textContent})`);
 
-  // Switching to "planning" (not yet done) should fall back to the target-pace field, not the cardio log rows.
+  // Switching back to "planning" (not yet done) falls back to the target-pace field again.
   doc.getElementById('createCompletedToggle').click();
   await wait(10);
   console.log('Switching to planning mode hides the cardio section and shows the pace-target field instead:',

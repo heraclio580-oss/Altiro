@@ -136,6 +136,9 @@ function openSession(backend, todayStr){
   await wait(20);
   docA.getElementById('manualNameInput').value = 'Morning Strength Session';
   docA.getElementById('manualNameInput').dispatchEvent(new domA.window.Event('input', {bubbles:true}));
+  // Create Workout always defaults to "just planned" now -- mark it done so this becomes a real
+  // logged entry (manual_entries), which is what this test round-trips through the cloud.
+  if(!docA.getElementById('createCompletedToggle').classList.contains('on')) docA.getElementById('createCompletedToggle').click();
   docA.getElementById('saveManualEntry').click();
   await wait(60);
   console.log('Session A (Monday=today): logged workout synced to the cloud:',

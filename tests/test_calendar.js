@@ -74,6 +74,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const cardioTypeBtn = [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='run');
   cardioTypeBtn.click();
   await wait(10);
+  // Create Workout now always defaults to "just planned" -- explicitly mark it done so this becomes
+  // a real logged entry (manualEntries), which is what this test is actually exercising.
+  if(!doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
   doc.getElementById('saveManualEntry').click();
   await wait(20);
 

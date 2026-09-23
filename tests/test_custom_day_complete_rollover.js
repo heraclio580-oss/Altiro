@@ -132,11 +132,11 @@ function openSession(backend, todayStr){
 
   goPillA('home');
   await wait(20);
-  // "+ Create Workout" with Mark as Completed switched OFF -> planning mode -> becomes today's
+  // "+ Create Workout" defaults to Mark as Completed OFF -> planning mode -> becomes today's
   // CUSTOM primary session (not an instant manual-entry log).
   docA.getElementById('addTodayWorkoutBtn').click();
   await wait(20);
-  docA.getElementById('createCompletedToggle').click();
+  if(docA.getElementById('createCompletedToggle').classList.contains('on')) docA.getElementById('createCompletedToggle').click();
   docA.getElementById('manualNameInput').value = 'Custom Push Day';
   docA.getElementById('manualNameInput').dispatchEvent(new domA.window.Event('input', {bubbles:true}));
   [...docA.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='strength').click();

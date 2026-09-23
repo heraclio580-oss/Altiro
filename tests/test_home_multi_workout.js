@@ -10,9 +10,8 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 function planTodayWorkout(doc, win, name){
   doc.getElementById('addTodayWorkoutBtn').click();
   return wait(20).then(()=>{
-    // Today defaults "Mark as Completed" ON -- switch it off so this becomes a *planned* workout
+    // Create Workout already defaults "Mark as Completed" OFF, so this becomes a *planned* workout
     // (goes through planCustomWorkout), not an instantly-logged manual entry.
-    doc.getElementById('createCompletedToggle').click();
     doc.getElementById('manualNameInput').value = name;
     doc.getElementById('manualNameInput').dispatchEvent(new win.Event('input', {bubbles:true}));
     doc.getElementById('saveManualEntry').click();

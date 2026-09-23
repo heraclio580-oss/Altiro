@@ -142,12 +142,11 @@ function makeSharedBackend(){
   goPill('home');
   await wait(20);
 
-  // Plan a custom workout for TODAY (toggle "Mark as Completed" off so it goes through
+  // Plan a custom workout for TODAY. "Mark as Completed" already defaults off, so this goes through
   // planCustomWorkout, the exact path that writes into state.week[TODAY_IDX] and syncs to the
-  // workout_logs table).
+  // workout_logs table.
   doc.getElementById('addTodayWorkoutBtn').click();
   await wait(20);
-  doc.getElementById('createCompletedToggle').click();
   doc.getElementById('manualNameInput').value = 'Garage Gym Session';
   doc.getElementById('manualNameInput').dispatchEvent(new dom.window.Event('input', {bubbles:true}));
   doc.getElementById('saveManualEntry').click();

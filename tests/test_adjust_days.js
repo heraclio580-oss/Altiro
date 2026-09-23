@@ -70,7 +70,8 @@ function dump(doc){
   doc.getElementById('manualNameInput').value = 'Midweek Core';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='strength').click();
-  // Wednesday is in the past, so "Mark as Completed" already smart-defaults ON.
+  // Create Workout always defaults to "just planned" now -- mark it done explicitly.
+  if(!doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
   doc.getElementById('saveManualEntry').click();
   await wait(20);
   doc.getElementById('closeDayDetail').click();

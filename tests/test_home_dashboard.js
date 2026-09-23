@@ -40,6 +40,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   doc.getElementById('manualNameInput').value = 'Extra Cardio';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+  // Create Workout always defaults to "just planned" now -- mark it done so this becomes a real
+  // logged entry (manualEntries), which is what this test is exercising.
+  if(!doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
   doc.getElementById('saveManualEntry').click();
   await wait(20);
 

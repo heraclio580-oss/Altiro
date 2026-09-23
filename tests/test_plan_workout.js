@@ -77,9 +77,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   doc.getElementById('addWorkoutBtn').click();
   await wait(20);
-  console.log('"Mark as Completed" defaults ON for today:', doc.getElementById('createCompletedToggle').classList.contains('on') ? 'OK' : 'FAIL');
-  doc.getElementById('createCompletedToggle').click(); // flip to planning mode
-  console.log('Toggling off reveals the target fields and switches the name label:', !doc.getElementById('createWeightSection').hidden && doc.getElementById('createNameLabel').textContent==='What are you planning?' ? 'OK' : 'FAIL');
+  console.log('"Mark as Completed" defaults OFF for today too (planning, not logging, is the default everywhere):',
+    !doc.getElementById('createCompletedToggle').classList.contains('on') ? 'OK' : 'FAIL');
+  console.log('Planning mode (the default) shows the target fields and the planning name label:', !doc.getElementById('createWeightSection').hidden && doc.getElementById('createNameLabel').textContent==='What are you planning?' ? 'OK' : 'FAIL');
   doc.getElementById('manualNameInput').value = 'Custom Push Day';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   doc.getElementById('createWeightInput').value = '100';

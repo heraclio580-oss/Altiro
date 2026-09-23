@@ -27,7 +27,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   // First planned (non-instant) workout for today becomes the custom primary slot.
   doc.getElementById('addTodayWorkoutBtn').click();
   await wait(20);
-  doc.getElementById('createCompletedToggle').click(); // switch off "Mark as Completed" -> planning mode
+  // Create Workout already defaults to "Mark as Completed" off (planning mode).
   doc.getElementById('manualNameInput').value = 'Custom Strength Primary';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   doc.getElementById('saveManualEntry').click();
@@ -36,7 +36,6 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   // Second planned workout for today (a run) lands in extraWorkouts instead of replacing the primary.
   doc.getElementById('addTodayWorkoutBtn').click();
   await wait(20);
-  doc.getElementById('createCompletedToggle').click();
   doc.getElementById('manualNameInput').value = 'Evening Trail Run';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='run').click();

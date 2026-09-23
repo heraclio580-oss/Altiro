@@ -23,13 +23,16 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   console.log('Day Detail opened for today:', doc.getElementById('dayDetailOverlay').hidden===false ? 'OK' : 'FAIL');
 
-  // Log a first workout.
+  // Log a first workout. Uses "strength" (with the generic free-text Volume field) rather than
+  // "run", since a completed cardio entry now gets its own structured Distance/Duration layout --
+  // covered separately in test_cardio_log_layout.js -- and this test's purpose (edit-in-place,
+  // not duplicated) doesn't depend on activity type.
   doc.getElementById('addWorkoutBtn').click();
   await wait(20);
-  doc.getElementById('manualNameInput').value = 'Morning Run';
+  doc.getElementById('manualNameInput').value = 'Morning Lift';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
-  [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='run').click();
-  doc.getElementById('manualVolumeInput').value = '3 mi';
+  [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='strength').click();
+  doc.getElementById('manualVolumeInput').value = '3x10';
   doc.getElementById('manualVolumeInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   doc.getElementById('saveManualEntry').click();
   await wait(20);
@@ -42,19 +45,19 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   bubble.click();
   await wait(20);
   console.log('Create Workout sheet opens pre-filled with the existing entry:',
-    doc.getElementById('manualNameInput').value==='Morning Run' && doc.getElementById('manualVolumeInput').value==='3 mi' ? 'OK' : `FAIL (name=${doc.getElementById('manualNameInput').value}, vol=${doc.getElementById('manualVolumeInput').value})`);
+    doc.getElementById('manualNameInput').value==='Morning Lift' && doc.getElementById('manualVolumeInput').value==='3x10' ? 'OK' : `FAIL (name=${doc.getElementById('manualNameInput').value}, vol=${doc.getElementById('manualVolumeInput').value})`);
   console.log('Sheet title reads "Edit Workout":', doc.getElementById('manualEntryTitleLabel').textContent==='Edit Workout' ? 'OK' : `FAIL (${doc.getElementById('manualEntryTitleLabel').textContent})`);
 
-  // Correct the distance and save.
-  doc.getElementById('manualVolumeInput').value = '3.5 mi';
+  // Correct the volume and save.
+  doc.getElementById('manualVolumeInput').value = '4x10';
   doc.getElementById('manualVolumeInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   doc.getElementById('saveManualEntry').click();
   await wait(20);
 
   const entriesAfterEdit = [...doc.querySelectorAll('#dayDetailEntries .manual-entry')];
   console.log('Still exactly ONE entry after editing (not appended as a second one):', entriesAfterEdit.length===1 ? 'OK' : `FAIL (${entriesAfterEdit.length})`);
-  console.log('That entry reflects the corrected distance:', doc.getElementById('dayDetailEntries').textContent.includes('3.5 mi') ? 'OK' : `FAIL (${doc.getElementById('dayDetailEntries').textContent})`);
-  console.log('The original "3 mi" text is gone (genuinely edited, not duplicated):', !doc.getElementById('dayDetailEntries').textContent.includes('3 mi') || doc.getElementById('dayDetailEntries').textContent.match(/3 mi/g)===null ? 'OK' : `FAIL (${doc.getElementById('dayDetailEntries').textContent})`);
+  console.log('That entry reflects the corrected volume:', doc.getElementById('dayDetailEntries').textContent.includes('4x10') ? 'OK' : `FAIL (${doc.getElementById('dayDetailEntries').textContent})`);
+  console.log('The original "3x10" text is gone (genuinely edited, not duplicated):', !doc.getElementById('dayDetailEntries').textContent.includes('3x10') ? 'OK' : `FAIL (${doc.getElementById('dayDetailEntries').textContent})`);
 
   // Now explicitly add a SECOND, genuinely new workout -- this must still append, not overwrite.
   doc.getElementById('addWorkoutBtn').click();
@@ -68,7 +71,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const entriesAfterAdd = [...doc.querySelectorAll('#dayDetailEntries .manual-entry')];
   console.log('Intentionally adding a new workout results in exactly TWO entries:', entriesAfterAdd.length===2 ? 'OK' : `FAIL (${entriesAfterAdd.length})`);
   console.log('Both the edited original and the new one are present:',
-    doc.getElementById('dayDetailEntries').textContent.includes('Morning Run') && doc.getElementById('dayDetailEntries').textContent.includes('Evening Stretch') ? 'OK' : `FAIL (${doc.getElementById('dayDetailEntries').textContent})`);
+    doc.getElementById('dayDetailEntries').textContent.includes('Morning Lift') && doc.getElementById('dayDetailEntries').textContent.includes('Evening Stretch') ? 'OK' : `FAIL (${doc.getElementById('dayDetailEntries').textContent})`);
 
   console.log('ALL DONE');
   process.exit(0);

@@ -472,6 +472,17 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .manual-entry .body .v{font-family:var(--font-mono);font-size:10.5px;color:var(--text-3);margin-top:1px;}
 .del{background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px;flex-shrink:0;}
 .del svg{width:14px;height:14px;display:block;}
+
+/* Tappable icon/label/value rows for structured stat input (e.g. cardio Date/Duration/Distance/Pace) */
+.stat-row{display:flex;align-items:center;gap:10px;background:var(--well);border:1px solid var(--border);border-radius:var(--r-md);padding:11px 12px;margin-top:8px;}
+.stat-row .sr-ic{width:18px;height:18px;color:var(--text-3);flex-shrink:0;}
+.stat-row .sr-ic svg{width:18px;height:18px;display:block;}
+.stat-row .sr-label{flex:1;font-size:13.5px;color:var(--text);}
+.stat-row input{flex:1;min-width:0;background:none;border:none;color:var(--text);font-size:13.5px;font-family:var(--font-body);text-align:right;outline:none;padding:0;}
+.stat-row input::-webkit-calendar-picker-indicator{filter:invert(0.7);margin-left:6px;}
+.stat-row .sr-value{flex-shrink:0;font-family:var(--font-mono);font-size:13.5px;color:var(--text);}
+.stat-row .sr-chev{width:12px;height:12px;color:var(--text-3);flex-shrink:0;}
+.stat-row.readonly .sr-value{color:var(--text-2);}
 .del:hover{color:var(--accent-hover);}
 
 /* ---------- sheet ---------- */
@@ -1306,9 +1317,33 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="type-select-row" id="manualTypeRow"></div>
       </div>
 
-      <div class="sheet-section">
+      <div class="sheet-section" id="manualVolumeSection">
         <div class="st-label" data-i18n="manualVolumeLabel"></div>
         <input type="text" class="text-input" id="manualVolumeInput">
+      </div>
+
+      <div class="sheet-section" id="cardioLogSection" hidden>
+        <div class="st-label" data-i18n="activityStatsLabel"></div>
+        <div class="stat-row">
+          <span class="sr-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="14" height="13" rx="0.5"/><path d="M3 8h14M7 2v4M13 2v4"/></svg></span>
+          <span class="sr-label" data-i18n="cardioDateLabel"></span>
+          <input type="date" id="manualDateInput">
+        </div>
+        <div class="stat-row">
+          <span class="sr-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 5.5V10l3 2"/></svg></span>
+          <span class="sr-label" data-i18n="cardioDurationLabel"></span>
+          <input type="number" inputmode="numeric" id="manualDurationInput" placeholder="0" style="max-width:70px;">
+        </div>
+        <div class="stat-row">
+          <span class="sr-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 17.5S16 12 16 7.5a6 6 0 1 0-12 0C4 12 10 17.5 10 17.5z"/><circle cx="10" cy="7.5" r="2" stroke-width="1.4"/></svg></span>
+          <span class="sr-label" data-i18n="cardioDistanceLabel"></span>
+          <input type="number" inputmode="decimal" step="0.01" id="manualDistanceInput" placeholder="0" style="max-width:70px;">
+        </div>
+        <div class="stat-row readonly">
+          <span class="sr-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14a7 7 0 0 1 14 0"/><path d="M10 14l3-4"/><circle cx="10" cy="14" r="1" fill="currentColor" stroke="none"/></svg></span>
+          <span class="sr-label" data-i18n="cardioPaceLabel"></span>
+          <span class="sr-value" id="manualPaceDisplay">-:--/mi</span>
+        </div>
       </div>
 
       <div class="sheet-section">
@@ -1606,7 +1641,11 @@ const ICONS = {
   plus: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M10 4v12M4 10h12"/></svg>',
   trash: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4.5h4V6M6 6l.7 10h6.6L14 6"/></svg>',
   grip: '<svg viewBox="0 0 20 20" fill="currentColor"><circle cx="7" cy="5" r="1.3"/><circle cx="13" cy="5" r="1.3"/><circle cx="7" cy="10" r="1.3"/><circle cx="13" cy="10" r="1.3"/><circle cx="7" cy="15" r="1.3"/><circle cx="13" cy="15" r="1.3"/></svg>',
-  interval: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="11" r="6.5"/><path d="M10 8v3l2 1.5M8 2h4"/></svg>'
+  interval: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="11" r="6.5"/><path d="M10 8v3l2 1.5M8 2h4"/></svg>',
+  calendar: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="14" height="13" rx="0.5"/><path d="M3 8h14M7 2v4M13 2v4"/></svg>',
+  clock: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 5.5V10l3 2"/></svg>',
+  pin: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 17.5S16 12 16 7.5a6 6 0 1 0-12 0C4 12 10 17.5 10 17.5z"/><circle cx="10" cy="7.5" r="2" stroke-width="1.4"/></svg>',
+  gauge: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14a7 7 0 0 1 14 0"/><path d="M10 14l3-4"/><circle cx="10" cy="14" r="1" fill="currentColor" stroke="none"/></svg>'
 };
 const TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, interval: ICONS.interval, rest: ICONS.rest};
 const MANUAL_TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, other: ICONS.flame, interval: ICONS.interval};
@@ -1811,6 +1850,11 @@ const STR = {
     typeInterval: "Interval",
     manualVolumeLabel: "Sets, reps, or duration",
     manualVolumePlaceholder: "e.g. 10 x 10, or 45 min",
+    activityStatsLabel: "Activity Stats",
+    cardioDateLabel: "Date",
+    cardioDurationLabel: "Duration (min)",
+    cardioDistanceLabel: "Distance (mi)",
+    cardioPaceLabel: "Pace",
     manualNotesLabel: "Notes (optional)",
     manualNotesPlaceholder: "Anything else worth noting",
     saveWorkoutBtn: "Save Workout",
@@ -2034,6 +2078,11 @@ const STR = {
     typeInterval: "Intervalos",
     manualVolumeLabel: "Series, repeticiones o duración",
     manualVolumePlaceholder: "ej. 10 x 10, o 45 min",
+    activityStatsLabel: "Estadísticas de la actividad",
+    cardioDateLabel: "Fecha",
+    cardioDurationLabel: "Duración (min)",
+    cardioDistanceLabel: "Distancia (mi)",
+    cardioPaceLabel: "Ritmo",
     manualNotesLabel: "Notas (opcional)",
     manualNotesPlaceholder: "Algo más que quieras anotar",
     saveWorkoutBtn: "Guardar entrenamiento",
@@ -4459,7 +4508,21 @@ function updateCreateTargetSections(){
   // An interval workout is completed by actually running its timer, not by a checkbox, so the
   // usual "Mark as Completed" toggle doesn't apply here -- always plan it, never a plain log entry.
   document.getElementById('createCompletedSection').hidden = manualEntryType==='interval';
+  // A cardio entry that's already done gets the structured Date/Duration/Distance/Pace layout
+  // instead of the generic free-text Volume field -- planning a future run (not yet done) still
+  // uses the simpler pace-target field above, since there's no real distance/duration to record yet.
+  const isCardioLog = manualEntryType==='run' && createMarkCompleted;
+  document.getElementById('cardioLogSection').hidden = !isCardioLog;
+  document.getElementById('manualVolumeSection').hidden = isCardioLog;
 }
+function updateManualPaceDisplay(){
+  const dur = parseFloat(document.getElementById('manualDurationInput').value);
+  const dist = parseFloat(document.getElementById('manualDistanceInput').value);
+  const paceEl = document.getElementById('manualPaceDisplay');
+  paceEl.textContent = (dur>0 && dist>0) ? fmtPace(dur/dist)+'/mi' : '-:--/mi';
+}
+document.getElementById('manualDurationInput').addEventListener('input', updateManualPaceDisplay);
+document.getElementById('manualDistanceInput').addEventListener('input', updateManualPaceDisplay);
 function renderManualExercisesList(){
   const L = STR[state.lang];
   const listEl = document.getElementById('createExercisesList');
@@ -4526,6 +4589,10 @@ function openManualEntry(){
   document.getElementById('createWorkDurationInput').placeholder = '3:00';
   document.getElementById('createRestDurationInput').value = '';
   document.getElementById('createRestDurationInput').placeholder = '1:00';
+  document.getElementById('manualDateInput').value = state.openDayKey || '';
+  document.getElementById('manualDurationInput').value = '';
+  document.getElementById('manualDistanceInput').value = '';
+  updateManualPaceDisplay();
   document.getElementById('newExerciseName').value = '';
   document.getElementById('newExerciseName').placeholder = L.newExerciseNamePlaceholder;
   document.getElementById('newExerciseName').style.borderColor = '';
@@ -4596,6 +4663,11 @@ function openManualEntryForEditLoggedEntry(entry){
   document.getElementById('manualNameInput').value = entry.name;
   document.getElementById('manualVolumeInput').value = entry.volume || '';
   document.getElementById('manualNotesInput').value = entry.notes || '';
+  if(entry.type==='run'){
+    if(entry.durationMin!=null) document.getElementById('manualDurationInput').value = entry.durationMin;
+    if(entry.distance!=null) document.getElementById('manualDistanceInput').value = entry.distance;
+    updateManualPaceDisplay();
+  }
   renderManualTypeRow();
   updateCreateNameLabel();
   updateCreateTargetSections();
@@ -4644,8 +4716,19 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
   const nameInput = document.getElementById('manualNameInput');
   const name = nameInput.value.trim();
   if(!name || !state.openDayKey){ nameInput.style.borderColor = 'var(--accent)'; nameInput.focus(); return; }
-  const volume = document.getElementById('manualVolumeInput').value.trim();
   const notes = document.getElementById('manualNotesInput').value.trim();
+  const isCardioLog = manualEntryType==='run' && createMarkCompleted;
+  let volume = document.getElementById('manualVolumeInput').value.trim();
+  let cardioDistance = null, cardioDuration = null;
+  if(isCardioLog){
+    cardioDistance = parseFloat(document.getElementById('manualDistanceInput').value);
+    cardioDuration = parseFloat(document.getElementById('manualDurationInput').value);
+    cardioDistance = isNaN(cardioDistance) ? null : cardioDistance;
+    cardioDuration = isNaN(cardioDuration) ? null : cardioDuration;
+    // Derives the same free-text display shown everywhere else (bubbles, Home, Plan rows) from the
+    // structured Distance/Duration fields, so nothing else in the app needs to change to show it.
+    volume = [cardioDistance!=null ? `${cardioDistance} mi` : '', cardioDuration!=null ? fmtTime(cardioDuration) : ''].filter(Boolean).join(' · ');
+  }
 
   if(manualEntryType==='interval'){
     // An interval workout is completed by running its timer, not logged as an instant fact --
@@ -4661,28 +4744,42 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
   }
 
   if(createMarkCompleted){
-    const log = ensureDayLog(state.openDayKey);
+    // A cardio log's Date row can file it under a different day than the one Day Detail was opened
+    // for -- everything else always stays on state.openDayKey.
+    const dateInputVal = document.getElementById('manualDateInput').value;
+    const targetDayKey = (isCardioLog && dateInputVal) ? dateInputVal : state.openDayKey;
+    const sourceLog = ensureDayLog(state.openDayKey);
     // Editing an existing logged bubble updates it in place -- only the explicit "+ Create Workout"
     // entry point (which never sets manualEntryEditingId) appends a genuinely new one.
-    const existing = manualEntryEditingId ? log.manualEntries.find(e=>e.id===manualEntryEditingId) : null;
-    if(existing){
+    const existing = manualEntryEditingId ? sourceLog.manualEntries.find(e=>e.id===manualEntryEditingId) : null;
+    if(existing && targetDayKey!==state.openDayKey){
+      // The date was changed while editing -- move the entry to its new day instead of leaving a
+      // stale copy behind under the old one.
+      sourceLog.manualEntries = sourceLog.manualEntries.filter(e=>e.id!==existing.id);
+      if(existing.supabaseId) cloudDeleteManualEntry(existing.supabaseId);
+      const moved = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes, distance:cardioDistance, durationMin:cardioDuration};
+      ensureDayLog(targetDayKey).manualEntries.push(moved);
+      cloudInsertManualEntry(targetDayKey, moved).then(supabaseId=>{ if(supabaseId) moved.supabaseId = supabaseId; });
+    } else if(existing){
       existing.name = name; existing.type = manualEntryType; existing.volume = volume; existing.notes = notes;
+      existing.distance = cardioDistance; existing.durationMin = cardioDuration;
       if(existing.supabaseId) cloudUpdateManualEntry(existing.supabaseId, existing);
     } else {
-      const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes};
-      log.manualEntries.push(entry);
-      cloudInsertManualEntry(state.openDayKey, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
+      const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes, distance:cardioDistance, durationMin:cardioDuration};
+      ensureDayLog(targetDayKey).manualEntries.push(entry);
+      cloudInsertManualEntry(targetDayKey, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
     }
     // A fresh log is the clearest possible "this happened" signal, so it should always win over any
     // earlier explicit "mark as not done" toggle -- otherwise a stale override could silently hide a
     // workout the user just told the app they did.
-    log.completedOverride = null;
-    const idxInCurrentWeek = currentWeekIdxFor(state.openDayKey);
+    ensureDayLog(targetDayKey).completedOverride = null;
+    const idxInCurrentWeek = currentWeekIdxFor(targetDayKey);
     if(idxInCurrentWeek>=0 && idxInCurrentWeek!==TODAY_IDX){
       state.week[idxInCurrentWeek].completed = true;
     }
     state.doneCount = computeDoneCount();
     manualEntryEditingId = null;
+    state.openDayKey = targetDayKey;
   } else {
     planCustomWorkout(state.openDayKey, {title:name, type:manualEntryType, detail:volume, target:readCreateTarget(), exercises: manualEntryType==='strength' ? manualExercises.slice() : null, replacePrimary:manualEntryEditingPrimary});
   }
@@ -5251,11 +5348,19 @@ async function cloudInsertManualEntry(dateStr, entry){
     // A fresh manual log clears any stale "not done" override, mirroring the local logic in the
     // saveManualEntry handler below.
     await sb.from('workout_logs').update({ completed_override: null }).eq('id', row.id);
-    const { data, error } = await sb.from('manual_entries').insert({
+    let res = await sb.from('manual_entries').insert({
       workout_log_id: row.id, name: entry.name, type: entry.type, volume: entry.volume, notes: entry.notes,
+      distance: entry.distance ?? null, duration_min: entry.durationMin ?? null,
     }).select('id').maybeSingle();
-    if(error) throw error;
-    return data ? data.id : null;
+    if(res.error){
+      // distance/duration_min may not exist yet if this migration hasn't been applied to this
+      // project's live database -- retry without them rather than losing the whole entry.
+      res = await sb.from('manual_entries').insert({
+        workout_log_id: row.id, name: entry.name, type: entry.type, volume: entry.volume, notes: entry.notes,
+      }).select('id').maybeSingle();
+    }
+    if(res.error) throw res.error;
+    return res.data ? res.data.id : null;
   }catch(e){ return null; }
 }
 async function cloudDeleteManualEntry(supabaseId){
@@ -5265,9 +5370,17 @@ async function cloudDeleteManualEntry(supabaseId){
 async function cloudUpdateManualEntry(supabaseId, entry){
   if(!state.userId || !supabaseId) return;
   try{
-    await sb.from('manual_entries').update({
+    const { error } = await sb.from('manual_entries').update({
       name: entry.name, type: entry.type, volume: entry.volume, notes: entry.notes,
+      distance: entry.distance ?? null, duration_min: entry.durationMin ?? null,
     }).eq('id', supabaseId);
+    if(error){
+      // Same missing-column fallback as cloudInsertManualEntry -- retry without the newer columns
+      // rather than the whole edit silently failing to save.
+      await sb.from('manual_entries').update({
+        name: entry.name, type: entry.type, volume: entry.volume, notes: entry.notes,
+      }).eq('id', supabaseId);
+    }
   }catch(e){ /* best-effort */ }
 }
 // planned_workouts: any ADDITIONAL workout added to a day beyond the primary plan slot (which still
@@ -5381,7 +5494,7 @@ async function loadWorkoutDataFromCloud(){
     // given Supabase project's live database, and the client doesn't throw on a bad column name,
     // it just returns no rows, which previously wiped out every planned workout from view.
     let logsRes = await sb.from('workout_logs')
-      .select('log_date, completed_override, planned_type, planned_title, planned_detail, planned_interval_rounds, planned_interval_work_sec, planned_interval_rest_sec, actual_run_distance, manual_entries(id, name, type, volume, notes)')
+      .select('log_date, completed_override, planned_type, planned_title, planned_detail, planned_interval_rounds, planned_interval_work_sec, planned_interval_rest_sec, actual_run_distance, manual_entries(id, name, type, volume, notes, distance, duration_min)')
       .eq('user_id', state.userId);
     if(logsRes.error){
       logsRes = await sb.from('workout_logs')
@@ -5401,7 +5514,7 @@ async function loadWorkoutDataFromCloud(){
         state.dayLog[key] = {
           completedOverride: row.completed_override,
           manualEntries: (row.manual_entries||[]).map(e=>(
-            { id:'m'+e.id, supabaseId:e.id, name:e.name, type:e.type, volume:e.volume||'', notes:e.notes||'' }
+            { id:'m'+e.id, supabaseId:e.id, name:e.name, type:e.type, volume:e.volume||'', notes:e.notes||'', distance: e.distance ?? null, durationMin: e.duration_min ?? null }
           )),
           session: customSession ? {p: customSession, c: null, isCustom: true} : null,
           actualRunDistance: row.actual_run_distance ?? null,

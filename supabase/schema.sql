@@ -66,6 +66,8 @@ create table if not exists manual_entries (
   notes text,
   created_at timestamptz default now()
 );
+alter table manual_entries add column if not exists distance numeric; -- cardio entries: structured distance (mi), alongside the derived `volume` display string
+alter table manual_entries add column if not exists duration_min numeric; -- cardio entries: structured duration (min)
 
 -- ---------------------------------------------------------------------------
 -- recorded_sessions: structured performance data from the real Record Workout

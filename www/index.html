@@ -1387,6 +1387,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <input type="number" inputmode="numeric" class="text-input" id="logPerfRepsInput">
       </div>
 
+      <div class="sheet-section" id="logPerfDistanceSection">
+        <div class="st-label" data-i18n="logPerfDistanceLabel"></div>
+        <input type="number" inputmode="decimal" step="0.01" class="text-input" id="logPerfDistanceInput">
+      </div>
+
       <div class="sheet-section" id="logPerfTimeSection">
         <div class="st-label" data-i18n="logPerfTimeLabel"></div>
         <input type="number" inputmode="numeric" class="text-input" id="logPerfTimeInput">
@@ -1747,6 +1752,7 @@ const STR = {
     logPerfTitle: "Log Your Performance",
     logPerfWeightLabel: "Top Set Weight (lb)",
     logPerfRepsLabel: "Reps Completed",
+    logPerfDistanceLabel: "Distance (mi)",
     logPerfTimeLabel: "Total Time (min)",
     workoutNotesLabel: "Notes",
     workoutNotesPlaceholder: "How did it feel? Anything to remember for next time?",
@@ -1969,6 +1975,7 @@ const STR = {
     logPerfTitle: "Registra tu rendimiento",
     logPerfWeightLabel: "Peso de la serie máxima (lb)",
     logPerfRepsLabel: "Repeticiones completadas",
+    logPerfDistanceLabel: "Distancia (mi)",
     logPerfTimeLabel: "Tiempo total (min)",
     workoutNotesLabel: "Notas",
     workoutNotesPlaceholder: "¿Cómo te sentiste? ¿Algo que recordar para la próxima?",
@@ -2545,8 +2552,12 @@ function getDayData(date){
   const extraWorkouts = (log && log.extraWorkouts) ? log.extraWorkouts : [];
   let completed = planCompleted || manualEntries.length>0 || extraWorkouts.some(w=>w.completed);
   if(log && typeof log.completedOverride === 'boolean') completed = log.completedOverride;
+  // The distance actually run, as reported in Log Performance -- null until a run is actually
+  // logged for this day, in which case it should be used instead of the plan's prescribed
+  // distance (see weekStats()) since what actually happened rarely matches the plan exactly.
+  const actualRunDistance = (log && log.actualRunDistance!=null) ? log.actualRunDistance : null;
   return {
-    key, date, p, c, completed, manualEntries, isCustom, extraWorkouts,
+    key, date, p, c, completed, manualEntries, isCustom, extraWorkouts, actualRunDistance,
     isToday: key===dateKey(TODAY_DATE),
     isPast: date.getTime() < TODAY_DATE.getTime(),
     isFuture: date.getTime() > TODAY_DATE.getTime(),
@@ -3302,7 +3313,7 @@ function applyProgressionResult(session, logged){
     const met = logged.reps >= target.reps && logged.feel !== 'hard';
     if(met){ target.weight += 5; state._lastProgressed = true; }
   } else if(session.t==='run'){
-    const dist = parseFloat(session.en.detail) || 3;
+    const dist = logged.distance!=null ? logged.distance : (parseFloat(session.en.detail) || 3);
     const actualPace = dist>0 ? logged.time/dist : target.pace;
     const met = actualPace <= target.pace+0.05 && logged.feel !== 'hard';
     if(met){ target.pace = Math.max(4.0, +(target.pace-5/60).toFixed(3)); state._lastProgressed = true; }
@@ -3492,14 +3503,19 @@ function openLogPerformance(extraId){
   const target = getProgressionTarget(eff, state.intensityIdx);
   document.getElementById('logPerfWeightSection').hidden = !(eff.t==='strength' && !exercises);
   document.getElementById('logPerfRepsSection').hidden = !(eff.t==='strength' && !exercises);
+  document.getElementById('logPerfDistanceSection').hidden = eff.t!=='run';
   document.getElementById('logPerfTimeSection').hidden = eff.t!=='run';
   if(eff.t==='strength' && !exercises && target){
     document.getElementById('logPerfWeightInput').value = target.weight;
     document.getElementById('logPerfRepsInput').value = target.reps;
   }
-  if(eff.t==='run' && target){
+  if(eff.t==='run'){
+    // Prefilled with the plan's prescribed distance as a starting point -- editable, since what
+    // actually gets run rarely matches the plan exactly, and that's what should count everywhere
+    // else (Summary, pace, weekly/total mileage).
     const dist = parseFloat(eff.en.detail) || 3;
-    document.getElementById('logPerfTimeInput').value = Math.round(target.pace*dist);
+    document.getElementById('logPerfDistanceInput').value = dist;
+    if(target) document.getElementById('logPerfTimeInput').value = Math.round(target.pace*dist);
   }
   const notesInput = document.getElementById('logPerfNotesInput');
   notesInput.value = '';
@@ -3541,8 +3557,9 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     logged.reps = parseFloat(document.getElementById('logPerfRepsInput').value) || (target && target.reps) || 0;
   }
   if(eff.t==='run'){
-    const dist = parseFloat(eff.en.detail) || 3;
-    logged.time = parseFloat(document.getElementById('logPerfTimeInput').value) || ((target ? target.pace : 9.5)*dist);
+    const plannedDist = parseFloat(eff.en.detail) || 3;
+    logged.distance = parseFloat(document.getElementById('logPerfDistanceInput').value) || plannedDist;
+    logged.time = parseFloat(document.getElementById('logPerfTimeInput').value) || ((target ? target.pace : 9.5)*logged.distance);
   }
   logged.notes = document.getElementById('logPerfNotesInput').value.trim();
   document.getElementById('logPerfOverlay').hidden = true;
@@ -3582,9 +3599,13 @@ function startWorkout(logged){
     state.streak += 1;
     if(state.streak > state.bestStreak) state.bestStreak = state.streak;
     if(eff.t==='run'){
-      const mi = parseFloat(eff.en.detail)||0;
+      // The distance actually run (from the Log Performance sheet) is what should count toward
+      // mileage totals -- falling back to the plan's prescribed distance only if none was entered.
+      const mi = (logged && logged.distance!=null) ? logged.distance : (parseFloat(eff.en.detail)||0);
       state.mileage = +(state.mileage+mi).toFixed(1);
       state.totalDistance = +(state.totalDistance+mi).toFixed(1);
+      ensureDayLog(dateKey(TODAY_DATE)).actualRunDistance = mi;
+      cloudSetActualRunDistance(dateKey(TODAY_DATE), mi);
     }
     state.totalWorkouts += 1;
   }
@@ -4615,7 +4636,7 @@ function weekStats(offset){
     const done = dd.completed;
     if((dd.p.t!=='rest' && done) || dd.manualEntries.length>0) workouts++;
     if(dd.p.t==='run' && done){
-      distance += parseFloat(ST(dd.p).detail) || 0;
+      distance += dd.actualRunDistance!=null ? dd.actualRunDistance : (parseFloat(ST(dd.p).detail) || 0);
     }
   });
   return {workouts, distance};
@@ -4920,7 +4941,9 @@ function getSummaryStats(session, intensityIdx, logged){
   const L = STR[state.lang];
   const tier = INTENSITY[intensityIdx];
   if(session.t==='run'){
-    const dist = parseFloat(session.en.detail) || 3;
+    // What was actually run (if it was logged) is what the summary/pace should reflect --
+    // the planned distance is only a fallback for the pre-completion seeded preview.
+    const dist = (logged && logged.distance!=null) ? logged.distance : (parseFloat(session.en.detail) || 3);
     const totalMin = (logged && logged.time) ? logged.time : dist*tier.pace;
     const paceMin = dist>0 ? totalMin/dist : tier.pace;
     const paceStr = fmtPace(paceMin)+'/mi';
@@ -5115,6 +5138,14 @@ async function cloudSetCompletedOverride(dateStr, value){
     await sb.from('workout_logs').update({ completed_override: value }).eq('id', row.id);
   }catch(e){ /* best-effort */ }
 }
+async function cloudSetActualRunDistance(dateStr, distance){
+  if(!state.userId) return;
+  try{
+    const row = await cloudGetOrCreateWorkoutLog(dateStr);
+    if(!row) return;
+    await sb.from('workout_logs').update({ actual_run_distance: distance }).eq('id', row.id);
+  }catch(e){ /* best-effort */ }
+}
 async function cloudInsertManualEntry(dateStr, entry){
   if(!state.userId) return null;
   try{
@@ -5168,7 +5199,7 @@ async function cloudInsertRecordedSession(dateStr, session, logged){
       user_id: state.userId, log_date: dateStr, session_type: session.t, session_title: session.en.title,
       weight: logged.weight ?? null, reps: logged.reps ?? null, time_min: logged.time ?? null, feel: logged.feel ?? null,
       rating: logged.rating ?? null, review_notes: logged.notes || null,
-      exercises: logged.exercises || null,
+      exercises: logged.exercises || null, distance: logged.distance ?? null,
     });
   }catch(e){ /* best-effort */ }
 }
@@ -5236,7 +5267,7 @@ async function loadWorkoutDataFromCloud(){
   if(!state.userId) return;
   try{
     const { data: logs } = await sb.from('workout_logs')
-      .select('log_date, completed_override, planned_type, planned_title, planned_detail, planned_interval_rounds, planned_interval_work_sec, planned_interval_rest_sec, manual_entries(id, name, type, volume, notes)')
+      .select('log_date, completed_override, planned_type, planned_title, planned_detail, planned_interval_rounds, planned_interval_work_sec, planned_interval_rest_sec, actual_run_distance, manual_entries(id, name, type, volume, notes)')
       .eq('user_id', state.userId);
     if(logs){
       logs.forEach(row=>{
@@ -5253,6 +5284,7 @@ async function loadWorkoutDataFromCloud(){
             { id:'m'+e.id, supabaseId:e.id, name:e.name, type:e.type, volume:e.volume||'', notes:e.notes||'' }
           )),
           session: customSession ? {p: customSession, c: null, isCustom: true} : null,
+          actualRunDistance: row.actual_run_distance ?? null,
         };
         // The current week's non-today slots track completion (and, for a custom plan, the session
         // itself) on state.week[i] directly rather than through dayLog -- mirror both there too so

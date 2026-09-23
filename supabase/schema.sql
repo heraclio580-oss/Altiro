@@ -53,6 +53,7 @@ alter table workout_logs add column if not exists planned_detail text;
 alter table workout_logs add column if not exists planned_interval_rounds int;
 alter table workout_logs add column if not exists planned_interval_work_sec int;
 alter table workout_logs add column if not exists planned_interval_rest_sec int;
+alter table workout_logs add column if not exists actual_run_distance numeric; -- what was actually run, from Log Performance -- distinct from the plan's prescribed distance
 
 -- manual_entries: free-text "+ Add a Workout" logs, children of a workout_log
 create table if not exists manual_entries (
@@ -87,6 +88,7 @@ create table if not exists recorded_sessions (
 alter table recorded_sessions add column if not exists rating int;
 alter table recorded_sessions add column if not exists review_notes text;
 alter table recorded_sessions add column if not exists exercises jsonb;
+alter table recorded_sessions add column if not exists distance numeric; -- run sessions: the actual distance covered
 
 -- planned_workouts: any ADDITIONAL workout added to a day beyond the primary plan slot (which still
 -- lives on workout_logs.planned_* as above) -- a day can hold several of these, each independently

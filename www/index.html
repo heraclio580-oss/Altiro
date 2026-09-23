@@ -352,8 +352,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .day-row.done{border-left-color:var(--ok-border);}
 .day-row .r-top{display:flex;align-items:center;justify-content:space-between;}
 .r-top-right{display:flex;align-items:center;gap:8px;}
-.drag-handle{display:flex;align-items:center;justify-content:center;color:var(--text-3);flex-shrink:0;cursor:grab;touch-action:none;padding:10px;margin:-10px;}
-.drag-handle svg{width:14px;height:14px;display:block;}
+.drag-handle{display:flex;align-items:center;justify-content:center;color:var(--text-2);flex-shrink:0;cursor:grab;touch-action:none;padding:10px;margin:-10px;}
+.drag-handle svg{width:18px;height:18px;display:block;}
 .day-row .r-day{font-family:var(--font-display);font-weight:600;font-size:12.5px;letter-spacing:0.04em;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:7px;}
 .day-row .r-day .num{font-family:var(--font-mono);color:var(--text-3);font-weight:500;}
 .stpill{font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:2px 8px;border-radius:var(--r-pill);display:flex;align-items:center;gap:4px;}
@@ -4056,8 +4056,11 @@ function onWeekScroll(){
 }
 document.getElementById('screen-week').addEventListener('scroll', onWeekScroll);
 
-const DRAG_LONG_PRESS_MS = 320;
-const DRAG_MOVE_CANCEL_PX = 16;
+const DRAG_LONG_PRESS_MS = 220;
+// A real finger is never perfectly still during a hold -- 16px was tight enough that ordinary
+// touch jitter (not an intentional scroll) could cancel the long-press before it ever armed,
+// making the drag hard to trigger reliably on a phone.
+const DRAG_MOVE_CANCEL_PX = 28;
 function setupDayRowInteraction(wrap){
   wrap.querySelectorAll('.plan-row').forEach(row=>{
     const idx = parseInt(row.getAttribute('data-day'),10);

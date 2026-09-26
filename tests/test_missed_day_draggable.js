@@ -9,10 +9,21 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'u
 const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/', beforeParse(window){ window.__ALTIRO_TEST_TODAY__ = '2026-09-17'; } });
 const { window } = dom;
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
-function tap(el){
-  el.dispatchEvent(new window.PointerEvent('pointerdown', {bubbles:true, cancelable:true, pointerId:1, clientX:100, clientY:100}));
-  el.dispatchEvent(new window.PointerEvent('pointerup', {bubbles:true, cancelable:true, pointerId:1, clientX:100, clientY:100}));
+function firePointer(el, type, opts){
+  el.dispatchEvent(new window.PointerEvent(type, Object.assign({bubbles:true, cancelable:true, pointerId:1}, opts)));
 }
+// jsdom has no real layout; the app picks a drop target from getBoundingClientRect-derived geometry,
+// so give every .plan-row a synthetic rect from its flat index (see test_reorder_cascade.js).
+const ROW_H = 50;
+function rowCenterY(flatIdx){ return flatIdx*ROW_H + ROW_H/2; }
+window.Element.prototype.getBoundingClientRect = function(){
+  const flatAttr = this.getAttribute && this.getAttribute('data-flat-idx');
+  if(this.classList && this.classList.contains('plan-row') && flatAttr!==null){
+    const top = parseInt(flatAttr,10)*ROW_H;
+    return { top, bottom: top+ROW_H, left:0, right:300, width:300, height:ROW_H, x:0, y:top };
+  }
+  return { top:0, bottom:0, left:0, right:0, width:0, height:0, x:0, y:0 };
+};
 
 // Reported: today's rest slot needed to swap with YESTERDAY's missed workout -- slide the rest day
 // up, slide the missed workout down into today -- but every past day was unconditionally locked
@@ -54,13 +65,15 @@ function tap(el){
     rowFor(2).getAttribute('data-draggable')==='1' ? 'OK' : 'FAIL');
   console.log('It has a grip handle too:', !!rowFor(2).querySelector('.drag-handle') ? 'OK' : 'FAIL');
 
-  // --- Tap today's row to pick it up, then tap Wednesday to swap them ---
-  tap(todayRow().querySelector('.prow-body'));
+  // --- Press-and-hold-drag today's row up onto Wednesday to swap them ---
+  const todayFlat = parseInt(todayRow().getAttribute('data-flat-idx'),10); // 3
+  const wedFlat = parseInt(rowFor(2).getAttribute('data-flat-idx'),10); // 2
+  firePointer(todayRow(), 'pointerdown', {clientX:100, clientY:rowCenterY(todayFlat)});
+  await wait(380);
+  firePointer(todayRow(), 'pointermove', {clientX:100, clientY:rowCenterY(wedFlat)});
   await wait(10);
-  console.log('Today is picked up as the reorder source:', todayRow().classList.contains('reorder-source') ? 'OK' : 'FAIL');
-  console.log('Wednesday (missed, now unlocked) is an eligible reorder target:', rowFor(2).classList.contains('reorder-target') ? 'OK' : 'FAIL');
-
-  tap(rowFor(2).querySelector('.prow-body'));
+  console.log('Wednesday (missed, now unlocked) is highlighted as a drop target while dragging today:', rowFor(2).classList.contains('drop-target') ? 'OK' : 'FAIL');
+  firePointer(todayRow(), 'pointerup', {clientX:100, clientY:rowCenterY(wedFlat)});
   await wait(20);
 
   console.log('Today now holds the missed workout, moved forward into today\'s slot:',

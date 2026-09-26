@@ -33,7 +33,7 @@ function click(el){ el.dispatchEvent(new window.Event('click', {bubbles:true, ca
   console.log('Create Workout sheet opened:', doc.getElementById('manualEntryOverlay').hidden===false ? 'OK' : 'FAIL');
   console.log('Day Detail did NOT open:', doc.getElementById('dayDetailOverlay').hidden===true ? 'OK' : 'FAIL');
   console.log('Date field pre-filled with Sunday\'s date:', doc.getElementById('manualDateInput').value==='2026-09-20' ? 'OK' : `FAIL (${doc.getElementById('manualDateInput').value})`);
-  console.log('No row left marked as a reorder source (the click did not arm a drag/tap-move):', !weekList.querySelector('.reorder-source') ? 'OK' : 'FAIL');
+  console.log('No row left marked as dragging (the click did not arm a drag):', !weekList.querySelector('.dragging') ? 'OK' : 'FAIL');
 
   // A future day defaults Create Workout to "just plan it", not "log it as done".
   console.log('Defaults to planning (not logging as already done) since Sunday is in the future:', !doc.getElementById('createCompletedToggle').classList.contains('on') ? 'OK' : 'FAIL');

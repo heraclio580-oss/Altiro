@@ -8,8 +8,8 @@ function firePointer(win, el, type, opts){
   el.dispatchEvent(new win.PointerEvent(type, Object.assign({bubbles:true, cancelable:true, pointerId:1}, opts)));
 }
 
-// Regression test for a reported bug: rearranging workouts on the Plan page (drag or tap-to-move)
-// was purely local -- reorderAcrossPlan() never called any cloudXxx function, so nothing about a
+// Regression test for a reported bug: rearranging workouts on the Plan page (drag) was purely
+// local -- reorderAcrossPlan() never called any cloudXxx function, so nothing about a
 // rearrange was ever saved. Signing out and back in re-ran loadWorkoutDataFromCloud(), which only
 // restores a date's content from an explicit workout_logs.planned_type row; with none saved, every
 // date just fell back to its own auto-generated (originally-scheduled) content and the rearrangement

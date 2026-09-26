@@ -56,29 +56,20 @@ window.Element.prototype.getBoundingClientRect = function(){
   console.log('Saturday row IS draggable:', satRow.getAttribute('data-draggable')==='1' ? 'OK' : 'FAIL');
   console.log('Saturday row has drag handle:', !!satRow.querySelector('.drag-handle') ? 'OK' : 'FAIL');
 
-  // --- Test 1: quick tap ANYWHERE on today's row (not just its grip) picks it up instead of
-  // opening Day Detail -- today is special-cased since it's the row people most want to move, and
-  // the tiny grip alone proved too small a target on a real phone. ---
+  // --- Test 1: quick tap on today's row opens Day Detail, same as any other draggable row -- only
+  // a genuine press-and-hold drag moves a day now. ---
   firePointer(todayRow, 'pointerdown', {clientX:100, clientY:rowCenterY(4)});
   await wait(20); // well under the long-press threshold
   firePointer(todayRow, 'pointerup', {clientX:100, clientY:rowCenterY(4)});
   await wait(10);
-  // renderWeek() replaced the DOM on pick-up, so re-query rather than reuse the (now stale) todayRow.
-  let freshTodayRow = weekList.querySelector('.plan-row[data-day="4"][data-week-idx="0"]');
-  console.log('Quick tap anywhere on today row picks it up instead of opening Day Detail:',
-    doc.getElementById('dayDetailOverlay').hidden===true && freshTodayRow.classList.contains('reorder-source') ? 'OK' : 'FAIL');
-  // Tapping the same row again cancels the pending pick-up, so it doesn't leak into later tests.
-  firePointer(freshTodayRow, 'pointerdown', {clientX:100, clientY:rowCenterY(4)});
-  await wait(20);
-  firePointer(freshTodayRow, 'pointerup', {clientX:100, clientY:rowCenterY(4)});
+  console.log('Quick tap on today row opens Day Detail:', doc.getElementById('dayDetailOverlay').hidden===false ? 'OK' : 'FAIL');
+  doc.getElementById('closeDayDetail').click();
   await wait(10);
-  console.log('Tapping today again cancels the pick-up:', !doc.getElementById('weekList').querySelector('.reorder-source') ? 'OK' : 'FAIL');
 
   // --- Test 2: quick tap on a draggable row (Saturday) also still opens Day Detail (no drag intended) ---
-  const freshSatRow = weekList.querySelector('.plan-row[data-day="5"][data-week-idx="0"]');
-  firePointer(freshSatRow, 'pointerdown', {clientX:100, clientY:rowCenterY(5)});
+  firePointer(satRow, 'pointerdown', {clientX:100, clientY:rowCenterY(5)});
   await wait(20);
-  firePointer(freshSatRow, 'pointerup', {clientX:100, clientY:rowCenterY(5)});
+  firePointer(satRow, 'pointerup', {clientX:100, clientY:rowCenterY(5)});
   await wait(10);
   console.log('Quick tap on Saturday row opens Day Detail:', doc.getElementById('dayDetailOverlay').hidden===false ? 'OK' : 'FAIL');
   doc.getElementById('closeDayDetail').click();

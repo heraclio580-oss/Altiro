@@ -457,7 +457,6 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .mo-cell.done .mo-dot{background:var(--ok-icon);}
 .mo-cell.missed .mo-num{color:var(--alert);}
 .mo-cell.missed .mo-dot{width:7px;height:7px;background:var(--alert);box-shadow:0 0 0 3px var(--alert-halo);}
-.mo-cell.has-log{box-shadow:inset 0 0 0 1px var(--accent);}
 .type-select-row{display:flex;gap:8px;}
 .type-btn{flex:1;height:52px;border-radius:var(--r-md);background:var(--well);border:1px solid var(--border);color:var(--text-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:0 4px;font-family:var(--font-body);}
 .type-btn svg{width:16px;height:16px;flex-shrink:0;}
@@ -4290,8 +4289,7 @@ function renderCalendar(){
     const date = new Date(year, month, dayNum);
     const dd = getDayData(date);
     const status = statusClassFor(dayDataStatus(dd), dd.isToday);
-    const hasLog = dd.manualEntries.length>0;
-    html += `<div class="mo-cell ${status} ${hasLog?'has-log':''}" data-date="${dd.key}">
+    html += `<div class="mo-cell ${status}" data-date="${dd.key}">
       <span class="mo-num">${dayNum}</span>
       <span class="mo-dot"></span>
     </div>`;

@@ -85,10 +85,10 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('entries innerHTML contains escaped script tag (no raw <script>):', !entries.innerHTML.includes('<script>') ? 'OK (escaped)' : 'FAIL (XSS risk!)');
   console.log('entries text content:', entries.textContent.trim().replace(/\s+/g,' '));
 
-  // Check the calendar grid now shows has-log ring for that date.
+  // Check the calendar grid now shows the day as done (green dot) for that logged, completed entry.
   const dateKeyOpened = pastCell.getAttribute('data-date');
   const cellAfter = doc.querySelector(`.mo-cell[data-date="${dateKeyOpened}"]`);
-  console.log('cell has-log class present:', cellAfter.classList.contains('has-log') ? 'OK' : 'FAIL');
+  console.log('cell shows done (the logged entry promoted this day to completed):', cellAfter.classList.contains('done') ? 'OK' : `FAIL (${cellAfter.className})`);
 
   // Toggle completed for this (non-today, past, outside current week) day.
   const toggle = doc.getElementById('dayCompleteToggle');

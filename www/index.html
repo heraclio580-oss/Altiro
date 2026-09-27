@@ -2491,7 +2491,7 @@ const defaultState = () => ({
   todayCompleted:false,
   // Real stats for a real user always start at zero -- these are never seeded with placeholder
   // numbers, so nothing shows on Progress until the user actually records something themselves.
-  streak:0, bestStreak:0, mileage:0, doneCount:0,
+  streak:0, bestStreak:0, doneCount:0,
   weeklyWorkoutGoal:5, weeklyDistanceGoal:15,
   totalWorkouts:0, totalDistance:0,
   lastCountedDate:null, // dateKey of the last day counted toward streak/totalWorkouts -- guards startWorkout() against double-counting a day that's recorded more than once (see startWorkout())
@@ -2802,6 +2802,35 @@ function promotePrimaryFromLog(key, session){
   } else {
     const log = ensureDayLog(key);
     log.session = {p: session, c: null, isCustom: true};
+  }
+}
+// weekStats() (Progress screen's weekly/lifetime mileage) reads a day's actualRunDistance as the
+// authoritative "what really happened" number, falling back to parsing the primary session's plan
+// text only when that's unset -- but creating or editing a cardio manual entry never touched
+// actualRunDistance at all, so a day's real logged distance only ever showed up there by the
+// coincidence of promotePrimaryFromLog's plan text happening to start with the right number, and
+// EDITING that entry afterward left both the plan text and actualRunDistance frozen at whatever
+// they were the moment it was first logged. Call this after any create/edit/move of manualEntries[0]
+// (the same "first logged entry" getDayData() itself already treats as the day's real record when
+// the primary is still a plain rest day) so Progress, and the promoted primary's own display text if
+// one exists, both reflect the entry as it stands now.
+function syncActualRunDistanceFromEntry(dayKey, entry){
+  if(!entry || entry.type!=='run' || entry.distance==null) return;
+  const log = ensureDayLog(dayKey);
+  if(log.manualEntries[0] !== entry) return;
+  log.actualRunDistance = entry.distance;
+  cloudSetActualRunDistance(dayKey, entry.distance);
+  const rawSlot = getRawDaySlot(parseDateKey(dayKey));
+  // A day whose primary is still genuinely "rest" self-heals automatically on every render (see
+  // getDayData()'s own manualEntries[0] fallback) -- only an already-promoted primary (a real,
+  // persisted session, which only ever happens once per day -- see promotePrimaryFromLog) needs an
+  // explicit refresh here.
+  if(rawSlot.isCustom && rawSlot.p.t!=='rest'){
+    const updated = ses('run', entry.name, entry.volume||'', entry.name, entry.volume||'');
+    const idxInCurrentWeek = currentWeekIdxFor(dayKey);
+    if(idxInCurrentWeek>=0) state.week[idxInCurrentWeek].p = updated;
+    else if(log.session) log.session.p = updated;
+    cloudSavePlannedSession(dayKey, updated);
   }
 }
 function resetToSuggestedPlan(key){
@@ -3302,11 +3331,17 @@ function renderHome(){
   document.getElementById('weatherChip').innerHTML = `${ICONS.sun}<span>72°F · ${L.weatherConditionClear}</span>`;
   document.getElementById('streakChip').innerHTML = `${ICONS.flame}<span>${state.streak} ${L.dayStreakSuffix}</span>`;
 
+  // Distance reads through weekStats() (the same override-aware source Progress's week-detail card
+  // uses) rather than the old state.mileage accumulator, which only a handful of call sites ever
+  // bumped (Record/extra-workout completion) and never a plain "+ Create Workout" cardio log -- so
+  // logging or editing a manual entry's distance never moved this card at all, and since nothing
+  // ever persisted or reloaded it either, it silently reset to 0 on every fresh sign-in besides.
+  const weekMileage = weekStats(0).distance;
   const wPct = Math.min(100, Math.round((state.doneCount/state.weeklyWorkoutGoal)*100));
-  const dPct = Math.min(100, Math.round((state.mileage/state.weeklyDistanceGoal)*100));
+  const dPct = Math.min(100, Math.round((weekMileage/state.weeklyDistanceGoal)*100));
   document.getElementById('ovWorkoutsVal').textContent = `${state.doneCount}/${state.weeklyWorkoutGoal}`;
   document.getElementById('ovWorkoutsBar').style.width = wPct+'%';
-  document.getElementById('ovDistanceVal').textContent = `${state.mileage.toFixed(1)}/${state.weeklyDistanceGoal} mi`;
+  document.getElementById('ovDistanceVal').textContent = `${weekMileage.toFixed(1)}/${state.weeklyDistanceGoal} mi`;
   document.getElementById('ovDistanceBar').style.width = dPct+'%';
 
   const todayKey = dateKey(TODAY_DATE);
@@ -3784,7 +3819,6 @@ function startWorkout(logged){
         const prevMi = w.actualDistance!=null ? w.actualDistance : 0;
         const delta = +(mi-prevMi).toFixed(1);
         w.actualDistance = mi;
-        state.mileage = +(state.mileage+delta).toFixed(1);
         state.totalDistance = +(state.totalDistance+delta).toFixed(1);
         if(w.supabaseId) cloudSetExtraWorkoutDistance(w.supabaseId, mi);
       }
@@ -3822,7 +3856,6 @@ function startWorkout(logged){
       const dayLog = ensureDayLog(dateKey(TODAY_DATE));
       const prevMi = dayLog.actualRunDistance!=null ? dayLog.actualRunDistance : 0;
       const delta = +(mi-prevMi).toFixed(1);
-      state.mileage = +(state.mileage+delta).toFixed(1);
       state.totalDistance = +(state.totalDistance+delta).toFixed(1);
       dayLog.actualRunDistance = mi;
       cloudSetActualRunDistance(dateKey(TODAY_DATE), mi);
@@ -4995,10 +5028,12 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
       const moved = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes, distance:cardioDistance, durationMin:cardioDuration};
       ensureDayLog(targetDayKey).manualEntries.push(moved);
       cloudInsertManualEntry(targetDayKey, moved).then(supabaseId=>{ if(supabaseId) moved.supabaseId = supabaseId; });
+      syncActualRunDistanceFromEntry(targetDayKey, moved);
     } else if(existing){
       existing.name = name; existing.type = manualEntryType; existing.volume = volume; existing.notes = notes;
       existing.distance = cardioDistance; existing.durationMin = cardioDuration;
       if(existing.supabaseId) cloudUpdateManualEntry(existing.supabaseId, existing);
+      syncActualRunDistanceFromEntry(targetDayKey, existing);
     } else {
       const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes, distance:cardioDistance, durationMin:cardioDuration};
       ensureDayLog(targetDayKey).manualEntries.push(entry);
@@ -5013,6 +5048,7 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
         // onto it, so both land on the SAME row instead of racing to create two.
         insertPromise.then(()=> cloudSavePlannedSession(targetDayKey, loggedSession));
       }
+      syncActualRunDistanceFromEntry(targetDayKey, entry);
     }
     // A fresh log is the clearest possible "this happened" signal, so it should always win over any
     // earlier explicit "mark as not done" toggle -- otherwise a stale override could silently hide a

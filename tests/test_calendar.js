@@ -139,6 +139,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   monToggle.click();
   await wait(10);
 
+  // What the Plan tab shows once it's opened (it's redrawn on the way in, not while hidden).
+  [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'week').click();
+  await wait(10);
   const mondayRow = [...doc.querySelectorAll('#weekList .plan-row')].find(r=>r.getAttribute('data-day')==='0' && r.getAttribute('data-week-idx')==='0');
   console.log('Plan tab Monday row class after toggle (expect done):', mondayRow ? mondayRow.className : 'NOT FOUND');
   console.log('Plan tab reflects toggle:', mondayRow && mondayRow.classList.contains('done') ? 'OK' : 'FAIL');

@@ -20,7 +20,7 @@ function makeBackend(){
   const newId = () => 'id' + (nextId++);
   // The columns this mock "database" actually has on workout_logs -- deliberately missing
   // actual_run_distance, simulating a project whose schema migration hasn't been run yet.
-  const REAL_COLUMNS = ['log_date','completed_override','planned_type','planned_title','planned_detail','planned_interval_rounds','planned_interval_work_sec','planned_interval_rest_sec'];
+  const REAL_COLUMNS = ['id', 'log_date','completed_override','planned_type','planned_title','planned_detail','planned_interval_rounds','planned_interval_work_sec','planned_interval_rest_sec'];
 
   function createClient(){
     let currentUser = null;
@@ -70,7 +70,7 @@ function makeBackend(){
             return {data:null, error:{message:`column workout_logs.${badCol} does not exist`}};
           }
           const rows = Object.values(db.workout_logs).filter(matchRow).map(r => ({
-            log_date: r.log_date, completed_override: r.completed_override,
+            id: r.id, log_date: r.log_date, completed_override: r.completed_override,
             planned_type: r.planned_type||null, planned_title: r.planned_title||null, planned_detail: r.planned_detail||null,
             planned_interval_rounds: r.planned_interval_rounds ?? null,
             planned_interval_work_sec: r.planned_interval_work_sec ?? null,

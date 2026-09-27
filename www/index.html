@@ -2605,6 +2605,15 @@ function getDayData(date){
   const log = state.dayLog[key];
   const manualEntries = (log && log.manualEntries) ? log.manualEntries : [];
   const extraWorkouts = (log && log.extraWorkouts) ? log.extraWorkouts : [];
+  // A rest day that somehow still has a real logged entry (data logged before promotePrimaryFromLog
+  // existed, or filed onto this date via the cardio-log "move to a different day" path, which doesn't
+  // promote either) shouldn't keep showing a stale "Rest Day" label next to the thing that actually
+  // happened -- fall back to the first logged entry as this day's effective content.
+  if(p.t==='rest' && manualEntries.length>0){
+    const first = manualEntries[0];
+    p = ses(first.type, first.name, first.volume||'', first.name, first.volume||'');
+    isCustom = true;
+  }
   let completed = planCompleted || manualEntries.length>0 || extraWorkouts.some(w=>w.completed);
   if(log && typeof log.completedOverride === 'boolean') completed = log.completedOverride;
   // The distance actually run, as reported in Log Performance -- null until a run is actually
@@ -4691,10 +4700,11 @@ function openManualEntryForEdit(dd){
   manualEntryEditingPrimary = true;
   const L = STR[state.lang];
   manualEntryType = dd.p.t;
-  // A custom plan bubble is, by construction, always a planned (not-yet-logged) workout --
-  // resubmitting it should keep updating that same plan, not fork off a separate manual log entry.
-  createMarkCompleted = false;
-  document.getElementById('createCompletedToggle').classList.toggle('on', false);
+  // The primary bubble can represent an already-completed workout now too (a logged entry that got
+  // promoted into the primary slot -- see promotePrimaryFromLog), not just a not-yet-done plan, so
+  // the toggle has to reflect its real completed state instead of always assuming "not done yet".
+  createMarkCompleted = dd.completed;
+  document.getElementById('createCompletedToggle').classList.toggle('on', createMarkCompleted);
   document.getElementById('manualNameInput').value = dd.p.en.title;
   document.getElementById('manualVolumeInput').value = dd.p.en.detail || '';
   renderManualTypeRow();
@@ -4817,7 +4827,23 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     return;
   }
 
-  if(createMarkCompleted){
+  if(manualEntryEditingPrimary){
+    // Editing the day's own primary bubble always updates that same slot in place -- the toggle
+    // just says whether it's done. It never forks off a separate manualEntries record, which is
+    // what used to create a duplicate at the bottom of "Logged Workouts" every time an
+    // already-completed primary (one promoted from a logged entry) got resaved.
+    planCustomWorkout(state.openDayKey, {title:name, type:manualEntryType, detail:volume, target:readCreateTarget(), exercises: manualEntryType==='strength' ? manualExercises.slice() : null, replacePrimary:true});
+    const idxInCurrentWeek = currentWeekIdxFor(state.openDayKey);
+    if(idxInCurrentWeek>=0 && idxInCurrentWeek!==TODAY_IDX){
+      state.week[idxInCurrentWeek].completed = createMarkCompleted;
+    } else if(idxInCurrentWeek===TODAY_IDX){
+      state.todayCompleted = createMarkCompleted;
+    } else {
+      ensureDayLog(state.openDayKey).completedOverride = createMarkCompleted;
+    }
+    state.doneCount = computeDoneCount();
+    cloudSetCompletedOverride(state.openDayKey, createMarkCompleted);
+  } else if(createMarkCompleted){
     // A cardio log's Date row can file it under a different day than the one Day Detail was opened
     // for -- everything else always stays on state.openDayKey.
     const dateInputVal = document.getElementById('manualDateInput').value;

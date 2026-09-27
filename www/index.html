@@ -543,6 +543,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:12px 13px;}
 .toggle-row .tt{font-size:13px;color:var(--text);font-weight:500;}
 .toggle-row .ts{font-size:11px;color:var(--text-3);margin-top:2px;}
+.strava-btn{flex-shrink:0;height:34px;padding:0 14px;border-radius:var(--r-pill);border:none;background:#FC4C02;color:#fff;font-family:var(--font-display);font-weight:600;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;}
+.strava-btn.secondary{background:transparent;color:var(--text-2);border:1px solid var(--border);}
+.strava-btn:disabled{opacity:0.5;cursor:default;}
+#stravaDisconnectBtn{margin-top:6px;}
+#stravaDisconnectBtn[hidden]{display:none;}
 .toggle{width:38px;height:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-pill);position:relative;cursor:pointer;flex-shrink:0;}
 .toggle .knob{position:absolute;top:2px;left:2px;width:14px;height:14px;background:var(--text-3);border-radius:50%;transition:left .15s ease, background .15s ease;}
 .toggle.on{background:var(--accent-tint);border-color:var(--accent);}
@@ -1150,6 +1155,18 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
           </div>
           <div class="toggle" id="notifToggle"><div class="knob"></div></div>
         </div>
+      </div>
+
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="connectedAppsLabel"></div>
+        <div class="toggle-row">
+          <div>
+            <div class="tt">Strava</div>
+            <div class="ts" id="stravaStatusText"></div>
+          </div>
+          <button class="strava-btn" id="stravaConnectBtn" type="button"></button>
+        </div>
+        <button class="btn-text" id="stravaDisconnectBtn" type="button" data-i18n="stravaDisconnectBtn" hidden></button>
       </div>
 
       <div class="sheet-section">
@@ -1842,6 +1859,23 @@ const STR = {
     lightModeTitle: "Light Mode",
     lightModeSub: "Switch between light and dark theme",
     notificationsLabel: "Notifications",
+    connectedAppsLabel: "Connected Apps",
+    stravaConnectSub: "Import runs from your watch automatically",
+    stravaConnectedSub: "Connected as {name} · runs import automatically",
+    stravaConnectedSubPlain: "Connected · runs import automatically",
+    stravaSyncingSub: "Syncing with Strava…",
+    stravaUnavailableSub: "Strava isn't set up on the server yet",
+    stravaConnectBtn: "Connect",
+    stravaSyncBtn: "Sync now",
+    stravaDisconnectBtn: "Disconnect Strava",
+    stravaConnectedToast: "Strava connected",
+    stravaDisconnectedToast: "Strava disconnected",
+    stravaFailedToast: "Couldn't connect to Strava",
+    stravaCancelledToast: "Strava connection cancelled",
+    stravaNeedsActivityToast: "Allow access to your activities to import runs",
+    stravaImportedToast: "From Strava: {name} · {mi} mi",
+    stravaImportedManyToast: "Imported {count} runs from Strava",
+    stravaUpToDateToast: "Already up to date",
     helpLabel: "Help",
     tutDone: "Done",
     notificationsTitle: "Workout reminders",
@@ -2065,6 +2099,23 @@ const STR = {
     lightModeTitle: "Modo claro",
     lightModeSub: "Cambia entre el tema claro y oscuro",
     notificationsLabel: "Notificaciones",
+    connectedAppsLabel: "Apps conectadas",
+    stravaConnectSub: "Importa tus carreras del reloj automáticamente",
+    stravaConnectedSub: "Conectado como {name} · las carreras se importan solas",
+    stravaConnectedSubPlain: "Conectado · las carreras se importan solas",
+    stravaSyncingSub: "Sincronizando con Strava…",
+    stravaUnavailableSub: "Strava aún no está configurado en el servidor",
+    stravaConnectBtn: "Conectar",
+    stravaSyncBtn: "Sincronizar",
+    stravaDisconnectBtn: "Desconectar Strava",
+    stravaConnectedToast: "Strava conectado",
+    stravaDisconnectedToast: "Strava desconectado",
+    stravaFailedToast: "No se pudo conectar con Strava",
+    stravaCancelledToast: "Conexión con Strava cancelada",
+    stravaNeedsActivityToast: "Permite el acceso a tus actividades para importar carreras",
+    stravaImportedToast: "De Strava: {name} · {mi} mi",
+    stravaImportedManyToast: "{count} carreras importadas de Strava",
+    stravaUpToDateToast: "Ya está todo al día",
     helpLabel: "Ayuda",
     tutDone: "Listo",
     notificationsTitle: "Recordatorios de entrenamiento",
@@ -2827,7 +2878,11 @@ function promotePrimaryFromLog(key, session){
 function syncActualRunDistanceFromEntry(dayKey, entry){
   if(!entry || entry.type!=='run' || entry.distance==null) return;
   const log = ensureDayLog(dayKey);
-  if(log.manualEntries[0] !== entry) return;
+  // Only when this entry IS the day's headline workout (a rest day's first log, or the primary it was
+  // promoted into) -- a second run logged on a day with its own planned run is a separate run, and
+  // must not overwrite that plan or its logged distance.
+  const head = primaryLogTarget(getDayData(parseDateKey(dayKey)));
+  if(head.kind!=='entry' || head.id!==entry.id) return;
   log.actualRunDistance = entry.distance;
   cloudSetActualRunDistance(dayKey, entry.distance);
   const rawSlot = getRawDaySlot(parseDateKey(dayKey));
@@ -3953,6 +4008,45 @@ document.getElementById('recordBtn').addEventListener('click', function(){
   setTimeout(openLogPerformance, 900);
 });
 
+// Today's own planned workout was just done: it's completed, the first recording of the day counts
+// toward streak/total workouts, and a run's distance counts toward mileage. Shared by the Record flow
+// (startWorkout) and a run imported from Strava (fileStravaRun).
+function recordTodayPrimary(eff, logged){
+  // Recording today's primary session again -- correcting a mistaken entry, or re-recording after
+  // toggling "not done" back on to unlock the Record button again -- must not count as a SECOND
+  // distinct day trained. isTodayDone() can't tell the two cases apart (toggling "not done" resets
+  // it), so this tracks the actual calendar date last counted instead: only the FIRST time a given
+  // day is recorded bumps streak/total-workouts, no matter how many times it's re-recorded after.
+  const todayKeyStr = dateKey(TODAY_DATE);
+  const alreadyCountedToday = state.lastCountedDate === todayKeyStr;
+  state.todayCompleted = true;
+  // Actually recording a workout is the strongest possible "this is done" signal there is, so it
+  // must always win over an earlier explicit "mark as not done" toggle -- otherwise a stale
+  // override could silently hide a workout the user just completed for real.
+  const log = state.dayLog[todayKeyStr];
+  if(log) log.completedOverride = null;
+  cloudSetCompletedOverride(todayKeyStr, null);
+  state.doneCount = computeDoneCount();
+  if(!alreadyCountedToday){
+    state.streak += 1;
+    if(state.streak > state.bestStreak) state.bestStreak = state.streak;
+    state.totalWorkouts += 1;
+    state.lastCountedDate = todayKeyStr;
+  }
+  if(eff.t==='run'){
+    // The distance actually run (from the Log Performance sheet) is what should count toward
+    // mileage totals -- falling back to the plan's prescribed distance only if none was entered.
+    // Re-recording today replaces its previous distance contribution rather than stacking on top
+    // of it, for the same reason as the streak/totalWorkouts guard above.
+    const mi = (logged && logged.distance!=null) ? logged.distance : (parseFloat(eff.en.detail)||0);
+    const dayLog = ensureDayLog(dateKey(TODAY_DATE));
+    const prevMi = dayLog.actualRunDistance!=null ? dayLog.actualRunDistance : 0;
+    const delta = +(mi-prevMi).toFixed(1);
+    state.totalDistance = +(state.totalDistance+delta).toFixed(1);
+    dayLog.actualRunDistance = mi;
+    cloudSetActualRunDistance(dateKey(TODAY_DATE), mi);
+  }
+}
 function startWorkout(logged){
   const eff = activeSession();
   const extraId = state._activeExtraId;
@@ -3980,40 +4074,7 @@ function startWorkout(logged){
     }
     state.doneCount = computeDoneCount();
   } else {
-    // Recording today's primary session again -- correcting a mistaken entry, or re-recording after
-    // toggling "not done" back on to unlock the Record button again -- must not count as a SECOND
-    // distinct day trained. isTodayDone() can't tell the two cases apart (toggling "not done" resets
-    // it), so this tracks the actual calendar date last counted instead: only the FIRST time a given
-    // day is recorded bumps streak/total-workouts, no matter how many times it's re-recorded after.
-    const todayKeyStr = dateKey(TODAY_DATE);
-    const alreadyCountedToday = state.lastCountedDate === todayKeyStr;
-    state.todayCompleted = true;
-    // Actually recording a workout is the strongest possible "this is done" signal there is, so it
-    // must always win over an earlier explicit "mark as not done" toggle -- otherwise a stale
-    // override could silently hide a workout the user just completed for real.
-    const log = state.dayLog[todayKeyStr];
-    if(log) log.completedOverride = null;
-    cloudSetCompletedOverride(todayKeyStr, null);
-    state.doneCount = computeDoneCount();
-    if(!alreadyCountedToday){
-      state.streak += 1;
-      if(state.streak > state.bestStreak) state.bestStreak = state.streak;
-      state.totalWorkouts += 1;
-      state.lastCountedDate = todayKeyStr;
-    }
-    if(eff.t==='run'){
-      // The distance actually run (from the Log Performance sheet) is what should count toward
-      // mileage totals -- falling back to the plan's prescribed distance only if none was entered.
-      // Re-recording today replaces its previous distance contribution rather than stacking on top
-      // of it, for the same reason as the streak/totalWorkouts guard above.
-      const mi = (logged && logged.distance!=null) ? logged.distance : (parseFloat(eff.en.detail)||0);
-      const dayLog = ensureDayLog(dateKey(TODAY_DATE));
-      const prevMi = dayLog.actualRunDistance!=null ? dayLog.actualRunDistance : 0;
-      const delta = +(mi-prevMi).toFixed(1);
-      state.totalDistance = +(state.totalDistance+delta).toFixed(1);
-      dayLog.actualRunDistance = mi;
-      cloudSetActualRunDistance(dateKey(TODAY_DATE), mi);
-    }
+    recordTodayPrimary(eff, logged);
   }
   state._lastSession = eff;
   state._lastLogged = logged || null;
@@ -5027,6 +5088,34 @@ function readIntervalConfig(){
   const restSec = parseMinSec(document.getElementById('createRestDurationInput').value || document.getElementById('createRestDurationInput').placeholder, 60);
   return {rounds, workSec, restSec};
 }
+// Files a workout that already happened onto a day as a "Logged Workout" -- from Create Workout with
+// "already done" on, or a run imported from Strava with no planned run to attach to (fileStravaRun).
+function logCompletedEntry(targetDayKey, fields){
+  const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), ...fields};
+  ensureDayLog(targetDayKey).manualEntries.push(entry);
+  const insertPromise = cloudInsertManualEntry(targetDayKey, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
+  // Nothing has claimed this day's headline yet (still a Rest Day or an untouched suggestion) --
+  // let this genuinely-logged workout take over as the primary session too, instead of leaving
+  // a stale "Rest Day" sitting above the very thing that actually happened.
+  if(!getRawDaySlot(parseDateKey(targetDayKey)).isCustom){
+    const loggedSession = ses(entry.type, entry.name, entry.volume||'', entry.name, entry.volume||'');
+    promotePrimaryFromLog(targetDayKey, loggedSession);
+    // Wait for the manual entry's own get-or-create workout_logs row before syncing the plan
+    // onto it, so both land on the SAME row instead of racing to create two.
+    insertPromise.then(()=> cloudSavePlannedSession(targetDayKey, loggedSession));
+  }
+  syncActualRunDistanceFromEntry(targetDayKey, entry);
+  // A fresh log is the clearest possible "this happened" signal, so it should always win over any
+  // earlier explicit "mark as not done" toggle -- otherwise a stale override could silently hide a
+  // workout the user just told the app they did.
+  ensureDayLog(targetDayKey).completedOverride = null;
+  const idxInCurrentWeek = currentWeekIdxFor(targetDayKey);
+  if(idxInCurrentWeek>=0 && idxInCurrentWeek!==TODAY_IDX){
+    state.week[idxInCurrentWeek].completed = true;
+  }
+  state.doneCount = computeDoneCount();
+  return entry;
+}
 document.getElementById('saveManualEntry').addEventListener('click', ()=>{
   const nameInput = document.getElementById('manualNameInput');
   const name = nameInput.value.trim();
@@ -5062,29 +5151,7 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     // for -- everything else always stays on state.openDayKey.
     const dateInputVal = document.getElementById('manualDateInput').value;
     const targetDayKey = (isCardioLog && dateInputVal) ? dateInputVal : state.openDayKey;
-    const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), name, type:manualEntryType, volume, notes, distance:cardioDistance, durationMin:cardioDuration};
-    ensureDayLog(targetDayKey).manualEntries.push(entry);
-    const insertPromise = cloudInsertManualEntry(targetDayKey, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
-    // Nothing has claimed this day's headline yet (still a Rest Day or an untouched suggestion) --
-    // let this genuinely-logged workout take over as the primary session too, instead of leaving
-    // a stale "Rest Day" sitting above the very thing that actually happened.
-    if(!getRawDaySlot(parseDateKey(targetDayKey)).isCustom){
-      const loggedSession = ses(manualEntryType, name, volume||'', name, volume||'');
-      promotePrimaryFromLog(targetDayKey, loggedSession);
-      // Wait for the manual entry's own get-or-create workout_logs row before syncing the plan
-      // onto it, so both land on the SAME row instead of racing to create two.
-      insertPromise.then(()=> cloudSavePlannedSession(targetDayKey, loggedSession));
-    }
-    syncActualRunDistanceFromEntry(targetDayKey, entry);
-    // A fresh log is the clearest possible "this happened" signal, so it should always win over any
-    // earlier explicit "mark as not done" toggle -- otherwise a stale override could silently hide a
-    // workout the user just told the app they did.
-    ensureDayLog(targetDayKey).completedOverride = null;
-    const idxInCurrentWeek = currentWeekIdxFor(targetDayKey);
-    if(idxInCurrentWeek>=0 && idxInCurrentWeek!==TODAY_IDX){
-      state.week[idxInCurrentWeek].completed = true;
-    }
-    state.doneCount = computeDoneCount();
+    logCompletedEntry(targetDayKey, {name, type:manualEntryType, volume, notes, distance:cardioDistance, durationMin:cardioDuration});
     state.openDayKey = targetDayKey;
   } else {
     planCustomWorkout(state.openDayKey, {title:name, type:manualEntryType, detail:volume, target:readCreateTarget(), exercises: manualEntryType==='strength' ? manualExercises.slice() : null});
@@ -5286,6 +5353,7 @@ function renderSettings(){
   document.getElementById('profileEmail').textContent = state.userEmail;
   document.getElementById('notifToggle').classList.toggle('on', state.notifications);
   document.getElementById('themeToggle').classList.toggle('on', state.theme==='light');
+  renderStravaSettings();
 }
 // Email is the account's real login credential (changing it needs Supabase's own confirmation
 // flow to be done safely), so only the display name is editable here.
@@ -5323,6 +5391,7 @@ document.getElementById('signOutBtn').addEventListener('click', async ()=>{
   clearTimeout(state.loadTimer);
   const lang = state.lang, theme = state.theme;
   state = defaultState();
+  strava = {connected:false, athleteName:'', status:'idle', lastSyncAt:0};
   state.lang = lang; state.theme = theme;
   document.getElementById('goalNext').disabled = true;
   document.getElementById('levelNext').disabled = true;
@@ -5953,6 +6022,201 @@ async function loadWorkoutDataFromCloud(){
   }catch(e){ /* local state remains authoritative if this fails */ }
 }
 
+/* ---------------- strava: runs from the watch, imported automatically ---------------- */
+// The `strava` Edge Function (supabase/functions/strava) holds the Strava tokens and pulls recent runs
+// into strava_activities. This side files each new run onto its day -- onto that day's planned run
+// when there is one, the same as logging it in Log Performance, or as a Logged Workout otherwise --
+// and stamps it applied, so a run is only ever imported once, on any device.
+const STRAVA_CALLBACK_KEY = 'altiro_strava_callback';
+const STRAVA_RESYNC_MS = 60*1000;
+let strava = {connected:false, athleteName:'', status:'idle', lastSyncAt:0}; // status: 'idle' | 'syncing' | 'unavailable'
+
+async function stravaCall(action, extra){
+  if(!sb.functions) return {error:{code:'offline'}};
+  try{
+    const { data, error } = await sb.functions.invoke('strava', {body: {action, ...(extra||{})}});
+    if(error){
+      // A non-2xx reply carries the function's own {error} code in its body; a 404 means the
+      // function hasn't been deployed to this project yet.
+      let code = null, status = error.context && error.context.status;
+      try{ const body = await error.context.json(); code = body && body.error; }catch(e){}
+      return {error:{code: code || error.message, status}};
+    }
+    return {data};
+  }catch(e){ return {error:{code: String((e && e.message) || e)}}; }
+}
+function stravaUnavailable(error){
+  return error.status===404 || error.code==='not_configured';
+}
+function renderStravaSettings(){
+  const L = STR[state.lang];
+  let text;
+  if(strava.status==='syncing') text = L.stravaSyncingSub;
+  else if(strava.status==='unavailable') text = L.stravaUnavailableSub;
+  else if(strava.connected) text = strava.athleteName ? L.stravaConnectedSub.replace('{name}', strava.athleteName) : L.stravaConnectedSubPlain;
+  else text = L.stravaConnectSub;
+  document.getElementById('stravaStatusText').textContent = text;
+  const btn = document.getElementById('stravaConnectBtn');
+  btn.textContent = strava.connected ? L.stravaSyncBtn : L.stravaConnectBtn;
+  btn.classList.toggle('secondary', strava.connected);
+  btn.disabled = strava.status==='syncing';
+  document.getElementById('stravaDisconnectBtn').hidden = !strava.connected;
+}
+function rerenderAfterImport(){
+  if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail();
+  renderCalendar();
+  renderWeek();
+  renderHome();
+}
+
+// Files one imported run onto its day. Returns false when the run was already logged by hand -- the
+// watch's distance rarely matches to the hundredth, so anything within 5% (or a quarter mile) of a run
+// already logged that day counts as the same run.
+function fileStravaRun(row){
+  const key = String(row.local_date).slice(0,10);
+  const miles = +(Number(row.distance_m||0)/1609.344).toFixed(2);
+  const minutes = row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null;
+  const dd = getDayData(parseDateKey(key));
+  const sameRun = d => d!=null && Math.abs(d-miles) <= Math.max(0.25, miles*0.05);
+  if(sameRun(dd.actualRunDistance)
+    || dd.extraWorkouts.some(w=>w.completed && sameRun(w.actualDistance))
+    || dd.manualEntries.some(e=>e.type==='run' && sameRun(e.distance))) return false;
+
+  const logged = {distance: miles, time: minutes, notes: '', source: 'strava', stravaId: row.id};
+  // The day's planned run, or else its first Additional Workout run, if no distance is logged on it
+  // yet -- otherwise this is an extra run that day, filed as its own Logged Workout.
+  let target = null;
+  const head = dd.p.t!=='rest' ? primaryLogTarget(dd) : null;
+  if(dd.p.t==='run' && head.kind==='primary' && dd.actualRunDistance==null){
+    target = head;
+  } else {
+    const w = dd.extraWorkouts.find(x=>x.session && x.session.t==='run' && x.actualDistance==null);
+    if(w) target = {dayKey:key, kind:'extra', id:w.id};
+  }
+  if(target){
+    const resolved = resolveLogTarget(target);
+    storeLoggedPerformance(target, resolved, logged);
+    if(target.kind==='primary' && key===dateKey(TODAY_DATE)){
+      recordTodayPrimary(resolved.session, logged);
+      saveProfileToCloud(); // streak / totals just changed
+    } else {
+      applyLoggedPerformance(target, resolved, logged);
+    }
+  } else {
+    const volume = [`${miles} mi`, minutes!=null ? fmtDurationClock(minutes) : ''].filter(Boolean).join(' · ');
+    logCompletedEntry(key, {name: row.name || 'Run', type:'run', volume, notes:'', distance: miles, durationMin: minutes});
+  }
+  return true;
+}
+async function importStravaActivities(){
+  if(!state.userId) return 0;
+  const { data: rows, error } = await sb.from('strava_activities')
+    .select('id, name, local_date, distance_m, moving_time_s')
+    .eq('user_id', state.userId).is('applied_at', null).order('start_date', {ascending: true});
+  if(error || !rows || !rows.length) return 0;
+  const imported = [];
+  for(const row of rows){
+    // Claim the run before filing it, so two devices syncing at the same moment can't both file it.
+    const { data: claimed } = await sb.from('strava_activities')
+      .update({applied_at: new Date().toISOString()}).eq('id', row.id).is('applied_at', null).select('id');
+    if(!claimed || !claimed.length) continue;
+    if(fileStravaRun(row)) imported.push(row);
+  }
+  if(!imported.length) return 0;
+  rerenderAfterImport();
+  const L = STR[state.lang];
+  showToast(imported.length===1
+    ? L.stravaImportedToast.replace('{name}', imported[0].name || 'Run').replace('{mi}', (imported[0].distance_m/1609.344).toFixed(1))
+    : L.stravaImportedManyToast.replace('{count}', imported.length));
+  return imported.length;
+}
+// Runs on sign-in, whenever the app comes back to the foreground, and from "Sync now" -- at most once a
+// minute unless forced, since the watch -> Garmin -> Strava hop itself takes a minute or two anyway.
+async function syncStrava(opts){
+  const force = !!(opts && opts.force);
+  if(!state.userId || !sb.functions || strava.status==='syncing') return null;
+  if(!force && Date.now()-strava.lastSyncAt < STRAVA_RESYNC_MS) return null;
+  strava.lastSyncAt = Date.now();
+  const wasUnavailable = strava.status==='unavailable';
+  strava.status = 'syncing';
+  renderStravaSettings();
+  const { data, error } = await stravaCall('sync');
+  if(error){
+    strava.status = (stravaUnavailable(error) || wasUnavailable) && !strava.connected ? 'unavailable' : 'idle';
+    renderStravaSettings();
+    return null;
+  }
+  strava.connected = !!data.connected;
+  strava.athleteName = data.athlete_name || '';
+  strava.status = 'idle';
+  renderStravaSettings();
+  return strava.connected ? await importStravaActivities() : null;
+}
+function stravaRedirectUri(){
+  return new URL('strava-callback.html', window.location.href).href;
+}
+async function connectStrava(){
+  const L = STR[state.lang];
+  const { data, error } = await stravaCall('authorize_url', {redirect_uri: stravaRedirectUri()});
+  if(error || !data || !data.url){
+    if(error && stravaUnavailable(error)){ strava.status = 'unavailable'; renderStravaSettings(); }
+    showToast(L.stravaFailedToast);
+    return;
+  }
+  window.location.href = data.url;
+}
+// Finishes a connection when the app reopens after Strava's "Authorize" page (strava-callback.html
+// leaves Strava's reply in localStorage). Returns true if there was one to finish.
+async function finishStravaConnect(){
+  let cb = null;
+  try{
+    const raw = localStorage.getItem(STRAVA_CALLBACK_KEY);
+    localStorage.removeItem(STRAVA_CALLBACK_KEY);
+    cb = raw ? JSON.parse(raw) : null;
+  }catch(e){ cb = null; }
+  if(!cb || !state.userId || Date.now()-cb.at > 10*60*1000) return false;
+  const L = STR[state.lang];
+  const params = new URLSearchParams(cb.search || '');
+  showScreen('settings');
+  if(params.get('error') || !params.get('code')){ showToast(L.stravaCancelledToast); return true; }
+  strava.status = 'syncing';
+  renderStravaSettings();
+  const { data, error } = await stravaCall('connect', {code: params.get('code'), scope: params.get('scope') || ''});
+  strava.status = 'idle';
+  if(error || !data || !data.connected){
+    renderStravaSettings();
+    showToast(error && error.code==='missing_activity_scope' ? L.stravaNeedsActivityToast : L.stravaFailedToast);
+    return true;
+  }
+  strava.connected = true;
+  strava.athleteName = data.athlete_name || '';
+  strava.lastSyncAt = Date.now();
+  renderStravaSettings();
+  if(!(await importStravaActivities())) showToast(L.stravaConnectedToast);
+  return true;
+}
+// Called once the signed-in user's own data has loaded (all three sign-in paths).
+function startStravaSync(){
+  finishStravaConnect().then(finished=>{ if(!finished) syncStrava({force:true}); });
+}
+document.getElementById('stravaConnectBtn').addEventListener('click', async ()=>{
+  if(strava.status==='syncing') return;
+  if(!strava.connected){ connectStrava(); return; }
+  const count = await syncStrava({force:true});
+  if(count===0) showToast(STR[state.lang].stravaUpToDateToast);
+});
+document.getElementById('stravaDisconnectBtn').addEventListener('click', async ()=>{
+  const { error } = await stravaCall('disconnect');
+  if(error){ showToast(STR[state.lang].stravaFailedToast); return; }
+  strava.connected = false;
+  strava.athleteName = '';
+  renderStravaSettings();
+  showToast(STR[state.lang].stravaDisconnectedToast);
+});
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible') syncStrava();
+});
+
 document.getElementById('googleSignInBtn').addEventListener('click', async function(){
   const btn = this;
   if(btn.disabled) return;
@@ -6024,6 +6288,7 @@ document.getElementById('emailSignupBtn').addEventListener('click', async functi
       // exists, there's nothing to "build"). The signup branch above still uses it, since a
       // brand-new account genuinely has no plan yet.
       showScreen('home');
+      startStravaSync();
     }
   }catch(err){
     errEl.style.color = 'var(--accent)';
@@ -6040,7 +6305,7 @@ sb.auth.onAuthStateChange((event, session)=>{
     state.userEmail = session.user.email;
     state.userName = session.user.email.split('@')[0];
     state.userId = session.user.id;
-    loadProfileFromCloud().then(loadWorkoutDataFromCloud).then(loadPRsFromCloud).then(()=> showScreen('home'));
+    loadProfileFromCloud().then(loadWorkoutDataFromCloud).then(loadPRsFromCloud).then(()=>{ showScreen('home'); startStravaSync(); });
   }
   if(event==='SIGNED_OUT'){
     state.signedIn = false;
@@ -6143,6 +6408,7 @@ showScreen('welcome');
       await loadPRsFromCloud();
       applyLang();
       showScreen('home');
+      startStravaSync();
     }
   }catch(e){ /* stay on Welcome if the session check fails */ }
 })();

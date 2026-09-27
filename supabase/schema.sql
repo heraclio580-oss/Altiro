@@ -151,6 +151,47 @@ create policy "own personal records" on personal_records
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------------------
+-- Strava: runs recorded on a watch (Garmin -> Strava) imported automatically.
+-- strava_connections holds each user's Strava tokens. RLS is on with NO policies, so the browser can
+-- never read them -- only the `strava` Edge Function (service role) can.
+-- strava_activities holds runs that function pulled from Strava; the app files each one onto its day
+-- and stamps applied_at so it's never imported twice. The browser may read/stamp its own rows only.
+-- ---------------------------------------------------------------------------
+create table if not exists strava_connections (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  athlete_id bigint,
+  athlete_name text,
+  access_token text not null,
+  refresh_token text not null,
+  expires_at timestamptz not null,
+  scope text,
+  last_synced_at timestamptz,
+  created_at timestamptz default now()
+);
+alter table strava_connections enable row level security;
+
+create table if not exists strava_activities (
+  id bigint primary key,             -- Strava's own activity id
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text,
+  sport_type text,                   -- 'Run' | 'TrailRun' | 'VirtualRun'
+  start_date timestamptz,
+  local_date date not null,          -- the calendar day it was run on, in the runner's own time zone
+  distance_m numeric,
+  moving_time_s int,
+  elapsed_time_s int,
+  applied_at timestamptz,            -- set by the app once the run has been filed onto its day
+  created_at timestamptz default now()
+);
+alter table strava_activities enable row level security;
+drop policy if exists "read own strava activities" on strava_activities;
+create policy "read own strava activities" on strava_activities
+  for select using (auth.uid() = user_id);
+drop policy if exists "mark own strava activities applied" on strava_activities;
+create policy "mark own strava activities applied" on strava_activities
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
 -- subscriptions: synced from RevenueCat webhooks. This is the source of truth
 -- for whether a user's account currently has paid access ("entitlement").
 -- Client code should only ever READ this table -- writes come exclusively

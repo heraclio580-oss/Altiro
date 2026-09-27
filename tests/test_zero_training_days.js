@@ -40,10 +40,10 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('A future day also has no auto-plan -- Rest Day:', doc.getElementById('dayDetailPlanRow').textContent.includes('Rest Day') ? 'OK' : 'FAIL');
 
   // With zero fixed training days, the user's only path to a workout on any given day is to plan
-  // it themselves -- confirm the rest-day bubble still opens a blank Create Workout for exactly that.
-  doc.getElementById('dayDetailPlanRow').click();
+  // it themselves via "+ Add Workout" -- the rest day itself is plain text now, not tappable.
+  doc.getElementById('addWorkoutBtn').click();
   await wait(20);
-  console.log('Tapping the rest-day bubble still opens Create Workout so the user can plan it manually:', doc.getElementById('manualEntryOverlay').hidden===false ? 'OK' : 'FAIL');
+  console.log('"+ Add Workout" still opens Create Workout so the user can plan it manually:', doc.getElementById('manualEntryOverlay').hidden===false ? 'OK' : 'FAIL');
   doc.getElementById('manualNameInput').value = 'Long Run';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='run').click();

@@ -42,15 +42,15 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const doneCellsBefore = doc.querySelectorAll('#calGrid .mo-cell.done').length;
   console.log('Some non-zero baseline of mo-cell.done exists from real completed days (sanity, not a strict check):', doneCellsBefore>=0 ? 'OK' : 'FAIL');
 
-  // --- Day Detail on that Saturday: status pill should read "Rest Day", not "Done" ---
+  // --- Day Detail on that Saturday: a genuinely empty day is now plain "Rest Day" text, no bubble ---
   goPill('home');
   await wait(20);
   const satCellAgain = doc.querySelector('#weekStrip .day-cell[data-day="5"]');
   satCellAgain.click();
   await wait(20);
-  const pillText = doc.querySelector('#dayDetailPlanRow .stpill').textContent.trim();
-  console.log('Day Detail status pill for untouched rest day reads "Rest Day":', pillText==='Rest Day' ? 'OK' : `FAIL (${pillText})`);
-  console.log('Day Detail status pill has no checkmark icon for untouched rest day:', !doc.querySelector('#dayDetailPlanRow .stpill svg') ? 'OK' : 'FAIL');
+  const planRowText = doc.getElementById('dayDetailPlanRow').textContent.trim();
+  console.log('Day Detail shows "Rest Day" as plain text for an untouched rest day:', planRowText==='Rest Day' ? 'OK' : `FAIL (${planRowText})`);
+  console.log('No bordered bubble/card on the plan row for a genuine rest day:', doc.getElementById('dayDetailPlanRow').className==='day-row-empty' ? 'OK' : `FAIL (${doc.getElementById('dayDetailPlanRow').className})`);
 
   // --- Now submit a manual workout on that rest day via the unified "Create Workout" flow ---
   const addBtn = doc.getElementById('addWorkoutBtn');

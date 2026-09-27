@@ -346,6 +346,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .day-row{margin:0 20px 10px;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:var(--r-lg);padding:12px 13px;}
 .day-row.editable{cursor:pointer;}
 .day-row.editable:hover{border-color:var(--hover-border);}
+.day-row-empty{padding:2px 0 10px;color:var(--text-3);font-size:13.5px;}
 .week-block-label{font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ok-icon);margin:14px 20px 2px;}
 .week-block:first-child .week-block-label{margin-top:0;}
 .day-row.today{border-left-color:var(--today-ring);}
@@ -4340,8 +4341,9 @@ document.getElementById('closeDayDetail').addEventListener('click', closeDayDeta
 document.getElementById('dayDetailPlanRow').addEventListener('click', ()=>{
   if(!state.openDayKey) return;
   const dd = getDayData(parseDateKey(state.openDayKey));
-  // A rest day has no workout content to pre-fill -- tapping it just opens a blank Create Workout.
-  if(dd.p.t==='rest'){ openManualEntry(); return; }
+  // A genuinely empty (rest) day renders as plain text now, not a tappable bubble -- "+ Add
+  // Workout" below is the only way to add something.
+  if(dd.p.t==='rest') return;
   openManualEntryForEdit(dd);
 });
 function renderDayDetail(){
@@ -4353,8 +4355,16 @@ function renderDayDetail(){
   const dow = (date.getDay()+6)%7;
 
   document.getElementById('dayDetailTitle').textContent = `${DAY_NAMES_FULL[state.lang][dow]}, ${MONTHS_SHORT[state.lang][date.getMonth()]} ${date.getDate()}`;
-  document.getElementById('dayDetailPlanRow').className = `day-row ${statusClassFor((status==='upcoming'||status==='rest')?'':status, dd.isToday)} editable`;
-  document.getElementById('dayDetailPlanRow').innerHTML = planRowHtml(dd, status);
+  const planRowEl = document.getElementById('dayDetailPlanRow');
+  if(dd.p.t==='rest'){
+    // A genuinely empty day (no plan, nothing logged) doesn't need a bordered bubble just to say
+    // so -- "Rest Day" is plain descriptive text here, and "+ Add Workout" below is the one way in.
+    planRowEl.className = 'day-row-empty';
+    planRowEl.innerHTML = L.statusRest;
+  } else {
+    planRowEl.className = `day-row ${statusClassFor((status==='upcoming')?'':status, dd.isToday)} editable`;
+    planRowEl.innerHTML = planRowHtml(dd, status);
+  }
 
   const actionsEl = document.getElementById('dayDetailActions');
   let actionsHtml = '';

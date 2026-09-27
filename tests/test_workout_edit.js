@@ -88,7 +88,11 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   console.log('Editor closed after Clear Workout:', doc.getElementById('manualEntryOverlay').hidden===true ? 'OK' : 'FAIL');
   console.log('Plan bubble no longer shows the cleared custom title:', !doc.getElementById('dayDetailPlanRow').textContent.includes('Retro Leg Day') ? 'OK' : 'FAIL');
-  console.log('Plan bubble is still editable after clearing (now showing the suggested plan):', doc.getElementById('dayDetailPlanRow').classList.contains('editable') ? 'OK' : 'FAIL');
+  // Monday is in the past relative to this fixture's "today" (Friday), and sessionForDate() never
+  // fabricates a past day's suggestion -- clearing it reverts to a genuine blank Rest Day, which now
+  // renders as plain text (no bubble/card), not an editable one.
+  console.log('Clearing reverts to a genuine Rest Day, no longer an editable bubble:',
+    doc.getElementById('dayDetailPlanRow').className==='day-row-empty' && !doc.getElementById('dayDetailPlanRow').classList.contains('editable') ? 'OK' : `FAIL (${doc.getElementById('dayDetailPlanRow').className})`);
   doc.getElementById('closeDayDetail').click();
   await wait(10);
 
@@ -128,14 +132,18 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const satStripAfter = doc.querySelector('#weekStrip .day-cell[data-day="5"]');
   console.log('Week strip also turns green (done) for that same Saturday:', satStripAfter.classList.contains('done') ? 'OK' : `FAIL (${satStripAfter.className})`);
 
-  // ---- Tapping a rest day's bubble opens a blank Create Workout instead of trying to pre-fill "rest" ----
+  // ---- A rest day is now plain "Rest Day" text, not a tappable bubble -- "+ Add Workout" is the
+  // only way in, and it still opens a blank Create Workout since there's nothing to pre-fill. ----
   doc.querySelector('#weekStrip .day-cell[data-day="6"]').click(); // Sunday, a rest day by default in this fixture
   await wait(20);
   const restPlanRow = doc.getElementById('dayDetailPlanRow');
-  console.log('Rest day bubble is still tappable/editable:', restPlanRow.classList.contains('editable') ? 'OK' : 'FAIL');
+  console.log('Rest day is plain text, no editable bubble:', !restPlanRow.classList.contains('editable') && restPlanRow.className==='day-row-empty' ? 'OK' : `FAIL (${restPlanRow.className})`);
   restPlanRow.click();
   await wait(20);
-  console.log('Tapping a rest day bubble opens a blank Create Workout sheet:', doc.getElementById('manualEntryOverlay').hidden===false && doc.getElementById('manualNameInput').value==='' ? 'OK' : `FAIL (name=${doc.getElementById('manualNameInput').value})`);
+  console.log('Tapping the rest day text does nothing (Create Workout stays closed):', doc.getElementById('manualEntryOverlay').hidden===true ? 'OK' : 'FAIL');
+  doc.getElementById('addWorkoutBtn').click();
+  await wait(20);
+  console.log('"+ Add Workout" opens a blank Create Workout sheet:', doc.getElementById('manualEntryOverlay').hidden===false && doc.getElementById('manualNameInput').value==='' ? 'OK' : `FAIL (name=${doc.getElementById('manualNameInput').value})`);
   console.log('Sheet title stays "Create Workout" (nothing to edit on a rest day):', !doc.getElementById('manualEntryTitleLabel').textContent.includes('Edit') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');

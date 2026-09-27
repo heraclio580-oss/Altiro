@@ -175,7 +175,7 @@ function openSession(backend, todayStr){
   await wait(20);
   const satRow = docB.getElementById('weekList').querySelector('.plan-row[data-day="5"][data-week-idx="0"]');
   console.log('Plan row shows the real logged workout, not "Rest Day":', satRow.querySelector('.prow-title').textContent==='Long Trail Run' ? 'OK' : `FAIL (${satRow.querySelector('.prow-title').textContent})`);
-  console.log('Plan row shows the done checkmark badge:', !!satRow.querySelector('.prow-status.done') ? 'OK' : 'FAIL');
+  console.log('Plan row shows the done dot:', !!satRow.querySelector('.prow-status-dot') ? 'OK' : 'FAIL');
 
   docB.querySelector('#weekStrip .day-cell[data-day="5"]')?.click();
   goPillB('home');

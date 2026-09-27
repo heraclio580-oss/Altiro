@@ -44,7 +44,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   goPill('week');
   await wait(20);
   const planRowToday = doc.querySelector(`.plan-row[data-day="${todayDayIdx}"][data-week-idx="0"]`);
-  console.log('Plan: today\'s specific row now shows the done checkmark, not the TODAY badge:', !!planRowToday.querySelector('.prow-status.done') && !planRowToday.querySelector('.prow-status.today') ? 'OK' : 'FAIL');
+  console.log('Plan: today\'s specific row now shows the done dot, not the TODAY badge:', !!planRowToday.querySelector('.prow-status-dot') && !planRowToday.querySelector('.prow-status.today') ? 'OK' : 'FAIL');
   console.log('Plan: today\'s row is no longer draggable (locked once done):', planRowToday.getAttribute('data-draggable')===null ? 'OK' : 'FAIL');
 
   goPill('calendar');

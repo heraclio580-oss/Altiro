@@ -428,11 +428,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .prow-detail{font-family:var(--font-mono);font-size:10.5px;color:var(--text-3);margin-top:1px;}
 .prow-pill-side{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .prow-status{font-family:var(--font-mono);font-size:9px;letter-spacing:0.06em;text-transform:uppercase;padding:3px 7px;border-radius:var(--r-pill);display:flex;align-items:center;}
-.prow-status.done{color:var(--ok-icon);background:var(--ok-bg);}
-.prow-status.done svg{width:11px;height:11px;}
 .prow-status.missed{color:var(--alert);background:var(--card);}
 .prow-status.today{color:var(--text-2);background:var(--card);}
-.prow-log-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+.prow-status-dot{width:5px;height:5px;border-radius:50%;background:var(--ok-icon);flex-shrink:0;}
 .prow-add{display:flex;align-items:center;gap:2px;flex-shrink:0;background:none;border:none;font-family:var(--font-mono);font-size:10px;color:var(--text-3);padding:8px 4px;margin:-8px -4px -8px 0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .prow-add svg{width:11px;height:11px;}
 #weekList .plan-row{cursor:pointer;}
@@ -4067,10 +4065,13 @@ function planListRowHtml(weekIdx, i, date){
   // just as free to move as any future one, so a missed workout can be dragged forward into today's
   // slot (or today's rest slid back to replace it) instead of being stuck behind an isPast check.
   const draggable = !dd.completed;
-  const hasLog = dd.manualEntries.length>0;
   const flatIdx = weekIdx*7+i;
 
-  const statusBit = status==='done' ? `<span class="prow-status done">${ICONS.checkSm}</span>`
+  // "Done" is a plain green dot now, matching the same minimal dot language Home's week strip and
+  // the Calendar month grid already use -- it used to be a separate checkmark badge sitting right
+  // next to a red "has a logged entry" dot, which was redundant once a logged workout promotes
+  // itself into the row's own title/detail (see promotePrimaryFromLog).
+  const statusBit = status==='done' ? `<span class="prow-status-dot" title="${L.statusDone}"></span>`
     : status==='missed' ? `<span class="prow-status missed">${L.statusMissed}</span>`
     : status==='today' ? `<span class="prow-status today">${L.statusToday}</span>`
     : '';
@@ -4087,7 +4088,6 @@ function planListRowHtml(weekIdx, i, date){
           ${effL.detail ? `<span class="prow-detail">${effL.detail}</span>` : ''}
         </div>
         <div class="prow-pill-side">
-          ${hasLog ? `<span class="prow-log-dot" title="${L.loggedWorkoutsLabel}"></span>` : ''}
           ${statusBit}
           ${draggable ? `<span class="drag-handle" title="${L.dragHandleHint}">${ICONS.grip}</span>` : ''}
         </div>

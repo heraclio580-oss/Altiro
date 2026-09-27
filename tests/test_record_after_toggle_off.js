@@ -47,7 +47,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   goPill('week');
   await wait(20);
-  console.log('Plan list also shows today as done, not stuck on TODAY:', !!doc.querySelector('.prow-status.done') && !doc.querySelector('.prow-status.today') ? 'OK' : 'FAIL');
+  console.log('Plan list also shows today as done, not stuck on TODAY:', !!doc.querySelector('.prow-status-dot') && !doc.querySelector('.prow-status.today') ? 'OK' : 'FAIL');
 
   goPill('calendar');
   await wait(20);

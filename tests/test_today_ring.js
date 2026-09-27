@@ -28,7 +28,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   goPill('week');
   await wait(20);
   console.log('Plan row for today shows the TODAY badge before completing:', !!doc.querySelector('.plan-row.today .prow-status.today') ? 'OK' : 'FAIL');
-  console.log('Plan row for today has no done checkmark yet:', !doc.querySelector('.plan-row.today .prow-status.done') ? 'OK' : 'FAIL');
+  console.log('Plan row for today has no done dot yet:', !doc.querySelector('.plan-row.today .prow-status-dot') ? 'OK' : 'FAIL');
 
   // --- Complete today's workout via Record Workout ---
   goPill('home');
@@ -55,7 +55,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   goPill('week');
   await wait(20);
-  console.log('Plan row for today now shows the done checkmark, not the TODAY badge:', !!doc.querySelector('.prow-status.done') && !doc.querySelector('.prow-status.today') ? 'OK' : 'FAIL');
+  console.log('Plan row for today now shows the done dot, not the TODAY badge:', !!doc.querySelector('.prow-status-dot') && !doc.querySelector('.prow-status.today') ? 'OK' : 'FAIL');
   console.log('That row still carries the "today" class itself (blue accent stays on the row):', !!doc.querySelector('.plan-row.today.done') ? 'OK' : 'FAIL');
 
   goPill('calendar');

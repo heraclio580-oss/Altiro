@@ -80,7 +80,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   goPill('week');
   await wait(20);
   const satRowAfterLog = doc.querySelector('.plan-row[data-day="5"][data-week-idx="0"]');
-  console.log('Plan row: rest day WITH a logged workout now shows the done checkmark badge:', !!satRowAfterLog.querySelector('.prow-status.done') ? 'OK' : 'FAIL');
+  console.log('Plan row: rest day WITH a logged workout now shows the done dot:', !!satRowAfterLog.querySelector('.prow-status-dot') ? 'OK' : 'FAIL');
   console.log('Plan row title is the logged workout, not "Rest Day":', satRowAfterLog.querySelector('.prow-title').textContent==='Evening Walk' ? 'OK' : `FAIL (${satRowAfterLog.querySelector('.prow-title').textContent})`);
 
   // --- The day is now genuinely custom -- "Reset to Suggested Plan" should reflect that, and a

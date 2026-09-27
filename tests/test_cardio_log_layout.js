@@ -65,10 +65,18 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('Logged entry shows the distance and duration derived from the structured fields:',
     bubbleText.includes('4 mi') && bubbleText.includes('30:00') ? 'OK' : `FAIL (${bubbleText})`);
 
-  // Re-open the bubble to edit -- Duration/Distance should be pre-filled from the stored structured
-  // fields, not re-parsed from the display string.
+  // Tapping the bubble now opens a read-only summary first -- a cardio log with real structured
+  // fields gets the same Distance/Time/Pace stat-grid the post-workout Summary screen uses.
   const bubble = doc.querySelector('#dayDetailEntries .manual-entry[data-entry-id]');
   bubble.click();
+  await wait(20);
+  const summaryStatsText = doc.getElementById('workoutSummaryStats').textContent;
+  console.log('Summary shows a Distance/Time/Pace stat-grid for a cardio log:',
+    summaryStatsText.includes('4.0 mi') && summaryStatsText.includes('30:00') && summaryStatsText.includes('7:30/mi') ? 'OK' : `FAIL (${summaryStatsText})`);
+
+  // The small Edit button at the bottom is what opens Create Workout -- Duration/Distance should be
+  // pre-filled from the stored structured fields there, not re-parsed from the display string.
+  doc.getElementById('editWorkoutSummaryBtn').click();
   await wait(20);
   console.log('Re-opening for edit pre-fills Duration hours:', doc.getElementById('manualDurationHInput').value==='0' ? 'OK' : `FAIL (${doc.getElementById('manualDurationHInput').value})`);
   console.log('Re-opening for edit pre-fills Duration minutes:', doc.getElementById('manualDurationMInput').value==='30' ? 'OK' : `FAIL (${doc.getElementById('manualDurationMInput').value})`);

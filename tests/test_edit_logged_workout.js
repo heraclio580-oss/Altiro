@@ -42,11 +42,20 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   console.log('One entry logged:', doc.querySelectorAll('#dayDetailEntries .manual-entry').length===1 ? 'OK' : `FAIL (${doc.querySelectorAll('#dayDetailEntries .manual-entry').length})`);
 
-  // Tap the bubble to edit it.
+  // Tap the bubble -- opens a read-only Workout Summary first now, not the edit form directly.
   const bubble = doc.querySelector('#dayDetailEntries .manual-entry[data-entry-id]');
   console.log('Logged bubble is marked editable:', bubble.classList.contains('editable') ? 'OK' : 'FAIL');
   bubble.click();
   await wait(20);
+  console.log('Tapping the bubble opens the read-only summary, not the edit form:',
+    doc.getElementById('workoutSummaryOverlay').hidden===false && doc.getElementById('manualEntryOverlay').hidden===true ? 'OK' : 'FAIL');
+  console.log('Summary shows the logged workout\'s name:', doc.getElementById('workoutSummaryTitle').textContent==='Morning Lift' ? 'OK' : `FAIL (${doc.getElementById('workoutSummaryTitle').textContent})`);
+  console.log('Summary shows the free-text volume detail:', doc.getElementById('workoutSummaryDetail').textContent==='3x10' ? 'OK' : `FAIL (${doc.getElementById('workoutSummaryDetail').textContent})`);
+
+  // The small Edit button at the bottom of the summary is what actually opens Create Workout.
+  doc.getElementById('editWorkoutSummaryBtn').click();
+  await wait(20);
+  console.log('Summary closes once Edit is tapped:', doc.getElementById('workoutSummaryOverlay').hidden===true ? 'OK' : 'FAIL');
   console.log('Create Workout sheet opens pre-filled with the existing entry:',
     doc.getElementById('manualNameInput').value==='Morning Lift' && doc.getElementById('manualVolumeInput').value==='3x10' ? 'OK' : `FAIL (name=${doc.getElementById('manualNameInput').value}, vol=${doc.getElementById('manualVolumeInput').value})`);
   console.log('Sheet title reads "Edit Workout":', doc.getElementById('manualEntryTitleLabel').textContent==='Edit Workout' ? 'OK' : `FAIL (${doc.getElementById('manualEntryTitleLabel').textContent})`);

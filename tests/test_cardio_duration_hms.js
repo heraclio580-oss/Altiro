@@ -54,6 +54,10 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const bubble = doc.querySelector('#dayDetailEntries .manual-entry[data-entry-id]');
   bubble.click();
   await wait(20);
+  console.log('Summary shows the real h:mm:ss duration too:',
+    doc.getElementById('workoutSummaryStats').textContent.includes('1:23:45') ? 'OK' : `FAIL (${doc.getElementById('workoutSummaryStats').textContent})`);
+  doc.getElementById('editWorkoutSummaryBtn').click();
+  await wait(20);
   console.log('Re-opening pre-fills hours:', doc.getElementById('manualDurationHInput').value==='1' ? 'OK' : `FAIL (${doc.getElementById('manualDurationHInput').value})`);
   console.log('Re-opening pre-fills minutes:', doc.getElementById('manualDurationMInput').value==='23' ? 'OK' : `FAIL (${doc.getElementById('manualDurationMInput').value})`);
   console.log('Re-opening pre-fills seconds:', doc.getElementById('manualDurationSInput').value==='45' ? 'OK' : `FAIL (${doc.getElementById('manualDurationSInput').value})`);

@@ -1303,6 +1303,36 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     </div>
   </div>
 
+  <!-- WORKOUT SUMMARY (overlay) -- a read-only recap of a logged entry, opened by tapping it in
+       Day Detail's "Logged Workouts" list. Edit is a small, deliberate second step from here rather
+       than the tap target itself, so a quick glance at what was logged doesn't risk nudging it into
+       edit mode by accident. -->
+  <div class="sheet-overlay" id="workoutSummaryOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" id="workoutSummaryTitle"></span>
+        <button class="iconbtn" id="closeWorkoutSummary"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+
+      <div class="sheet-section" id="workoutSummaryDetailSection">
+        <div class="footer-note" id="workoutSummaryDetail" style="text-align:left;"></div>
+      </div>
+
+      <div class="stats-grid" id="workoutSummaryStats" style="padding:0 20px;"></div>
+
+      <div class="sheet-section" id="workoutSummaryNotesSection" hidden>
+        <div class="st-label" data-i18n="workoutNotesLabel"></div>
+        <div class="footer-note" id="workoutSummaryNotes" style="text-align:left;"></div>
+      </div>
+
+      <button class="btn-text" id="editWorkoutSummaryBtn" type="button" style="width:100%;text-align:center;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:5px;">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="M13.5 3a3.5 3.5 0 0 0-4.6 4.2L3 13.1V17h3.9l5.9-5.9A3.5 3.5 0 0 0 17 6.5l-2.6 2.6-2-2L15 4.4"/></svg>
+        <span data-i18n="editWorkoutSummaryBtn"></span>
+      </button>
+    </div>
+  </div>
+
   <!-- MANUAL WORKOUT ENTRY SHEET (overlay) -->
   <div class="sheet-overlay" id="manualEntryOverlay" hidden>
     <div class="sheet-panel">
@@ -1893,6 +1923,7 @@ const STR = {
     editWorkoutTitle: "Edit Workout",
     clearWorkoutBtn: "Clear Workout",
     workoutClearedToast: "Workout cleared",
+    editWorkoutSummaryBtn: "Edit",
   },
   es: {
     welcomeHeadline: "Encontrar tiempo para entrenar es difícil. Saber por dónde empezar no debería serlo.",
@@ -2118,6 +2149,7 @@ const STR = {
     editWorkoutTitle: "Editar entrenamiento",
     clearWorkoutBtn: "Borrar entrenamiento",
     workoutClearedToast: "Entrenamiento borrado",
+    editWorkoutSummaryBtn: "Editar",
   }
 };
 
@@ -2960,6 +2992,7 @@ function closeAllOverlays(){
   if(!document.getElementById('logPerfOverlay').hidden) closeLogPerformance();
   if(!document.getElementById('intervalTimerOverlay').hidden) closeIntervalTimer();
   if(!document.getElementById('dayDetailOverlay').hidden) closeDayDetail();
+  if(!document.getElementById('workoutSummaryOverlay').hidden) closeWorkoutSummary();
   if(!document.getElementById('manualEntryOverlay').hidden) closeManualEntry();
   if(!document.getElementById('editNameOverlay').hidden) closeEditName();
   if(!document.getElementById('adjustOverlay').hidden) closeAdjustSheet();
@@ -4538,13 +4571,14 @@ function renderDayDetail(){
       </div>
       <button class="del" data-del="${en.id}" type="button">${ICONS.trash}</button>
     </div>`).join('') : `<div class="footer-note" style="text-align:left;padding:2px 0;">${L.noWorkoutsLoggedLabel}</div>`;
-  // Tapping a logged workout bubble opens it for editing in place -- only the explicit trash icon
-  // deletes it, so the tap target for "view/edit this workout" and "delete it" stay unambiguous.
+  // Tapping a logged workout bubble opens a read-only summary of it first -- jumping straight into
+  // edit mode made a quick "what did I actually log here?" glance risk accidentally changing it.
+  // Only the explicit trash icon deletes it, and Edit is its own small step from the summary.
   entriesWrap.querySelectorAll('[data-entry-id]').forEach(el=>{
     el.addEventListener('click', (e)=>{
       if(e.target.closest('[data-del]')) return;
       const entry = dd.manualEntries.find(x=>x.id===el.getAttribute('data-entry-id'));
-      if(entry) openManualEntryForEditLoggedEntry(entry);
+      if(entry) openWorkoutSummary(entry);
     });
   });
   entriesWrap.querySelectorAll('[data-del]').forEach(btn=>{
@@ -4794,6 +4828,47 @@ function openManualEntryForEdit(dd){
   titleLabel.textContent = L.editWorkoutTitle;
   document.getElementById('clearWorkoutBtn').hidden = false;
 }
+// Read-only recap of a single logged entry -- what tapping it in Day Detail's "Logged Workouts"
+// list opens now, instead of jumping straight into Create Workout's edit form. A cardio entry with
+// real structured Distance/Duration gets the same Distance/Time/Pace stat-grid the post-workout
+// Summary screen uses; anything else (strength, or an older cardio entry with only free-text volume)
+// just shows that volume line, since there's no structured breakdown to compute from plain text.
+let workoutSummaryEntry = null;
+function openWorkoutSummary(entry){
+  workoutSummaryEntry = entry;
+  const L = STR[state.lang];
+  document.getElementById('workoutSummaryTitle').textContent = entry.name;
+  const isCardioLog = entry.type==='run' && entry.distance!=null && entry.durationMin!=null;
+  const detailSection = document.getElementById('workoutSummaryDetailSection');
+  const statsGrid = document.getElementById('workoutSummaryStats');
+  if(isCardioLog){
+    detailSection.hidden = true;
+    const paceMin = entry.distance>0 ? entry.durationMin/entry.distance : 0;
+    statsGrid.innerHTML = [
+      {l:L.statDistance, v:entry.distance.toFixed(1)+' mi'},
+      {l:L.statTime, v:fmtDurationClock(entry.durationMin)},
+      {l:L.statPace, v: paceMin>0 ? fmtPace(paceMin)+'/mi' : '-:--/mi'},
+    ].map(s=>`<div class="cell"><div class="l">${s.l}</div><div class="v">${s.v}</div></div>`).join('');
+  } else {
+    statsGrid.innerHTML = '';
+    detailSection.hidden = !entry.volume;
+    document.getElementById('workoutSummaryDetail').textContent = entry.volume || '';
+  }
+  const notesSection = document.getElementById('workoutSummaryNotesSection');
+  notesSection.hidden = !entry.notes;
+  document.getElementById('workoutSummaryNotes').textContent = entry.notes || '';
+  document.getElementById('workoutSummaryOverlay').hidden = false;
+}
+function closeWorkoutSummary(){
+  document.getElementById('workoutSummaryOverlay').hidden = true;
+  workoutSummaryEntry = null;
+}
+document.getElementById('closeWorkoutSummary').addEventListener('click', closeWorkoutSummary);
+document.getElementById('editWorkoutSummaryBtn').addEventListener('click', ()=>{
+  const entry = workoutSummaryEntry;
+  closeWorkoutSummary();
+  if(entry) openManualEntryForEditLoggedEntry(entry);
+});
 // Re-opens Create Workout pre-filled with an already-logged workout bubble so the user can revise
 // and resave it in place -- tapping a past workout to view/correct it used to have no edit path at
 // all (only delete), so fixing a typo meant deleting it and logging a new one, which just appended

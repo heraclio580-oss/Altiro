@@ -4522,7 +4522,13 @@ document.getElementById('dayCompleteToggle').addEventListener('click', ()=>{
     state.todayCompleted = next;
     state.doneCount = computeDoneCount();
   } else if(idxInCurrentWeek>=0){
+    // Also stamp completedOverride, not just state.week[idx].completed -- getDayData() ORs in
+    // manualEntries.length>0 (and extraWorkouts) before ever looking at completed, so a bare
+    // `.completed = false` here is silently ignored whenever the day already has a logged entry
+    // (the override is what actually wins). Without this, toggling off did nothing visible until
+    // a refresh reloaded the correctly-persisted override from the cloud.
     state.week[idxInCurrentWeek].completed = next;
+    ensureDayLog(state.openDayKey).completedOverride = next;
     state.doneCount = computeDoneCount();
   } else {
     ensureDayLog(state.openDayKey).completedOverride = next;

@@ -11,6 +11,20 @@ function submitReview(doc, rating){
   doc.getElementById('reviewRatingSlider').dispatchEvent(new window.Event('input', {bubbles:true}));
   doc.getElementById('submitReviewBtn').click();
 }
+// Total Time is three separate h/m/s fields now, not one "minutes" box -- these read/write it the
+// same way the app's own getLogPerfTimeMinutes()/setLogPerfTimeMinutes() do, purely via DOM values.
+function readLogPerfTime(doc){
+  const h = parseInt(doc.getElementById('logPerfTimeHInput').value, 10) || 0;
+  const m = parseInt(doc.getElementById('logPerfTimeMInput').value, 10) || 0;
+  const s = parseInt(doc.getElementById('logPerfTimeSInput').value, 10) || 0;
+  return h*60 + m + s/60;
+}
+function writeLogPerfTime(doc, totalMin){
+  const totalSec = Math.round(totalMin*60);
+  doc.getElementById('logPerfTimeHInput').value = Math.floor(totalSec/3600);
+  doc.getElementById('logPerfTimeMInput').value = Math.floor((totalSec%3600)/60);
+  doc.getElementById('logPerfTimeSInput').value = totalSec%60;
+}
 
 // Covers the run-session half of the progression engine (the strength half is covered in
 // test_progression.js). Switches focus to "Running Only" via the real Adjust sheet so today's
@@ -44,12 +58,12 @@ function submitReview(doc, rating){
   console.log('Log Performance sheet opens:', doc.getElementById('logPerfOverlay').hidden===false ? 'OK' : 'FAIL');
   console.log('Time section visible for a run:', !doc.getElementById('logPerfTimeSection').hidden ? 'OK' : 'FAIL');
   console.log('Weight/Reps sections hidden for a run:', doc.getElementById('logPerfWeightSection').hidden && doc.getElementById('logPerfRepsSection').hidden ? 'OK' : 'FAIL');
-  const seededTime = parseFloat(doc.getElementById('logPerfTimeInput').value);
+  const seededTime = readLogPerfTime(doc);
   console.log('Time field seeded with a sane suggested total time:', seededTime>0 ? `OK (${seededTime} min)` : 'FAIL');
 
   // Beat the suggested pace comfortably with a non-"hard" feel -> pace target should tighten by 5s/mi.
   const fastTime = Math.round(seededTime*0.85);
-  doc.getElementById('logPerfTimeInput').value = fastTime;
+  writeLogPerfTime(doc, fastTime);
   doc.getElementById('saveLogPerf').click();
   await wait(30);
 
@@ -68,11 +82,11 @@ function submitReview(doc, rating){
   await wait(20);
   doc.getElementById('recordBtn').click();
   await wait(950);
-  const secondSeededTime = parseFloat(doc.getElementById('logPerfTimeInput').value);
+  const secondSeededTime = readLogPerfTime(doc);
   console.log('Second round reseeds with the tightened (faster) suggested time:', secondSeededTime < seededTime ? `OK (${secondSeededTime} < ${seededTime})` : `FAIL (${secondSeededTime} vs ${seededTime})`);
 
   const slowTime = Math.round(secondSeededTime*1.5);
-  doc.getElementById('logPerfTimeInput').value = slowTime;
+  writeLogPerfTime(doc, slowTime);
   doc.getElementById('saveLogPerf').click();
   await wait(30);
   submitReview(doc, 1); // rough, "hard" rating
@@ -86,7 +100,7 @@ function submitReview(doc, rating){
   await wait(20);
   doc.getElementById('recordBtn').click();
   await wait(950);
-  const thirdSeededTime = parseFloat(doc.getElementById('logPerfTimeInput').value);
+  const thirdSeededTime = readLogPerfTime(doc);
   console.log('Suggested time held steady (not regressed nor advanced) after the hard/slow run:', thirdSeededTime === secondSeededTime ? 'OK' : `FAIL (${thirdSeededTime} vs ${secondSeededTime})`);
 
   console.log('ALL DONE');

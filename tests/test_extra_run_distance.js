@@ -52,7 +52,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   const actualDist = 4.5;
   doc.getElementById('logPerfDistanceInput').value = actualDist;
-  doc.getElementById('logPerfTimeInput').value = 40;
+  doc.getElementById('logPerfTimeMInput').value = 40;
   doc.getElementById('saveLogPerf').click();
   await wait(30);
   console.log('Navigated to Summary after logging the extra run:', doc.getElementById('screen-summary').hidden===false ? 'OK' : 'FAIL');

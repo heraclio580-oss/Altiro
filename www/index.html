@@ -485,9 +485,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .stat-row.readonly .sr-value{color:var(--text-2);}
 .stat-row .hms-group{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:2px;}
 .stat-row .hms-group input{flex:none;width:28px;text-align:center;font-family:var(--font-mono);-moz-appearance:textfield;}
+.hms-sep{color:var(--text-3);font-family:var(--font-mono);font-size:13.5px;}
+/* Same hour/minute/second trio as the stat-row Duration field, but for a plain label-above
+   sheet-section (e.g. Log Performance's Total Time) instead of an icon+label stat-row. */
+.hms-row{display:flex;align-items:center;gap:6px;}
+.hms-row .hms-box{flex:none;width:56px;text-align:center;font-family:var(--font-mono);-moz-appearance:textfield;}
 .stat-row .hms-group input::-webkit-outer-spin-button,
-.stat-row .hms-group input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
-.stat-row .hms-sep{color:var(--text-3);font-family:var(--font-mono);font-size:13.5px;}
+.stat-row .hms-group input::-webkit-inner-spin-button,
+.hms-row .hms-box::-webkit-outer-spin-button,
+.hms-row .hms-box::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 .del:hover{color:var(--accent-hover);}
 
 /* ---------- sheet ---------- */
@@ -1435,7 +1441,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
       <div class="sheet-section" id="logPerfTimeSection">
         <div class="st-label" data-i18n="logPerfTimeLabel"></div>
-        <input type="number" inputmode="numeric" class="text-input" id="logPerfTimeInput">
+        <div class="hms-row">
+          <input type="number" inputmode="numeric" min="0" class="text-input hms-box" id="logPerfTimeHInput" placeholder="0">
+          <span class="hms-sep">:</span>
+          <input type="number" inputmode="numeric" min="0" max="59" class="text-input hms-box" id="logPerfTimeMInput" placeholder="00">
+          <span class="hms-sep">:</span>
+          <input type="number" inputmode="numeric" min="0" max="59" class="text-input hms-box" id="logPerfTimeSInput" placeholder="00">
+        </div>
       </div>
 
       <div class="sheet-section">
@@ -1801,7 +1813,7 @@ const STR = {
     logPerfWeightLabel: "Top Set Weight (lb)",
     logPerfRepsLabel: "Reps Completed",
     logPerfDistanceLabel: "Distance (mi)",
-    logPerfTimeLabel: "Total Time (min)",
+    logPerfTimeLabel: "Total Time (h:m:s)",
     workoutNotesLabel: "Notes",
     workoutNotesPlaceholder: "How did it feel? Anything to remember for next time?",
     statProgress: "Next Suggested",
@@ -2026,7 +2038,7 @@ const STR = {
     logPerfWeightLabel: "Peso de la serie máxima (lb)",
     logPerfRepsLabel: "Repeticiones completadas",
     logPerfDistanceLabel: "Distancia (mi)",
-    logPerfTimeLabel: "Tiempo total (min)",
+    logPerfTimeLabel: "Tiempo total (h:m:s)",
     workoutNotesLabel: "Notas",
     workoutNotesPlaceholder: "¿Cómo te sentiste? ¿Algo que recordar para la próxima?",
     statProgress: "Próximo objetivo",
@@ -3558,6 +3570,22 @@ function refreshLogPerfCurrentHighlight(){
     r.classList.toggle('current-exercise', isCurrent);
   });
 }
+// Same h/m/s -> total-minutes conversion as getManualDurationMinutes()/setManualDurationMinutes()
+// (Create Workout's cardio Duration), reused here so Log Performance's Total Time field works the
+// same way -- everything downstream (pace math, logged.time, cloud sync) still just wants minutes.
+function getLogPerfTimeMinutes(){
+  const h = parseInt(document.getElementById('logPerfTimeHInput').value, 10) || 0;
+  const m = parseInt(document.getElementById('logPerfTimeMInput').value, 10) || 0;
+  const s = parseInt(document.getElementById('logPerfTimeSInput').value, 10) || 0;
+  const total = h*60 + m + s/60;
+  return total>0 ? total : null;
+}
+function setLogPerfTimeMinutes(totalMin){
+  const totalSec = totalMin!=null ? Math.round(totalMin*60) : 0;
+  document.getElementById('logPerfTimeHInput').value = totalMin!=null ? Math.floor(totalSec/3600) : '';
+  document.getElementById('logPerfTimeMInput').value = totalMin!=null ? Math.floor((totalSec%3600)/60) : '';
+  document.getElementById('logPerfTimeSInput').value = totalMin!=null ? totalSec%60 : '';
+}
 function openLogPerformance(extraId){
   state._activeExtraId = extraId || null;
   const eff = activeSession();
@@ -3644,7 +3672,7 @@ function openLogPerformance(extraId){
     // else (Summary, pace, weekly/total mileage).
     const dist = parseFloat(eff.en.detail) || 3;
     document.getElementById('logPerfDistanceInput').value = dist;
-    if(target) document.getElementById('logPerfTimeInput').value = Math.round(target.pace*dist);
+    if(target) setLogPerfTimeMinutes(target.pace*dist);
   }
   const notesInput = document.getElementById('logPerfNotesInput');
   notesInput.value = '';
@@ -3688,7 +3716,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   if(eff.t==='run'){
     const plannedDist = parseFloat(eff.en.detail) || 3;
     logged.distance = parseFloat(document.getElementById('logPerfDistanceInput').value) || plannedDist;
-    logged.time = parseFloat(document.getElementById('logPerfTimeInput').value) || ((target ? target.pace : 9.5)*logged.distance);
+    logged.time = getLogPerfTimeMinutes() || ((target ? target.pace : 9.5)*logged.distance);
   }
   logged.notes = document.getElementById('logPerfNotesInput').value.trim();
   document.getElementById('logPerfOverlay').hidden = true;

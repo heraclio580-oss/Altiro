@@ -52,7 +52,12 @@ function submitReview(doc, rating){
   const actualDist = +(plannedDist + 2.7).toFixed(1);
   const actualTime = 41;
   doc.getElementById('logPerfDistanceInput').value = actualDist;
-  doc.getElementById('logPerfTimeInput').value = actualTime;
+  // The Time field is seeded with an h/m/s estimate from the progression target (real seconds, not
+  // just whole minutes) -- overwriting only the minutes box would leave stale leftover seconds in
+  // place, so clear all three to log a clean, exact 41:00.
+  doc.getElementById('logPerfTimeHInput').value = 0;
+  doc.getElementById('logPerfTimeMInput').value = actualTime;
+  doc.getElementById('logPerfTimeSInput').value = 0;
   doc.getElementById('saveLogPerf').click();
   await wait(30);
 

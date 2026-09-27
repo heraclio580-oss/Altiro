@@ -52,7 +52,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
     doc.getElementById('recordBtn').click();
     return wait(950).then(()=>{
       doc.getElementById('logPerfDistanceInput').value = dist;
-      doc.getElementById('logPerfTimeInput').value = 30;
+      doc.getElementById('logPerfTimeMInput').value = 30;
       doc.getElementById('saveLogPerf').click();
       return wait(30);
     });

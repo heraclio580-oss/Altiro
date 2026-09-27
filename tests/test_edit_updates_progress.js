@@ -7,8 +7,8 @@ const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true
 const { window } = dom;
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
-// Regression test for a reported gap: editing a logged cardio workout (through the new Workout
-// Summary -> Edit flow) updated the "Logged Workouts" bubble itself, but nothing that reads
+// Regression test for a reported gap: correcting a logged cardio workout (now: tapping it opens Log
+// Performance, and saving there is the correction) updated the "Logged Workouts" bubble itself, but nothing that reads
 // progress data -- Home's "This Week" distance card, Progress's week-detail, or even the day's own
 // Scheduled/primary row -- ever re-read it. Root cause: creating/editing a manual entry never wrote
 // to dayLog.actualRunDistance (the field weekStats() actually trusts first), and once a rest day's
@@ -50,7 +50,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   console.log('Progress week-detail also reflects the 5mi run:', doc.getElementById('progWeekDetail').textContent.includes('5.0 mi') ? 'OK' : `FAIL (${doc.getElementById('progWeekDetail').textContent})`);
 
-  // Now edit it through the Workout Summary's Edit button -- correct the distance to 8 mi.
+  // Now correct it: tapping the logged run opens Log Performance, pre-filled with what was logged.
   goPill('home');
   await wait(20);
   doc.querySelector('#weekStrip .day-cell.today').click();
@@ -59,11 +59,10 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   doc.querySelector('#dayDetailEntries .manual-entry[data-entry-id]').click();
   await wait(20);
-  doc.getElementById('editWorkoutSummaryBtn').click();
-  await wait(20);
-  doc.getElementById('manualDistanceInput').value = '8';
-  doc.getElementById('manualDistanceInput').dispatchEvent(new window.Event('input', {bubbles:true}));
-  doc.getElementById('saveManualEntry').click();
+  console.log('Log Performance opens pre-filled with the logged 5 mi:', doc.getElementById('logPerfDistanceInput').value==='5' ? 'OK' : `FAIL (${doc.getElementById('logPerfDistanceInput').value})`);
+  doc.getElementById('logPerfDistanceInput').value = '8';
+  doc.getElementById('logPerfDistanceInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+  doc.getElementById('saveLogPerf').click();
   await wait(20);
 
   console.log('Scheduled/primary row updates to the corrected 8mi (not stuck on the stale 5mi):',

@@ -65,32 +65,21 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('Logged entry shows the distance and duration derived from the structured fields:',
     bubbleText.includes('4 mi') && bubbleText.includes('30:00') ? 'OK' : `FAIL (${bubbleText})`);
 
-  // Tapping the bubble now opens a read-only summary first -- a cardio log with real structured
-  // fields gets the same Distance/Time/Pace stat-grid the post-workout Summary screen uses.
+  // Tapping the logged run opens Log Performance, pre-filled from the stored structured fields (not
+  // re-parsed from the display string).
   const bubble = doc.querySelector('#dayDetailEntries .manual-entry[data-entry-id]');
   bubble.click();
   await wait(20);
-  const summaryStatsText = doc.getElementById('workoutSummaryStats').textContent;
-  console.log('Summary shows a Distance/Time/Pace stat-grid for a cardio log:',
-    summaryStatsText.includes('4.0 mi') && summaryStatsText.includes('30:00') && summaryStatsText.includes('7:30/mi') ? 'OK' : `FAIL (${summaryStatsText})`);
-
-  // The small Edit button at the bottom is what opens Create Workout -- Duration/Distance should be
-  // pre-filled from the stored structured fields there, not re-parsed from the display string.
-  doc.getElementById('editWorkoutSummaryBtn').click();
-  await wait(20);
-  console.log('Re-opening for edit pre-fills Duration hours:', doc.getElementById('manualDurationHInput').value==='0' ? 'OK' : `FAIL (${doc.getElementById('manualDurationHInput').value})`);
-  console.log('Re-opening for edit pre-fills Duration minutes:', doc.getElementById('manualDurationMInput').value==='30' ? 'OK' : `FAIL (${doc.getElementById('manualDurationMInput').value})`);
-  console.log('Re-opening for edit pre-fills Duration seconds:', doc.getElementById('manualDurationSInput').value==='0' ? 'OK' : `FAIL (${doc.getElementById('manualDurationSInput').value})`);
-  console.log('Re-opening for edit pre-fills Distance:', doc.getElementById('manualDistanceInput').value==='4' ? 'OK' : `FAIL (${doc.getElementById('manualDistanceInput').value})`);
-  console.log('Re-opening for edit pre-fills Pace:', doc.getElementById('manualPaceDisplay').textContent==='7:30/mi' ? 'OK' : `FAIL (${doc.getElementById('manualPaceDisplay').textContent})`);
+  console.log('Tapping the logged run opens Log Performance:', doc.getElementById('logPerfOverlay').hidden===false ? 'OK' : 'FAIL');
+  console.log('Pre-fills Distance:', doc.getElementById('logPerfDistanceInput').value==='4' ? 'OK' : `FAIL (${doc.getElementById('logPerfDistanceInput').value})`);
+  console.log('Pre-fills Total Time as 0:30:00:', ['logPerfTimeHInput','logPerfTimeMInput','logPerfTimeSInput'].map(id=>doc.getElementById(id).value).join(':')==='0:30:0' ? 'OK' : `FAIL (${['logPerfTimeHInput','logPerfTimeMInput','logPerfTimeSInput'].map(id=>doc.getElementById(id).value).join(':')})`);
 
   // Correct the distance and save -- still exactly one entry, not a duplicate.
-  doc.getElementById('manualDistanceInput').value = '5';
-  doc.getElementById('manualDistanceInput').dispatchEvent(new window.Event('input', {bubbles:true}));
-  doc.getElementById('saveManualEntry').click();
+  doc.getElementById('logPerfDistanceInput').value = '5';
+  doc.getElementById('saveLogPerf').click();
   await wait(20);
   const entriesAfter = [...doc.querySelectorAll('#dayDetailEntries .manual-entry')];
-  console.log('Still exactly one entry after editing the distance:', entriesAfter.length===1 ? 'OK' : `FAIL (${entriesAfter.length})`);
+  console.log('Still exactly one entry after correcting the distance:', entriesAfter.length===1 ? 'OK' : `FAIL (${entriesAfter.length})`);
   console.log('Entry reflects the corrected distance:', doc.getElementById('dayDetailEntries').textContent.includes('5 mi') ? 'OK' : `FAIL (${doc.getElementById('dayDetailEntries').textContent})`);
 
   console.log('ALL DONE');

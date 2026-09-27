@@ -54,22 +54,14 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const bubble = doc.querySelector('#dayDetailEntries .manual-entry[data-entry-id]');
   bubble.click();
   await wait(20);
-  console.log('Summary shows the real h:mm:ss duration too:',
-    doc.getElementById('workoutSummaryStats').textContent.includes('1:23:45') ? 'OK' : `FAIL (${doc.getElementById('workoutSummaryStats').textContent})`);
-  doc.getElementById('editWorkoutSummaryBtn').click();
-  await wait(20);
-  console.log('Re-opening pre-fills hours:', doc.getElementById('manualDurationHInput').value==='1' ? 'OK' : `FAIL (${doc.getElementById('manualDurationHInput').value})`);
-  console.log('Re-opening pre-fills minutes:', doc.getElementById('manualDurationMInput').value==='23' ? 'OK' : `FAIL (${doc.getElementById('manualDurationMInput').value})`);
-  console.log('Re-opening pre-fills seconds:', doc.getElementById('manualDurationSInput').value==='45' ? 'OK' : `FAIL (${doc.getElementById('manualDurationSInput').value})`);
+  console.log('Tapping it opens Log Performance with the real h:m:s time (1:23:45):',
+    ['logPerfTimeHInput','logPerfTimeMInput','logPerfTimeSInput'].map(id=>doc.getElementById(id).value).join(':')==='1:23:45' ? 'OK' : `FAIL (${['logPerfTimeHInput','logPerfTimeMInput','logPerfTimeSInput'].map(id=>doc.getElementById(id).value).join(':')})`);
 
   // A duration under an hour should not show a leading "0:" hours segment.
-  doc.getElementById('manualDurationHInput').value = '0';
-  doc.getElementById('manualDurationHInput').dispatchEvent(new window.Event('input', {bubbles:true}));
-  doc.getElementById('manualDurationMInput').value = '9';
-  doc.getElementById('manualDurationMInput').dispatchEvent(new window.Event('input', {bubbles:true}));
-  doc.getElementById('manualDurationSInput').value = '5';
-  doc.getElementById('manualDurationSInput').dispatchEvent(new window.Event('input', {bubbles:true}));
-  doc.getElementById('saveManualEntry').click();
+  doc.getElementById('logPerfTimeHInput').value = '0';
+  doc.getElementById('logPerfTimeMInput').value = '9';
+  doc.getElementById('logPerfTimeSInput').value = '5';
+  doc.getElementById('saveLogPerf').click();
   await wait(20);
   console.log('Sub-hour duration displays as m:ss, no leading hour segment:',
     doc.getElementById('dayDetailEntries').textContent.includes('9:05') && !doc.getElementById('dayDetailEntries').textContent.includes('0:09:05') ? 'OK' : `FAIL (${doc.getElementById('dayDetailEntries').textContent})`);

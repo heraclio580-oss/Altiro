@@ -7,9 +7,9 @@ const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true
 const { window } = dom;
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
-// Covers two requested improvements to "Additional Workouts" (extraWorkouts):
-// 1. Tapping an existing one now opens Create Workout pre-filled to revise it in place, instead of
-//    having no edit path at all (only delete-and-relog, which lost its place in the list).
+// Covers two things about "Additional Workouts" (extraWorkouts):
+// 1. Tapping one (on today or a past day) opens Log Performance for that specific workout, and what's
+//    logged there is kept on it -- reopening it shows the logged sets, not the plan's targets.
 // 2. A day whose only real content is an extra workout no longer shows a bare "Rest Day" on the
 //    Plan list, Home, and Day Detail's own Scheduled row -- it shows that workout's name/detail,
 //    the same way a logged entry already gets promoted into a rest day's display.
@@ -38,29 +38,36 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('manualNameInput').value = 'Chest';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='strength').click();
-  doc.getElementById('manualVolumeInput').value = 'Bench 10x10';
-  doc.getElementById('manualVolumeInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+  doc.getElementById('newExerciseName').value = 'Bench';
+  doc.getElementById('newExerciseSets').value = '3';
+  doc.getElementById('newExerciseReps').value = '10';
+  doc.getElementById('addExerciseBtn').click();
+  await wait(10);
   doc.getElementById('saveManualEntry').click();
   await wait(20);
 
   const extraBubble = doc.querySelector('#dayDetailExtraWorkouts [data-extra-id]');
-  console.log('Additional Workout bubble is marked editable:', extraBubble.classList.contains('editable') ? 'OK' : 'FAIL');
+  console.log('Additional Workout bubble is marked tappable:', extraBubble.classList.contains('editable') ? 'OK' : 'FAIL');
 
-  // --- Part 1: tap it to edit ---
+  // --- Part 1: tap it to log its performance ---
   extraBubble.click();
   await wait(20);
-  console.log('Tapping the extra opens Create Workout pre-filled:', doc.getElementById('manualNameInput').value==='Chest' && doc.getElementById('manualVolumeInput').value==='Bench 10x10' ? 'OK' : `FAIL (${doc.getElementById('manualNameInput').value}, ${doc.getElementById('manualVolumeInput').value})`);
-  console.log('Sheet title reads "Edit Workout":', doc.getElementById('manualEntryTitleLabel').textContent==='Edit Workout' ? 'OK' : `FAIL (${doc.getElementById('manualEntryTitleLabel').textContent})`);
-
-  doc.getElementById('manualVolumeInput').value = 'Bench 8x8, Incline 8x8';
-  doc.getElementById('manualVolumeInput').dispatchEvent(new window.Event('input', {bubbles:true}));
-  doc.getElementById('saveManualEntry').click();
+  console.log('Tapping the extra opens Log Performance (not an edit form):', doc.getElementById('logPerfOverlay').hidden===false && doc.getElementById('manualEntryOverlay').hidden===true ? 'OK' : 'FAIL');
+  const benchRow = doc.querySelector('#logPerfExercisesList .exercise-log-row[data-exercise-key="Bench"]');
+  console.log('It lists that workout\'s own exercise (Bench, 3 sets):', benchRow && benchRow.querySelectorAll('.set-log-row').length===3 ? 'OK' : 'FAIL');
+  benchRow.querySelectorAll('[data-field="weight"]').forEach((el,i)=>{ el.value = String(100 + i*10); });
+  doc.getElementById('saveLogPerf').click();
   await wait(20);
+  console.log('Still exactly ONE Additional Workout after logging it:', doc.querySelectorAll('#dayDetailExtraWorkouts [data-extra-id]').length===1 ? 'OK' : 'FAIL');
+  console.log('Logging it marks it Completed:', doc.getElementById('dayDetailExtraWorkouts').textContent.includes('Completed') ? 'OK' : 'FAIL');
 
-  const extraWorkoutsAfterEdit = [...doc.querySelectorAll('#dayDetailExtraWorkouts [data-extra-id]')];
-  console.log('Still exactly ONE Additional Workout after editing (not appended as a second one):', extraWorkoutsAfterEdit.length===1 ? 'OK' : `FAIL (${extraWorkoutsAfterEdit.length})`);
-  console.log('That extra reflects the corrected detail:', doc.getElementById('dayDetailExtraWorkouts').textContent.includes('Bench 8x8, Incline 8x8') ? 'OK' : `FAIL (${doc.getElementById('dayDetailExtraWorkouts').textContent})`);
-  console.log('The original "Bench 10x10" text is gone (edited, not duplicated):', !doc.getElementById('dayDetailExtraWorkouts').textContent.includes('10x10') ? 'OK' : 'FAIL');
+  doc.querySelector('#dayDetailExtraWorkouts [data-extra-id]').click();
+  await wait(20);
+  const weights = [...doc.querySelectorAll('#logPerfExercisesList .exercise-log-row[data-exercise-key="Bench"] [data-field="weight"]')].map(el=>el.value);
+  console.log('Reopening shows the logged weights per set (100/110/120):', weights.join('/')==='100/110/120' ? 'OK' : `FAIL (${weights.join('/')})`);
+  console.log('...with every set ticked off as done:', [...doc.querySelectorAll('#logPerfExercisesList .set-check-dot')].every(d=>d.classList.contains('checked')) ? 'OK' : 'FAIL');
+  doc.getElementById('closeLogPerf').click();
+  await wait(10);
 
   console.log('ALL DONE (part 1)');
 

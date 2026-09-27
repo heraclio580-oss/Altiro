@@ -55,6 +55,7 @@ alter table workout_logs add column if not exists planned_interval_rounds int;
 alter table workout_logs add column if not exists planned_interval_work_sec int;
 alter table workout_logs add column if not exists planned_interval_rest_sec int;
 alter table workout_logs add column if not exists actual_run_distance numeric; -- what was actually run, from Log Performance -- distinct from the plan's prescribed distance
+alter table workout_logs add column if not exists performance jsonb; -- what was logged for the day's own planned workout in Log Performance (sets/weights, distance/time, notes), shown again when it's reopened
 
 -- manual_entries: free-text "+ Add a Workout" logs, children of a workout_log
 create table if not exists manual_entries (
@@ -68,6 +69,7 @@ create table if not exists manual_entries (
 );
 alter table manual_entries add column if not exists distance numeric; -- cardio entries: structured distance (mi), alongside the derived `volume` display string
 alter table manual_entries add column if not exists duration_min numeric; -- cardio entries: structured duration (min)
+alter table manual_entries add column if not exists performance jsonb; -- same as workout_logs.performance, for a logged entry opened in Log Performance
 
 -- ---------------------------------------------------------------------------
 -- recorded_sessions: structured performance data from the real Record Workout
@@ -112,6 +114,7 @@ create table if not exists planned_workouts (
   created_at timestamptz default now()
 );
 alter table planned_workouts add column if not exists actual_distance numeric; -- run extras: the actual distance covered, same idea as workout_logs.actual_run_distance
+alter table planned_workouts add column if not exists performance jsonb; -- same as workout_logs.performance, for an additional workout
 alter table planned_workouts enable row level security;
 drop policy if exists "own planned workouts" on planned_workouts;
 create policy "own planned workouts" on planned_workouts

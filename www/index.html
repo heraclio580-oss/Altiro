@@ -2681,6 +2681,14 @@ function getDayData(date){
     const first = manualEntries[0];
     p = ses(first.type, first.name, first.volume||'', first.name, first.volume||'');
     isCustom = true;
+  } else if(p.t==='rest' && extraWorkouts.length>0){
+    // Same idea, for a day whose only real content is an "Additional Workout" -- Plan/Home/Day
+    // Detail's Scheduled row would otherwise keep showing the day as a plain "Rest Day" right next
+    // to that workout's own bubble in "Additional Workouts", which reads as if nothing happened here
+    // at all. Shown regardless of whether it's completed yet, same as a planned custom primary would
+    // describe itself before being marked done.
+    p = extraWorkouts[0].session;
+    isCustom = true;
   }
   let completed = planCompleted || manualEntries.length>0 || extraWorkouts.some(w=>w.completed);
   if(log && typeof log.completedOverride === 'boolean') completed = log.completedOverride;
@@ -4625,7 +4633,7 @@ function renderDayDetail(){
           : `<button class="btn-text" data-start-extra="${w.id}" type="button" style="white-space:nowrap;">${L.startWorkoutBtn}</button>`)
       : dd.isFuture ? ''
       : `<button class="btn-text" data-mark-extra-done="${w.id}" type="button" style="white-space:nowrap;${w.completed?'color:var(--ok-icon);':''}">${w.completed?ICONS.checkSm:''}${w.completed?L.recordDoneLabel:L.markDoneLabel}</button>`;
-    return `<div class="manual-entry">
+    return `<div class="manual-entry editable" data-extra-id="${w.id}">
       <span class="ic">${TYPE_ICON[w.session.t]}</span>
       <div class="body">
         <div class="n">${escapeHtml(effL.title)}</div>
@@ -4636,6 +4644,15 @@ function renderDayDetail(){
       <button class="del" data-del-extra="${w.id}" type="button">${ICONS.trash}</button>
     </div>`;
   }).join('');
+  // Tapping the bubble body edits it in place -- the Start/Mark Done/trash buttons inside it stay
+  // their own dedicated actions.
+  extraWrap.querySelectorAll('[data-extra-id]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-del-extra], [data-start-extra], [data-mark-extra-done]')) return;
+      const w = findExtraWorkout(state.openDayKey, el.getAttribute('data-extra-id'));
+      if(w) openManualEntryForEditExtraWorkout(w);
+    });
+  });
   extraWrap.querySelectorAll('[data-start-extra]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const id = btn.getAttribute('data-start-extra');
@@ -4743,6 +4760,10 @@ let manualEntryEditingPrimary = false;
 // place instead of appending a new one. Null (the default, from the "+ Create Workout" button)
 // always logs a genuinely new entry.
 let manualEntryEditingId = null;
+// Same idea as manualEntryEditingId, but for an "Additional Workout" (extraWorkouts) bubble tapped
+// to revise it in place. These have no separate read-only summary step the way logged entries do --
+// an extra is still fundamentally a plan (like the primary slot), so tapping it edits directly.
+let manualEntryEditingExtraId = null;
 function renderManualTypeRow(){
   const L = STR[state.lang];
   const row = document.getElementById('manualTypeRow');
@@ -4854,6 +4875,7 @@ function openManualEntry(){
   createMarkCompleted = true;
   manualEntryEditingPrimary = false;
   manualEntryEditingId = null;
+  manualEntryEditingExtraId = null;
   const L = STR[state.lang];
   document.getElementById('manualNameInput').value = '';
   document.getElementById('manualNameInput').placeholder = L.manualNamePlaceholder;
@@ -4930,6 +4952,37 @@ function openManualEntryForEdit(dd){
   titleLabel.setAttribute('data-i18n', 'editWorkoutTitle');
   titleLabel.textContent = L.editWorkoutTitle;
   document.getElementById('clearWorkoutBtn').hidden = false;
+}
+// Re-opens Create Workout pre-filled with an "Additional Workout" (extraWorkouts) bubble tapped in
+// Day Detail so it can be revised in place -- previously the only way to change one at all (title,
+// type, exercises, even whether it's marked done) was to delete it and log a fresh one, which lost
+// its place in the list and any progress notes on it. An extra is still fundamentally a plan (like
+// the primary slot), not a logged fact, so it edits directly rather than through a read-only summary
+// step first the way a completed "Logged Workouts" entry does (see openWorkoutSummary()).
+function openManualEntryForEditExtraWorkout(w){
+  openManualEntry();
+  manualEntryEditingExtraId = w.id;
+  const L = STR[state.lang];
+  const session = w.session;
+  manualEntryType = session.t;
+  createMarkCompleted = w.completed;
+  document.getElementById('createCompletedToggle').classList.toggle('on', createMarkCompleted);
+  document.getElementById('manualNameInput').value = session.en.title;
+  document.getElementById('manualVolumeInput').value = session.en.detail || '';
+  renderManualTypeRow();
+  updateCreateNameLabel();
+  updateCreateTargetSections();
+  if(session.t==='interval' && session.interval){
+    document.getElementById('createRoundsInput').value = session.interval.rounds;
+    document.getElementById('createWorkDurationInput').value = fmtClock(session.interval.workSec);
+    document.getElementById('createRestDurationInput').value = fmtClock(session.interval.restSec);
+  } else if(session.t==='strength' && session.exercises && session.exercises.length){
+    manualExercises = session.exercises.map(ex=>({...ex}));
+    renderManualExercisesList();
+  }
+  const titleLabel = document.getElementById('manualEntryTitleLabel');
+  titleLabel.setAttribute('data-i18n', 'editWorkoutTitle');
+  titleLabel.textContent = L.editWorkoutTitle;
 }
 // Read-only recap of a single logged entry -- what tapping it in Day Detail's "Logged Workouts"
 // list opens now, instead of jumping straight into Create Workout's edit form. A cardio entry with
@@ -5050,6 +5103,30 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     // Derives the same free-text display shown everywhere else (bubbles, Home, Plan rows) from the
     // structured Distance/Duration fields, so nothing else in the app needs to change to show it.
     volume = [cardioDistance!=null ? `${cardioDistance} mi` : '', cardioDuration!=null ? fmtDurationClock(cardioDuration) : ''].filter(Boolean).join(' · ');
+  }
+
+  if(manualEntryEditingExtraId){
+    // Revising an existing "Additional Workout" bubble in place -- checked ahead of the interval
+    // early-return below (an extra can be any type, interval included) and never goes through
+    // planCustomWorkout(), which is built around claiming/replacing the primary slot or appending a
+    // genuinely NEW extra, not updating one specific existing one.
+    const log = ensureDayLog(state.openDayKey);
+    const w = log.extraWorkouts.find(x=>x.id===manualEntryEditingExtraId);
+    if(w){
+      const session = ses(manualEntryType, name, volume||'', name, volume||'');
+      if(manualEntryType==='interval') session.interval = readIntervalConfig();
+      if(manualEntryType==='strength' && manualExercises.length) session.exercises = manualExercises.slice();
+      w.session = session;
+      w.completed = createMarkCompleted;
+      if(w.supabaseId) cloudUpdateExtraWorkout(w.supabaseId, w);
+    }
+    closeManualEntry();
+    renderDayDetail();
+    renderCalendar();
+    renderWeek();
+    renderHome();
+    showToast(STR[state.lang][createMarkCompleted ? 'workoutLoggedToast' : 'workoutPlannedToast']);
+    return;
   }
 
   if(manualEntryType==='interval'){
@@ -5767,6 +5844,20 @@ async function cloudSetExtraWorkoutCompleted(supabaseId, completed){
 async function cloudSetExtraWorkoutDistance(supabaseId, distance){
   if(!state.userId || !supabaseId) return;
   try{ await sb.from('planned_workouts').update({actual_distance: distance}).eq('id', supabaseId); }catch(e){ /* best-effort */ }
+}
+async function cloudUpdateExtraWorkout(supabaseId, entry){
+  if(!state.userId || !supabaseId) return;
+  try{
+    const s = entry.session;
+    await sb.from('planned_workouts').update({
+      session_type: s.t, title: s.en.title, detail: s.en.detail || null,
+      exercises: s.exercises || null,
+      interval_rounds: s.interval ? s.interval.rounds : null,
+      interval_work_sec: s.interval ? s.interval.workSec : null,
+      interval_rest_sec: s.interval ? s.interval.restSec : null,
+      completed: !!entry.completed,
+    }).eq('id', supabaseId);
+  }catch(e){ /* best-effort */ }
 }
 async function cloudInsertRecordedSession(dateStr, session, logged){
   if(!state.userId || !logged) return;

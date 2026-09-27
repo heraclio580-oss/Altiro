@@ -52,8 +52,8 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   // Fill in Duration + Distance, confirm the pace auto-computes live.
   doc.getElementById('manualNameInput').value = 'Tempo Run';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
-  doc.getElementById('manualDurationInput').value = '30';
-  doc.getElementById('manualDurationInput').dispatchEvent(new window.Event('input', {bubbles:true}));
+  doc.getElementById('manualDurationMInput').value = '30';
+  doc.getElementById('manualDurationMInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   doc.getElementById('manualDistanceInput').value = '4';
   doc.getElementById('manualDistanceInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   console.log('Pace auto-computes from Duration/Distance (30 min / 4 mi = 7:30/mi):', doc.getElementById('manualPaceDisplay').textContent==='7:30/mi' ? 'OK' : `FAIL (${doc.getElementById('manualPaceDisplay').textContent})`);
@@ -63,14 +63,16 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   const bubbleText = doc.getElementById('dayDetailEntries').textContent;
   console.log('Logged entry shows the distance and duration derived from the structured fields:',
-    bubbleText.includes('4 mi') && bubbleText.includes('30 min') ? 'OK' : `FAIL (${bubbleText})`);
+    bubbleText.includes('4 mi') && bubbleText.includes('30:00') ? 'OK' : `FAIL (${bubbleText})`);
 
   // Re-open the bubble to edit -- Duration/Distance should be pre-filled from the stored structured
   // fields, not re-parsed from the display string.
   const bubble = doc.querySelector('#dayDetailEntries .manual-entry[data-entry-id]');
   bubble.click();
   await wait(20);
-  console.log('Re-opening for edit pre-fills Duration:', doc.getElementById('manualDurationInput').value==='30' ? 'OK' : `FAIL (${doc.getElementById('manualDurationInput').value})`);
+  console.log('Re-opening for edit pre-fills Duration hours:', doc.getElementById('manualDurationHInput').value==='0' ? 'OK' : `FAIL (${doc.getElementById('manualDurationHInput').value})`);
+  console.log('Re-opening for edit pre-fills Duration minutes:', doc.getElementById('manualDurationMInput').value==='30' ? 'OK' : `FAIL (${doc.getElementById('manualDurationMInput').value})`);
+  console.log('Re-opening for edit pre-fills Duration seconds:', doc.getElementById('manualDurationSInput').value==='0' ? 'OK' : `FAIL (${doc.getElementById('manualDurationSInput').value})`);
   console.log('Re-opening for edit pre-fills Distance:', doc.getElementById('manualDistanceInput').value==='4' ? 'OK' : `FAIL (${doc.getElementById('manualDistanceInput').value})`);
   console.log('Re-opening for edit pre-fills Pace:', doc.getElementById('manualPaceDisplay').textContent==='7:30/mi' ? 'OK' : `FAIL (${doc.getElementById('manualPaceDisplay').textContent})`);
 

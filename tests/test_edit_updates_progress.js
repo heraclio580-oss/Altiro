@@ -42,9 +42,10 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('saveManualEntry').click();
   await wait(20);
 
+  // "Morning Run" names no planned distance, so the week's planned miles fall back to what was run.
   goPill('home');
   await wait(20);
-  console.log('Home "This Week" distance reflects the freshly-logged 5mi run:', doc.getElementById('ovDistanceVal').textContent==='5.0/15 mi' ? 'OK' : `FAIL (${doc.getElementById('ovDistanceVal').textContent})`);
+  console.log('Home "This Week" distance reflects the freshly-logged 5mi run:', doc.getElementById('ovDistanceVal').textContent==='5.0/5 mi' ? 'OK' : `FAIL (${doc.getElementById('ovDistanceVal').textContent})`);
 
   goPill('progress');
   await wait(20);
@@ -70,7 +71,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   goPill('home');
   await wait(20);
-  console.log('Home "This Week" distance reflects the EDITED 8mi, not the original 5mi:', doc.getElementById('ovDistanceVal').textContent==='8.0/15 mi' ? 'OK' : `FAIL (${doc.getElementById('ovDistanceVal').textContent})`);
+  console.log('Home "This Week" distance reflects the EDITED 8mi, not the original 5mi:', doc.getElementById('ovDistanceVal').textContent==='8.0/8 mi' ? 'OK' : `FAIL (${doc.getElementById('ovDistanceVal').textContent})`);
 
   goPill('progress');
   await wait(20);

@@ -3350,12 +3350,16 @@ function renderHome(){
   // bumped (Record/extra-workout completion) and never a plain "+ Create Workout" cardio log -- so
   // logging or editing a manual entry's distance never moved this card at all, and since nothing
   // ever persisted or reloaded it either, it silently reset to 0 on every fresh sign-in besides.
-  const weekMileage = weekStats(0).distance;
+  // Measured against the miles actually planned this week (every run's own mileage added up), not a
+  // fixed number -- falling back to the default goal only when no runs are planned at all.
+  const week = weekStats(0);
+  const weekMileage = week.distance;
+  const distanceGoal = week.plannedDistance>0 ? +week.plannedDistance.toFixed(2) : state.weeklyDistanceGoal;
   const wPct = Math.min(100, Math.round((state.doneCount/state.weeklyWorkoutGoal)*100));
-  const dPct = Math.min(100, Math.round((weekMileage/state.weeklyDistanceGoal)*100));
+  const dPct = Math.min(100, Math.round((weekMileage/distanceGoal)*100));
   document.getElementById('ovWorkoutsVal').textContent = `${state.doneCount}/${state.weeklyWorkoutGoal}`;
   document.getElementById('ovWorkoutsBar').style.width = wPct+'%';
-  document.getElementById('ovDistanceVal').textContent = `${weekMileage.toFixed(1)}/${state.weeklyDistanceGoal} mi`;
+  document.getElementById('ovDistanceVal').textContent = `${weekMileage.toFixed(1)}/${distanceGoal} mi`;
   document.getElementById('ovDistanceBar').style.width = dPct+'%';
 
   const todayKey = dateKey(TODAY_DATE);
@@ -5107,25 +5111,56 @@ function deleteManualEntry(key, id){
 }
 
 /* ---------------- progress ---------------- */
+// Miles written in a workout's own text -- "4.5 miles", "16mile", "3.75mi", "4 mi", or "5k"/"10 km"
+// (converted). Null when there's no explicit distance.
+function milesInText(text){
+  if(!text) return null;
+  const mi = String(text).match(/(\d+(?:\.\d+)?)\s*(?:miles?|mi)\b/i);
+  if(mi) return parseFloat(mi[1]);
+  const km = String(text).match(/(\d+(?:\.\d+)?)\s*(?:km|k)\b/i);
+  if(km) return +(parseFloat(km[1])*0.621371).toFixed(2);
+  return null;
+}
+// A run's planned mileage, as the user originally wrote it: the name first ("Progression run 4.5
+// miles" -- its detail may since have become what was actually run, e.g. "4.02 mi · 40:57"), then a
+// bare leading number in the name ("3.2 Tempo run"), then the detail ("4 mi" on a generated plan),
+// and only failing all of those, what was actually run.
+function plannedRunMiles(session, actual){
+  const L = session.en;
+  const bare = String(L.title||'').match(/^\s*(\d+(?:\.\d+)?)\s+(?!(?:min|mins|minutes?|hrs?|hours?|secs?|seconds?|x|reps?|sets?)\b)[a-z]/i);
+  const miles = milesInText(L.title) ?? (bare ? parseFloat(bare[1]) : null) ?? milesInText(L.detail) ?? actual;
+  return miles || 0;
+}
+// distance: miles actually run this week. plannedDistance: miles planned across every run this
+// week, done or not -- what Home's Distance card measures progress against. Each run is counted once
+// even when the day's headline is really its first logged entry or first extra (see primaryLogTarget).
 function weekStats(offset){
   const dates = weekDates(offset);
-  let workouts = 0, distance = 0;
+  let workouts = 0, distance = 0, plannedDistance = 0;
   dates.forEach(date=>{
     const dd = getDayData(date);
     const done = dd.completed;
     if((dd.p.t!=='rest' && done) || dd.manualEntries.length>0) workouts++;
-    if(dd.p.t==='run' && done){
-      distance += dd.actualRunDistance!=null ? dd.actualRunDistance : (parseFloat(ST(dd.p).detail) || 0);
+    const head = dd.p.t!=='rest' ? primaryLogTarget(dd) : null;
+    if(dd.p.t==='run' && head.kind!=='extra'){
+      if(done) distance += dd.actualRunDistance!=null ? dd.actualRunDistance : (parseFloat(ST(dd.p).detail) || 0);
+      plannedDistance += plannedRunMiles(dd.p, dd.actualRunDistance);
     }
     // A run logged as an extra (secondary) workout for the day still counts toward weekly/lifetime
     // distance -- it's a real run regardless of which slot it was logged under.
     dd.extraWorkouts.forEach(w=>{
-      if(w.completed && w.session && w.session.t==='run' && w.actualDistance!=null){
-        distance += w.actualDistance;
-      }
+      if(!w.session || w.session.t!=='run') return;
+      if(w.completed && w.actualDistance!=null) distance += w.actualDistance;
+      plannedDistance += plannedRunMiles(w.session, w.actualDistance);
+    });
+    // Same for a second logged run that isn't the day's headline.
+    dd.manualEntries.forEach(e=>{
+      if(e.type!=='run' || (head && head.kind==='entry' && head.id===e.id)) return;
+      if(e.distance!=null) distance += e.distance;
+      plannedDistance += plannedRunMiles(ses(e.type, e.name, e.volume||'', e.name, e.volume||''), e.distance);
     });
   });
-  return {workouts, distance};
+  return {workouts, distance, plannedDistance};
 }
 function weekBarLabel(offset){
   const L = STR[state.lang];

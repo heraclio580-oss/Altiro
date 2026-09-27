@@ -7,6 +7,14 @@ function freshDom(){
   return new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/', beforeParse(window){ window.__ALTIRO_TEST_TODAY__ = '2026-09-18'; } });
 }
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+// .plan-row uses pointerdown/pointerup (for press-and-hold drag support), not a plain click listener
+// -- a synthetic .click() never reaches it. A same-spot pointerdown+pointerup (no movement, no wait
+// for the long-press timer) is what the row's own code treats as a plain tap that opens Day Detail.
+function tapPlanRow(window, row){
+  const opts = {bubbles:true, cancelable:true, pointerId:1, clientX:100, clientY:100};
+  row.dispatchEvent(new window.PointerEvent('pointerdown', opts));
+  row.dispatchEvent(new window.PointerEvent('pointerup', opts));
+}
 
 function dump(doc){
   return [0,1,2,3,4,5,6].map(i => {
@@ -39,8 +47,10 @@ function setSliderToWeightsOnly(doc, window){
     // Past days default to blank/rest now (no more fabricated demo history), so both "Monday is
     // missed" and "Wednesday is already done" have to be established for real through the app's
     // own affordances first -- a missed real plan for Monday, a real logged entry for Wednesday.
-    goPill('home'); await wait(20);
-    doc.querySelector('#weekStrip .day-cell[data-day="0"]').click();
+    // Monday is 4 days before today (a Friday) -- outside Home's rolling week-strip window (see
+    // homeStripDates()), which only reaches 3 days back -- so open it via the Plan list instead.
+    goPill('week'); await wait(20);
+    tapPlanRow(window, doc.querySelector('.plan-row[data-day="0"][data-week-idx="0"]'));
     await wait(20);
     doc.getElementById('addWorkoutBtn').click();
     await wait(20);

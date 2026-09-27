@@ -21,13 +21,21 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(50);
   const doc = window.document;
   const goPill = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
+  // .plan-row uses pointerdown/pointerup (for press-and-hold drag support), not a plain click
+  // listener -- a same-spot pointerdown+pointerup is what its own code treats as a plain tap.
+  function tapMondayPlanRow(){
+    const row = doc.querySelector('.plan-row[data-day="0"][data-week-idx="0"]');
+    const opts = {bubbles:true, cancelable:true, pointerId:1, clientX:50, clientY:50};
+    row.dispatchEvent(new window.PointerEvent('pointerdown', opts));
+    row.dispatchEvent(new window.PointerEvent('pointerup', opts));
+  }
 
-  goPill('home');
+  // Monday is in the current week but not today (today is Friday per the fixed test date), and is
+  // 4 days back -- outside Home's rolling week-strip window (see homeStripDates()), which only
+  // reaches 3 days back -- so it's opened via the Plan list instead.
+  goPill('week');
   await wait(20);
-
-  // Monday is in the current week but not today (today is Friday per the fixed test date).
-  const monCell = doc.querySelector('#weekStrip .day-cell[data-day="0"]');
-  monCell.click();
+  tapMondayPlanRow();
   await wait(20);
 
   // Log a real workout on Monday -- this is what makes manualEntries.length>0 true and previously
@@ -60,9 +68,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   // Toggle back ON -- should also take effect immediately, and should survive a subsequent
   // getDayData() recompute (i.e. really set the override, not just a transient render flag).
-  goPill('home');
+  goPill('week');
   await wait(20);
-  doc.querySelector('#weekStrip .day-cell[data-day="0"]').click();
+  tapMondayPlanRow();
   await wait(20);
   doc.getElementById('dayCompleteToggle').click();
   await wait(20);

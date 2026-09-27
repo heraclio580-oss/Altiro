@@ -419,9 +419,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .prow-dow{font-family:var(--font-mono);font-size:9px;letter-spacing:0.05em;color:var(--text-3);text-transform:uppercase;}
 .prow-num{font-family:var(--font-mono);font-weight:600;font-size:15px;color:var(--text-2);}
 .plan-row.missed .prow-num{color:var(--alert);}
+.plan-row.today .prow-num{color:var(--today-ring);}
 .prow-body{flex:1;min-width:0;}
 .prow-pill{background:var(--well);border-left:3px solid var(--accent);border-radius:var(--r-md);padding:8px 10px;display:flex;align-items:center;gap:8px;min-width:0;}
 .prow-pill.rest{border-left-color:var(--border);}
+.plan-row.today .prow-pill{border-left-color:var(--today-ring);}
 .prow-pill-main{flex:1;min-width:0;display:flex;flex-direction:column;}
 .prow-title{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .prow-pill.rest .prow-title{color:var(--text-3);font-weight:500;}
@@ -429,7 +431,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .prow-pill-side{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .prow-status{font-family:var(--font-mono);font-size:9px;letter-spacing:0.06em;text-transform:uppercase;padding:3px 7px;border-radius:var(--r-pill);display:flex;align-items:center;}
 .prow-status.missed{color:var(--alert);background:var(--card);}
-.prow-status.today{color:var(--text-2);background:var(--card);}
+.prow-status.today{color:var(--today-ring-text);background:var(--today-ring-tint);}
 .prow-status-dot{width:5px;height:5px;border-radius:50%;background:var(--ok-icon);flex-shrink:0;}
 .prow-add{display:flex;align-items:center;gap:2px;flex-shrink:0;background:none;border:none;font-family:var(--font-mono);font-size:10px;color:var(--text-3);padding:8px 4px;margin:-8px -4px -8px 0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .prow-add svg{width:11px;height:11px;}
@@ -1838,6 +1840,7 @@ const STR = {
     timerCompleteLabel: "All rounds complete!",
     recordRestLabel: "Rest Day",
     recordDoneLabel: "Completed",
+    markDoneLabel: "Mark Done",
     recordingLabel: "Recording…",
     logPerfTitle: "Log Your Performance",
     logPerfWeightLabel: "Top Set Weight (lb)",
@@ -2064,6 +2067,7 @@ const STR = {
     timerCompleteLabel: "¡Todas las rondas completadas!",
     recordRestLabel: "Día de descanso",
     recordDoneLabel: "Completado",
+    markDoneLabel: "Marcar hecho",
     recordingLabel: "Grabando…",
     logPerfTitle: "Registra tu rendimiento",
     logPerfWeightLabel: "Peso de la serie máxima (lb)",
@@ -2210,6 +2214,18 @@ function weekDates(offset){
 }
 const DAY_DATES = weekDates(0).map(d=>d.getDate());
 const TODAY_DATE = weekDates(0)[TODAY_IDX];
+// Home's week strip shows a rolling window centered on today (see homeStripDates()) rather than the
+// Mon-Sun calendar week -- HOME_STRIP_RADIUS is how many days it shows on each side of today.
+const HOME_STRIP_RADIUS = 3;
+function homeStripDates(){
+  const dates = [];
+  for(let o=-HOME_STRIP_RADIUS; o<=HOME_STRIP_RADIUS; o++){
+    const d = new Date(TODAY_DATE);
+    d.setDate(d.getDate()+o);
+    dates.push(d);
+  }
+  return dates;
+}
 function dateKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function parseDateKey(key){ const [y,m,d] = key.split('-').map(Number); return new Date(y,m-1,d); }
 function addMonths(date, n){ return new Date(date.getFullYear(), date.getMonth()+n, 1); }
@@ -2681,14 +2697,13 @@ function getDayData(date){
 }
 function dayDataStatus(dd){
   if(dd.p.t==='rest'){
-    // A GENUINE rest day (not a training day under the current plan) never shows the green "done"
-    // status, even if something extra was logged on it -- only a real workout turns green when
-    // completed. A day that WAS a training day but has since fallen into the past has its content
-    // blanked to "Rest Day" by buildWeek() (no fabricated history for days before today) -- for
-    // that specific case a real logged entry is the only surviving record of what actually
-    // happened, so it still counts as done (this is what past-day completion tests rely on).
-    const dow = (dd.date.getDay()+6)%7;
-    if(state.trainingDays.includes(dow) && dd.manualEntries.length>0) return 'done';
+    // A genuine rest day only turns green if something real actually happened on it -- a manually
+    // logged entry (though by the time p.t is still 'rest' here, getDayData()'s own manualEntries[0]
+    // fallback has already promoted it away from 'rest' whenever one exists, so this really only
+    // ever fires for a completed extra/"Additional" workout logged alongside an otherwise-untouched
+    // rest day -- see addExtraWorkout()). Checked directly rather than trusting dd.completed as a
+    // whole, which can carry a stale flag left over from before a day was reset back to plain rest.
+    if(dd.manualEntries.length>0 || dd.extraWorkouts.some(w=>w.completed)) return 'done';
     return 'rest';
   }
   if(dd.isToday) return dd.completed ? 'done' : 'today';
@@ -2714,7 +2729,13 @@ function getExtraWorkouts(key){
 }
 function addExtraWorkout(key, session){
   const log = ensureDayLog(key);
-  const entry = {id:'w'+Date.now()+Math.random().toString(36).slice(2,7), session, completed:false, notes:''};
+  // A workout added to a day that's already in the past can't be "planned" for later -- creating it
+  // at all can only mean documenting something that already happened, so it starts already done.
+  // This matters a lot more for extras than for the primary slot: an extra workout has no completion
+  // UI at all outside of today (see the Day Detail extraWorkouts render), so one added to a past day
+  // any other way would otherwise be permanently stuck as an incomplete plan with no way to fix it.
+  const isPastDay = parseDateKey(key).getTime() < TODAY_DATE.getTime();
+  const entry = {id:'w'+Date.now()+Math.random().toString(36).slice(2,7), session, completed:isPastDay, notes:''};
   log.extraWorkouts.push(entry);
   cloudInsertExtraWorkout(key, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
   return entry;
@@ -2725,6 +2746,15 @@ function deleteExtraWorkout(key, id){
   const entry = (log.extraWorkouts||[]).find(w=>w.id===id);
   log.extraWorkouts = (log.extraWorkouts||[]).filter(w=>w.id!==id);
   if(entry && entry.supabaseId) cloudDeleteExtraWorkout(entry.supabaseId);
+}
+// The "Mark Done" button a past day's incomplete extra workout gets instead of today's live
+// Start-Workout/Log-Performance flow -- there's no timer or set-checkoff to run for a day that's
+// already over, just a plain on/off flip of whether it actually happened.
+function toggleExtraWorkoutCompleted(key, id){
+  const w = findExtraWorkout(key, id);
+  if(!w) return;
+  w.completed = !w.completed;
+  if(w.supabaseId) cloudSetExtraWorkoutCompleted(w.supabaseId, w.completed);
 }
 function findExtraWorkout(key, id){
   return getExtraWorkouts(key).find(w=>w.id===id) || null;
@@ -2770,6 +2800,11 @@ function planCustomWorkout(key, opts){
   if(existing.isCustom && !opts.replacePrimary){
     addExtraWorkout(key, session);
   } else {
+    // Deliberately always completed:false here, even for a past date -- unlike an extra workout
+    // (see addExtraWorkout), the primary slot already has a real, respected "Mark as Completed"
+    // toggle and its own Day Detail Completed toggle for past days, so a user can genuinely plan (or
+    // backfill) a past day's workout and leave it truthfully NOT done -- e.g. recording that a
+    // workout was scheduled but actually missed, which is exactly what a "missed" Plan row means.
     writeDaySlot(parseDateKey(key), {p: session, c: null, completed: false, isCustom: true});
     cloudSavePlannedSession(key, session);
   }
@@ -2927,7 +2962,7 @@ function showScreen(id){
   bn.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===id));
   if(id==='loading') runLoading();
   if(id==='home') renderHome();
-  if(id==='week') renderWeek();
+  if(id==='week'){ renderWeek(); scrollPlanToToday(); }
   if(id==='calendar') renderCalendarScreen();
   if(id==='progress') renderProgress();
   if(id==='settings') renderSettings();
@@ -3303,17 +3338,22 @@ function renderHome(){
 
   document.getElementById('homeDateLine').textContent = `${DAY_NAMES_FULL[state.lang][TODAY_IDX]}, ${MONTHS_SHORT[state.lang][WEEK_MONDAY.getMonth()]} ${DAY_DATES[TODAY_IDX]}`;
 
+  // A rolling window centered on today, not the Mon-Sun calendar week -- today always sits in the
+  // middle cell and past/future days scroll through the same slots as real time passes, instead of
+  // today landing wherever it happens to fall in a fixed calendar week (see homeStripDates()).
   const strip = document.getElementById('weekStrip');
-  strip.innerHTML = state.week.map((d,i)=>{
-    const status = dayStatus(i);
-    const cls = statusClassFor(status==='rest' ? '' : status, i===TODAY_IDX);
-    return `<div class="day-cell ${cls}" data-day="${i}">
-      <span class="dn">${DAY_NAMES_SHORT[state.lang][i]}</span><span class="dd">${DAY_DATES[i]}</span><span class="dot"></span>
+  const stripDates = homeStripDates();
+  strip.innerHTML = stripDates.map(date=>{
+    const dd = getDayData(date);
+    const status = dayDataStatus(dd);
+    const cls = statusClassFor(status==='rest' ? '' : status, dd.isToday);
+    const dow = (date.getDay()+6)%7; // Mon=0..Sun=6, for the short day-name/label lookup only
+    return `<div class="day-cell ${cls}" data-date="${dateKey(date)}" data-day="${dow}">
+      <span class="dn">${DAY_NAMES_SHORT[state.lang][dow]}</span><span class="dd">${date.getDate()}</span><span class="dot"></span>
     </div>`;
   }).join('');
   strip.querySelectorAll('.day-cell').forEach(c=>{
-    const idx = parseInt(c.getAttribute('data-day'),10);
-    c.addEventListener('click', ()=> openDayDetail(dateKey(weekDates(0)[idx])));
+    c.addEventListener('click', ()=> openDayDetail(c.getAttribute('data-date')));
   });
 
   const eff = todaySession(); const effL = ST(eff);
@@ -4218,6 +4258,17 @@ function renderWeek(){
   wrap.innerHTML = html;
   setupDayRowInteraction(wrap);
 }
+// Opens the Plan tab with today's row centered vertically in the screen (past days visible above,
+// future ones below) instead of at the very top -- called once when the tab is opened (showScreen),
+// not on every renderWeek() re-render, so an in-place update (toggling a day, logging a workout)
+// while Plan is already open never yanks the user's own scroll position back to today.
+function scrollPlanToToday(){
+  const container = document.getElementById('screen-week');
+  const todayRow = container.querySelector('.plan-row.today');
+  if(!todayRow) return;
+  const target = todayRow.offsetTop - (container.clientHeight/2) + (todayRow.clientHeight/2);
+  container.scrollTop = Math.max(0, target);
+}
 
 function onWeekScroll(){
   if(state.planWeeksLoaded>=PLAN_MAX_WEEKS) return;
@@ -4560,11 +4611,20 @@ function renderDayDetail(){
   extraSection.hidden = dd.extraWorkouts.length===0;
   extraWrap.innerHTML = dd.extraWorkouts.map(w=>{
     const effL = ST(w.session);
+    // Today's extras go through the live Record flow (Start Workout -> Log Performance), same as
+    // the primary session, and its own "Completed" badge is just a static label once done (the live
+    // flow is the only intended way to un-record it). A past day has no live flow to run, but still
+    // needs SOME way to mark an extra done -- otherwise one added any way other than
+    // already-completed (see addExtraWorkout) is stuck forever with no path to counting toward
+    // Calendar/Progress at all -- and, symmetrically, a way to undo a mistaken tap, since an extra
+    // has no "Mark as Completed" toggle of its own at creation time the way the primary slot does
+    // (see planCustomWorkout). A future day genuinely can't be completed yet either way.
     const startOrDone = dd.isToday
       ? (w.completed
           ? `<span class="r-inline-btn" style="display:flex;align-items:center;gap:4px;color:var(--ok-icon);font-size:11px;white-space:nowrap;">${ICONS.checkSm}${L.recordDoneLabel}</span>`
           : `<button class="btn-text" data-start-extra="${w.id}" type="button" style="white-space:nowrap;">${L.startWorkoutBtn}</button>`)
-      : '';
+      : dd.isFuture ? ''
+      : `<button class="btn-text" data-mark-extra-done="${w.id}" type="button" style="white-space:nowrap;${w.completed?'color:var(--ok-icon);':''}">${w.completed?ICONS.checkSm:''}${w.completed?L.recordDoneLabel:L.markDoneLabel}</button>`;
     return `<div class="manual-entry">
       <span class="ic">${TYPE_ICON[w.session.t]}</span>
       <div class="body">
@@ -4581,6 +4641,16 @@ function renderDayDetail(){
       const id = btn.getAttribute('data-start-extra');
       closeDayDetail();
       openLogPerformance(id);
+    });
+  });
+  extraWrap.querySelectorAll('[data-mark-extra-done]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      toggleExtraWorkoutCompleted(state.openDayKey, btn.getAttribute('data-mark-extra-done'));
+      renderDayDetail();
+      renderCalendar();
+      renderWeek();
+      renderHome();
+      showToast(STR[state.lang].toastUpdated);
     });
   });
   extraWrap.querySelectorAll('[data-del-extra]').forEach(btn=>{

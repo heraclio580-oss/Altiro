@@ -57,10 +57,18 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   // Past days default to blank/rest now (no fabricated content), so a real missed Monday plan has
   // to be established through the app's own affordances before the reschedule flow below has
-  // anything to reschedule.
-  goPill('home');
+  // anything to reschedule. THIS week's Monday (data-week-idx="0" below) is what that flow needs --
+  // but it's 4 days before today (a Friday), outside Home's rolling week-strip window (see
+  // homeStripDates()), which only reaches 3 days back -- so open it via the Plan list instead.
+  // .plan-row uses pointerdown/pointerup (for press-and-hold drag support), not a plain click.
+  function firePointerEarly(el, type, opts){
+    el.dispatchEvent(new window.PointerEvent(type, Object.assign({bubbles:true, cancelable:true, pointerId:1}, opts)));
+  }
+  goPill('week');
   await wait(20);
-  mondayCell.click();
+  const thisWeekMondayRow = doc.getElementById('weekList').querySelector('.plan-row[data-day="0"][data-week-idx="0"]');
+  firePointerEarly(thisWeekMondayRow, 'pointerdown', {clientX:50, clientY:50});
+  firePointerEarly(thisWeekMondayRow, 'pointerup', {clientX:50, clientY:50});
   await wait(20);
   doc.getElementById('addWorkoutBtn').click();
   await wait(20);

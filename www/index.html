@@ -524,6 +524,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .wp-scope{display:flex;gap:8px;margin-top:10px;}
 .wp-scope .btn{height:40px;font-size:11.5px;}
 .wp-companion{font-size:13px;color:var(--text-2);}
+.fb-sub{margin:6px 0 0;font-size:13.5px;line-height:1.5;color:var(--text-2);}
+.fb-error{margin-top:12px;font-size:12.5px;color:var(--alert);}
+.fb-error[hidden],#feedbackForm[hidden],#feedbackThanks[hidden],#feedbackAdjustCard[hidden]{display:none;}
+.fb-thanks{padding:14px 0 4px;}
+.fb-thanks-t{font-family:var(--font-display);font-weight:600;font-size:18px;color:var(--text);}
 .wp-step-amount{font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);margin-left:6px;}
 #wpSkipWorkoutBtn[hidden],#wpDayOptionsBtn[hidden],#logPerfChangeExercisesBtn[hidden]{display:none;}
 .sheet-panel{width:100%;max-height:88%;background:var(--sheet-bg);border:1px solid var(--divider);border-bottom:none;border-radius:28px 28px 0 0;padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));overflow-y:auto;animation:sheetUp .26s ease both;}
@@ -1204,6 +1209,14 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <div class="sheet-section">
+        <div class="st-label" data-i18n="feedbackLabel"></div>
+        <button class="how-it-works-btn" id="openFeedbackBtn" type="button">
+          <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3.5 4.5h13v9H9l-3.5 3v-3h-2z"/></svg></span>
+          <span data-i18n="sendFeedbackBtn"></span>
+        </button>
+      </div>
+
+      <div class="sheet-section">
         <div class="st-label" data-i18n="helpLabel"></div>
         <button class="how-it-works-btn" id="settingsTutorialBtn" type="button">
           <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 4.5v11l9-5.5z"/></svg></span>
@@ -1274,6 +1287,45 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <input type="text" class="text-input" id="editNameInput">
       </div>
       <button class="btn btn-primary sheet-apply" id="saveEditName" data-i18n="saveNameBtn"></button>
+    </div>
+  </div>
+
+  <!-- FEEDBACK SHEET (overlay) -->
+  <div class="sheet-overlay" id="feedbackOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="feedbackTitle"></span>
+        <button class="iconbtn" id="closeFeedback"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <div id="feedbackForm">
+        <p class="fb-sub" data-i18n="feedbackSub"></p>
+        <div class="sheet-section">
+          <div class="st-label" data-i18n="feedbackTopicLabel"></div>
+          <div class="chip-row" id="feedbackTopicChips"></div>
+        </div>
+        <div class="sheet-section">
+          <div class="st-label" data-i18n="feedbackFeelLabel"></div>
+          <div class="chip-row" id="feedbackFeelChips"></div>
+        </div>
+        <div class="sheet-section">
+          <div class="st-label" data-i18n="feedbackMessageLabel"></div>
+          <textarea class="text-input" id="feedbackMessageInput" rows="4" maxlength="2000"></textarea>
+        </div>
+        <div class="fb-error" id="feedbackError" hidden></div>
+        <button class="btn btn-primary sheet-apply" id="sendFeedbackBtn" type="button" data-i18n="feedbackSendBtn" disabled></button>
+      </div>
+      <div id="feedbackThanks" hidden>
+        <div class="fb-thanks">
+          <div class="fb-thanks-t" data-i18n="feedbackThanksTitle"></div>
+          <p class="fb-sub" data-i18n="feedbackThanksSub"></p>
+        </div>
+        <div class="summary-note" id="feedbackAdjustCard" hidden>
+          <p id="feedbackAdjustMsg"></p>
+          <button class="btn btn-primary" id="feedbackAdjustBtn" type="button" style="margin-top:12px;" data-i18n="feedbackAdjustBtn"></button>
+        </div>
+        <button class="btn btn-ghost sheet-apply" id="feedbackDoneBtn" type="button" data-i18n="feedbackDoneBtn"></button>
+      </div>
     </div>
   </div>
 
@@ -2004,6 +2056,24 @@ const STR = {
     stravaImportedToast: "From Strava: {name} · {mi} mi",
     stravaImportedManyToast: "Imported {count} runs from Strava",
     stravaUpToDateToast: "Already up to date",
+    feedbackLabel: "Feedback",
+    sendFeedbackBtn: "Send us feedback",
+    feedbackTitle: "Send Feedback",
+    feedbackSub: "Tell us what's working and what isn't — every message is read, and it shapes what we build next.",
+    feedbackTopicLabel: "What's it about?",
+    feedbackFeelLabel: "How does your plan feel right now?",
+    feedbackMessageLabel: "Your message",
+    feedbackMessagePlaceholder: "What would make Altiro better for you?",
+    feedbackSendBtn: "Send",
+    feedbackSending: "Sending…",
+    feedbackErrorMsg: "Couldn't send that — please try again in a moment.",
+    feedbackSignInMsg: "Sign in to send feedback.",
+    feedbackThanksTitle: "Thanks — we got it.",
+    feedbackThanksSub: "Your feedback goes straight to the team.",
+    feedbackTooHardOffer: "Sounds like your plan is too much right now. You can ease it off — lower the intensity, drop a training day, or lower your weekly miles.",
+    feedbackTooEasyOffer: "Ready for more? You can raise the intensity, add a training day, or raise your weekly miles.",
+    feedbackAdjustBtn: "Adjust my plan",
+    feedbackDoneBtn: "Done",
     helpLabel: "Help",
     tutDone: "Done",
     notificationsTitle: "Workout reminders",
@@ -2290,6 +2360,24 @@ const STR = {
     stravaImportedToast: "De Strava: {name} · {mi} mi",
     stravaImportedManyToast: "{count} carreras importadas de Strava",
     stravaUpToDateToast: "Ya está todo al día",
+    feedbackLabel: "Comentarios",
+    sendFeedbackBtn: "Envíanos tus comentarios",
+    feedbackTitle: "Enviar comentarios",
+    feedbackSub: "Cuéntanos qué funciona y qué no — leemos cada mensaje, y guía lo que construimos después.",
+    feedbackTopicLabel: "¿Sobre qué es?",
+    feedbackFeelLabel: "¿Cómo sientes tu plan ahora?",
+    feedbackMessageLabel: "Tu mensaje",
+    feedbackMessagePlaceholder: "¿Qué haría Altiro mejor para ti?",
+    feedbackSendBtn: "Enviar",
+    feedbackSending: "Enviando…",
+    feedbackErrorMsg: "No se pudo enviar — inténtalo de nuevo en un momento.",
+    feedbackSignInMsg: "Inicia sesión para enviar comentarios.",
+    feedbackThanksTitle: "Gracias — lo recibimos.",
+    feedbackThanksSub: "Tus comentarios llegan directamente al equipo.",
+    feedbackTooHardOffer: "Parece que tu plan es demasiado ahora mismo. Puedes aligerarlo — baja la intensidad, quita un día de entrenamiento o baja tus millas semanales.",
+    feedbackTooEasyOffer: "¿Listo para más? Puedes subir la intensidad, añadir un día de entrenamiento o subir tus millas semanales.",
+    feedbackAdjustBtn: "Ajustar mi plan",
+    feedbackDoneBtn: "Listo",
     helpLabel: "Ayuda",
     tutDone: "Listo",
     notificationsTitle: "Recordatorios de entrenamiento",
@@ -3675,6 +3763,7 @@ function closeAllOverlays(){
   if(!document.getElementById('dayDetailOverlay').hidden) closeDayDetail();
   if(!document.getElementById('manualEntryOverlay').hidden) closeManualEntry();
   if(!document.getElementById('editNameOverlay').hidden) closeEditName();
+  if(!document.getElementById('feedbackOverlay').hidden) closeFeedback();
   if(!document.getElementById('adjustOverlay').hidden) closeAdjustSheet();
   if(!document.getElementById('tutorialOverlay').hidden) closeTutorial();
 }
@@ -6401,6 +6490,92 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
   closeAdjustSheet();
   refreshViews();
   showToast(STR[state.lang].toastUpdated);
+});
+
+/* ---------------- feedback ---------------- */
+// Users send feedback straight to the team: it lands in the `feedback` table (read in the Supabase
+// dashboard) with a topic, how their plan feels, their message, and a snapshot of their plan setup so
+// it can be acted on without a back-and-forth. Saying the plan feels too hard or too easy also offers
+// to adjust it on the spot.
+const FEEDBACK_TOPICS = [
+  {key:'plan', en:{t:'My plan'}, es:{t:'Mi plan'}},
+  {key:'bug', en:{t:'Something\'s broken'}, es:{t:'Algo no funciona'}},
+  {key:'idea', en:{t:'Idea'}, es:{t:'Idea'}},
+  {key:'other', en:{t:'Other'}, es:{t:'Otro'}},
+];
+const FEEDBACK_FEELS = [
+  {key:'too_easy', en:{t:'Too easy'}, es:{t:'Muy fácil'}},
+  {key:'just_right', en:{t:'Just right'}, es:{t:'Justo'}},
+  {key:'too_hard', en:{t:'Too hard'}, es:{t:'Muy difícil'}},
+];
+let feedbackDraft = {topic:null, feel:null};
+function openFeedback(){
+  feedbackDraft = {topic:null, feel:null};
+  document.getElementById('feedbackMessageInput').value = '';
+  document.getElementById('feedbackMessageInput').placeholder = STR[state.lang].feedbackMessagePlaceholder;
+  document.getElementById('feedbackError').hidden = true;
+  document.getElementById('feedbackForm').hidden = false;
+  document.getElementById('feedbackThanks').hidden = true;
+  renderFeedbackForm();
+  document.getElementById('feedbackOverlay').hidden = false;
+}
+function closeFeedback(){ document.getElementById('feedbackOverlay').hidden = true; }
+function renderFeedbackForm(){
+  renderChipRow('feedbackTopicChips', FEEDBACK_TOPICS, feedbackDraft.topic, k=>{ feedbackDraft.topic = feedbackDraft.topic===k ? null : k; renderFeedbackForm(); });
+  renderChipRow('feedbackFeelChips', FEEDBACK_FEELS, feedbackDraft.feel, k=>{ feedbackDraft.feel = feedbackDraft.feel===k ? null : k; renderFeedbackForm(); });
+  // Something to act on: a message, or at least how the plan feels.
+  document.getElementById('sendFeedbackBtn').disabled = !(document.getElementById('feedbackMessageInput').value.trim() || feedbackDraft.feel);
+}
+// What the team needs to act on it, without asking: the plan setup and where the user is in it.
+function feedbackContext(){
+  return {
+    goal: state.goal, level: state.level, focus: state.focusRatio, intensity: (INTENSITY[state.intensityIdx]||{}).key,
+    training_days: state.trainingDays, weekly_miles: state.weeklyMiles, equipment: state.equipment,
+    plan_week: planWeekIndex(TODAY_DATE) + 1, lang: state.lang,
+    platform: (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : 'web',
+    user_agent: navigator.userAgent,
+  };
+}
+async function cloudSendFeedback(row){
+  if(!state.userId) return {error:{message:'not_signed_in'}};
+  try{
+    const { error } = await sb.from('feedback').insert({...row, user_id: state.userId, email: state.userEmail});
+    return {error};
+  }catch(e){ return {error:e}; }
+}
+document.getElementById('openFeedbackBtn').addEventListener('click', openFeedback);
+document.getElementById('closeFeedback').addEventListener('click', closeFeedback);
+document.getElementById('feedbackDoneBtn').addEventListener('click', closeFeedback);
+document.getElementById('feedbackMessageInput').addEventListener('input', renderFeedbackForm);
+document.getElementById('sendFeedbackBtn').addEventListener('click', async function(){
+  const L = STR[state.lang];
+  const btn = this;
+  const errEl = document.getElementById('feedbackError');
+  if(!state.userId){ errEl.textContent = L.feedbackSignInMsg; errEl.hidden = false; return; }
+  btn.disabled = true;
+  btn.textContent = L.feedbackSending;
+  const { error } = await cloudSendFeedback({
+    category: feedbackDraft.topic || 'other',
+    plan_feel: feedbackDraft.feel,
+    message: document.getElementById('feedbackMessageInput').value.trim() || null,
+    context: feedbackContext(),
+  });
+  btn.textContent = L.feedbackSendBtn;
+  if(error){
+    errEl.textContent = L.feedbackErrorMsg;
+    errEl.hidden = false;
+    btn.disabled = false;
+    return;
+  }
+  document.getElementById('feedbackForm').hidden = true;
+  document.getElementById('feedbackThanks').hidden = false;
+  const offer = feedbackDraft.feel==='too_hard' ? L.feedbackTooHardOffer : feedbackDraft.feel==='too_easy' ? L.feedbackTooEasyOffer : null;
+  document.getElementById('feedbackAdjustCard').hidden = !offer;
+  if(offer) document.getElementById('feedbackAdjustMsg').textContent = offer;
+});
+document.getElementById('feedbackAdjustBtn').addEventListener('click', ()=>{
+  closeFeedback();
+  openAdjustSheet();
 });
 
 /* ---------------- toast ---------------- */

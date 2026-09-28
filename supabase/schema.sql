@@ -197,6 +197,29 @@ create policy "mark own strava activities applied" on strava_activities
   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------------------
+-- feedback: messages users send from Settings -> Send us feedback. Read them in the Supabase dashboard
+-- (Table Editor -> feedback). A user can only send and see their own; `status` is for the team.
+-- ---------------------------------------------------------------------------
+create table if not exists feedback (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  email text,
+  category text not null,            -- 'plan' | 'bug' | 'idea' | 'other'
+  plan_feel text,                    -- 'too_easy' | 'just_right' | 'too_hard' (optional)
+  message text,
+  context jsonb,                     -- the user's plan setup when they sent it (level, focus, days, miles, ...)
+  status text default 'new',         -- for the team: 'new' | 'read' | 'done'
+  created_at timestamptz default now()
+);
+alter table feedback enable row level security;
+drop policy if exists "send own feedback" on feedback;
+create policy "send own feedback" on feedback
+  for insert with check (auth.uid() = user_id);
+drop policy if exists "read own feedback" on feedback;
+create policy "read own feedback" on feedback
+  for select using (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
 -- subscriptions: synced from RevenueCat webhooks. This is the source of truth
 -- for whether a user's account currently has paid access ("entitlement").
 -- Client code should only ever READ this table -- writes come exclusively

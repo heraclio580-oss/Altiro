@@ -402,6 +402,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .summary-exercises .se-result{font-family:var(--font-mono);color:var(--text-2);flex-shrink:0;}
 .r-exercise-list li{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--text-3);}
 .r-exercise-list li span{font-family:var(--font-mono);color:var(--text-2);flex-shrink:0;}
+.r-exercise-list li span.bd-step{font-family:inherit;color:var(--text-3);flex-shrink:1;}
+.r-exercise-list li span.bd-step b{color:var(--text-2);font-weight:500;}
 .r-inline-btn{margin-top:11px;}
 .r-inline-btn svg{width:14px;height:14px;flex-shrink:0;}
 .reschedule-actions{margin-top:11px;display:flex;gap:8px;flex-wrap:wrap;}
@@ -522,6 +524,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .wp-scope{display:flex;gap:8px;margin-top:10px;}
 .wp-scope .btn{height:40px;font-size:11.5px;}
 .wp-companion{font-size:13px;color:var(--text-2);}
+.wp-step-amount{font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);margin-left:6px;}
 #wpSkipWorkoutBtn[hidden],#wpDayOptionsBtn[hidden],#logPerfChangeExercisesBtn[hidden]{display:none;}
 .sheet-panel{width:100%;max-height:88%;background:var(--sheet-bg);border:1px solid var(--divider);border-bottom:none;border-radius:28px 28px 0 0;padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));overflow-y:auto;animation:sheetUp .26s ease both;}
 @keyframes sheetUp{from{transform:translateY(24px);opacity:0.4;}to{transform:none;opacity:1;}}
@@ -1338,6 +1341,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <span class="wp-ic" id="wpIcon"></span>
         <div><div class="wp-title" id="wpTitle"></div><div class="wp-detail" id="wpDetail"></div></div>
       </div>
+      <div class="sheet-section" id="wpBreakdownSection" hidden>
+        <div class="st-label" data-i18n="bdTitle"></div>
+        <div id="wpBreakdown"></div>
+      </div>
       <div class="sheet-section" id="wpRunSection" hidden>
         <div class="st-label" data-i18n="wpHowLabel"></div>
         <p class="wp-how" id="wpRunHow"></p>
@@ -1837,6 +1844,27 @@ const STR = {
     pairedWithLabel: "Paired With",
     wpHowLabel: "How to run it",
     wpTargetPace: "Target pace",
+    bdTitle: "Workout breakdown",
+    bdWarmup: "Warm-up",
+    bdCooldown: "Cool-down",
+    bdTempo: "Tempo",
+    bdRepeats: "Repeats",
+    bdRecovery: "Recovery",
+    bdSurges: "Fast surges",
+    bdHills: "Hill repeats",
+    bdEasyRun: "Easy run",
+    bdStrides: "Strides",
+    bdRunWalk: "Run + walk",
+    bdEasy: "easy, conversational",
+    bdTempoEffort: "comfortably hard",
+    bdFastEffort: "hard but controlled",
+    bdJogBetween: "easy jog between reps",
+    bdEasyJog: "easy jog between",
+    bdHillEffort: "strong effort uphill",
+    bdDownhill: "walk or jog back down",
+    bdStridesEffort: "quick and relaxed, walk back between",
+    bdWalk: "brisk walk",
+    bdRunWalkNote: "run easy — you can still talk; walk to recover",
     effortLabel: "Effort",
     effortEasy: "Easy",
     effortEasyTalk: "Easy — you can still talk",
@@ -2102,6 +2130,27 @@ const STR = {
     pairedWithLabel: "Combinado con",
     wpHowLabel: "Cómo correrla",
     wpTargetPace: "Ritmo objetivo",
+    bdTitle: "Desglose del entrenamiento",
+    bdWarmup: "Calentamiento",
+    bdCooldown: "Enfriamiento",
+    bdTempo: "Tempo",
+    bdRepeats: "Repeticiones",
+    bdRecovery: "Recuperación",
+    bdSurges: "Aceleraciones",
+    bdHills: "Subidas",
+    bdEasyRun: "Carrera suave",
+    bdStrides: "Progresiones",
+    bdRunWalk: "Correr + caminar",
+    bdEasy: "suave, conversacional",
+    bdTempoEffort: "cómodamente exigente",
+    bdFastEffort: "fuerte pero controlado",
+    bdJogBetween: "trote suave entre repeticiones",
+    bdEasyJog: "trote suave entre ellas",
+    bdHillEffort: "esfuerzo fuerte cuesta arriba",
+    bdDownhill: "baja caminando o trotando",
+    bdStridesEffort: "rápido y relajado, vuelve caminando",
+    bdWalk: "caminata rápida",
+    bdRunWalkNote: "corre suave — puedes hablar; camina para recuperar",
     effortLabel: "Esfuerzo",
     effortEasy: "Suave",
     effortEasyTalk: "Suave — puedes seguir hablando",
@@ -3967,7 +4016,8 @@ function renderHome(){
   // so there's no single "Next Suggested" number to show here anymore -- the exercise list itself
   // (with its own sets x reps prescription) already represents the plan.
   const hasExerciseList = !!exercisesForSession(eff);
-  const suggestedTarget = (!hasExerciseList && !isPaceFree(eff) && (eff.t==='strength'||eff.t==='run')) ? getProgressionTarget(eff, state.intensityIdx) : null;
+  // A structured run's breakdown already carries its paces, step by step.
+  const suggestedTarget = (!hasExerciseList && !isPaceFree(eff) && !runBreakdown(eff) && (eff.t==='strength'||eff.t==='run')) ? getProgressionTarget(eff, state.intensityIdx) : null;
   const suggestedTargetStr = suggestedTarget ? (eff.t==='strength' ? `${suggestedTarget.weight} lb x ${suggestedTarget.reps}` : `${fmtPace(suggestedTarget.pace)}/mi`) : null;
 
   document.getElementById('homeGreeting').textContent = (eff.t==='rest' ? L.greetingRest : L.greetingActive).replace('{name}', state.userName.split(' ')[0]);
@@ -4006,6 +4056,7 @@ function renderHome(){
       </div>
       <div class="title">${effL.title}${effL.detail?', '+effL.detail:''}</div>
       ${exerciseListHtml(eff).replace('r-exercise-list', 'r-exercise-list card')}
+      ${runBreakdownHtml(eff, 'card')}
       <div class="session-tip"><p>${tip}</p></div>
       ${suggestedTargetStr ? `<div class="paired"><span>${L.statProgress}: <b>${suggestedTargetStr}</b></span></div>` : ''}
       ${isPaceFree(eff) ? `<div class="paired"><span>${L.effortLabel}: <b>${L.effortEasyTalk}</b></span></div>` : ''}
@@ -5265,6 +5316,7 @@ function planRowHtml(dd, status){
     <div class="r-sessions">
       <div class="r-sess-line">${TYPE_ICON[dd.p.t]}<b>${effL.title}${effL.detail?', '+effL.detail:''}</b></div>
       ${exerciseListHtml(dd.p, dd.date)}
+      ${runBreakdownHtml(dd.p)}
     </div>`;
 }
 function openDayDetail(key){
@@ -5303,8 +5355,8 @@ const RUN_HOW = {
   'Easy Run': {en:"Relaxed, conversational pace — you should be able to talk in full sentences the whole way.", es:"Ritmo relajado y conversacional — deberías poder hablar con frases completas todo el tiempo."},
   'Long Run': {en:"Your longest run of the week. Start easy and stay steady; walk breaks are fine. Bring water and fuel if it's over an hour.", es:"Tu carrera más larga de la semana. Empieza suave y mantén el ritmo; puedes caminar a ratos. Lleva agua y energía si dura más de una hora."},
   'Recovery Jog': {en:"Very easy — slower than your easy pace. It's for loosening up, not fitness.", es:"Muy suave — más lento que tu ritmo fácil. Es para soltar las piernas, no para ganar forma."},
-  'Tempo Run': {en:"Warm up with about a mile easy, run the tempo part at a comfortably hard pace (a few words at a time), then cool down easy.", es:"Calienta con una milla suave, corre la parte de tempo a un ritmo cómodamente exigente (solo unas palabras a la vez) y termina suave."},
-  'Interval Run': {en:"Warm up a mile easy. Run each rep hard but controlled, with 1–2 minutes of easy jogging between. Cool down easy.", es:"Calienta una milla suave. Corre cada repetición fuerte pero controlada, con 1–2 minutos de trote suave entre ellas. Termina suave."},
+  'Tempo Run': {en:"Start with the easy warm-up, run the tempo part at a comfortably hard pace (you can say a few words at a time, not hold a conversation), then finish with the easy cool-down.", es:"Empieza con el calentamiento suave, corre la parte de tempo a un ritmo cómodamente exigente (puedes decir unas palabras, no conversar) y termina con el enfriamiento suave."},
+  'Interval Run': {en:"After the easy warm-up, run each rep hard but controlled — the last one should feel like the first — with an easy jog between. Finish with the easy cool-down.", es:"Tras el calentamiento suave, corre cada repetición fuerte pero controlada — la última debe sentirse como la primera — con trote suave entre ellas. Termina con el enfriamiento suave."},
   'Fartlek Run': {en:"Easy running with one-minute fast bursts mixed in — jog easy between them until you're ready for the next.", es:"Carrera suave con ráfagas rápidas de un minuto — trota suave entre ellas hasta estar listo para la siguiente."},
   'Hill Repeats': {en:"Warm up easy, then run each 60 seconds uphill strong and walk or jog back down to recover.", es:"Calienta suave, corre cada subida de 60 segundos con fuerza y baja caminando o trotando para recuperar."},
   'Easy Run + Strides': {en:"An easy run, then four relaxed 20-second pickups to a fast (not all-out) pace, walking back between each.", es:"Una carrera suave y luego cuatro aceleraciones relajadas de 20 segundos a ritmo rápido (sin llegar al máximo), caminando entre cada una."},
@@ -5365,13 +5417,23 @@ function renderWorkoutPreview(){
 
   const runSection = document.getElementById('wpRunSection');
   runSection.hidden = session.t!=='run';
+  if(session.t!=='run') document.getElementById('wpBreakdownSection').hidden = true;
   if(session.t==='run'){
     const how = RUN_HOW[session.en.title];
     document.getElementById('wpRunHow').textContent = how ? how[state.lang] : '';
     document.getElementById('wpRunHow').hidden = !how;
-    const target = isPaceFree(session) ? null : getProgressionTarget(session, state.intensityIdx);
+    const steps = runBreakdown(session);
+    // A structured run's breakdown carries its paces step by step, so no single target pace for it.
+    const target = isPaceFree(session) || steps ? null : getProgressionTarget(session, state.intensityIdx);
     document.getElementById('wpPace').textContent = isPaceFree(session) ? `${L.effortLabel}: ${L.effortEasyTalk}`
       : target && target.pace ? `${L.wpTargetPace}: ${fmtPace(target.pace)}/mi` : '';
+    document.getElementById('wpBreakdownSection').hidden = !steps;
+    document.getElementById('wpBreakdown').innerHTML = steps ? steps.map(st=>`<div class="wp-ex">
+        <div class="wp-ex-main">
+          <div class="wp-ex-name">${escapeHtml(st.label)}${st.amount ? ` <span class="wp-step-amount">${escapeHtml(st.amount)}</span>` : ''}</div>
+          <div class="wp-ex-rx">${escapeHtml(st.note)}</div>
+        </div>
+      </div>`).join('') : '';
   }
 
   const exSection = document.getElementById('wpExerciseSection');
@@ -5987,6 +6049,69 @@ function plannedMinutesOf(session){
 // Someone new to running goes by feel: no pace targets, suggestions or pace-based progression anywhere.
 function isPaceFree(session){
   return !!session && session.t==='run' && (isNewRunner(planConfig()) || /^(Run\/Walk|Brisk Walk)$/.test(session.en.title));
+}
+// A structured run, step by step -- warm-up, the main set, recovery between reps, cool-down -- worked out
+// from the run's own plan text ("3.5 mi · 2 mi at tempo pace", "5 mi · 9 x 400m", "28 min · run 1 min,
+// walk 2 min × 6"). Paces are relative to the user's easy pace (their Easy Run target): tempo about
+// 1:15/mi faster, fast repeats about 1:45/mi faster -- and left out entirely for someone going by feel.
+// null for a plain easy/long/recovery run (nothing to break down) or a workout the user wrote themselves.
+function quarterMile(x){ return Math.round(x*4)/4; }
+function fmtStepMiles(x){ return `${+x.toFixed(2)} mi`; }
+function runBreakdown(session){
+  if(!session || session.t!=='run') return null;
+  const L = STR[state.lang];
+  const title = session.en.title, detail = session.en.detail || '';
+  const total = plannedMilesOf(session);
+  const byFeel = isPaceFree(session);
+  const easyPace = (getProgressionTarget(ses('run','Easy Run','','',''), state.intensityIdx) || {}).pace || INTENSITY[state.intensityIdx].pace;
+  const pace = p => byFeel ? '' : ` · ~${fmtPace(p)}/mi`;
+  // Warm-up and cool-down split whatever the main set leaves (at most 1.5 mi each, at least a quarter).
+  const ends = mainMiles => {
+    const rest = Math.max(0.5, total - mainMiles);
+    const warm = Math.max(0.25, quarterMile(Math.min(1.5, rest/2)));
+    return [warm, Math.max(0.25, quarterMile(rest - warm))];
+  };
+  const warm = mi => ({label:L.bdWarmup, amount:fmtStepMiles(mi), note:L.bdEasy});
+  const cool = mi => ({label:L.bdCooldown, amount:fmtStepMiles(mi), note:L.bdEasy});
+  let m;
+  if(title==='Tempo Run' && (m = detail.match(/·\s*([\d.]+)\s*mi at tempo/))){
+    const tempo = parseFloat(m[1]);
+    const [w, c] = ends(tempo);
+    return [warm(w), {label:L.bdTempo, amount:fmtStepMiles(tempo), note:L.bdTempoEffort + pace(easyPace-1.25)}, cool(c)];
+  }
+  if(title==='Interval Run' && (m = detail.match(/(\d+)\s*x\s*(\d+)m/))){
+    const reps = +m[1], meters = +m[2];
+    const [w, c] = ends(reps*(meters+200)/1609); // each rep plus a 200m recovery jog
+    return [warm(w), {label:L.bdRepeats, amount:`${reps} × ${meters}m`, note:L.bdFastEffort + pace(easyPace-1.75)},
+      {label:L.bdRecovery, amount:'200m', note:L.bdJogBetween}, cool(c)];
+  }
+  if(title==='Fartlek Run' && (m = detail.match(/(\d+)\s*x\s*1 min/))){
+    const reps = +m[1];
+    const [w, c] = ends(reps*2/easyPace); // a minute fast + about a minute easy, each
+    return [warm(w), {label:L.bdSurges, amount:`${reps} × 1 min`, note:L.bdFastEffort},
+      {label:L.bdRecovery, amount:'1–2 min', note:L.bdEasyJog}, cool(c)];
+  }
+  if(title==='Hill Repeats' && (m = detail.match(/(\d+)\s*x\s*60s/))){
+    const reps = +m[1];
+    const [w, c] = ends(reps*2.5/easyPace); // 60s up + the way back down
+    return [warm(w), {label:L.bdHills, amount:`${reps} × 60s`, note:L.bdHillEffort},
+      {label:L.bdRecovery, amount:'', note:L.bdDownhill}, cool(c)];
+  }
+  if(title==='Easy Run + Strides' && total){
+    return [{label:L.bdEasyRun, amount:fmtStepMiles(total), note:L.bdEasy + pace(easyPace)}, {label:L.bdStrides, amount:'4 × 20s', note:L.bdStridesEffort}];
+  }
+  if(title==='Run/Walk' && (m = detail.match(/run ([\d.]+) min, walk ([\d.]+) min × (\d+)/))){
+    return [{label:L.bdWarmup, amount:'5 min', note:L.bdWalk},
+      {label:L.bdRunWalk, amount:`${m[3]} × (${m[1]} + ${m[2]} min)`, note:L.bdRunWalkNote},
+      {label:L.bdCooldown, amount:'5 min', note:L.bdWalk}];
+  }
+  return null;
+}
+function runBreakdownHtml(session, extraClass){
+  const steps = runBreakdown(session);
+  if(!steps) return '';
+  return `<ul class="r-exercise-list run-breakdown ${extraClass||''}">${steps.map(st=>
+    `<li><span class="bd-step"><b>${escapeHtml(st.label)}</b> · ${escapeHtml(st.note)}</span><span>${escapeHtml(st.amount)}</span></li>`).join('')}</ul>`;
 }
 // Miles written in a workout's own text -- "4.5 miles", "16mile", "3.75mi", "4 mi", or "5k"/"10 km"
 // (converted). Null when there's no explicit distance.

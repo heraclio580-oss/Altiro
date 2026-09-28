@@ -3074,7 +3074,7 @@ const defaultState = () => ({
   // Real stats for a real user always start at zero -- these are never seeded with placeholder
   // numbers, so nothing shows on Progress until the user actually records something themselves.
   streak:0, bestStreak:0, doneCount:0,
-  weeklyWorkoutGoal:5, weeklyDistanceGoal:15,
+  weeklyDistanceGoal:15,
   totalWorkouts:0, totalDistance:0,
   lastCountedDate:null, // dateKey of the last day counted toward streak/totalWorkouts -- guards startWorkout() against double-counting a day that's recorded more than once (see startWorkout())
   calMonthOffset:0,
@@ -3148,6 +3148,16 @@ function computeDoneCount(){
   return weekDates(0).filter(date=>{
     const dd = getDayData(date);
     return dd.p.t !== 'rest' && dd.completed;
+  }).length;
+}
+// How many workouts this week's plan holds: every training day -- including one already missed, which
+// still counts against the week -- except one the user skipped or moved away (a rest day they chose),
+// plus any other day they planned or logged a workout on.
+function weekWorkoutGoal(){
+  return weekDates(0).filter((date, i)=>{
+    const dd = getDayData(date);
+    if(dd.p.t!=='rest') return true;
+    return state.trainingDays.includes(i) && !dd.isCustom;
   }).length;
 }
 function dayStatus(i){
@@ -3970,9 +3980,10 @@ function renderHome(){
   const week = weekStats(0);
   const weekMileage = week.distance;
   const distanceGoal = week.plannedDistance>0 ? +week.plannedDistance.toFixed(2) : state.weeklyDistanceGoal;
-  const wPct = Math.min(100, Math.round((state.doneCount/state.weeklyWorkoutGoal)*100));
+  const workoutGoal = Math.max(weekWorkoutGoal(), state.doneCount);
+  const wPct = workoutGoal ? Math.min(100, Math.round((state.doneCount/workoutGoal)*100)) : 0;
   let dPct = Math.min(100, Math.round((weekMileage/distanceGoal)*100));
-  document.getElementById('ovWorkoutsVal').textContent = `${state.doneCount}/${state.weeklyWorkoutGoal}`;
+  document.getElementById('ovWorkoutsVal').textContent = `${state.doneCount}/${workoutGoal}`;
   document.getElementById('ovWorkoutsBar').style.width = wPct+'%';
   // A week of timed sessions (walks, run/walks) with no miles planned counts minutes instead.
   const byTime = week.plannedDistance<=0 && week.plannedMinutes>0;

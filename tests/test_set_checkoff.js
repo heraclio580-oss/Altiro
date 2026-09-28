@@ -11,6 +11,11 @@ function rows(doc){ return [...doc.querySelectorAll('#logPerfExercisesList .exer
 (async () => {
   await wait(50);
   const doc = window.document;
+  // A weights-only plan, so today's generated session is a lifting day.
+  [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'adjust').click();
+  for(let i=0;i<4;i++) doc.getElementById('adjSliderThumb').dispatchEvent(new window.KeyboardEvent('keydown', {key:'ArrowRight', bubbles:true}));
+  doc.getElementById('applyAdjust').click();
+  await wait(10);
   const goPill = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
 
   goPill('home');

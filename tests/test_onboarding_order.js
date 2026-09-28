@@ -32,6 +32,18 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const intensityCard = doc.querySelector('#intensityList .option-card');
   intensityCard.click();
   await wait(10);
+  // ...and, for a plan with both running and lifting, until current weekly miles and equipment are answered.
+  console.log('Balanced plan asks both current miles and equipment:',
+    !doc.getElementById('onbMilesSection').hidden && !doc.getElementById('onbEquipSection').hidden ? 'OK' : 'FAIL');
+  console.log('Continue stays disabled until they are answered:', doc.getElementById('intensityNext').disabled ? 'OK' : 'FAIL');
+  doc.querySelector('#onbMilesChips .chip[data-key="15"]').click();
+  await wait(10);
+  console.log('...still disabled with only miles answered:', doc.getElementById('intensityNext').disabled ? 'OK' : 'FAIL');
+  doc.querySelector('#onbEquipChips .chip[data-key="dumbbells"]').click();
+  await wait(10);
+  console.log('...enabled once both are answered:', !doc.getElementById('intensityNext').disabled ? 'OK' : 'FAIL');
+  console.log('The chosen answers show as selected:',
+    doc.querySelector('#onbMilesChips .chip.sel').dataset.key==='15' && doc.querySelector('#onbEquipChips .chip.sel').dataset.key==='dumbbells' ? 'OK' : 'FAIL');
   doc.getElementById('intensityNext').click();
   await wait(10);
   console.log('Intensity -> Continue lands on Info (not Account):', visible('onb-info') ? 'OK' : 'FAIL');

@@ -30,6 +30,9 @@ create table if not exists profiles (
   updated_at timestamptz default now()
 );
 alter table profiles add column if not exists last_counted_date date; -- last day counted toward streak/total_workouts, guards startWorkout() against double-counting a day recorded more than once
+alter table profiles add column if not exists weekly_miles numeric;  -- about how many miles a week they run now -- where the plan's mileage starts
+alter table profiles add column if not exists equipment text;        -- 'gym' | 'dumbbells' | 'bodyweight' -- what the plan's lifts can use
+alter table profiles add column if not exists plan_start date;       -- Monday of the plan's week 0 (mileage builds week by week from here)
 
 -- ---------------------------------------------------------------------------
 -- workout_logs: one row per (user, calendar day) -- mirrors state.dayLog[dateKey]

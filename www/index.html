@@ -347,7 +347,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .day-row.editable{cursor:pointer;}
 .day-row.editable:hover{border-color:var(--hover-border);}
 .day-row-empty{padding:2px 0 10px;color:var(--text-3);font-size:13.5px;}
-.week-block-label{font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ok-icon);margin:14px 20px 2px;}
+.week-block-label{display:flex;justify-content:space-between;gap:10px;font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ok-icon);margin:14px 20px 2px;}
+.week-block-meta{color:var(--text-3);text-align:right;}
 .week-block:first-child .week-block-label{margin-top:0;}
 .day-row.today{border-left-color:var(--today-ring);}
 .day-row.done{border-left-color:var(--ok-border);}
@@ -537,6 +538,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:12px 13px;}
 .toggle-row .tt{font-size:13px;color:var(--text);font-weight:500;}
 .toggle-row .ts{font-size:11px;color:var(--text-3);margin-top:2px;}
+.sheet-section[hidden]{display:none;}
 .strava-btn{flex-shrink:0;height:34px;padding:0 14px;border-radius:var(--r-pill);border:none;background:#FC4C02;color:#fff;font-family:var(--font-display);font-weight:600;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;}
 .strava-btn.secondary{background:transparent;color:var(--text-2);border:1px solid var(--border);}
 .strava-btn:disabled{opacity:0.5;cursor:default;}
@@ -962,6 +964,14 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <h2 class="hl" data-i18n="intensityHeadline"></h2>
       <p class="sub" data-i18n="intensitySub"></p>
       <div class="option-list" id="intensityList"></div>
+      <div class="sheet-section" id="onbMilesSection">
+        <div class="st-label" data-i18n="weeklyMilesLabel"></div>
+        <div class="chip-row" id="onbMilesChips"></div>
+      </div>
+      <div class="sheet-section" id="onbEquipSection">
+        <div class="st-label" data-i18n="equipmentLabel"></div>
+        <div class="chip-row" id="onbEquipChips"></div>
+      </div>
     </div>
     <div class="footer-cta">
       <button class="btn btn-primary" id="intensityNext" data-i18n="continueBtn" disabled data-go="onb-info"></button>
@@ -1263,6 +1273,17 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section">
         <div class="st-label" data-i18n="intensityLabel"></div>
         <div class="tabs-row" id="adjIntensityTabs"></div>
+      </div>
+
+      <div class="sheet-section" id="adjMilesSection">
+        <div class="st-label" data-i18n="weeklyMilesLabel"></div>
+        <div class="chip-row" id="adjMilesChips"></div>
+        <div class="footer-note" style="text-align:left;margin-top:8px;" data-i18n="weeklyMilesNote"></div>
+      </div>
+
+      <div class="sheet-section" id="adjEquipSection">
+        <div class="st-label" data-i18n="equipmentLabel"></div>
+        <div class="chip-row" id="adjEquipChips"></div>
       </div>
 
       <div class="sheet-section">
@@ -1757,6 +1778,11 @@ const STR = {
     eyebrowIntensity: "Intensity",
     intensityHeadline: "How hard do you want to push?",
     intensitySub: "Adjust this anytime from your plan.",
+    weeklyMilesLabel: "Miles you run a week now",
+    weeklyMilesNote: "Changing this restarts your mileage build-up from this week.",
+    equipmentLabel: "Equipment for strength workouts",
+    planWeekBuild: "Build week",
+    planWeekRecovery: "Recovery week",
     continueBtn: "Continue",
     loadingEyebrow: "One sec",
     loadingHeadline: "Building your plan",
@@ -1995,6 +2021,11 @@ const STR = {
     eyebrowIntensity: "Intensidad",
     intensityHeadline: "¿Qué tan fuerte quieres esforzarte?",
     intensitySub: "Ajusta esto cuando quieras desde tu plan.",
+    weeklyMilesLabel: "Millas que corres por semana ahora",
+    weeklyMilesNote: "Cambiar esto reinicia el aumento de millas desde esta semana.",
+    equipmentLabel: "Equipo para los entrenamientos de fuerza",
+    planWeekBuild: "Semana de progresión",
+    planWeekRecovery: "Semana de recuperación",
     continueBtn: "Continuar",
     loadingEyebrow: "Un momento",
     loadingHeadline: "Creando tu plan",
@@ -2268,137 +2299,431 @@ const REVIEW_RATING_LABELS = {
   es: ['😩 Duro', '😕 Difícil', '🙂 Bien', '💪 Genial', '🔥 Excelente'],
 };
 
-const WEEK_TABLES = [
-  [ // 0 - running only
-    {p:ses('run','Easy Run','3 mi','Carrera suave','3 mi'), c:ses('strength','Mobility & Stretch','10 min','Movilidad y estiramiento','10 min')},
-    {p:ses('run','Tempo Run','5 mi','Carrera de tempo','5 mi'), c:ses('strength','Core Activation','10 min','Activación del core','10 min')},
-    {p:ses('run','Recovery Jog','2 mi','Trote de recuperación','2 mi'), c:ses('strength','Rest & Stretch','10 min','Descanso y estiramiento','10 min')},
-    {p:ses('run','Interval Run','6 x 800m','Carrera de intervalos','6 x 800m'), c:ses('strength','Hip & Glute Activation','10 min','Activación de cadera y glúteos','10 min')},
-    {p:ses('run','Easy Run','4 mi','Carrera suave','4 mi'), c:ses('strength','Mobility & Stretch','10 min','Movilidad y estiramiento','10 min')},
-    {p:ses('run','Long Run','7 mi','Carrera larga','7 mi'), c:ses('strength','Foam Roll & Cooldown','10 min','Rodillo de espuma y enfriamiento','10 min')},
-    {p:ses('rest','Rest Day','','Día de descanso',''), c:ses('run','Optional Easy Walk','20 min','Caminata suave opcional','20 min')},
-  ],
-  [ // 1 - mostly running
-    {p:ses('run','Easy Run','4 mi','Carrera suave','4 mi'), c:ses('strength','Full Body Strength','20 min','Fuerza de cuerpo completo','20 min')},
-    {p:ses('run','Tempo Run','5 mi','Carrera de tempo','5 mi'), c:ses('strength','Core & Mobility','15 min','Core y movilidad','15 min')},
-    {p:ses('run','Recovery Jog','3 mi','Trote de recuperación','3 mi'), c:ses('strength','Hip & Glute Activation','10 min','Activación de cadera y glúteos','10 min')},
-    {p:ses('strength','Lower Body Strength','30 min','Fuerza de tren inferior','30 min'), c:ses('run','Easy Jog','2 mi','Trote suave','2 mi')},
-    {p:ses('run','Interval Run','5 x 1000m','Carrera de intervalos','5 x 1000m'), c:ses('strength','Upper Body Strength','20 min','Fuerza de tren superior','20 min')},
-    {p:ses('run','Long Run','8 mi','Carrera larga','8 mi'), c:ses('strength','Foam Roll & Cooldown','10 min','Rodillo de espuma y enfriamiento','10 min')},
-    {p:ses('rest','Rest Day','','Día de descanso',''), c:ses('run','Easy Walk','20 min','Caminata suave','20 min')},
-  ],
-  [ // 2 - balanced mix
-    {p:ses('strength','Full Body Strength','30 min','Fuerza de cuerpo completo','30 min'), c:ses('run','Easy Run','2 mi','Carrera suave','2 mi')},
-    {p:ses('run','Tempo Run','4 mi','Carrera de tempo','4 mi'), c:ses('strength','Core & Mobility','15 min','Core y movilidad','15 min')},
-    {p:ses('strength','Upper Body Strength','30 min','Fuerza de tren superior','30 min'), c:ses('run','Recovery Jog','2 mi','Trote de recuperación','2 mi')},
-    {p:ses('run','Interval Run','5 x 600m','Carrera de intervalos','5 x 600m'), c:ses('strength','Hip & Glute Activation','15 min','Activación de cadera y glúteos','15 min')},
-    {p:ses('strength','Lower Body Strength','35 min','Fuerza de tren inferior','35 min'), c:ses('run','Easy Jog','2 mi','Trote suave','2 mi')},
-    {p:ses('run','Long Run','6 mi','Carrera larga','6 mi'), c:ses('strength','Full Body Strength','20 min','Fuerza de cuerpo completo','20 min')},
-    {p:ses('rest','Rest Day','','Día de descanso',''), c:ses('run','Easy Walk','20 min','Caminata suave','20 min')},
-  ],
-  [ // 3 - mostly weights
-    {p:ses('strength','Upper Body Strength','40 min','Fuerza de tren superior','40 min'), c:ses('run','Easy Jog','2 mi','Trote suave','2 mi')},
-    {p:ses('strength','Lower Body Strength','40 min','Fuerza de tren inferior','40 min'), c:ses('strength','Mobility & Stretch','10 min','Movilidad y estiramiento','10 min')},
-    {p:ses('run','Interval Run','4 x 800m','Carrera de intervalos','4 x 800m'), c:ses('strength','Core Strength','20 min','Fuerza de core','20 min')},
-    {p:ses('strength','Full Body Strength','45 min','Fuerza de cuerpo completo','45 min'), c:ses('run','Recovery Jog','2 mi','Trote de recuperación','2 mi')},
-    {p:ses('strength','Upper Body Strength','35 min','Fuerza de tren superior','35 min'), c:ses('strength','Hip & Glute Activation','10 min','Activación de cadera y glúteos','10 min')},
-    {p:ses('run','Tempo Run','3 mi','Carrera de tempo','3 mi'), c:ses('strength','Lower Body Strength','30 min','Fuerza de tren inferior','30 min')},
-    {p:ses('rest','Rest Day','','Día de descanso',''), c:ses('strength','Mobility & Stretch','10 min','Movilidad y estiramiento','10 min')},
-  ],
-  [ // 4 - weights only
-    {p:ses('strength','Upper Body Strength','45 min','Fuerza de tren superior','45 min'), c:ses('strength','Mobility & Stretch','10 min','Movilidad y estiramiento','10 min')},
-    {p:ses('strength','Lower Body Strength','45 min','Fuerza de tren inferior','45 min'), c:ses('strength','Core Activation','10 min','Activación del core','10 min')},
-    {p:ses('strength','Full Body Strength','50 min','Fuerza de cuerpo completo','50 min'), c:ses('strength','Rest & Stretch','10 min','Descanso y estiramiento','10 min')},
-    {p:ses('strength','Push Day Strength','40 min','Fuerza – día de empuje','40 min'), c:ses('strength','Hip & Glute Activation','10 min','Activación de cadera y glúteos','10 min')},
-    {p:ses('strength','Pull Day Strength','40 min','Fuerza – día de tracción','40 min'), c:ses('strength','Mobility & Stretch','10 min','Movilidad y estiramiento','10 min')},
-    {p:ses('strength','Full Body Strength','45 min','Fuerza de cuerpo completo','45 min'), c:ses('strength','Foam Roll & Cooldown','10 min','Rodillo de espuma y enfriamiento','10 min')},
-    {p:ses('rest','Rest Day','','Día de descanso',''), c:ses('run','Easy Walk','20 min','Caminata suave','20 min')},
-  ],
-];
+/* ---------------- plan engine ---------------- */
+// Every generated week is built from the user's own setup -- goal, level, the miles they run now,
+// equipment, training days, focus and intensity -- and counted from the week their plan started
+// (planStartKey), so running and lifting build week to week (every 4th week an easier recovery week)
+// instead of repeating one fixed week forever. Nothing here is stored: a generated day is recomputed
+// whenever it's shown, and only what the user plans or logs themselves is saved.
 
-// Real exercise breakdowns for the auto-generated plan's strength sessions -- keyed by the
-// session's stable EN title so every focus table's "Upper Body Strength" etc. shares one
-// definition instead of repeating it. Each session is a fixed list of movement-pattern SLOTS
-// (e.g. "squat", "horizontal push"), and each slot carries a small pool of real candidate
-// exercises rather than one fixed move -- exercisesForSession() rotates through a slot's pool
-// week to week (see weekSeedForDate) so the same session title doesn't mean the exact same
-// exercises forever, the way a real program varies accessory work over time.
-// `seedFactor` scales the intensity-tier baseline weight ([95,135,195] lb) so a heavy compound
-// lift and a light accessory move don't start at the same load; bodyweight moves carry no
-// seedFactor/weight at all -- just a sets x reps (or duration) prescription. Exercise `key` is the
-// stable, English-only identity used for progression tracking (see exerciseProgressionKey) and is
-// what a matching Personal Record seeds/updates -- the same lift (e.g. "Bench Press") appearing in
-// more than one session template shares that one progression trail.
-const STRENGTH_TEMPLATES = {
-  'Full Body Strength': [
-    [ {key:'Goblet Squat', en:'Goblet Squat', es:'Sentadilla Goblet', sets:3, reps:12, seedFactor:0.7},
-      {key:'Kettlebell Sumo Squat', en:'Kettlebell Sumo Squat', es:'Sentadilla Sumo con Pesa Rusa', sets:3, reps:12, seedFactor:0.6},
-      {key:'Dumbbell Step-Up', en:'Dumbbell Step-Up', es:'Subida al Cajón con Mancuernas', sets:3, reps:10, seedFactor:0.4} ],
-    [ {key:'Push-Up', en:'Push-Up', es:'Flexión de Pecho', sets:3, reps:12, bodyweight:true},
-      {key:'Dumbbell Bench Press', en:'Dumbbell Bench Press', es:'Press de Banca con Mancuernas', sets:3, reps:10, seedFactor:0.8},
-      {key:'Incline Push-Up', en:'Incline Push-Up', es:'Flexión Inclinada', sets:3, reps:12, bodyweight:true} ],
-    [ {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:3, reps:12, seedFactor:0.6},
-      {key:'Dumbbell Row', en:'Dumbbell Row', es:'Remo con Mancuerna', sets:3, reps:10, seedFactor:0.5},
-      {key:'Resistance Band Row', en:'Resistance Band Row', es:'Remo con Banda de Resistencia', sets:3, reps:15, bodyweight:true} ],
-    [ {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:45, bodyweight:true},
-      {key:'Dead Bug', en:'Dead Bug', es:'Dead Bug', sets:3, reps:10, bodyweight:true},
-      {key:'Side Plank', en:'Side Plank', es:'Plancha Lateral', sets:2, durationSec:30, bodyweight:true} ],
-  ],
-  'Upper Body Strength': [
-    [ {key:'Bench Press', en:'Bench Press', es:'Press de Banca', sets:4, reps:10, seedFactor:1.0},
-      {key:'Dumbbell Bench Press', en:'Dumbbell Bench Press', es:'Press de Banca con Mancuernas', sets:4, reps:10, seedFactor:0.8},
-      {key:'Incline Dumbbell Press', en:'Incline Dumbbell Press', es:'Press Inclinado con Mancuernas', sets:4, reps:10, seedFactor:0.7} ],
-    [ {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:4, reps:10, seedFactor:0.6},
-      {key:'Seated Cable Row', en:'Seated Cable Row', es:'Remo Sentado en Polea', sets:4, reps:10, seedFactor:0.6},
-      {key:'Dumbbell Row', en:'Dumbbell Row', es:'Remo con Mancuerna', sets:4, reps:10, seedFactor:0.5} ],
-    [ {key:'Overhead Press', en:'Overhead Press', es:'Press Militar', sets:3, reps:10, seedFactor:0.5},
-      {key:'Arnold Press', en:'Arnold Press', es:'Press Arnold', sets:3, reps:10, seedFactor:0.45},
-      {key:'Dumbbell Shoulder Press', en:'Dumbbell Shoulder Press', es:'Press de Hombro con Mancuernas', sets:3, reps:10, seedFactor:0.45} ],
-    [ {key:'Bicep Curl', en:'Bicep Curl', es:'Curl de Bíceps', sets:3, reps:12, seedFactor:0.25},
-      {key:'Triceps Pushdown', en:'Triceps Pushdown', es:'Extensión de Tríceps en Polea', sets:3, reps:12, seedFactor:0.25},
-      {key:'Hammer Curl', en:'Hammer Curl', es:'Curl Martillo', sets:3, reps:12, seedFactor:0.25} ],
-  ],
-  'Lower Body Strength': [
-    [ {key:'Back Squat', en:'Back Squat', es:'Sentadilla con Barra', sets:4, reps:8, seedFactor:1.0},
-      {key:'Front Squat', en:'Front Squat', es:'Sentadilla Frontal', sets:4, reps:8, seedFactor:0.85},
-      {key:'Leg Press', en:'Leg Press', es:'Prensa de Piernas', sets:4, reps:10, seedFactor:0.9} ],
-    [ {key:'Romanian Deadlift', en:'Romanian Deadlift', es:'Peso Muerto Rumano', sets:3, reps:10, seedFactor:0.8},
-      {key:'Hip Thrust', en:'Hip Thrust', es:'Empuje de Cadera', sets:3, reps:10, seedFactor:0.9},
-      {key:'Good Morning', en:'Good Morning', es:'Buenos Días', sets:3, reps:10, seedFactor:0.5} ],
-    [ {key:'Walking Lunge', en:'Walking Lunge', es:'Zancada Caminando', sets:3, reps:12, seedFactor:0.4},
-      {key:'Bulgarian Split Squat', en:'Bulgarian Split Squat', es:'Sentadilla Búlgara', sets:3, reps:10, seedFactor:0.4},
-      {key:'Step-Up', en:'Step-Up', es:'Subida al Cajón', sets:3, reps:10, seedFactor:0.4} ],
-    [ {key:'Calf Raise', en:'Calf Raise', es:'Elevación de Talones', sets:3, reps:15, bodyweight:true},
-      {key:'Single-Leg Calf Raise', en:'Single-Leg Calf Raise', es:'Elevación de Talón a Una Pierna', sets:3, reps:12, bodyweight:true} ],
-  ],
-  'Push Day Strength': [
-    [ {key:'Bench Press', en:'Bench Press', es:'Press de Banca', sets:4, reps:8, seedFactor:1.0},
-      {key:'Incline Barbell Press', en:'Incline Barbell Press', es:'Press Inclinado con Barra', sets:4, reps:8, seedFactor:0.9},
-      {key:'Dumbbell Bench Press', en:'Dumbbell Bench Press', es:'Press de Banca con Mancuernas', sets:4, reps:8, seedFactor:0.8} ],
-    [ {key:'Overhead Press', en:'Overhead Press', es:'Press Militar', sets:3, reps:10, seedFactor:0.5},
-      {key:'Arnold Press', en:'Arnold Press', es:'Press Arnold', sets:3, reps:10, seedFactor:0.45},
-      {key:'Push Press', en:'Push Press', es:'Press de Empuje', sets:3, reps:8, seedFactor:0.55} ],
-    [ {key:'Incline Dumbbell Press', en:'Incline Dumbbell Press', es:'Press Inclinado con Mancuernas', sets:3, reps:10, seedFactor:0.4},
-      {key:'Chest Fly', en:'Chest Fly', es:'Aperturas de Pecho', sets:3, reps:12, seedFactor:0.3},
-      {key:'Cable Fly', en:'Cable Fly', es:'Aperturas en Polea', sets:3, reps:12, seedFactor:0.3} ],
-    [ {key:'Triceps Dip', en:'Triceps Dip', es:'Fondos de Tríceps', sets:3, reps:12, bodyweight:true},
-      {key:'Triceps Pushdown', en:'Triceps Pushdown', es:'Extensión de Tríceps en Polea', sets:3, reps:12, seedFactor:0.2},
-      {key:'Overhead Triceps Extension', en:'Overhead Triceps Extension', es:'Extensión de Tríceps por Encima de la Cabeza', sets:3, reps:12, seedFactor:0.2} ],
-  ],
-  'Pull Day Strength': [
-    [ {key:'Deadlift', en:'Deadlift', es:'Peso Muerto', sets:4, reps:6, seedFactor:1.2},
-      {key:'Trap Bar Deadlift', en:'Trap Bar Deadlift', es:'Peso Muerto con Barra Hexagonal', sets:4, reps:6, seedFactor:1.1},
-      {key:'Rack Pull', en:'Rack Pull', es:'Peso Muerto Parcial', sets:4, reps:6, seedFactor:1.1} ],
-    [ {key:'Pull-Up', en:'Pull-Up', es:'Dominada', sets:3, reps:8, bodyweight:true},
-      {key:'Lat Pulldown', en:'Lat Pulldown', es:'Jalón al Pecho', sets:3, reps:10, seedFactor:0.6},
-      {key:'Chin-Up', en:'Chin-Up', es:'Dominada Supina', sets:3, reps:8, bodyweight:true} ],
-    [ {key:'Bent-Over Row', en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:3, reps:10, seedFactor:0.6},
-      {key:'Seated Cable Row', en:'Seated Cable Row', es:'Remo Sentado en Polea', sets:3, reps:10, seedFactor:0.6},
-      {key:'T-Bar Row', en:'T-Bar Row', es:'Remo en T', sets:3, reps:10, seedFactor:0.6} ],
-    [ {key:'Face Pull', en:'Face Pull', es:'Face Pull', sets:3, reps:15, seedFactor:0.2},
-      {key:'Reverse Fly', en:'Reverse Fly', es:'Aperturas Invertidas', sets:3, reps:15, seedFactor:0.15},
-      {key:'Band Pull-Apart', en:'Band Pull-Apart', es:'Apertura de Banda', sets:3, reps:15, bodyweight:true} ],
-  ],
+// How ambitious a plan gets, by level. growth: weekly mileage increase on build weeks. longCap/weeklyCap:
+// the longest long run / biggest week it builds toward. quality: hard run sessions a week. minRun: the
+// shortest run worth scheduling. startMiles: assumed current weekly miles if the user never said.
+const LEVEL_PLAN = {
+  beginner:     {growth:1.06, longCap:10, weeklyCap:25, quality:0, minRun:1.5, startMiles:5},
+  intermediate: {growth:1.08, longCap:16, weeklyCap:40, quality:1, minRun:2,   startMiles:12},
+  advanced:     {growth:1.10, longCap:22, weeklyCap:60, quality:2, minRun:3,   startMiles:25},
+};
+const INTENSITY_SCALE = [0.9, 1, 1.1]; // light / moderate / high -- scales weekly mileage
+const QUALITY_ROTATION = {
+  beginner: ['fartlek','hills'],
+  intermediate: ['tempo','intervals','fartlek'],
+  advanced: ['tempo','intervals','hills'],
+};
+const INTERVAL_REP_METERS = [400, 800, 1000, 800]; // changes every 4-week block
+
+function planConfig(overrides){
+  return {
+    days: state.trainingDays.slice().sort((a,b)=>a-b),
+    focus: state.focusRatio,
+    goal: state.goal,
+    level: LEVEL_PLAN[state.level] ? state.level : 'intermediate',
+    intensity: state.intensityIdx,
+    miles: state.weeklyMiles,
+    ...(overrides||{}),
+  };
+}
+function isRecoveryWeek(n){ return n%4===3; }
+function mondayOf(date){
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() - (d.getDay()+6)%7);
+  return d;
+}
+// The plan's week 0 -- set when the plan is first built (and restarted when the user changes their
+// current weekly miles); an account from before this existed counts from the current week.
+function planStartKey(){ return state.planStart || dateKey(WEEK_MONDAY); }
+function planWeekIndex(date){
+  const weeks = Math.round((mondayOf(date).getTime() - parseDateKey(planStartKey()).getTime()) / (7*86400000));
+  return Math.max(0, weeks);
+}
+
+// How many of the training days are runs vs lifting days, from the Running <-> Weights slider (the
+// user's goal breaks a tie on an even split).
+function splitTrainingDays(n, focus, goal){
+  if(focus<=0) return {runs:n, lifts:0};
+  if(focus>=4) return {runs:0, lifts:n};
+  if(focus===2){
+    const runs = goal==='strength' ? Math.floor(n/2) : Math.ceil(n/2);
+    return {runs, lifts:n-runs};
+  }
+  const minority = n<=2 ? 0 : Math.max(1, Math.floor(n*0.3));
+  return focus===1 ? {runs:n-minority, lifts:minority} : {runs:minority, lifts:n-minority};
+}
+function roundHalf(x){ return Math.round(x*2)/2; }
+// Where the plan's weekly mileage starts: the miles the user runs now -- spread over about 3 runs a
+// week, so a plan with fewer run days than that (e.g. mostly lifting) scales down rather than piling
+// a whole week's miles onto one run.
+function planStartMiles(cfg, runDays){
+  const P = LEVEL_PLAN[cfg.level];
+  const scale = INTENSITY_SCALE[cfg.intensity] ?? 1;
+  const current = (cfg.miles ?? P.startMiles) * Math.min(1, runDays/3);
+  return Math.max(current, runDays*P.minRun) * scale;
+}
+// Target running miles for plan week n: starts at what the user runs now, grows by the level's rate
+// on build weeks, drops to 80% on each recovery week (then carries on from where it was), and levels
+// off at a ceiling -- the level's biggest week, at most 50% (or 10 mi) above where they started, and
+// no more than their number of run days can reasonably hold.
+function weeklyRunMiles(cfg, runDays, n){
+  if(!runDays) return 0;
+  const P = LEVEL_PLAN[cfg.level];
+  const scale = INTENSITY_SCALE[cfg.intensity] ?? 1;
+  const start = planStartMiles(cfg, runDays);
+  const roomForDays = P.longCap + (runDays-1)*P.longCap*0.55;
+  const cap = Math.max(start, Math.min(P.weeklyCap*scale, Math.max(start*1.5, start+10), roomForDays));
+  let cur = start;
+  for(let i=1; i<=n; i++) if(!isRecoveryWeek(i)) cur = Math.min(cap, cur*P.growth);
+  return isRecoveryWeek(n) ? cur*0.8 : cur;
+}
+function qualityRunCount(cfg, runDays, n){
+  if(runDays<2) return 0;
+  const P = LEVEL_PLAN[cfg.level];
+  let q = P.quality;
+  if(cfg.level==='beginner' && n>=4 && runDays>=3) q = 1;
+  if(cfg.intensity===0) q -= 1;
+  else if(cfg.intensity===2) q += 1;
+  if(isNewRunner(cfg) && n<8) q = 0;
+  return Math.max(0, Math.min(q, 2, runDays-1));
+}
+// Someone who barely runs yet starts on run/walk intervals for their first 8 weeks.
+function isNewRunner(cfg){ return (cfg.miles ?? LEVEL_PLAN[cfg.level].startMiles) < 3; }
+
+// Splits a week's miles across its runs: the long run takes the biggest share (less of it the more
+// runs there are, and never past the level's longest run), hard sessions a little more than easy
+// runs, a recovery jog less; no run shorter than the level's minimum or longer than the long run.
+function distributeRunMiles(total, roles, cfg){
+  const P = LEVEL_PLAN[cfg.level];
+  if(!roles.length) return [];
+  if(roles.length===1) return [Math.max(P.minRun, roundHalf(Math.min(total, P.longCap)))];
+  const longShare = roles.length===2 ? 0.55 : roles.length===3 ? 0.4 : 0.3;
+  const long = Math.max(P.minRun, roundHalf(Math.min(P.longCap, total*longShare)));
+  const WEIGHT = {quality:1.15, easy:1, recovery:0.7};
+  const others = roles.slice(1);
+  const wsum = others.reduce((s,r)=>s+WEIGHT[r], 0);
+  const rest = Math.max(0, total - long);
+  return [long, ...others.map(r=> Math.min(long, Math.max(P.minRun, roundHalf(rest*WEIGHT[r]/wsum))))];
+}
+function fmtMiles(mi){ return String(roundHalf(mi)); }
+// One run, in both languages. Every run's detail starts with its distance ("5 mi ...") -- weekly
+// planned-mile totals and the distance a completed run counts for both read it from there.
+function runSessionFor(kind, mi, extra){
+  const d = fmtMiles(mi) + ' mi';
+  switch(kind){
+    case 'long': return ses('run','Long Run',d,'Carrera larga',d);
+    case 'recovery': return ses('run','Recovery Jog',d,'Trote de recuperación',d);
+    case 'runwalk': return ses('run','Run/Walk',`${d} · run ${extra} min, walk 1 min`,'Correr/Caminar',`${d} · corre ${extra} min, camina 1 min`);
+    case 'strides': return ses('run','Easy Run + Strides',`${d} · 4 x 20s strides`,'Carrera suave + progresiones',`${d} · 4 x 20s progresiones`);
+    case 'tempo': return ses('run','Tempo Run',`${d} · ${fmtMiles(Math.max(1, mi*0.5))} mi at tempo pace`,'Carrera de tempo',`${d} · ${fmtMiles(Math.max(1, mi*0.5))} mi a ritmo de tempo`);
+    case 'intervals': return ses('run','Interval Run',`${d} · ${extra.reps} x ${extra.meters}m`,'Carrera de intervalos',`${d} · ${extra.reps} x ${extra.meters}m`);
+    case 'fartlek': return ses('run','Fartlek Run',`${d} · ${extra} x 1 min fast`,'Fartlek',`${d} · ${extra} x 1 min rápido`);
+    case 'hills': return ses('run','Hill Repeats',`${d} · ${extra} x 60s uphill`,'Repeticiones en cuesta',`${d} · ${extra} x 60s en subida`);
+    default: return ses('run','Easy Run',d,'Carrera suave',d);
+  }
+}
+function qualityRunFor(type, mi, n){
+  if(type==='intervals'){
+    const meters = INTERVAL_REP_METERS[Math.floor(n/4) % INTERVAL_REP_METERS.length];
+    const reps = Math.max(4, Math.min(meters<=400 ? 12 : 8, Math.round(mi*0.45*1609/meters)));
+    return runSessionFor('intervals', mi, {reps, meters});
+  }
+  if(type==='fartlek') return runSessionFor('fartlek', mi, Math.max(6, Math.min(12, Math.round(mi*2))));
+  if(type==='hills') return runSessionFor('hills', mi, Math.max(4, Math.min(10, Math.round(mi*1.5))));
+  return runSessionFor('tempo', mi);
+}
+
+// Lifting days: which workouts, by how many lifting days there are.
+const LIFT_SPLITS = {
+  1: ['full'],
+  2: ['full','fullB'],
+  3: ['upper','lower','full'],
+  4: ['upper','lower','upperB','lowerB'],
+  5: ['push','pull','lower','upper','lowerB'],
+  6: ['push','pull','lower','pushB','pullB','lowerB'],
+  7: ['push','pull','lower','pushB','pullB','lowerB','full'],
+};
+const LIFT_SESSIONS = {
+  full:   {en:'Full Body Strength',   es:'Fuerza de cuerpo completo',   group:'full',  legs:true,  min:45},
+  fullB:  {en:'Full Body Strength B', es:'Fuerza de cuerpo completo B', group:'full',  legs:true,  min:45},
+  upper:  {en:'Upper Body Strength',  es:'Fuerza de tren superior',     group:'upper', legs:false, min:45},
+  upperB: {en:'Upper Body Strength B',es:'Fuerza de tren superior B',   group:'upper', legs:false, min:45},
+  lower:  {en:'Lower Body Strength',  es:'Fuerza de tren inferior',     group:'lower', legs:true,  min:45},
+  lowerB: {en:'Lower Body Strength B',es:'Fuerza de tren inferior B',   group:'lower', legs:true,  min:45},
+  push:   {en:'Push Day Strength',    es:'Fuerza – día de empuje',      group:'push',  legs:false, min:40},
+  pushB:  {en:'Push Day Strength B',  es:'Fuerza – día de empuje B',    group:'push',  legs:false, min:40},
+  pull:   {en:'Pull Day Strength',    es:'Fuerza – día de tracción',    group:'pull',  legs:false, min:40},
+  pullB:  {en:'Pull Day Strength B',  es:'Fuerza – día de tracción B',  group:'pull',  legs:false, min:40},
+};
+function liftSplitFor(count, level){
+  if(!count) return [];
+  // A beginner lifting 3 days does full body each time (A/B/A) -- simpler, and each lift gets practiced more.
+  if(count===3 && level==='beginner') return ['full','fullB','full'];
+  return LIFT_SPLITS[Math.min(7, count)];
+}
+function liftSessionFor(split, cfg, recovery){
+  const L = LIFT_SESSIONS[split];
+  const mins = L.min + (cfg.level==='beginner' ? -10 : cfg.level==='advanced' ? 10 : 0) - (recovery ? 10 : 0);
+  return ses('strength', L.en, `${mins} min`, L.es, `${mins} min`);
+}
+const COMPANION = {
+  foam: ()=> ses('strength','Foam Roll & Cooldown','10 min','Rodillo de espuma y enfriamiento','10 min'),
+  hips: ()=> ses('strength','Hip & Glute Activation','10 min','Activación de cadera y glúteos','10 min'),
+  core: ()=> ses('strength','Core Activation','10 min','Activación del core','10 min'),
+  mobility: ()=> ses('strength','Mobility & Stretch','10 min','Movilidad y estiramiento','10 min'),
+};
+
+// Which session goes on which training day. Every arrangement is scored and the best one kept: hard
+// days (long run, hard runs) never back to back, a heavy leg day not right before a hard run, the same
+// muscle group not lifted two days running, and the long run on the weekend (Sunday first) when
+// there's a weekend training day. At most 7 sessions, so trying every arrangement is cheap -- and it's
+// remembered, since it only depends on the days and the kinds of sessions.
+const placementCache = new Map();
+function placeSessions(days, items){
+  const cacheKey = days.join(',')+'|'+items.map(it=>it.sig).join(',');
+  if(placementCache.has(cacheKey)) return placementCache.get(cacheKey);
+  const hasWeekend = days.includes(5) || days.includes(6);
+  const lastDay = days[days.length-1];
+  const mixed = items.some(it=>it.kind==='run') && items.some(it=>it.kind==='lift');
+  function pairCost(a, b){
+    let c = 0;
+    if(a.hard && b.hard) c += 10;
+    if(a.kind==='lift' && a.legs && b.kind==='run' && b.hard) c += 6;
+    if(a.kind==='run' && a.hard && b.kind==='lift' && b.legs) c += 3;
+    if(a.kind==='lift' && b.kind==='lift'){
+      if(a.group===b.group) c += 4;
+      else if(a.legs && b.legs) c += 2;
+    }
+    if(mixed && a.kind===b.kind) c += 0.5;
+    return c;
+  }
+  function cost(assign){ // assign[dayIdxInDays] = item
+    let c = 0;
+    const byDay = {};
+    days.forEach((d,i)=>{ byDay[d] = assign[i]; });
+    days.forEach((d,i)=>{
+      const it = assign[i];
+      const next = d===6 ? byDay[0] : byDay[d+1];
+      if(next) c += pairCost(it, next) * (d===6 ? 0.5 : 1);
+      if(it.role==='long') c += hasWeekend ? (d===6 ? 0 : d===5 ? 1 : 8) : (lastDay-d);
+    });
+    return c;
+  }
+  let best = null, bestCost = Infinity;
+  const used = new Array(items.length).fill(false), assign = [];
+  (function search(pos){
+    if(pos===days.length){
+      const c = cost(assign);
+      if(c < bestCost){ bestCost = c; best = assign.slice(); }
+      return;
+    }
+    const tried = new Set();
+    items.forEach((it,i)=>{
+      if(used[i] || tried.has(it.sig)) return; // identical sessions are interchangeable -- try one
+      tried.add(it.sig);
+      used[i] = true; assign.push(it);
+      search(pos+1);
+      used[i] = false; assign.pop();
+    });
+  })(0);
+  placementCache.set(cacheKey, best);
+  return best;
+}
+
+// Generates plan week n (0 = the week the plan started) as 7 day slots, Monday first: {p, c} where p
+// is the day's session (a Rest Day off the training days) and c an optional short companion session.
+function generatePlanWeek(cfg, n){
+  const days = cfg.days;
+  const week = Array.from({length:7}, ()=>({p:ses('rest','Rest Day','','Día de descanso',''), c:null}));
+  if(!days.length) return week;
+  const recovery = isRecoveryWeek(n);
+  const {runs, lifts} = splitTrainingDays(days.length, cfg.focus, cfg.goal);
+
+  const q = qualityRunCount(cfg, runs, n);
+  const roles = runs ? ['long'] : [];
+  for(let k=0; k<q && roles.length<runs; k++) roles.push('quality');
+  while(roles.length<runs) roles.push(roles.length>=5 ? 'recovery' : 'easy');
+  const miles = distributeRunMiles(weeklyRunMiles(cfg, runs, n), roles, cfg);
+
+  const items = [];
+  let qIdx = 0;
+  roles.forEach((role, i)=>{
+    const mi = miles[i];
+    let kind = role;
+    if(role==='quality') kind = recovery ? 'strides' : QUALITY_ROTATION[cfg.level][(n+qIdx++) % QUALITY_ROTATION[cfg.level].length];
+    // A "long run" only earns the name once it's genuinely long.
+    if(role==='long' && (mi<4 || runs===1 && mi<6)) kind = 'easy';
+    if(isNewRunner(cfg) && n<8 && (kind==='easy' || kind==='long')) kind = 'runwalk';
+    const hard = role==='long' ? kind!=='easy' && kind!=='runwalk' : role==='quality' && !recovery;
+    items.push({kind:'run', role, sub:kind, mi, hard, legs:true, sig:'run:'+role+':'+kind+':'+mi});
+  });
+  liftSplitFor(lifts, cfg.level).forEach(split=>{
+    const L = LIFT_SESSIONS[split];
+    items.push({kind:'lift', split, group:L.group, legs:L.legs, hard:false, sig:'lift:'+split});
+  });
+
+  const placed = placeSessions(days, items);
+  let easyCount = 0;
+  days.forEach((d,i)=>{
+    const it = placed[i];
+    if(it.kind==='run'){
+      let p;
+      if(it.sub==='runwalk') p = runSessionFor('runwalk', it.mi, Math.min(8, 2+n));
+      else if(['tempo','intervals','fartlek','hills'].includes(it.sub)) p = qualityRunFor(it.sub, it.mi, n);
+      else p = runSessionFor(it.sub, it.mi);
+      const c = it.role==='long' ? COMPANION.foam()
+        : it.role==='quality' ? COMPANION.hips()
+        : (easyCount++ % 2 ? COMPANION.mobility() : COMPANION.core());
+      week[d] = {p, c};
+    } else {
+      week[d] = {p: liftSessionFor(it.split, cfg, recovery), c: it.legs ? COMPANION.mobility() : COMPANION.core()};
+    }
+  });
+  return week;
+}
+const planWeekCache = new Map();
+function planWeekFor(date){
+  const cfg = planConfig();
+  const n = planWeekIndex(date);
+  const key = JSON.stringify(cfg)+'|'+n;
+  if(!planWeekCache.has(key)){
+    if(planWeekCache.size>300) planWeekCache.clear();
+    planWeekCache.set(key, generatePlanWeek(cfg, n));
+  }
+  return planWeekCache.get(key);
+}
+// The generated session for a date, as a fresh copy (callers may edit it).
+function plannedSessionFor(date){
+  const e = planWeekFor(date)[(date.getDay()+6)%7];
+  return {p:{...e.p}, c: e.c ? {...e.c} : null};
+}
+
+/* ---------------- exercises ---------------- */
+// Every lift the generated plans use. `key` (the object key) is the stable, English-only identity used
+// for progression and Personal Records -- the same lift appearing in several workouts shares one
+// progression trail. seedFactor scales the intensity tier's starting weight ([95,135,195] lb) so a
+// heavy compound lift and a light accessory don't start at the same load; bodyweight moves have none.
+// minLevel keeps technical lifts out of a beginner's plan.
+const EXERCISES = {
+  'Back Squat': {en:'Back Squat', es:'Sentadilla con Barra', sets:4, reps:8, seedFactor:1.0},
+  'Front Squat': {en:'Front Squat', es:'Sentadilla Frontal', sets:4, reps:8, seedFactor:0.85, minLevel:'intermediate'},
+  'Leg Press': {en:'Leg Press', es:'Prensa de Piernas', sets:4, reps:10, seedFactor:0.9},
+  'Goblet Squat': {en:'Goblet Squat', es:'Sentadilla Goblet', sets:3, reps:12, seedFactor:0.35},
+  'Kettlebell Sumo Squat': {en:'Kettlebell Sumo Squat', es:'Sentadilla Sumo con Pesa Rusa', sets:3, reps:12, seedFactor:0.35},
+  'Dumbbell Step-Up': {en:'Dumbbell Step-Up', es:'Subida al Cajón con Mancuernas', sets:3, reps:10, seedFactor:0.25},
+  'Bodyweight Squat': {en:'Bodyweight Squat', es:'Sentadilla con Peso Corporal', sets:3, reps:15, bodyweight:true},
+  'Jump Squat': {en:'Jump Squat', es:'Sentadilla con Salto', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
+  'Wall Sit': {en:'Wall Sit', es:'Sentadilla en Pared', sets:3, durationSec:45, bodyweight:true},
+  'Walking Lunge': {en:'Walking Lunge', es:'Zancada Caminando', sets:3, reps:12, seedFactor:0.25},
+  'Bulgarian Split Squat': {en:'Bulgarian Split Squat', es:'Sentadilla Búlgara', sets:3, reps:10, seedFactor:0.25},
+  'Step-Up': {en:'Step-Up', es:'Subida al Cajón', sets:3, reps:10, seedFactor:0.25},
+  'Reverse Lunge': {en:'Reverse Lunge', es:'Zancada Inversa', sets:3, reps:12, bodyweight:true},
+  'Bodyweight Split Squat': {en:'Bodyweight Split Squat', es:'Sentadilla Dividida', sets:3, reps:10, bodyweight:true},
+  'Bodyweight Step-Up': {en:'Bodyweight Step-Up', es:'Subida al Escalón', sets:3, reps:12, bodyweight:true},
+  'Deadlift': {en:'Deadlift', es:'Peso Muerto', sets:4, reps:6, seedFactor:1.2},
+  'Trap Bar Deadlift': {en:'Trap Bar Deadlift', es:'Peso Muerto con Barra Hexagonal', sets:4, reps:6, seedFactor:1.1},
+  'Rack Pull': {en:'Rack Pull', es:'Peso Muerto Parcial', sets:4, reps:6, seedFactor:1.1, minLevel:'intermediate'},
+  'Romanian Deadlift': {en:'Romanian Deadlift', es:'Peso Muerto Rumano', sets:3, reps:10, seedFactor:0.8},
+  'Hip Thrust': {en:'Hip Thrust', es:'Empuje de Cadera', sets:3, reps:10, seedFactor:0.9},
+  'Good Morning': {en:'Good Morning', es:'Buenos Días', sets:3, reps:10, seedFactor:0.5, minLevel:'intermediate'},
+  'Dumbbell Romanian Deadlift': {en:'Dumbbell Romanian Deadlift', es:'Peso Muerto Rumano con Mancuernas', sets:3, reps:10, seedFactor:0.4},
+  'Kettlebell Swing': {en:'Kettlebell Swing', es:'Balanceo con Pesa Rusa', sets:3, reps:15, seedFactor:0.3},
+  'Dumbbell Hip Thrust': {en:'Dumbbell Hip Thrust', es:'Empuje de Cadera con Mancuerna', sets:3, reps:12, seedFactor:0.4},
+  'Single-Leg Romanian Deadlift': {en:'Single-Leg Romanian Deadlift', es:'Peso Muerto Rumano a Una Pierna', sets:3, reps:10, bodyweight:true},
+  'Glute Bridge': {en:'Glute Bridge', es:'Puente de Glúteos', sets:3, reps:15, bodyweight:true},
+  'Single-Leg Glute Bridge': {en:'Single-Leg Glute Bridge', es:'Puente de Glúteos a Una Pierna', sets:3, reps:12, bodyweight:true},
+  'Bench Press': {en:'Bench Press', es:'Press de Banca', sets:4, reps:10, seedFactor:1.0},
+  'Incline Barbell Press': {en:'Incline Barbell Press', es:'Press Inclinado con Barra', sets:4, reps:8, seedFactor:0.9},
+  'Dumbbell Bench Press': {en:'Dumbbell Bench Press', es:'Press de Banca con Mancuernas', sets:3, reps:10, seedFactor:0.4},
+  'Incline Dumbbell Press': {en:'Incline Dumbbell Press', es:'Press Inclinado con Mancuernas', sets:3, reps:10, seedFactor:0.35},
+  'Dumbbell Floor Press': {en:'Dumbbell Floor Press', es:'Press de Suelo con Mancuernas', sets:3, reps:10, seedFactor:0.35},
+  'Chest Fly': {en:'Chest Fly', es:'Aperturas de Pecho', sets:3, reps:12, seedFactor:0.2},
+  'Cable Fly': {en:'Cable Fly', es:'Aperturas en Polea', sets:3, reps:12, seedFactor:0.25},
+  'Dumbbell Floor Fly': {en:'Dumbbell Floor Fly', es:'Aperturas en el Suelo', sets:3, reps:12, seedFactor:0.2},
+  'Push-Up': {en:'Push-Up', es:'Flexión de Pecho', sets:3, reps:12, bodyweight:true},
+  'Incline Push-Up': {en:'Incline Push-Up', es:'Flexión Inclinada', sets:3, reps:12, bodyweight:true},
+  'Decline Push-Up': {en:'Decline Push-Up', es:'Flexión Declinada', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
+  'Diamond Push-Up': {en:'Diamond Push-Up', es:'Flexión Diamante', sets:3, reps:10, bodyweight:true},
+  'Overhead Press': {en:'Overhead Press', es:'Press Militar', sets:3, reps:10, seedFactor:0.5},
+  'Push Press': {en:'Push Press', es:'Press de Empuje', sets:3, reps:8, seedFactor:0.55, minLevel:'intermediate'},
+  'Arnold Press': {en:'Arnold Press', es:'Press Arnold', sets:3, reps:10, seedFactor:0.2},
+  'Dumbbell Shoulder Press': {en:'Dumbbell Shoulder Press', es:'Press de Hombro con Mancuernas', sets:3, reps:10, seedFactor:0.2},
+  'Pike Push-Up': {en:'Pike Push-Up', es:'Flexión en Pica', sets:3, reps:10, bodyweight:true},
+  'Bent-Over Row': {en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:3, reps:10, seedFactor:0.6},
+  'Seated Cable Row': {en:'Seated Cable Row', es:'Remo Sentado en Polea', sets:3, reps:10, seedFactor:0.6},
+  'T-Bar Row': {en:'T-Bar Row', es:'Remo en T', sets:3, reps:10, seedFactor:0.6},
+  'Dumbbell Row': {en:'Dumbbell Row', es:'Remo con Mancuerna', sets:3, reps:10, seedFactor:0.3},
+  'Resistance Band Row': {en:'Resistance Band Row', es:'Remo con Banda de Resistencia', sets:3, reps:15, bodyweight:true},
+  'Inverted Row': {en:'Inverted Row', es:'Remo Invertido', sets:3, reps:10, bodyweight:true},
+  'Superman': {en:'Superman', es:'Superman', sets:3, reps:12, bodyweight:true},
+  'Pull-Up': {en:'Pull-Up', es:'Dominada', sets:3, reps:8, bodyweight:true, minLevel:'intermediate'},
+  'Chin-Up': {en:'Chin-Up', es:'Dominada Supina', sets:3, reps:8, bodyweight:true, minLevel:'intermediate'},
+  'Lat Pulldown': {en:'Lat Pulldown', es:'Jalón al Pecho', sets:3, reps:10, seedFactor:0.6},
+  'Dumbbell Pullover': {en:'Dumbbell Pullover', es:'Pullover con Mancuerna', sets:3, reps:12, seedFactor:0.2},
+  'Prone Y-T-W Raise': {en:'Prone Y-T-W Raise', es:'Elevaciones Y-T-W Boca Abajo', sets:3, reps:10, bodyweight:true},
+  'Bicep Curl': {en:'Bicep Curl', es:'Curl de Bíceps', sets:3, reps:12, seedFactor:0.15},
+  'Hammer Curl': {en:'Hammer Curl', es:'Curl Martillo', sets:3, reps:12, seedFactor:0.15},
+  'Triceps Pushdown': {en:'Triceps Pushdown', es:'Extensión de Tríceps en Polea', sets:3, reps:12, seedFactor:0.25},
+  'Overhead Triceps Extension': {en:'Overhead Triceps Extension', es:'Extensión de Tríceps por Encima de la Cabeza', sets:3, reps:12, seedFactor:0.15},
+  'Triceps Dip': {en:'Triceps Dip', es:'Fondos de Tríceps', sets:3, reps:12, bodyweight:true},
+  'Bench Dip': {en:'Bench Dip', es:'Fondos en Banco', sets:3, reps:12, bodyweight:true},
+  'Face Pull': {en:'Face Pull', es:'Face Pull', sets:3, reps:15, seedFactor:0.2},
+  'Reverse Fly': {en:'Reverse Fly', es:'Aperturas Invertidas', sets:3, reps:15, seedFactor:0.1},
+  'Band Pull-Apart': {en:'Band Pull-Apart', es:'Apertura de Banda', sets:3, reps:15, bodyweight:true},
+  'Calf Raise': {en:'Calf Raise', es:'Elevación de Talones', sets:3, reps:15, bodyweight:true},
+  'Single-Leg Calf Raise': {en:'Single-Leg Calf Raise', es:'Elevación de Talón a Una Pierna', sets:3, reps:12, bodyweight:true},
+  'Plank': {en:'Plank', es:'Plancha', sets:3, durationSec:45, bodyweight:true},
+  'Dead Bug': {en:'Dead Bug', es:'Dead Bug', sets:3, reps:10, bodyweight:true},
+  'Side Plank': {en:'Side Plank', es:'Plancha Lateral', sets:2, durationSec:30, bodyweight:true},
+  'Bicycle Crunch': {en:'Bicycle Crunch', es:'Crunch de Bicicleta', sets:3, reps:20, bodyweight:true},
+  'Hanging Knee Raise': {en:'Hanging Knee Raise', es:'Elevación de Rodillas Colgado', sets:3, reps:12, bodyweight:true},
+  'Ab Wheel Rollout': {en:'Ab Wheel Rollout', es:'Rueda Abdominal', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
+};
+// Each movement pattern's options by the equipment the user has. A workout slot cycles through the
+// options its equipment allows -- the first two slots of a workout (its main lifts) once per 4-week
+// block, so they can actually be progressed; the rest every week, for variety.
+const MOVEMENTS = {
+  squat:    {gym:['Back Squat','Front Squat','Leg Press'], dumbbells:['Goblet Squat','Kettlebell Sumo Squat','Dumbbell Step-Up'], bodyweight:['Bodyweight Squat','Jump Squat','Wall Sit']},
+  lunge:    {gym:['Walking Lunge','Bulgarian Split Squat','Step-Up'], dumbbells:['Walking Lunge','Bulgarian Split Squat','Step-Up'], bodyweight:['Reverse Lunge','Bodyweight Split Squat','Bodyweight Step-Up']},
+  hinge:    {gym:['Romanian Deadlift','Hip Thrust','Good Morning'], dumbbells:['Dumbbell Romanian Deadlift','Kettlebell Swing','Dumbbell Hip Thrust'], bodyweight:['Single-Leg Romanian Deadlift','Single-Leg Glute Bridge','Glute Bridge']},
+  deadlift: {gym:['Deadlift','Trap Bar Deadlift','Rack Pull'], dumbbells:['Dumbbell Romanian Deadlift','Kettlebell Swing'], bodyweight:['Single-Leg Romanian Deadlift','Single-Leg Glute Bridge']},
+  hpush:    {gym:['Bench Press','Dumbbell Bench Press','Incline Barbell Press'], dumbbells:['Dumbbell Floor Press','Push-Up'], bodyweight:['Push-Up','Incline Push-Up','Decline Push-Up']},
+  chest2:   {gym:['Incline Dumbbell Press','Chest Fly','Cable Fly'], dumbbells:['Dumbbell Floor Fly','Push-Up'], bodyweight:['Incline Push-Up','Diamond Push-Up']},
+  vpush:    {gym:['Overhead Press','Arnold Press','Push Press'], dumbbells:['Dumbbell Shoulder Press','Arnold Press'], bodyweight:['Pike Push-Up']},
+  hpull:    {gym:['Bent-Over Row','Seated Cable Row','T-Bar Row'], dumbbells:['Dumbbell Row','Resistance Band Row'], bodyweight:['Inverted Row','Superman']},
+  vpull:    {gym:['Lat Pulldown','Pull-Up','Chin-Up'], dumbbells:['Dumbbell Pullover'], bodyweight:['Prone Y-T-W Raise','Superman']},
+  arms:     {gym:['Bicep Curl','Triceps Pushdown','Hammer Curl'], dumbbells:['Bicep Curl','Overhead Triceps Extension','Hammer Curl'], bodyweight:['Bench Dip','Diamond Push-Up']},
+  triceps:  {gym:['Triceps Pushdown','Overhead Triceps Extension','Triceps Dip'], dumbbells:['Overhead Triceps Extension','Bench Dip'], bodyweight:['Bench Dip','Diamond Push-Up']},
+  reardelt: {gym:['Face Pull','Reverse Fly','Band Pull-Apart'], dumbbells:['Reverse Fly','Band Pull-Apart'], bodyweight:['Prone Y-T-W Raise']},
+  calves:   {gym:['Calf Raise','Single-Leg Calf Raise'], dumbbells:['Calf Raise','Single-Leg Calf Raise'], bodyweight:['Calf Raise','Single-Leg Calf Raise']},
+  core:     {gym:['Plank','Hanging Knee Raise','Dead Bug','Ab Wheel Rollout'], dumbbells:['Plank','Dead Bug','Side Plank','Bicycle Crunch'], bodyweight:['Plank','Dead Bug','Side Plank','Bicycle Crunch']},
+};
+// The generated lifting workouts, as movement-pattern slots (sets/reps override the lift's default).
+// A "... B" workout is the same template with every slot shifted one option along, so the second
+// upper (or push, etc.) day of a week isn't a copy of the first -- except Full Body B, which has its own.
+const LIFT_TEMPLATES = {
+  'Full Body Strength':   [{m:'squat'}, {m:'hpush'}, {m:'hpull'}, {m:'hinge'}, {m:'core'}],
+  'Full Body Strength B': [{m:'lunge'}, {m:'vpush'}, {m:'vpull'}, {m:'hinge'}, {m:'core'}],
+  'Upper Body Strength':  [{m:'hpush', sets:4, reps:10}, {m:'hpull', sets:4, reps:10}, {m:'vpush'}, {m:'vpull'}, {m:'arms'}],
+  'Lower Body Strength':  [{m:'squat', sets:4, reps:8}, {m:'hinge'}, {m:'lunge'}, {m:'calves'}, {m:'core'}],
+  'Push Day Strength':    [{m:'hpush', sets:4, reps:8}, {m:'vpush'}, {m:'chest2'}, {m:'triceps'}],
+  'Pull Day Strength':    [{m:'deadlift', sets:4, reps:6}, {m:'vpull'}, {m:'hpull'}, {m:'reardelt'}],
+};
+const LEVEL_RANK = {beginner:0, intermediate:1, advanced:2};
+function movementOptions(movement, equipment, level){
+  const all = (MOVEMENTS[movement][equipment] || MOVEMENTS[movement].gym);
+  const fit = all.filter(k=> !EXERCISES[k].minLevel || LEVEL_RANK[level] >= LEVEL_RANK[EXERCISES[k].minLevel]);
+  return fit.length ? fit : all;
+}
+// Short bodyweight add-ons (activation, mobility, cooldown) -- the same fixed option lists for everyone.
+const MOBILITY_TEMPLATES = {
   'Core Activation': [
     [ {key:'Dead Bug', en:'Dead Bug', es:'Dead Bug', sets:3, reps:10, bodyweight:true},
       {key:'Hollow Body Hold', en:'Hollow Body Hold', es:'Sostén de Cuerpo Hueco', sets:3, durationSec:20, bodyweight:true} ],
@@ -2466,17 +2791,43 @@ function weekSeedForDate(date){
 }
 // Returns this session's exercise breakdown, or null when it's not a strength session with any
 // exercises -- either a manually-built list (session.exercises, already has a plain .name since the
-// user typed it directly, no locale split needed) or, failing that, a known generated template,
-// rotated to that particular week's picks (date defaults to today, for callers -- Home, Log
-// Performance -- that only ever mean "today").
+// user typed it directly, no locale split needed) or, failing that, a known generated workout, picked
+// for the user's equipment and level and for that particular week (date defaults to today, for
+// callers -- Home, Log Performance -- that only ever mean "today"). Beginners do a set less, advanced
+// lifters a set more on the main lifts, and everyone a set less in a recovery week.
 function exercisesForSession(session, date){
   if(!session || session.t!=='strength') return null;
   if(session.exercises && session.exercises.length) return session.exercises;
-  const slots = STRENGTH_TEMPLATES[session.en.title];
+  const title = session.en.title;
+  const d = date || TODAY_DATE;
+  const seed = weekSeedForDate(d);
+  const mobility = MOBILITY_TEMPLATES[title];
+  if(mobility){
+    return mobility.map((options, i)=>{
+      const ex = options[(seed + i) % options.length];
+      return {...ex, name: state.lang==='es' ? ex.es : ex.en};
+    });
+  }
+  const isB = !LIFT_TEMPLATES[title] && / B$/.test(title);
+  const slots = LIFT_TEMPLATES[title] || LIFT_TEMPLATES[title.replace(/ B$/,'')];
   if(!slots) return null;
-  const seed = weekSeedForDate(date || TODAY_DATE);
-  return slots.map((options, i)=>{
-    const ex = options[(seed + i) % options.length];
+  const level = LEVEL_PLAN[state.level] ? state.level : 'intermediate';
+  const equipment = MOVEMENTS.squat[state.equipment] ? state.equipment : 'gym';
+  const planWeek = planWeekIndex(d);
+  const recovery = isRecoveryWeek(planWeek);
+  return slots.map((slot, i)=>{
+    const options = movementOptions(slot.m, equipment, level);
+    // Main lifts change with each of the plan's 4-week cycles; the rest every week.
+    const rotation = (i<2 ? Math.floor(planWeek/4) : seed) + i + (isB ? 1 : 0);
+    const key = options[rotation % options.length];
+    const base = EXERCISES[key];
+    let sets = slot.sets || base.sets;
+    if(level==='beginner') sets -= 1;
+    else if(level==='advanced' && i<2) sets += 1;
+    if(recovery) sets -= 1;
+    const ex = {...base, key, sets: Math.max(2, sets)};
+    if(slot.reps && !base.bodyweight) ex.reps = slot.reps; // a bodyweight move keeps its own rep count
+    delete ex.minLevel;
     return {...ex, name: state.lang==='es' ? ex.es : ex.en};
   });
 }
@@ -2505,6 +2856,9 @@ const defaultState = () => ({
   trainingDays:[0,2,4], // Mon/Wed/Fri by default
   age:null, gender:null, weight:null, weightUnit:'lb',
   focusRatio:2, intensityIdx:1,
+  weeklyMiles:null, // about how many miles a week they run now (onboarding / Adjust) -- where the plan's mileage starts
+  equipment:null, // 'gym' | 'dumbbells' | 'bodyweight' -- what the plan's lifts can use
+  planStart:null, // dateKey of the Monday the plan started (its week 0) -- see planWeekIndex()
   week:null,
   todayCompleted:false,
   // Real stats for a real user always start at zero -- these are never seeded with placeholder
@@ -2536,60 +2890,25 @@ state.lang = loadLang();
 state.theme = loadTheme();
 applyTheme(state.theme);
 
-function buildWeek(focusIdx){
-  const pool = WEEK_TABLES[focusIdx].filter(d => d.p.t !== 'rest');
-  let slot = 0;
-  const week = [];
-  for(let i=0;i<7;i++){
-    // Days before today have no real record -- fabricating what the rotation "would have
-    // suggested" would just be invented history, so the calendar starts truly blank there instead
-    // of showing a workout the user never actually saw. This reruns on every sign-in, so it applies
-    // consistently, not just at first signup. Any real logged data for these dates (a manual entry,
-    // a custom plan) is layered on separately by loadWorkoutDataFromCloud()/getDayData(), same as
-    // any other day.
-    if(i < TODAY_IDX){
-      week.push({p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:false});
-    } else if(state.trainingDays.includes(i)){
-      const src = pool[slot % pool.length];
-      // Today/future training days default to NOT completed -- there's no real record for them yet,
-      // and claiming they're done would fabricate history. loadWorkoutDataFromCloud() overlays the
-      // real completed_override wherever one actually exists once cloud data loads.
-      week.push({p:{...src.p}, c:{...src.c}, completed: false});
-      slot++;
-    } else {
-      // Rest days never carry a "completed" flag -- there's nothing to complete, and marking them
-      // done anyway was corrupting later dates: a cascade drag persists whatever "completed" value
-      // a day's raw slot carried as an explicit completedOverride (see writeDaySlot()), so a rest
-      // day dragged into a future week silently baked in "done" there too. Once that date eventually
-      // became "today" in a later session, the stale override made it look already completed and
-      // therefore undraggable -- exactly the bug reported.
-      week.push({p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:false});
-    }
-  }
-  return week;
+function restSlot(){ return {p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:false}; }
+// The current week's days, from the plan engine. Days before today have no real record --
+// fabricating what the plan "would have suggested" would just be invented history, so the calendar
+// starts truly blank there instead. Any real logged data for these dates (a manual entry, a custom
+// plan) is layered on separately by loadWorkoutDataFromCloud()/getDayData(), same as any other day.
+// Today/future days start NOT completed -- loadWorkoutDataFromCloud() overlays the real
+// completed_override wherever one exists. Rest days never carry a "completed" flag (a cascade drag
+// persists a raw slot's "completed" as an explicit override -- see writeDaySlot()).
+function buildWeek(){
+  return weekDates(0).map((date, i)=> i<TODAY_IDX ? restSlot() : {...plannedSessionFor(date), completed:false});
 }
-// Switching focus and/or training days mid-week (via the Adjust Plan sheet) must not rewrite
-// history: days already completed or missed keep their real content and status untouched. Only
-// days not yet locked in -- today, unless today is already done, in which case tomorrow -- pick
-// up the new focus/training-day pattern, with its own rotation starting fresh from that point.
-// A day the user explicitly planned themselves (isCustom) is ALSO left untouched -- it's their
-// content now, not the auto-generator's, so a focus/intensity change shouldn't silently erase it.
-function regenerateUpcomingWeek(focusIdx, newTrainingDays){
-  const pool = WEEK_TABLES[focusIdx].filter(d => d.p.t !== 'rest');
+// Changing the plan's settings mid-week (via the Adjust Plan sheet) must not rewrite history: days
+// already completed or missed keep their real content and status untouched. Only days not yet locked
+// in -- today, unless today is already done, in which case tomorrow -- pick up the new plan. A day the
+// user explicitly planned themselves (isCustom) is ALSO left untouched -- it's their content now.
+function regenerateUpcomingWeek(){
   const fromIdx = isTodayDone() ? TODAY_IDX+1 : TODAY_IDX;
-  const week = state.week.map(d => ({...d}));
-  let slot = 0;
-  for(let i=fromIdx;i<7;i++){
-    if(week[i].isCustom) continue;
-    if(newTrainingDays.includes(i)){
-      const src = pool[slot % pool.length];
-      week[i] = {p:{...src.p}, c:{...src.c}, completed:false};
-      slot++;
-    } else {
-      week[i] = {p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:false};
-    }
-  }
-  return week;
+  const dates = weekDates(0);
+  return state.week.map((d, i)=> (i<fromIdx || d.isCustom) ? {...d} : {...plannedSessionFor(dates[i]), completed:false});
 }
 
 function todaySession(){
@@ -2630,7 +2949,7 @@ function dayStatus(i){
 }
 function ensureWeek(){
   if(!state.week){
-    state.week = buildWeek(state.focusRatio);
+    state.week = buildWeek();
     state.doneCount = computeDoneCount();
   }
 }
@@ -2642,14 +2961,7 @@ function sessionForDate(date){
     // applied to the current week.
     return {p: ses('rest','Rest Day','','Día de descanso',''), c: null};
   }
-  const dow = (date.getDay()+6)%7;
-  if(!state.trainingDays.includes(dow)){
-    return {p: ses('rest','Rest Day','','Día de descanso',''), c: null};
-  }
-  const slot = state.trainingDays.indexOf(dow);
-  const pool = WEEK_TABLES[state.focusRatio].filter(d => d.p.t !== 'rest');
-  const src = pool[slot % pool.length];
-  return {p:{...src.p}, c:{...src.c}};
+  return plannedSessionFor(date);
 }
 function getDayData(date){
   ensureWeek();
@@ -2998,6 +3310,7 @@ function showScreen(id){
   if(id==='settings') renderSettings();
   if(id==='summary') renderSummary();
   if(id==='onb-focus'){ onbSlider.paint(); updateOnbSliderLabels(state.focusRatio); }
+  if(id==='onb-intensity') renderOnbBaseline();
 }
 
 document.addEventListener('click', (e)=>{
@@ -3158,6 +3471,7 @@ function renderOptionList(containerId, items, selectedKey, onSelect){
 }
 function selectGoal(k){
   state.goal=k;
+  if(!state._focusTouched) state.focusRatio = {cardio:1, strength:3, mix:2}[k];
   renderOptionList('goalList', GOALS, state.goal, selectGoal);
   document.getElementById('goalNext').disabled=false;
 }
@@ -3198,6 +3512,40 @@ function renderDaysScreen(){
   document.getElementById('daysSummary').textContent = `${state.trainingDays.length} ${STR[state.lang].daysSelectedSuffix}`;
 }
 
+// "Miles you run a week now" and "Equipment" -- asked on the Intensity step and editable in Adjust
+// Plan. `holder` is state itself or the Adjust sheet's draft; each question only shows when the plan
+// includes that kind of training.
+const MILES_OPTIONS = [
+  {key:'0', en:{t:'New to running'}, es:{t:'Empiezo a correr'}},
+  {key:'4', en:{t:'1–5'}, es:{t:'1–5'}},
+  {key:'8', en:{t:'6–10'}, es:{t:'6–10'}},
+  {key:'15', en:{t:'11–20'}, es:{t:'11–20'}},
+  {key:'25', en:{t:'21–30'}, es:{t:'21–30'}},
+  {key:'35', en:{t:'31–40'}, es:{t:'31–40'}},
+  {key:'45', en:{t:'40+'}, es:{t:'40+'}},
+];
+const EQUIPMENT_OPTIONS = [
+  {key:'gym', en:{t:'Full gym'}, es:{t:'Gimnasio completo'}},
+  {key:'dumbbells', en:{t:'Dumbbells at home'}, es:{t:'Mancuernas en casa'}},
+  {key:'bodyweight', en:{t:'Bodyweight only'}, es:{t:'Solo peso corporal'}},
+];
+function milesOptionKey(miles){
+  if(miles==null) return null;
+  return MILES_OPTIONS.reduce((best,o)=> Math.abs(Number(o.key)-miles) < Math.abs(Number(best.key)-miles) ? o : best).key;
+}
+function renderBaselineChips(prefix, holder, onChange){
+  document.getElementById(prefix+'MilesSection').hidden = holder.focusRatio>=4;
+  document.getElementById(prefix+'EquipSection').hidden = holder.focusRatio<=0;
+  renderChipRow(prefix+'MilesChips', MILES_OPTIONS, milesOptionKey(holder.weeklyMiles), k=>{ holder.weeklyMiles = Number(k); onChange(); });
+  renderChipRow(prefix+'EquipChips', EQUIPMENT_OPTIONS, holder.equipment, k=>{ holder.equipment = k; onChange(); });
+}
+// Continue needs an intensity, plus current miles if the plan has running and equipment if it has lifting.
+function renderOnbBaseline(){
+  renderBaselineChips('onb', state, renderOnbBaseline);
+  document.getElementById('intensityNext').disabled = !(state._intensityChosen
+    && (state.focusRatio>=4 || state.weeklyMiles!=null)
+    && (state.focusRatio<=0 || state.equipment));
+}
 function renderIntensityList(){
   const el = document.getElementById('intensityList');
   el.innerHTML = INTENSITY.map((it,idx)=>{
@@ -3211,9 +3559,9 @@ function renderIntensityList(){
       state.intensityIdx = parseInt(card.getAttribute('data-idx'),10);
       state._intensityChosen = true;
       renderIntensityList();
-      document.getElementById('intensityNext').disabled=false;
     });
   });
+  renderOnbBaseline();
 }
 
 /* ---------------- optional info chips ---------------- */
@@ -3296,7 +3644,7 @@ function makeSlider(trackEl, thumbEl, fillEl, getVal, setVal, onChange){
 }
 
 function previewCardsHtml(focusIdx){
-  const d = WEEK_TABLES[focusIdx].filter(x => x.p.t !== 'rest')[0];
+  const d = generatePlanWeek(planConfig({focus: focusIdx, days: state.trainingDays.length ? planConfig().days : [0,2,4]}), 0).find(x => x.p.t !== 'rest');
   const L = STR[state.lang];
   const pL = d.p[state.lang], cL = d.c[state.lang];
   return `
@@ -3321,7 +3669,7 @@ function setupSliders(){
     document.getElementById('onbSliderThumb'),
     document.getElementById('onbSliderFill'),
     ()=>state.focusRatio,
-    (v)=>{state.focusRatio=v;},
+    (v)=>{ state.focusRatio=v; state._focusTouched = true; },
     (v)=>{ updateOnbSliderLabels(v); }
   );
   adjSlider = makeSlider(
@@ -3330,7 +3678,7 @@ function setupSliders(){
     document.getElementById('adjSliderFill'),
     ()=> state.adjustDraft ? state.adjustDraft.focusRatio : state.focusRatio,
     (v)=>{ if(state.adjustDraft) state.adjustDraft.focusRatio=v; },
-    (v)=>{ document.getElementById('adjSliderLabel').textContent = FOCUS_LABELS[state.lang][v]; }
+    (v)=>{ document.getElementById('adjSliderLabel').textContent = FOCUS_LABELS[state.lang][v]; renderAdjBaseline(); }
   );
 }
 
@@ -3351,8 +3699,8 @@ function runLoading(){
       step++;
       state.loadTimer = setTimeout(tick, 850);
     } else {
-      ensureWeek();
-      state.week = buildWeek(state.focusRatio);
+      state.planStart = dateKey(WEEK_MONDAY);
+      state.week = buildWeek();
       if(state.signedIn && state.userId) saveProfileToCloud();
       state.loadTimer = setTimeout(()=>showScreen('home'), 550);
     }
@@ -4347,6 +4695,15 @@ document.getElementById('submitReviewBtn').addEventListener('click', function(){
 });
 
 /* ---------------- week / plan view ---------------- */
+// "Build week · 24.5 mi" -- where this week sits in the plan's 4-week cycle, and the running miles it
+// has planned (including anything the user planned or logged themselves).
+function weekPlanMetaHtml(weekIdx){
+  if(!state.trainingDays.length) return '';
+  const L = STR[state.lang];
+  const phase = isRecoveryWeek(planWeekIndex(weekDates(weekIdx)[0])) ? L.planWeekRecovery : L.planWeekBuild;
+  const mi = weekStats(weekIdx).plannedDistance;
+  return `<span class="week-block-meta">${phase}${mi>0 ? ` · ${+mi.toFixed(1)} mi` : ''}</span>`;
+}
 function weekRangeLabel(weekIdx){
   const L = STR[state.lang];
   if(weekIdx===0) return L.weekViewTitle;
@@ -4405,7 +4762,7 @@ function renderWeek(){
   for(let weekIdx=0; weekIdx<state.planWeeksLoaded; weekIdx++){
     const dates = weekDates(weekIdx);
     html += `<div class="week-block" data-week-idx="${weekIdx}">
-      <div class="week-block-label">${weekRangeLabel(weekIdx)}</div>
+      <div class="week-block-label"><span>${weekRangeLabel(weekIdx)}</span>${weekPlanMetaHtml(weekIdx)}</div>
       ${dates.map((date,i)=>planListRowHtml(weekIdx,i,date)).join('')}
     </div>`;
   }
@@ -5337,13 +5694,17 @@ document.getElementById('signOutBtn').addEventListener('click', async ()=>{
 /* ---------------- adjust sheet ---------------- */
 function openAdjustSheet(){
   ensureWeek();
-  state.adjustDraft = {focusRatio: state.focusRatio, intensityIdx: state.intensityIdx, trainingDays: state.trainingDays.slice()};
+  state.adjustDraft = {focusRatio: state.focusRatio, intensityIdx: state.intensityIdx, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment};
   document.getElementById('adjustOverlay').hidden = false;
   highlightNav('adjust');
   adjSlider.paint();
   document.getElementById('adjSliderLabel').textContent = FOCUS_LABELS[state.lang][state.adjustDraft.focusRatio];
   renderAdjIntensityTabs();
   renderAdjDaysChips();
+  renderAdjBaseline();
+}
+function renderAdjBaseline(){
+  if(state.adjustDraft) renderBaselineChips('adj', state.adjustDraft, renderAdjBaseline);
 }
 function closeAdjustSheet(){
   document.getElementById('adjustOverlay').hidden = true;
@@ -5378,15 +5739,15 @@ function renderAdjDaysChips(){
 
 document.getElementById('applyAdjust').addEventListener('click', ()=>{
   const d = state.adjustDraft;
-  const focusChanged = d.focusRatio!==state.focusRatio;
-  const daysChanged = JSON.stringify(d.trainingDays)!==JSON.stringify(state.trainingDays);
   state.focusRatio = d.focusRatio;
   state.intensityIdx = d.intensityIdx;
-  if(daysChanged) state.trainingDays = d.trainingDays.slice();
-  if(focusChanged || daysChanged){
-    state.week = regenerateUpcomingWeek(state.focusRatio, state.trainingDays);
-    state.doneCount = computeDoneCount();
-  }
+  state.trainingDays = d.trainingDays.slice();
+  state.equipment = d.equipment;
+  // A new starting point restarts the mileage build-up from this week.
+  if(d.weeklyMiles!==state.weeklyMiles) state.planStart = dateKey(WEEK_MONDAY);
+  state.weeklyMiles = d.weeklyMiles;
+  state.week = regenerateUpcomingWeek();
+  state.doneCount = computeDoneCount();
   // Without this, Apply only ever updated local state -- a refresh would reload the profile from
   // Supabase and silently revert training days/focus/intensity back to whatever was last saved
   // (e.g. the onboarding default), even though the app itself looked like it had applied the change.
@@ -5582,7 +5943,15 @@ async function loadProfileFromCloud(){
   if(data.total_workouts!=null) state.totalWorkouts = data.total_workouts;
   if(data.total_distance!=null) state.totalDistance = data.total_distance;
   if(data.last_counted_date) state.lastCountedDate = data.last_counted_date;
-  state.week = buildWeek(state.focusRatio);
+  if(data.weekly_miles!=null) state.weeklyMiles = Number(data.weekly_miles);
+  if(data.equipment) state.equipment = data.equipment;
+  if(data.plan_start) state.planStart = data.plan_start;
+  else if(!state.planStart){
+    // An account from before plans were counted in weeks: its plan starts now.
+    state.planStart = dateKey(WEEK_MONDAY);
+    saveProfileToCloud();
+  }
+  state.week = buildWeek();
 }
 async function saveProfileToCloud(){
   if(!state.userId) return;
@@ -5603,14 +5972,17 @@ async function saveProfileToCloud(){
       total_workouts: state.totalWorkouts,
       total_distance: state.totalDistance,
       last_counted_date: state.lastCountedDate,
+      weekly_miles: state.weeklyMiles,
+      equipment: state.equipment,
+      plan_start: state.planStart,
       updated_at: new Date().toISOString(),
     };
     const { error } = await sb.from('profiles').update(payload).eq('id', state.userId);
     if(error){
-      // last_counted_date may not exist yet if this migration hasn't been applied to this
-      // project's live database -- retry without it so the rest of the profile (streak, totals,
-      // etc.) still saves instead of the whole update silently failing over one missing column.
-      delete payload.last_counted_date;
+      // Columns added by newer migrations may not exist yet on this project's live database --
+      // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
+      // the whole update silently failing over one missing column.
+      ['last_counted_date','weekly_miles','equipment','plan_start'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }

@@ -444,7 +444,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .cal-weekday-row{display:grid;grid-template-columns:repeat(7,1fr);padding:16px 14px 6px;}
 .cal-weekday-row span{text-align:center;font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.06em;color:var(--text-3);text-transform:uppercase;}
 .mo-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:0 14px 14px;}
-.mo-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-radius:var(--r-md);background:var(--card);border:1px solid var(--border);cursor:pointer;}
+.mo-cell{min-height:74px;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;padding:7px 2px 6px;border-radius:var(--r-md);background:var(--card);border:1px solid var(--border);cursor:pointer;}
+.mo-cell .mo-desc{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;gap:1px;text-align:center;min-width:0;}
+.mo-cell .mo-desc-t{font-size:9px;line-height:1.15;color:var(--text);font-weight:500;width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere;}
+.mo-cell .mo-desc-a{font-family:var(--font-mono);font-size:8.5px;line-height:1.15;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.mo-cell.missed .mo-desc-t,.mo-cell.done .mo-desc-t{color:var(--text-2);}
 .mo-cell:hover{border-color:var(--mo-hover-border);}
 .mo-cell.outside{background:none;border:none;cursor:default;}
 .mo-cell .mo-num{font-family:var(--font-mono);font-weight:600;font-size:12px;color:var(--text-2);}
@@ -5175,6 +5179,32 @@ function setupDayRowInteraction(wrap){
 }
 
 /* ---------------- calendar ---------------- */
+// A day's workout, short enough for a calendar cell: a short name ("Long", "Upper", "Walk") and its
+// amount ("8 mi", "45 min") -- plus "+1" etc. when the day has more workouts than that. Rest days stay blank.
+const CAL_SHORT_NAMES = {
+  'Easy Run':{en:'Easy', es:'Suave'}, 'Long Run':{en:'Long', es:'Larga'}, 'Recovery Jog':{en:'Recovery', es:'Recup.'},
+  'Tempo Run':{en:'Tempo', es:'Tempo'}, 'Interval Run':{en:'Intervals', es:'Series'}, 'Fartlek Run':{en:'Fartlek', es:'Fartlek'},
+  'Hill Repeats':{en:'Hills', es:'Cuestas'}, 'Easy Run + Strides':{en:'Strides', es:'Progres.'},
+  'Run/Walk':{en:'Run/Walk', es:'Correr/ Caminar'}, 'Brisk Walk':{en:'Walk', es:'Caminata'},
+  'Full Body Strength':{en:'Full Body', es:'Cuerpo compl.'}, 'Upper Body Strength':{en:'Upper', es:'Superior'},
+  'Lower Body Strength':{en:'Lower', es:'Inferior'}, 'Push Day Strength':{en:'Push', es:'Empuje'}, 'Pull Day Strength':{en:'Pull', es:'Tracción'},
+  'Rest Day':{en:'', es:''},
+};
+function calendarDescHtml(dd){
+  if(dd.p.t==='rest') return '<span class="mo-desc"></span>';
+  const baseTitle = dd.p.en.title.replace(/ B$/, '');
+  const short = CAL_SHORT_NAMES[baseTitle];
+  const title = short ? short[state.lang] : ST(dd.p).title;
+  const amount = (ST(dd.p).detail || '').split(' · ')[0];
+  // Everything else that day, not counting whichever record the headline itself is (see primaryLogTarget).
+  const head = primaryLogTarget(dd);
+  const more = dd.extraWorkouts.filter(w=> !(head.kind==='extra' && head.id===w.id)).length
+    + dd.manualEntries.filter(e=> !(head.kind==='entry' && head.id===e.id)).length;
+  return `<span class="mo-desc">
+      <span class="mo-desc-t">${escapeHtml(title)}</span>
+      ${amount || more ? `<span class="mo-desc-a">${escapeHtml(amount)}${more ? `${amount?' ':''}+${more}` : ''}</span>` : ''}
+    </span>`;
+}
 function renderCalendar(){
   ensureWeek();
   const base = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth(), 1);
@@ -5199,6 +5229,7 @@ function renderCalendar(){
     const status = statusClassFor(dayDataStatus(dd), dd.isToday);
     html += `<div class="mo-cell ${status}" data-date="${dd.key}">
       <span class="mo-num">${dayNum}</span>
+      ${calendarDescHtml(dd)}
       <span class="mo-dot"></span>
     </div>`;
   }

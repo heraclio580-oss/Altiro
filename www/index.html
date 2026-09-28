@@ -6539,7 +6539,12 @@ function feedbackContext(){
 async function cloudSendFeedback(row){
   if(!state.userId) return {error:{message:'not_signed_in'}};
   try{
-    const { error } = await sb.from('feedback').insert({...row, user_id: state.userId, email: state.userEmail});
+    const { data, error } = await sb.from('feedback').insert({...row, user_id: state.userId, email: state.userEmail}).select('id').maybeSingle();
+    // Best-effort: ask the `feedback-alert` function to email the team about it. The feedback itself is
+    // already saved, so a failure here (not set up yet, offline) never shows as a failed send.
+    if(!error && data && data.id && sb.functions){
+      sb.functions.invoke('feedback-alert', {body: {id: data.id}}).catch(()=>{});
+    }
     return {error};
   }catch(e){ return {error:e}; }
 }

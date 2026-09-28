@@ -15,7 +15,14 @@ function makeBackend(opts){
     const api = {
       select(){ return api; }, eq(){ return api; }, is(){ return api; }, order(){ return api; },
       insert(p){ op = 'insert'; payload = p; return api; }, update(){ op = 'update'; return api; }, upsert(){ return api; }, delete(){ return api; },
-      maybeSingle(){ return Promise.resolve({data: table==='profiles' ? {id:'u1', training_days:[0,2,4], focus_ratio:2, intensity_idx:1, level:'beginner', weekly_miles:8, equipment:'dumbbells', plan_start:'2026-09-07'} : null, error:null}); },
+      maybeSingle(){
+        if(op==='insert' && table==='feedback'){
+          if(opts.failFeedback) return Promise.resolve({data:null, error:{message:'relation "feedback" does not exist'}});
+          inserts.push(payload);
+          return Promise.resolve({data:{id:'fb'+inserts.length}, error:null});
+        }
+        return Promise.resolve({data: table==='profiles' ? {id:'u1', training_days:[0,2,4], focus_ratio:2, intensity_idx:1, level:'beginner', weekly_miles:8, equipment:'dumbbells', plan_start:'2026-09-07'} : null, error:null});
+      },
       then(res, rej){
         if(op==='insert' && table==='feedback'){
           if(opts.failFeedback) return Promise.resolve({data:null, error:{message:'relation "feedback" does not exist'}}).then(res, rej);
@@ -26,7 +33,15 @@ function makeBackend(opts){
     };
     return api;
   }
-  return { inserts, createClient: () => ({
+  const invokes = [];
+  return { inserts, invokes, createClient: () => ({
+    functions: {
+      async invoke(name, {body}){
+        invokes.push({name, body});
+        if(opts.alertFails) throw new Error('function not deployed');
+        return {data:{sent:true}, error:null};
+      },
+    },
     auth: {
       onAuthStateChange(){ return {data:{subscription:{unsubscribe(){}}}}; },
       async getSession(){ return opts.signedOut ? {data:{session:null}} : {data:{session:{user:{id:'u1', email:'runner@example.com'}}}}; },
@@ -47,6 +62,7 @@ function open(backend){
   const doc = dom.window.document;
   const go = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
   const click = async sel => { doc.querySelector(sel).click(); await wait(20); };
+  const alerts = () => backend.invokes.filter(i=>i.name==='feedback-alert');
   const type = (text) => { const el = doc.getElementById('feedbackMessageInput'); el.value = text; el.dispatchEvent(new dom.window.Event('input', {bubbles:true})); };
 
   go('settings');
@@ -72,6 +88,8 @@ function open(backend){
   console.log('...plus a snapshot of their plan setup:',
     row && row.context.level==='beginner' && row.context.weekly_miles===8 && row.context.equipment==='dumbbells' && JSON.stringify(row.context.training_days)==='[0,2,4]' && row.context.plan_week===2 && row.context.platform==='web'
       ? 'OK' : `FAIL (${row && JSON.stringify(row.context)})`);
+  console.log('...and the team is emailed about it (feedback-alert, with the new row\'s id):',
+    alerts().length===1 && alerts()[0].body.id==='fb1' ? 'OK' : `FAIL (${JSON.stringify(backend.invokes)})`);
   console.log('The sheet says thanks:', !doc.getElementById('feedbackThanks').hidden && doc.getElementById('feedbackForm').hidden ? 'OK' : 'FAIL');
   console.log('"Too hard" offers to adjust the plan:', !doc.getElementById('feedbackAdjustCard').hidden && /too much/.test(doc.getElementById('feedbackAdjustMsg').textContent) ? 'OK' : 'FAIL');
   await click('#feedbackAdjustBtn');
@@ -91,6 +109,22 @@ function open(backend){
     backend.inserts[1] && backend.inserts[1].category==='other' && backend.inserts[1].plan_feel===null && doc.getElementById('feedbackAdjustCard').hidden ? 'OK' : `FAIL (${JSON.stringify(backend.inserts[1])})`);
   await click('#feedbackDoneBtn');
   console.log('Done closes it:', doc.getElementById('feedbackOverlay').hidden ? 'OK' : 'FAIL');
+
+  // ---- the email alert isn't set up: the feedback still counts as sent ----
+  const noAlert = makeBackend({alertFails:true});
+  const dom3 = open(noAlert);
+  await wait(200);
+  const doc3 = dom3.window.document;
+  [...doc3.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'settings').click();
+  await wait(10);
+  doc3.getElementById('openFeedbackBtn').click();
+  await wait(10);
+  const input3 = doc3.getElementById('feedbackMessageInput');
+  input3.value = 'Hi'; input3.dispatchEvent(new dom3.window.Event('input', {bubbles:true}));
+  doc3.getElementById('sendFeedbackBtn').click();
+  await wait(30);
+  console.log('If the email alert fails, the feedback is still saved and thanked:',
+    noAlert.inserts.length===1 && !doc3.getElementById('feedbackThanks').hidden && doc3.getElementById('feedbackError').hidden ? 'OK' : 'FAIL');
 
   // ---- the table isn't there yet: a clear error, nothing lost ----
   const failing = makeBackend({failFeedback:true});

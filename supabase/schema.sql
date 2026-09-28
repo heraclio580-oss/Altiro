@@ -212,6 +212,7 @@ create table if not exists feedback (
   created_at timestamptz default now()
 );
 alter table feedback enable row level security;
+alter table feedback add column if not exists alerted_at timestamptz; -- when the team was emailed about it (supabase/functions/feedback-alert); users can't set it
 drop policy if exists "send own feedback" on feedback;
 create policy "send own feedback" on feedback
   for insert with check (auth.uid() = user_id);

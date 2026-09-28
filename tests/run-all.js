@@ -25,20 +25,23 @@ for(const file of files){
     pass++;
   }
 }
-// The Strava Edge Function's own tests (Deno, not Node) -- run when Deno is installed.
-try{
-  execFileSync('deno', ['--version'], { stdio: 'ignore' });
+// The Edge Functions' own tests (Deno, not Node) -- run when Deno is installed.
+const FUNCTION_TESTS = fs.readdirSync(path.join(dir, '..', 'supabase', 'functions'))
+  .map(fn => `supabase/functions/${fn}/index_test.ts`)
+  .filter(f => fs.existsSync(path.join(dir, '..', f)));
+let hasDeno = true;
+try{ execFileSync('deno', ['--version'], { stdio: 'ignore' }); }catch(e){ hasDeno = false; }
+if(!hasDeno) console.log(`(Deno not installed -- skipped ${FUNCTION_TESTS.join(', ')})`);
+else for(const testFile of FUNCTION_TESTS){
   try{
-    execFileSync('deno', ['test', '--node-modules-dir=none', '--no-config', '--allow-env', '--allow-net', 'supabase/functions/strava/index_test.ts'],
-      { cwd: path.join(dir, '..'), encoding: 'utf8', stdio: 'pipe', env: { ...process.env, ALTIRO_STRAVA_TEST: '1', NO_COLOR: '1' } });
+    execFileSync('deno', ['test', '--node-modules-dir=none', '--no-config', '--allow-env', '--allow-net', testFile],
+      { cwd: path.join(dir, '..'), encoding: 'utf8', stdio: 'pipe', env: { ...process.env, ALTIRO_STRAVA_TEST: '1', ALTIRO_FEEDBACK_TEST: '1', NO_COLOR: '1' } });
     pass++;
   }catch(e){
     fail++;
-    console.log('\n=== FAILED: supabase/functions/strava/index_test.ts ===');
+    console.log(`\n=== FAILED: ${testFile} ===`);
     console.log(((e.stdout || '') + (e.stderr || '')).trim().split('\n').slice(-15).join('\n'));
   }
-}catch(e){
-  console.log('(Deno not installed -- skipped supabase/functions/strava/index_test.ts)');
 }
 console.log(`\nPassed: ${pass}, Failed: ${fail} (${files.length} files)`);
 process.exit(fail > 0 ? 1 : 0);

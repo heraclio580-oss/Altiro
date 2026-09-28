@@ -525,12 +525,24 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .wp-scope .btn{height:40px;font-size:11.5px;}
 .wp-companion{font-size:13px;color:var(--text-2);}
 .fb-sub{margin:6px 0 0;font-size:13.5px;line-height:1.5;color:var(--text-2);}
+.wp-rx-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:none;padding:2px 0;cursor:pointer;text-align:left;text-decoration:underline dotted;text-underline-offset:3px;}
+.wp-rx-btn svg{width:12px;height:12px;color:var(--text-3);flex-shrink:0;}
+.lift-fields{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+.lift-field{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--text-3);}
+.lift-input-row{display:flex;align-items:center;gap:6px;}
+.lift-field input{width:92px;flex-shrink:0;}
+.lift-field em{font-style:normal;font-size:12px;color:var(--text-3);}
+.lift-row{padding:12px 0;border-bottom:1px solid var(--divider-soft);}
+.lift-row-name{font-size:14px;color:var(--text);}
+.lift-row .lift-fields{margin-top:8px;}
+.r-exercise-list li.lift-tap{cursor:pointer;}
+.r-exercise-list li.lift-tap span{text-decoration:underline dotted;text-underline-offset:3px;}
 .fb-error{margin-top:12px;font-size:12.5px;color:var(--alert);}
 .fb-error[hidden],#feedbackForm[hidden],#feedbackThanks[hidden],#feedbackAdjustCard[hidden]{display:none;}
 .fb-thanks{padding:14px 0 4px;}
 .fb-thanks-t{font-family:var(--font-display);font-weight:600;font-size:18px;color:var(--text);}
 .wp-step-amount{font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);margin-left:6px;}
-#wpSkipWorkoutBtn[hidden],#wpDayOptionsBtn[hidden],#logPerfChangeExercisesBtn[hidden]{display:none;}
+#wpSkipWorkoutBtn[hidden],#wpDayOptionsBtn[hidden],#logPerfChangeExercisesBtn[hidden],#saveLiftsBtn[hidden]{display:none;}
 .sheet-panel{width:100%;max-height:88%;background:var(--sheet-bg);border:1px solid var(--divider);border-bottom:none;border-radius:28px 28px 0 0;padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));overflow-y:auto;animation:sheetUp .26s ease both;}
 @keyframes sheetUp{from{transform:translateY(24px);opacity:0.4;}to{transform:none;opacity:1;}}
 @media (prefers-reduced-motion: reduce){.sheet-panel{animation:none;}}
@@ -1209,6 +1221,14 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <div class="sheet-section">
+        <div class="st-label" data-i18n="myLiftsLabel"></div>
+        <button class="how-it-works-btn" id="openLiftsBtn" type="button">
+          <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="3" height="6" rx="0.5"/><rect x="15" y="7" width="3" height="6" rx="0.5"/><rect x="6" y="9" width="8" height="2" rx="0.3"/></svg></span>
+          <span data-i18n="myLiftsBtn"></span>
+        </button>
+      </div>
+
+      <div class="sheet-section">
         <div class="st-label" data-i18n="feedbackLabel"></div>
         <button class="how-it-works-btn" id="openFeedbackBtn" type="button">
           <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3.5 4.5h13v9H9l-3.5 3v-3h-2z"/></svg></span>
@@ -1287,6 +1307,20 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <input type="text" class="text-input" id="editNameInput">
       </div>
       <button class="btn btn-primary sheet-apply" id="saveEditName" data-i18n="saveNameBtn"></button>
+    </div>
+  </div>
+
+  <!-- MY LIFTS SHEET (overlay) -->
+  <div class="sheet-overlay" id="liftsOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="myLiftsTitle"></span>
+        <button class="iconbtn" id="closeLifts"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <p class="fb-sub" data-i18n="myLiftsSub"></p>
+      <div id="liftsList"></div>
+      <button class="btn btn-primary sheet-apply" id="saveLiftsBtn" type="button" data-i18n="liftSaveAllBtn"></button>
     </div>
   </div>
 
@@ -1813,6 +1847,7 @@ const ICONS = {
   calendar: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="14" height="13" rx="0.5"/><path d="M3 8h14M7 2v4M13 2v4"/></svg>',
   clock: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 5.5V10l3 2"/></svg>',
   pin: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 17.5S16 12 16 7.5a6 6 0 1 0-12 0C4 12 10 17.5 10 17.5z"/><circle cx="10" cy="7.5" r="2" stroke-width="1.4"/></svg>',
+  pencil: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M4 16l1-4 8-8 3 3-8 8-4 1zM11.5 5.5l3 3"/></svg>',
   swap: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11l-3-3M16 13H5l3 3"/></svg>',
   gauge: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14a7 7 0 0 1 14 0"/><path d="M10 14l3-4"/><circle cx="10" cy="14" r="1" fill="currentColor" stroke="none"/></svg>'
 };
@@ -2056,6 +2091,18 @@ const STR = {
     stravaImportedToast: "From Strava: {name} · {mi} mi",
     stravaImportedManyToast: "Imported {count} runs from Strava",
     stravaUpToDateToast: "Already up to date",
+    myLiftsLabel: "My Lifts",
+    myLiftsBtn: "Set my weights & reps",
+    myLiftsTitle: "My Lifts",
+    myLiftsSub: "Set the weight and reps you actually lift. They're used in every workout with that lift, and go up as you log workouts.",
+    myLiftsEmpty: "Your plan doesn't have any lifting in the next few weeks.",
+    liftWeightLabel: "Weight",
+    liftRepsLabel: "Reps",
+    liftNumbersFor: "Your numbers for {name}",
+    liftNumbersNote: "Used for {name} in every workout — it keeps going up from here as you log workouts.",
+    liftSaveBtn: "Save",
+    liftSaveAllBtn: "Save",
+    liftSavedToast: "Your numbers are saved",
     feedbackLabel: "Feedback",
     sendFeedbackBtn: "Send us feedback",
     feedbackTitle: "Send Feedback",
@@ -2360,6 +2407,18 @@ const STR = {
     stravaImportedToast: "De Strava: {name} · {mi} mi",
     stravaImportedManyToast: "{count} carreras importadas de Strava",
     stravaUpToDateToast: "Ya está todo al día",
+    myLiftsLabel: "Mis levantamientos",
+    myLiftsBtn: "Ajustar mis pesos y repeticiones",
+    myLiftsTitle: "Mis levantamientos",
+    myLiftsSub: "Pon el peso y las repeticiones que realmente haces. Se usan en cada entrenamiento con ese ejercicio y suben a medida que registras entrenamientos.",
+    myLiftsEmpty: "Tu plan no tiene pesas en las próximas semanas.",
+    liftWeightLabel: "Peso",
+    liftRepsLabel: "Reps",
+    liftNumbersFor: "Tus números para {name}",
+    liftNumbersNote: "Se usa para {name} en cada entrenamiento — y sigue subiendo a medida que registras entrenamientos.",
+    liftSaveBtn: "Guardar",
+    liftSaveAllBtn: "Guardar",
+    liftSavedToast: "Tus números se guardaron",
     feedbackLabel: "Comentarios",
     sendFeedbackBtn: "Envíanos tus comentarios",
     feedbackTitle: "Enviar comentarios",
@@ -3177,9 +3236,49 @@ function plannedExercises(session, date){
 // (session.exercises), else the plan's picks; the user's standing swaps/skips applied either way.
 function exercisesForSession(session, date){
   if(!session || session.t!=='strength') return null;
-  if(session.exercises && session.exercises.length) return applyStandingSwaps(session.exercises.map(localizedExercise));
+  if(session.exercises && session.exercises.length) return applyLiftTargets(applyStandingSwaps(session.exercises.map(localizedExercise)));
   const planned = plannedExercises(session, date);
-  return planned ? applyStandingSwaps(planned) : null;
+  return planned ? applyLiftTargets(applyStandingSwaps(planned)) : null;
+}
+// Each lift's reps come from its own target -- the same numbers Log Performance pre-fills and progression
+// checks against, which the user can set themselves (see the lift editor / My Lifts) -- so a lift shows
+// the same "sets x reps" in every workout it's in. A timed move keeps its time.
+function applyLiftTargets(list){
+  const out = list.map(ex=>{
+    if(ex.durationSec!=null) return ex;
+    const t = ex.bodyweight ? state.progression[exerciseProgressionKey(ex.key)] : getExerciseTarget(ex, state.intensityIdx);
+    return (t && t.reps) ? {...ex, reps: t.reps} : ex;
+  });
+  out.skipped = list.skipped || [];
+  return out;
+}
+// Sets a lift's own numbers -- for every workout it's in -- keeping anything else its target holds.
+function setLiftNumbers(exerciseKey, weight, reps){
+  const current = state.progression[exerciseProgressionKey(exerciseKey)] || {};
+  const target = {...current};
+  if(weight!=null) target.weight = weight;
+  if(reps!=null) target.reps = reps;
+  saveExerciseTarget(exerciseKey, target);
+}
+function liftNumberInputsHtml(ex){
+  const L = STR[state.lang];
+  const t = ex.bodyweight ? state.progression[exerciseProgressionKey(ex.key)] : getExerciseTarget(ex, state.intensityIdx);
+  const weight = !ex.bodyweight && t && t.weight!=null ? t.weight : '';
+  const reps = (t && t.reps) || ex.reps || '';
+  return `${ex.bodyweight ? '' : `<label class="lift-field"><span>${L.liftWeightLabel}</span>
+      <span class="lift-input-row"><input type="number" inputmode="decimal" step="2.5" min="0" class="text-input" data-lift-field="weight" value="${escapeHtml(weight)}"><em>${state.weightUnit}</em></span></label>`}
+    <label class="lift-field"><span>${L.liftRepsLabel}</span>
+      <span class="lift-input-row"><input type="number" inputmode="numeric" step="1" min="1" class="text-input" data-lift-field="reps" value="${escapeHtml(reps)}"></span></label>`;
+}
+// Reads a lift editor's boxes: {weight, reps}, each null when left empty or invalid.
+function readLiftNumberInputs(scope){
+  const read = (field, min) => {
+    const el = scope.querySelector(`[data-lift-field="${field}"]`);
+    const v = el ? parseFloat(el.value) : NaN;
+    return isNaN(v) || v < min ? null : v;
+  };
+  const reps = read('reps', 1);
+  return {weight: read('weight', 0), reps: reps!=null ? Math.round(reps) : null};
 }
 function fmtExercisePrescription(ex){
   const L = STR[state.lang];
@@ -3764,6 +3863,7 @@ function closeAllOverlays(){
   if(!document.getElementById('manualEntryOverlay').hidden) closeManualEntry();
   if(!document.getElementById('editNameOverlay').hidden) closeEditName();
   if(!document.getElementById('feedbackOverlay').hidden) closeFeedback();
+  if(!document.getElementById('liftsOverlay').hidden) closeLifts();
   if(!document.getElementById('adjustOverlay').hidden) closeAdjustSheet();
   if(!document.getElementById('tutorialOverlay').hidden) closeTutorial();
 }
@@ -4144,7 +4244,7 @@ function renderHome(){
         <span class="eyebrow">${L.todayLabel} &middot; ${DAY_NAMES_FULL[state.lang][TODAY_IDX]}</span>
       </div>
       <div class="title">${effL.title}${effL.detail?', '+effL.detail:''}</div>
-      ${exerciseListHtml(eff).replace('r-exercise-list', 'r-exercise-list card')}
+      ${exerciseListHtml(eff, undefined, true).replace('r-exercise-list', 'r-exercise-list card')}
       ${runBreakdownHtml(eff, 'card')}
       <div class="session-tip"><p>${tip}</p></div>
       ${suggestedTargetStr ? `<div class="paired"><span>${L.statProgress}: <b>${suggestedTargetStr}</b></span></div>` : ''}
@@ -4192,7 +4292,11 @@ function renderHome(){
   `;
   // Tapping the workout description opens the same Day Detail sheet as tapping today's cell in the
   // week strip above -- one consistent way to see the full schedule/actions for today.
-  document.getElementById('sessionDescTap').addEventListener('click', ()=> openDayDetail(todayKey));
+  document.getElementById('sessionDescTap').addEventListener('click', (e)=>{
+    const lift = e.target.closest('[data-lift-key]');
+    if(lift && !isTodayDone()){ openWorkoutPreview(todayKey, null, {tuneKey: lift.getAttribute('data-lift-key')}); return; }
+    openDayDetail(todayKey);
+  });
   const watchDemoBtn = document.getElementById('watchDemoBtn');
   if(watchDemoBtn) watchDemoBtn.addEventListener('click', ()=> openExerciseDetail(eff, 'home'));
   const changeExercisesBtn = document.getElementById('changeExercisesBtn');
@@ -5387,10 +5491,16 @@ document.getElementById('calNext').addEventListener('click', ()=>{
 });
 
 /* ---------------- day detail sheet ---------------- */
-function exerciseListHtml(session, date){
+// tappable: each lift opens its numbers to edit (the Today card).
+function exerciseListHtml(session, date, tappable){
   const exercises = exercisesForSession(session, date);
   if(!exercises) return '';
-  return `<ul class="r-exercise-list">${exercises.map(ex=>`<li>${escapeHtml(ex.name)} <span>${fmtExercisePrescription(ex)}</span></li>`).join('')}</ul>`;
+  return `<ul class="r-exercise-list">${exercises.map(ex=>{
+    const t = !ex.bodyweight && ex.durationSec==null ? getExerciseTarget(ex, state.intensityIdx) : null;
+    const weight = t && t.weight ? ` · ${t.weight} ${state.weightUnit}` : '';
+    const attr = tappable && ex.durationSec==null ? ` class="lift-tap" data-lift-key="${escapeHtml(ex.key)}"` : '';
+    return `<li${attr}>${escapeHtml(ex.name)} <span>${fmtExercisePrescription(ex)}${weight}</span></li>`;
+  }).join('')}</ul>`;
 }
 function planRowHtml(dd, status){
   const L = STR[state.lang];
@@ -5452,12 +5562,19 @@ const RUN_HOW = {
   'Run/Walk': {en:"Walk 5 minutes to warm up, then alternate running and walking as shown, and walk 5 minutes to finish. Go by feel, not pace: run slowly enough that you could still talk, and walk briskly to recover. If a run feels too hard, slow down or walk — finishing matters more than speed. The running gets a little longer each week.", es:"Camina 5 minutos para calentar, alterna correr y caminar como se indica y termina caminando 5 minutos. Guíate por cómo te sientes, no por el ritmo: corre tan despacio que puedas hablar y camina a paso vivo para recuperar. Si te cuesta demasiado, baja el ritmo o camina — terminar importa más que la velocidad. La parte de correr se alarga un poco cada semana."},
   'Brisk Walk': {en:"Walk at a purposeful pace — breathing a little harder, but still able to hold a conversation. There's no pace to hit; this builds the base your running will start from in a couple of weeks.", es:"Camina a paso decidido — respirando un poco más fuerte, pero pudiendo conversar. No hay ritmo que cumplir; esto crea la base desde la que empezarás a correr en un par de semanas."},
 };
-let wp = null; // {dayKey, target: {kind:'primary'} | {kind:'extra', id}, editIdx, choice, fromLog, changed}
+let wp = null; // {dayKey, target: {kind:'primary'} | {kind:'extra', id}, editIdx, choice, tuneIdx, fromLog, changed}
 // fromLog: opened from Log Performance mid-workout -- only the exercises can be changed there (no
 // skipping the workout or jumping to the day's options), and Log Performance is rebuilt on close if
 // anything changed.
 function openWorkoutPreview(dayKey, target, opts){
-  wp = {dayKey, target: target || {kind:'primary'}, editIdx:null, choice:null, fromLog: !!(opts && opts.fromLog), changed:false};
+  wp = {dayKey, target: target || {kind:'primary'}, editIdx:null, choice:null, tuneIdx:null, fromLog: !!(opts && opts.fromLog), changed:false};
+  // Opened by tapping one exercise (Today card): go straight to that lift's numbers.
+  if(opts && opts.tuneKey){
+    const r = previewedWorkout();
+    const exs = r && exercisesForSession(r.session, parseDateKey(dayKey));
+    const idx = exs ? exs.findIndex(ex=>ex.key===opts.tuneKey) : -1;
+    if(idx>=0) wp.tuneIdx = idx;
+  }
   renderWorkoutPreview();
   if(!wp) return;
   document.getElementById('wpSkipWorkoutBtn').hidden = wp.fromLog;
@@ -5533,15 +5650,28 @@ function renderWorkoutPreview(){
       const note = ex.swappedFrom
         ? `<div class="wp-ex-note">${escapeHtml(L.wpReplaces.replace('{name}', exerciseDisplayName(ex.swappedFrom)))}<button class="btn-text" type="button" data-undo-swap="${escapeHtml(ex.swappedFrom)}">${L.wpUndo}</button></div>`
         : '';
+      // A lift's numbers are tappable to set your own (a timed move has none to set).
+      const rx = ex.durationSec!=null
+        ? `<div class="wp-ex-rx">${escapeHtml(exerciseRxText(ex))}</div>`
+        : `<button class="wp-ex-rx wp-rx-btn" type="button" data-tune="${i}">${escapeHtml(exerciseRxText(ex))}${ICONS.pencil}</button>`;
       const row = `<div class="wp-ex" data-idx="${i}">
           <div class="wp-ex-main">
             <div class="wp-ex-name">${escapeHtml(ex.name)}</div>
-            <div class="wp-ex-rx">${escapeHtml(exerciseRxText(ex))}</div>
+            ${rx}
             ${note}
           </div>
           <button class="wp-change" type="button" data-change="${i}">${L.wpChangeBtn}</button>
         </div>`;
-      return row + (wp.editIdx===i ? exerciseChooserHtml(ex, exercises.length) : '');
+      return row + (wp.editIdx===i ? exerciseChooserHtml(ex, exercises.length) : '')
+        + (wp.tuneIdx===i ? `<div class="wp-chooser wp-tuner" data-tuner="${i}">
+            <div class="st-label">${escapeHtml(L.liftNumbersFor.replace('{name}', ex.name))}</div>
+            <div class="lift-fields">${liftNumberInputsHtml(ex)}</div>
+            <div class="wp-ex-note">${escapeHtml(L.liftNumbersNote.replace('{name}', ex.name))}</div>
+            <div class="wp-scope">
+              <button class="btn btn-ghost" type="button" data-tune-cancel>${L.wpCancel}</button>
+              <button class="btn btn-primary" type="button" data-tune-save="${i}">${L.liftSaveBtn}</button>
+            </div>
+          </div>` : '');
     }).join('');
     document.getElementById('wpSkippedList').innerHTML = exercises.skipped.map(key=>
       `<div class="wp-ex-note" style="padding-top:8px;">${escapeHtml(L.wpSkippedEvery.replace('{name}', exerciseDisplayName(key)))}<button class="btn-text" type="button" data-undo-swap="${escapeHtml(key)}">${L.wpUndo}</button></div>`
@@ -5621,7 +5751,33 @@ document.getElementById('wpExerciseSection').addEventListener('click', (e)=>{
     const idx = parseInt(change.getAttribute('data-change'),10);
     wp.editIdx = wp.editIdx===idx ? null : idx;
     wp.choice = null;
+    wp.tuneIdx = null;
     renderWorkoutPreview();
+    return;
+  }
+  const tune = e.target.closest('[data-tune]');
+  if(tune){
+    const idx = parseInt(tune.getAttribute('data-tune'),10);
+    wp.tuneIdx = wp.tuneIdx===idx ? null : idx;
+    wp.editIdx = null; wp.choice = null;
+    renderWorkoutPreview();
+    const input = document.querySelector(`[data-tuner="${idx}"] input`);
+    if(input) input.focus();
+    return;
+  }
+  if(e.target.closest('[data-tune-cancel]')){ wp.tuneIdx = null; renderWorkoutPreview(); return; }
+  const tuneSave = e.target.closest('[data-tune-save]');
+  if(tuneSave){
+    const idx = parseInt(tuneSave.getAttribute('data-tune-save'),10);
+    const r = previewedWorkout();
+    const ex = exercisesForSession(r.session, parseDateKey(wp.dayKey))[idx];
+    const {weight, reps} = readLiftNumberInputs(document.querySelector(`[data-tuner="${idx}"]`));
+    if(weight==null && reps==null) return;
+    setLiftNumbers(ex.key, ex.bodyweight ? null : weight, reps);
+    wp.tuneIdx = null; wp.changed = true;
+    refreshViews();
+    renderWorkoutPreview();
+    showToast(STR[state.lang].liftSavedToast);
     return;
   }
   const alt = e.target.closest('[data-alt]');
@@ -6490,6 +6646,56 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
   closeAdjustSheet();
   refreshViews();
   showToast(STR[state.lang].toastUpdated);
+});
+
+/* ---------------- my lifts ---------------- */
+// Every lift in the next four weeks of the plan, with the user's own weight and reps for each -- so
+// someone new (or coming back) can set their real numbers all at once instead of waiting for the app's
+// intensity-based guesses to catch up. Each number applies to that lift in every workout, and the
+// usual progression carries on from there.
+function planLifts(){
+  const found = new Map();
+  for(let w=0; w<4; w++) weekDates(w).forEach(date=>{
+    const dd = getDayData(date);
+    [dd.p, ...dd.extraWorkouts.map(x=>x.session)].forEach(session=>{
+      (exercisesForSession(session, date) || []).forEach(ex=>{
+        if(ex.durationSec==null && !found.has(ex.key)) found.set(ex.key, ex);
+      });
+    });
+  });
+  return [...found.values()];
+}
+function openLifts(){
+  const L = STR[state.lang];
+  const lifts = planLifts();
+  document.getElementById('liftsList').innerHTML = lifts.length
+    ? lifts.map(ex=>`<div class="lift-row" data-lift-key="${escapeHtml(ex.key)}" data-bodyweight="${ex.bodyweight?1:0}">
+        <div class="lift-row-name">${escapeHtml(ex.name)}</div>
+        <div class="lift-fields">${liftNumberInputsHtml(ex)}</div>
+      </div>`).join('')
+    : `<p class="fb-sub">${L.myLiftsEmpty}</p>`;
+  document.getElementById('saveLiftsBtn').hidden = !lifts.length;
+  document.getElementById('liftsOverlay').hidden = false;
+}
+function closeLifts(){ document.getElementById('liftsOverlay').hidden = true; }
+document.getElementById('openLiftsBtn').addEventListener('click', openLifts);
+document.getElementById('closeLifts').addEventListener('click', closeLifts);
+document.getElementById('saveLiftsBtn').addEventListener('click', ()=>{
+  let changed = 0;
+  document.querySelectorAll('#liftsList .lift-row').forEach(row=>{
+    const key = row.getAttribute('data-lift-key');
+    const bodyweight = row.getAttribute('data-bodyweight')==='1';
+    const {weight, reps} = readLiftNumberInputs(row);
+    const current = state.progression[exerciseProgressionKey(key)] || {};
+    const newWeight = bodyweight ? null : weight;
+    if((newWeight!=null && newWeight!==current.weight) || (reps!=null && reps!==current.reps)){
+      setLiftNumbers(key, newWeight, reps);
+      changed++;
+    }
+  });
+  closeLifts();
+  refreshViews();
+  showToast(STR[state.lang].liftSavedToast);
 });
 
 /* ---------------- feedback ---------------- */

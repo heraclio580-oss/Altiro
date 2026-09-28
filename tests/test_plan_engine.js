@@ -11,6 +11,9 @@ const E = new Function(`
   function parseDateKey(key){ const [y,m,d] = key.split('-').map(Number); return new Date(y,m-1,d); }
   const WEEK_MONDAY = new Date(2026,8,28), TODAY_DATE = WEEK_MONDAY;
   let state = {};
+  // Lift targets live outside the engine; none set here, so every lift shows its plan numbers.
+  function exerciseProgressionKey(key){ return 'strength:'+key; }
+  function getExerciseTarget(){ return null; }
   ${src}
   return {setState: s => { state = s; }, generatePlanWeek, planConfig, exercisesForSession, exerciseAlternatives, weeklyRunMiles, planWeekIndex,
           LEVEL_PLAN, MOVEMENTS, EXERCISES, isRecoveryWeek};
@@ -23,7 +26,7 @@ function check(label, ok, detail){
 }
 function setup(o){
   E.setState({trainingDays:o.days, focusRatio:o.focus ?? 0, goal:o.goal ?? null, level:o.level ?? 'intermediate', intensityIdx:o.int ?? 1,
-    weeklyMiles:o.miles ?? null, equipment:o.eq ?? 'gym', planStart:o.planStart ?? '2026-09-28', lang:'en'});
+    weeklyMiles:o.miles ?? null, equipment:o.eq ?? 'gym', planStart:o.planStart ?? '2026-09-28', lang:'en', progression:{}});
   return n => E.generatePlanWeek(E.planConfig(), n);
 }
 const miles = d => d.p.t==='run' ? parseFloat(d.p.en.detail) : 0;
@@ -168,7 +171,7 @@ const dbAlts = E.exerciseAlternatives('Dumbbell Row');
 check('A dumbbells-at-home user is only offered moves they can do', dbAlts.every(k=>Object.values(E.MOVEMENTS).some(m=>m.dumbbells.includes(k) || m.bodyweight.includes(k))), dbAlts.join(', '));
 setup({days:[0,2,4], focus:4, eq:'gym'});
 check('A gym user can also swap to kettlebell moves', E.exerciseAlternatives('Romanian Deadlift').some(k=>/Kettlebell/.test(k)));
-E.setState({trainingDays:[0,2,4], focusRatio:4, level:'intermediate', intensityIdx:1, equipment:'bodyweight', planStart:'2026-09-28', lang:'en', exerciseSwaps:{'Superman':'skip', 'Push-Up':'Incline Push-Up'}});
+E.setState({trainingDays:[0,2,4], focusRatio:4, level:'intermediate', intensityIdx:1, equipment:'bodyweight', planStart:'2026-09-28', lang:'en', progression:{}, exerciseSwaps:{'Superman':'skip', 'Push-Up':'Incline Push-Up'}});
 let swapsApplied = true;
 for(let wkOffset=0; wkOffset<8; wkOffset++) for(const title of LIFTS){
   const list = E.exercisesForSession({t:'strength', en:{title}}, new Date(2026,8,30+wkOffset*7));

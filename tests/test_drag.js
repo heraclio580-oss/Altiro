@@ -66,13 +66,16 @@ window.Element.prototype.getBoundingClientRect = function(){
   doc.getElementById('closeDayDetail').click();
   await wait(10);
 
-  // --- Test 2: quick tap on a draggable row (Saturday) also still opens Day Detail (no drag intended) ---
+  // --- Test 2: quick tap on a draggable future row (Saturday) doesn't start a drag: it previews
+  // Saturday's workout, or opens Day Detail if Saturday is a rest day ---
   firePointer(satRow, 'pointerdown', {clientX:100, clientY:rowCenterY(5)});
   await wait(20);
   firePointer(satRow, 'pointerup', {clientX:100, clientY:rowCenterY(5)});
   await wait(10);
-  console.log('Quick tap on Saturday row opens Day Detail:', doc.getElementById('dayDetailOverlay').hidden===false ? 'OK' : 'FAIL');
-  doc.getElementById('closeDayDetail').click();
+  const satOpened = !doc.getElementById('workoutPreviewOverlay').hidden || !doc.getElementById('dayDetailOverlay').hidden;
+  console.log('Quick tap on Saturday row opens its preview / Day Detail (no drag):', satOpened && !satRow.classList.contains('dragging') ? 'OK' : 'FAIL');
+  if(!doc.getElementById('workoutPreviewOverlay').hidden) doc.getElementById('closeWorkoutPreview').click();
+  if(!doc.getElementById('dayDetailOverlay').hidden) doc.getElementById('closeDayDetail').click();
   await wait(10);
 
   // --- Test 3: long-press + move triggers dragging state, then drop with no target cancels cleanly ---

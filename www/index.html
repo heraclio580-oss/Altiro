@@ -496,6 +496,27 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 /* ---------- sheet ---------- */
 .sheet-overlay{position:absolute;inset:0;background:rgba(10,10,11,0.55);display:flex;align-items:flex-end;z-index:80;}
 .sheet-overlay[hidden]{display:none;}
+#workoutPreviewOverlay{z-index:85;}
+.wp-hero{display:flex;align-items:center;gap:12px;margin-top:4px;}
+.wp-ic{width:40px;height:40px;border-radius:12px;background:var(--well);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;}
+.wp-ic svg{width:20px;height:20px;}
+.wp-title{font-family:var(--font-display);font-weight:600;font-size:18px;color:var(--text);}
+.wp-detail{font-family:var(--font-mono);font-size:12px;color:var(--text-2);margin-top:3px;}
+.wp-how{margin:0;font-size:13.5px;line-height:1.5;color:var(--text-2);}
+.wp-pace{margin-top:10px;font-family:var(--font-mono);font-size:12px;color:var(--text);}
+.wp-ex{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--divider-soft);}
+.wp-ex-main{flex:1;min-width:0;}
+.wp-ex-name{font-size:14px;color:var(--text);}
+.wp-ex-rx{font-family:var(--font-mono);font-size:11.5px;color:var(--text-2);margin-top:2px;}
+.wp-ex-note{font-size:11.5px;color:var(--text-3);margin-top:3px;}
+.wp-ex-note .btn-text{padding:0 0 0 4px;font-size:11.5px;}
+.wp-change{flex-shrink:0;height:30px;padding:0 12px;border-radius:var(--r-pill);border:1px solid var(--border);background:transparent;color:var(--text-2);font-size:12px;cursor:pointer;}
+.wp-change:hover{color:var(--text);border-color:var(--hover-border);}
+.wp-chooser{padding:10px 0 14px;border-bottom:1px solid var(--divider-soft);}
+.wp-chooser .st-label{margin:8px 0 0;}
+.wp-scope{display:flex;gap:8px;margin-top:10px;}
+.wp-scope .btn{height:40px;font-size:11.5px;}
+.wp-companion{font-size:13px;color:var(--text-2);}
 .sheet-panel{width:100%;max-height:88%;background:var(--sheet-bg);border:1px solid var(--divider);border-bottom:none;border-radius:28px 28px 0 0;padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));overflow-y:auto;animation:sheetUp .26s ease both;}
 @keyframes sheetUp{from{transform:translateY(24px);opacity:0.4;}to{transform:none;opacity:1;}}
 @media (prefers-reduced-motion: reduce){.sheet-panel{animation:none;}}
@@ -1299,6 +1320,37 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     </div>
   </div>
 
+  <!-- WORKOUT PREVIEW SHEET (overlay) -- a future workout, before it's done -->
+  <div class="sheet-overlay" id="workoutPreviewOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" id="wpDayLabel"></span>
+        <button class="iconbtn" id="closeWorkoutPreview"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <div class="wp-hero">
+        <span class="wp-ic" id="wpIcon"></span>
+        <div><div class="wp-title" id="wpTitle"></div><div class="wp-detail" id="wpDetail"></div></div>
+      </div>
+      <div class="sheet-section" id="wpRunSection" hidden>
+        <div class="st-label" data-i18n="wpHowLabel"></div>
+        <p class="wp-how" id="wpRunHow"></p>
+        <div class="wp-pace" id="wpPace"></div>
+      </div>
+      <div class="sheet-section" id="wpExerciseSection" hidden>
+        <div class="st-label" data-i18n="wpExercisesLabel"></div>
+        <div id="wpExerciseList"></div>
+        <div id="wpSkippedList"></div>
+      </div>
+      <div class="sheet-section" id="wpCompanionSection" hidden>
+        <div class="st-label" data-i18n="pairedWithLabel"></div>
+        <div class="wp-companion" id="wpCompanion"></div>
+      </div>
+      <button class="btn btn-ghost" id="wpSkipWorkoutBtn" type="button" style="margin-top:22px;" data-i18n="wpSkipWorkout"></button>
+      <button class="btn-text" id="wpDayOptionsBtn" type="button" style="width:100%;margin-top:8px;" data-i18n="wpDayOptions"></button>
+    </div>
+  </div>
+
   <!-- DAY DETAIL SHEET (overlay) -->
   <div class="sheet-overlay" id="dayDetailOverlay" hidden>
     <div class="sheet-panel">
@@ -1775,6 +1827,23 @@ const STR = {
     sliderWeightsOnly: "Weights Only",
     todaysSessionLabel: "Sample Session",
     pairedWithLabel: "Paired With",
+    wpHowLabel: "How to run it",
+    wpTargetPace: "Target pace",
+    wpExercisesLabel: "Exercises",
+    wpChangeBtn: "Change",
+    wpSwapFor: "Swap for",
+    wpSkipExercise: "Skip this exercise",
+    wpApplyTo: "Apply to",
+    wpJustThis: "Just this workout",
+    wpEveryWorkout: "Every workout",
+    wpCancel: "Cancel",
+    wpReplaces: "Replaces {name} in every workout",
+    wpSkippedEvery: "{name} is skipped in every workout",
+    wpUndo: "Undo",
+    wpSkipWorkout: "Skip this workout",
+    wpDayOptions: "More options for this day",
+    exerciseChangedToast: "Workout updated",
+    workoutSkippedToast: "Workout skipped",
     eyebrowIntensity: "Intensity",
     intensityHeadline: "How hard do you want to push?",
     intensitySub: "Adjust this anytime from your plan.",
@@ -2018,6 +2087,23 @@ const STR = {
     sliderWeightsOnly: "Solo pesas",
     todaysSessionLabel: "Sesión de ejemplo",
     pairedWithLabel: "Combinado con",
+    wpHowLabel: "Cómo correrla",
+    wpTargetPace: "Ritmo objetivo",
+    wpExercisesLabel: "Ejercicios",
+    wpChangeBtn: "Cambiar",
+    wpSwapFor: "Cambiar por",
+    wpSkipExercise: "Omitir este ejercicio",
+    wpApplyTo: "Aplicar a",
+    wpJustThis: "Solo este entrenamiento",
+    wpEveryWorkout: "Todos los entrenamientos",
+    wpCancel: "Cancelar",
+    wpReplaces: "Reemplaza a {name} en todos los entrenamientos",
+    wpSkippedEvery: "{name} se omite en todos los entrenamientos",
+    wpUndo: "Deshacer",
+    wpSkipWorkout: "Omitir este entrenamiento",
+    wpDayOptions: "Más opciones para este día",
+    exerciseChangedToast: "Entrenamiento actualizado",
+    workoutSkippedToast: "Entrenamiento omitido",
     eyebrowIntensity: "Intensidad",
     intensityHeadline: "¿Qué tan fuerte quieres esforzarte?",
     intensitySub: "Ajusta esto cuando quieras desde tu plan.",
@@ -2683,6 +2769,27 @@ const EXERCISES = {
   'Dead Bug': {en:'Dead Bug', es:'Dead Bug', sets:3, reps:10, bodyweight:true},
   'Side Plank': {en:'Side Plank', es:'Plancha Lateral', sets:2, durationSec:30, bodyweight:true},
   'Bicycle Crunch': {en:'Bicycle Crunch', es:'Crunch de Bicicleta', sets:3, reps:20, bodyweight:true},
+  'Kettlebell Front Squat': {en:'Kettlebell Front Squat', es:'Sentadilla Frontal con Pesa Rusa', sets:3, reps:10, seedFactor:0.3},
+  'Kettlebell Reverse Lunge': {en:'Kettlebell Reverse Lunge', es:'Zancada Inversa con Pesa Rusa', sets:3, reps:10, seedFactor:0.2},
+  'Kettlebell Split Squat': {en:'Kettlebell Split Squat', es:'Sentadilla Dividida con Pesa Rusa', sets:3, reps:10, seedFactor:0.2},
+  'Kettlebell Deadlift': {en:'Kettlebell Deadlift', es:'Peso Muerto con Pesa Rusa', sets:3, reps:10, seedFactor:0.4},
+  'Single-Leg Kettlebell Deadlift': {en:'Single-Leg Kettlebell Deadlift', es:'Peso Muerto a Una Pierna con Pesa Rusa', sets:3, reps:8, seedFactor:0.25},
+  'Kettlebell Clean': {en:'Kettlebell Clean', es:'Cargada con Pesa Rusa', sets:3, reps:8, seedFactor:0.25, minLevel:'intermediate'},
+  'Kettlebell Floor Press': {en:'Kettlebell Floor Press', es:'Press de Suelo con Pesa Rusa', sets:3, reps:10, seedFactor:0.25},
+  'Kettlebell Overhead Press': {en:'Kettlebell Overhead Press', es:'Press sobre la Cabeza con Pesa Rusa', sets:3, reps:8, seedFactor:0.2},
+  'Kettlebell Push Press': {en:'Kettlebell Push Press', es:'Press de Empuje con Pesa Rusa', sets:3, reps:8, seedFactor:0.25, minLevel:'intermediate'},
+  'Kettlebell Halo': {en:'Kettlebell Halo', es:'Halo con Pesa Rusa', sets:3, reps:8, seedFactor:0.1},
+  'Kettlebell Row': {en:'Kettlebell Row', es:'Remo con Pesa Rusa', sets:3, reps:10, seedFactor:0.3},
+  'Kettlebell Gorilla Row': {en:'Kettlebell Gorilla Row', es:'Remo Gorila con Pesa Rusa', sets:3, reps:8, seedFactor:0.3, minLevel:'intermediate'},
+  'Kettlebell High Pull': {en:'Kettlebell High Pull', es:'Jalón Alto con Pesa Rusa', sets:3, reps:10, seedFactor:0.25},
+  'Kettlebell Pullover': {en:'Kettlebell Pullover', es:'Pullover con Pesa Rusa', sets:3, reps:12, seedFactor:0.2},
+  'Kettlebell Curl': {en:'Kettlebell Curl', es:'Curl con Pesa Rusa', sets:3, reps:12, seedFactor:0.15},
+  'Kettlebell Overhead Triceps Extension': {en:'Kettlebell Overhead Triceps Extension', es:'Extensión de Tríceps con Pesa Rusa', sets:3, reps:12, seedFactor:0.15},
+  'Turkish Get-Up': {en:'Turkish Get-Up', es:'Levantamiento Turco', sets:3, reps:3, seedFactor:0.15, minLevel:'intermediate'},
+  'Kettlebell Windmill': {en:'Kettlebell Windmill', es:'Molino con Pesa Rusa', sets:3, reps:5, seedFactor:0.15, minLevel:'intermediate'},
+  'Towel Row': {en:'Towel Row', es:'Remo con Toalla', sets:3, reps:12, bodyweight:true},
+  'Wall Angel': {en:'Wall Angel', es:'Ángel en la Pared', sets:3, reps:12, bodyweight:true},
+  'Bird Dog': {en:'Bird Dog', es:'Bird Dog', sets:3, reps:10, bodyweight:true},
   'Hanging Knee Raise': {en:'Hanging Knee Raise', es:'Elevación de Rodillas Colgado', sets:3, reps:12, bodyweight:true},
   'Ab Wheel Rollout': {en:'Ab Wheel Rollout', es:'Rueda Abdominal', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
 };
@@ -2690,21 +2797,24 @@ const EXERCISES = {
 // options its equipment allows -- the first two slots of a workout (its main lifts) once per 4-week
 // block, so they can actually be progressed; the rest every week, for variety.
 const MOVEMENTS = {
-  squat:    {gym:['Back Squat','Front Squat','Leg Press'], dumbbells:['Goblet Squat','Kettlebell Sumo Squat','Dumbbell Step-Up'], bodyweight:['Bodyweight Squat','Jump Squat','Wall Sit']},
-  lunge:    {gym:['Walking Lunge','Bulgarian Split Squat','Step-Up'], dumbbells:['Walking Lunge','Bulgarian Split Squat','Step-Up'], bodyweight:['Reverse Lunge','Bodyweight Split Squat','Bodyweight Step-Up']},
-  hinge:    {gym:['Romanian Deadlift','Hip Thrust','Good Morning'], dumbbells:['Dumbbell Romanian Deadlift','Kettlebell Swing','Dumbbell Hip Thrust'], bodyweight:['Single-Leg Romanian Deadlift','Single-Leg Glute Bridge','Glute Bridge']},
-  deadlift: {gym:['Deadlift','Trap Bar Deadlift','Rack Pull'], dumbbells:['Dumbbell Romanian Deadlift','Kettlebell Swing'], bodyweight:['Single-Leg Romanian Deadlift','Single-Leg Glute Bridge']},
-  hpush:    {gym:['Bench Press','Dumbbell Bench Press','Incline Barbell Press'], dumbbells:['Dumbbell Floor Press','Push-Up'], bodyweight:['Push-Up','Incline Push-Up','Decline Push-Up']},
-  chest2:   {gym:['Incline Dumbbell Press','Chest Fly','Cable Fly'], dumbbells:['Dumbbell Floor Fly','Push-Up'], bodyweight:['Incline Push-Up','Diamond Push-Up']},
-  vpush:    {gym:['Overhead Press','Arnold Press','Push Press'], dumbbells:['Dumbbell Shoulder Press','Arnold Press'], bodyweight:['Pike Push-Up']},
-  hpull:    {gym:['Bent-Over Row','Seated Cable Row','T-Bar Row'], dumbbells:['Dumbbell Row','Resistance Band Row'], bodyweight:['Inverted Row','Superman']},
-  vpull:    {gym:['Lat Pulldown','Pull-Up','Chin-Up'], dumbbells:['Dumbbell Pullover'], bodyweight:['Prone Y-T-W Raise','Superman']},
-  arms:     {gym:['Bicep Curl','Triceps Pushdown','Hammer Curl'], dumbbells:['Bicep Curl','Overhead Triceps Extension','Hammer Curl'], bodyweight:['Bench Dip','Diamond Push-Up']},
-  triceps:  {gym:['Triceps Pushdown','Overhead Triceps Extension','Triceps Dip'], dumbbells:['Overhead Triceps Extension','Bench Dip'], bodyweight:['Bench Dip','Diamond Push-Up']},
-  reardelt: {gym:['Face Pull','Reverse Fly','Band Pull-Apart'], dumbbells:['Reverse Fly','Band Pull-Apart'], bodyweight:['Prone Y-T-W Raise']},
-  calves:   {gym:['Calf Raise','Single-Leg Calf Raise'], dumbbells:['Calf Raise','Single-Leg Calf Raise'], bodyweight:['Calf Raise','Single-Leg Calf Raise']},
-  core:     {gym:['Plank','Hanging Knee Raise','Dead Bug','Ab Wheel Rollout'], dumbbells:['Plank','Dead Bug','Side Plank','Bicycle Crunch'], bodyweight:['Plank','Dead Bug','Side Plank','Bicycle Crunch']},
+  squat:    {gym:['Back Squat','Front Squat','Leg Press'], kettlebells:['Goblet Squat','Kettlebell Front Squat','Kettlebell Sumo Squat'], dumbbells:['Goblet Squat','Kettlebell Sumo Squat','Dumbbell Step-Up'], bodyweight:['Bodyweight Squat','Jump Squat','Wall Sit']},
+  lunge:    {gym:['Walking Lunge','Bulgarian Split Squat','Step-Up'], kettlebells:['Kettlebell Reverse Lunge','Kettlebell Split Squat'], dumbbells:['Walking Lunge','Bulgarian Split Squat','Step-Up'], bodyweight:['Reverse Lunge','Bodyweight Split Squat','Bodyweight Step-Up']},
+  hinge:    {gym:['Romanian Deadlift','Hip Thrust','Kettlebell Swing','Good Morning'], kettlebells:['Kettlebell Swing','Single-Leg Kettlebell Deadlift','Kettlebell Deadlift'], dumbbells:['Dumbbell Romanian Deadlift','Kettlebell Swing','Dumbbell Hip Thrust'], bodyweight:['Single-Leg Romanian Deadlift','Single-Leg Glute Bridge','Glute Bridge']},
+  deadlift: {gym:['Deadlift','Trap Bar Deadlift','Rack Pull'], kettlebells:['Kettlebell Deadlift','Kettlebell Swing','Kettlebell Clean'], dumbbells:['Dumbbell Romanian Deadlift','Kettlebell Swing'], bodyweight:['Single-Leg Romanian Deadlift','Single-Leg Glute Bridge']},
+  hpush:    {gym:['Bench Press','Dumbbell Bench Press','Incline Barbell Press'], kettlebells:['Kettlebell Floor Press','Push-Up'], dumbbells:['Dumbbell Floor Press','Push-Up'], bodyweight:['Push-Up','Incline Push-Up','Decline Push-Up']},
+  chest2:   {gym:['Incline Dumbbell Press','Chest Fly','Cable Fly'], kettlebells:['Push-Up','Kettlebell Floor Press'], dumbbells:['Dumbbell Floor Fly','Push-Up'], bodyweight:['Incline Push-Up','Diamond Push-Up']},
+  vpush:    {gym:['Overhead Press','Arnold Press','Push Press'], kettlebells:['Kettlebell Overhead Press','Kettlebell Push Press','Kettlebell Halo'], dumbbells:['Dumbbell Shoulder Press','Arnold Press'], bodyweight:['Pike Push-Up']},
+  hpull:    {gym:['Bent-Over Row','Seated Cable Row','T-Bar Row'], kettlebells:['Kettlebell Row','Kettlebell Gorilla Row'], dumbbells:['Dumbbell Row','Resistance Band Row'], bodyweight:['Inverted Row','Towel Row','Superman']},
+  vpull:    {gym:['Lat Pulldown','Pull-Up','Chin-Up'], kettlebells:['Kettlebell High Pull','Kettlebell Pullover'], dumbbells:['Dumbbell Pullover'], bodyweight:['Prone Y-T-W Raise','Superman','Wall Angel']},
+  arms:     {gym:['Bicep Curl','Triceps Pushdown','Hammer Curl'], kettlebells:['Kettlebell Curl','Kettlebell Overhead Triceps Extension'], dumbbells:['Bicep Curl','Overhead Triceps Extension','Hammer Curl'], bodyweight:['Bench Dip','Diamond Push-Up']},
+  triceps:  {gym:['Triceps Pushdown','Overhead Triceps Extension','Triceps Dip'], kettlebells:['Kettlebell Overhead Triceps Extension','Bench Dip'], dumbbells:['Overhead Triceps Extension','Bench Dip'], bodyweight:['Bench Dip','Diamond Push-Up']},
+  reardelt: {gym:['Face Pull','Reverse Fly','Band Pull-Apart'], kettlebells:['Kettlebell High Pull','Prone Y-T-W Raise'], dumbbells:['Reverse Fly','Band Pull-Apart'], bodyweight:['Prone Y-T-W Raise','Wall Angel']},
+  calves:   {gym:['Calf Raise','Single-Leg Calf Raise'], kettlebells:['Calf Raise','Single-Leg Calf Raise'], dumbbells:['Calf Raise','Single-Leg Calf Raise'], bodyweight:['Calf Raise','Single-Leg Calf Raise']},
+  core:     {gym:['Plank','Hanging Knee Raise','Turkish Get-Up','Dead Bug','Ab Wheel Rollout'], kettlebells:['Turkish Get-Up','Plank','Kettlebell Windmill','Dead Bug'], dumbbells:['Plank','Dead Bug','Side Plank','Bicycle Crunch'], bodyweight:['Plank','Dead Bug','Side Plank','Bird Dog','Bicycle Crunch']},
 };
+// Which equipment lists a user can draw on when swapping an exercise: a gym has kettlebells, dumbbells
+// and floor space too; everyone can do bodyweight moves.
+const EQUIP_ACCESS = {gym:['gym','kettlebells','dumbbells','bodyweight'], kettlebells:['kettlebells','bodyweight'], dumbbells:['dumbbells','bodyweight'], bodyweight:['bodyweight']};
 // The generated lifting workouts, as movement-pattern slots (sets/reps override the lift's default).
 // A "... B" workout is the same template with every slot shifted one option along, so the second
 // upper (or push, etc.) day of a week isn't a copy of the first -- except Full Body B, which has its own.
@@ -2789,30 +2899,77 @@ function weekSeedForDate(date){
   const days = Math.floor((date.getTime() - ROTATION_EPOCH_MONDAY.getTime()) / 86400000);
   return Math.floor(days / 7);
 }
-// Returns this session's exercise breakdown, or null when it's not a strength session with any
-// exercises -- either a manually-built list (session.exercises, already has a plain .name since the
-// user typed it directly, no locale split needed) or, failing that, a known generated workout, picked
-// for the user's equipment and level and for that particular week (date defaults to today, for
-// callers -- Home, Log Performance -- that only ever mean "today"). Beginners do a set less, advanced
-// lifters a set more on the main lifts, and everyone a set less in a recovery week.
-function exercisesForSession(session, date){
-  if(!session || session.t!=='strength') return null;
-  if(session.exercises && session.exercises.length) return session.exercises;
+function planLevel(){ return LEVEL_PLAN[state.level] ? state.level : 'intermediate'; }
+function planEquipment(){ return MOVEMENTS.squat[state.equipment] ? state.equipment : 'gym'; }
+function localizedExercise(ex){ return ex.en ? {...ex, name: state.lang==='es' ? ex.es : ex.en} : ex; }
+// Any exercise the plan knows by key -- a lift, or one of the short mobility/activation moves.
+const MOBILITY_EXERCISES = {};
+Object.values(MOBILITY_TEMPLATES).forEach(slots=> slots.forEach(opts=> opts.forEach(o=>{ if(!MOBILITY_EXERCISES[o.key]) MOBILITY_EXERCISES[o.key] = o; })));
+function exerciseDef(key){ return EXERCISES[key] || MOBILITY_EXERCISES[key] || null; }
+// A plan exercise for `key`, standing in for `like` (keeps its set count, and its reps when both are
+// weighted lifts -- a bodyweight or timed move keeps its own).
+function exerciseFromKey(key, like){
+  const base = exerciseDef(key);
+  const ex = {...base, key, fromPlan:true};
+  if(like){
+    ex.sets = like.sets;
+    if(like.reps && !like.bodyweight && !base.bodyweight && base.durationSec==null) ex.reps = like.reps;
+  }
+  delete ex.minLevel;
+  return localizedExercise(ex);
+}
+// The user's standing ("every workout") changes: {exerciseKey: replacementKey | 'skip'}. They apply to
+// every exercise the plan chose (fromPlan), including ones copied into a workout the user changed --
+// never to exercises the user typed in themselves. The returned list's .skipped names what was left out.
+function standingSwapFor(key){
+  const swap = state.exerciseSwaps && state.exerciseSwaps[key];
+  return swap && (swap==='skip' || exerciseDef(swap)) ? swap : null;
+}
+function applyStandingSwaps(list){
+  const out = [], skipped = [];
+  list.forEach(ex=>{
+    const swap = ex.fromPlan ? standingSwapFor(ex.key) : null;
+    if(swap==='skip') skipped.push(ex.key);
+    else if(swap) out.push({...exerciseFromKey(swap, ex), swappedFrom: ex.key});
+    else out.push(ex);
+  });
+  out.skipped = skipped;
+  return out;
+}
+// What an exercise could be swapped for: the other moves for the same movement that fit the user's
+// equipment and level (their own equipment first), or for a mobility move, the others in its slot.
+function exerciseAlternatives(key){
+  const level = planLevel(), tiers = EQUIP_ACCESS[planEquipment()];
+  const found = [];
+  Object.values(MOVEMENTS).forEach(byEquip=>{
+    if(!Object.values(byEquip).some(list=>list.includes(key))) return;
+    tiers.forEach(tier=> (byEquip[tier]||[]).forEach(k=>{
+      const def = EXERCISES[k];
+      if(k!==key && !found.includes(k) && (!def.minLevel || LEVEL_RANK[level] >= LEVEL_RANK[def.minLevel])) found.push(k);
+    }));
+  });
+  if(found.length) return found;
+  for(const slots of Object.values(MOBILITY_TEMPLATES)){
+    for(const opts of slots) if(opts.some(o=>o.key===key)) return opts.filter(o=>o.key!==key).map(o=>o.key);
+  }
+  return [];
+}
+// The exercises the plan picks for a generated workout (before the user's own changes), or null when
+// it isn't a known workout -- for the user's equipment and level and that particular week (date
+// defaults to today). Beginners do a set less, advanced lifters a set more on the main lifts, and
+// everyone a set less in a recovery week.
+function plannedExercises(session, date){
   const title = session.en.title;
   const d = date || TODAY_DATE;
   const seed = weekSeedForDate(d);
   const mobility = MOBILITY_TEMPLATES[title];
   if(mobility){
-    return mobility.map((options, i)=>{
-      const ex = options[(seed + i) % options.length];
-      return {...ex, name: state.lang==='es' ? ex.es : ex.en};
-    });
+    return mobility.map((options, i)=> localizedExercise({...options[(seed + i) % options.length], fromPlan:true}));
   }
   const isB = !LIFT_TEMPLATES[title] && / B$/.test(title);
   const slots = LIFT_TEMPLATES[title] || LIFT_TEMPLATES[title.replace(/ B$/,'')];
   if(!slots) return null;
-  const level = LEVEL_PLAN[state.level] ? state.level : 'intermediate';
-  const equipment = MOVEMENTS.squat[state.equipment] ? state.equipment : 'gym';
+  const level = planLevel(), equipment = planEquipment();
   const planWeek = planWeekIndex(d);
   const recovery = isRecoveryWeek(planWeek);
   return slots.map((slot, i)=>{
@@ -2825,11 +2982,19 @@ function exercisesForSession(session, date){
     if(level==='beginner') sets -= 1;
     else if(level==='advanced' && i<2) sets += 1;
     if(recovery) sets -= 1;
-    const ex = {...base, key, sets: Math.max(2, sets)};
+    const ex = {...base, key, sets: Math.max(2, sets), fromPlan:true};
     if(slot.reps && !base.bodyweight) ex.reps = slot.reps; // a bodyweight move keeps its own rep count
     delete ex.minLevel;
-    return {...ex, name: state.lang==='es' ? ex.es : ex.en};
+    return localizedExercise(ex);
   });
+}
+// A strength session's exercises, or null when it has none -- the list the user built or changed
+// (session.exercises), else the plan's picks; the user's standing swaps/skips applied either way.
+function exercisesForSession(session, date){
+  if(!session || session.t!=='strength') return null;
+  if(session.exercises && session.exercises.length) return applyStandingSwaps(session.exercises.map(localizedExercise));
+  const planned = plannedExercises(session, date);
+  return planned ? applyStandingSwaps(planned) : null;
 }
 function fmtExercisePrescription(ex){
   const L = STR[state.lang];
@@ -2859,6 +3024,7 @@ const defaultState = () => ({
   weeklyMiles:null, // about how many miles a week they run now (onboarding / Adjust) -- where the plan's mileage starts
   equipment:null, // 'gym' | 'dumbbells' | 'bodyweight' -- what the plan's lifts can use
   planStart:null, // dateKey of the Monday the plan started (its week 0) -- see planWeekIndex()
+  exerciseSwaps:{}, // "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'} -- see applyStandingSwaps()
   week:null,
   todayCompleted:false,
   // Real stats for a real user always start at zero -- these are never seeded with placeholder
@@ -3398,6 +3564,7 @@ const NAV_MAP = [
 function closeAllOverlays(){
   if(!document.getElementById('logPerfOverlay').hidden) closeLogPerformance();
   if(!document.getElementById('intervalTimerOverlay').hidden) closeIntervalTimer();
+  if(!document.getElementById('workoutPreviewOverlay').hidden) closeWorkoutPreview();
   if(!document.getElementById('dayDetailOverlay').hidden) closeDayDetail();
   if(!document.getElementById('manualEntryOverlay').hidden) closeManualEntry();
   if(!document.getElementById('editNameOverlay').hidden) closeEditName();
@@ -3527,6 +3694,7 @@ const MILES_OPTIONS = [
 const EQUIPMENT_OPTIONS = [
   {key:'gym', en:{t:'Full gym'}, es:{t:'Gimnasio completo'}},
   {key:'dumbbells', en:{t:'Dumbbells at home'}, es:{t:'Mancuernas en casa'}},
+  {key:'kettlebells', en:{t:'Kettlebells'}, es:{t:'Pesas rusas'}},
   {key:'bodyweight', en:{t:'Bodyweight only'}, es:{t:'Solo peso corporal'}},
 ];
 function milesOptionKey(miles){
@@ -4909,9 +5077,12 @@ function setupDayRowInteraction(wrap){
       const wasMoved = moved;
       endDrag(true);
       if(wasDragging || wasMoved) return;
-      // A plain tap (no hold, no movement) always just opens Day Detail -- the only way to move a
-      // day is a genuine press-and-hold drag now.
-      openDayDetail(dateKey(allPlanDates()[idx]));
+      // A plain tap (no hold, no movement) previews a future workout, and otherwise opens Day Detail
+      // -- the only way to move a day is a genuine press-and-hold drag now.
+      const date = allPlanDates()[idx];
+      const dd = getDayData(date);
+      if(dd.isFuture && dd.p.t!=='rest') openWorkoutPreview(dateKey(date));
+      else openDayDetail(dateKey(date));
     }
     function onCancel(){ endDrag(false); }
 
@@ -5016,10 +5187,216 @@ document.getElementById('dayDetailPlanRow').addEventListener('click', ()=>{
   if(!state.openDayKey) return;
   const dd = getDayData(parseDateKey(state.openDayKey));
   // A genuinely empty (rest) day renders as plain text now, not a tappable bubble -- "+ Add
-  // Workout" below is the only way to add something. A future workout can't be logged yet.
-  if(dd.p.t==='rest' || dd.isFuture) return;
+  // Workout" below is the only way to add something. A future workout can't be logged yet, so
+  // tapping it shows what it will be instead.
+  if(dd.p.t==='rest') return;
+  if(dd.isFuture){ openWorkoutPreview(state.openDayKey); return; }
   openLogPerformanceFor(primaryLogTarget(dd));
 });
+
+/* ---------------- workout preview (a future workout) ---------------- */
+// What a future workout will be -- a run's distance, how to run it and target pace, or a lifting
+// workout's exercises with their targets -- and where it can be changed: any exercise swapped for
+// another or skipped (for just this workout, or every workout from now on), or the whole workout skipped.
+const RUN_HOW = {
+  'Easy Run': {en:"Relaxed, conversational pace — you should be able to talk in full sentences the whole way.", es:"Ritmo relajado y conversacional — deberías poder hablar con frases completas todo el tiempo."},
+  'Long Run': {en:"Your longest run of the week. Start easy and stay steady; walk breaks are fine. Bring water and fuel if it's over an hour.", es:"Tu carrera más larga de la semana. Empieza suave y mantén el ritmo; puedes caminar a ratos. Lleva agua y energía si dura más de una hora."},
+  'Recovery Jog': {en:"Very easy — slower than your easy pace. It's for loosening up, not fitness.", es:"Muy suave — más lento que tu ritmo fácil. Es para soltar las piernas, no para ganar forma."},
+  'Tempo Run': {en:"Warm up with about a mile easy, run the tempo part at a comfortably hard pace (a few words at a time), then cool down easy.", es:"Calienta con una milla suave, corre la parte de tempo a un ritmo cómodamente exigente (solo unas palabras a la vez) y termina suave."},
+  'Interval Run': {en:"Warm up a mile easy. Run each rep hard but controlled, with 1–2 minutes of easy jogging between. Cool down easy.", es:"Calienta una milla suave. Corre cada repetición fuerte pero controlada, con 1–2 minutos de trote suave entre ellas. Termina suave."},
+  'Fartlek Run': {en:"Easy running with one-minute fast bursts mixed in — jog easy between them until you're ready for the next.", es:"Carrera suave con ráfagas rápidas de un minuto — trota suave entre ellas hasta estar listo para la siguiente."},
+  'Hill Repeats': {en:"Warm up easy, then run each 60 seconds uphill strong and walk or jog back down to recover.", es:"Calienta suave, corre cada subida de 60 segundos con fuerza y baja caminando o trotando para recuperar."},
+  'Easy Run + Strides': {en:"An easy run, then four relaxed 20-second pickups to a fast (not all-out) pace, walking back between each.", es:"Una carrera suave y luego cuatro aceleraciones relajadas de 20 segundos a ritmo rápido (sin llegar al máximo), caminando entre cada una."},
+  'Run/Walk': {en:"Alternate running and walking as shown for the whole distance. Keep the running part easy — it gets longer each week.", es:"Alterna correr y caminar como se indica durante toda la distancia. Corre suave — la parte de correr se alarga cada semana."},
+};
+let wp = null; // {dayKey, target: {kind:'primary'} | {kind:'extra', id}, editIdx, choice}
+function openWorkoutPreview(dayKey, target){
+  wp = {dayKey, target: target || {kind:'primary'}, editIdx:null, choice:null};
+  renderWorkoutPreview();
+  if(!wp) return;
+  document.getElementById('workoutPreviewOverlay').hidden = false;
+  document.querySelector('#workoutPreviewOverlay .sheet-panel').scrollTop = 0;
+}
+function closeWorkoutPreview(){
+  document.getElementById('workoutPreviewOverlay').hidden = true;
+  wp = null;
+}
+// The workout being previewed: the day's own (which may really be its first Additional Workout, on a
+// day with nothing else planned), or one of its Additional Workouts.
+function previewedWorkout(){
+  if(wp.target.kind==='extra'){
+    const w = findExtraWorkout(wp.dayKey, wp.target.id);
+    return w ? {session: w.session, c: null, extra: w} : null;
+  }
+  const dd = getDayData(parseDateKey(wp.dayKey));
+  if(dd.primarySource==='extra'){ wp.target = {kind:'extra', id: dd.extraWorkouts[0].id}; return previewedWorkout(); }
+  return {session: dd.p, c: dd.c, extra: null};
+}
+function exerciseRxText(ex){
+  let text = fmtExercisePrescription(ex);
+  if(!ex.bodyweight){
+    const t = getExerciseTarget(ex, state.intensityIdx);
+    if(t && t.weight) text += ` · ${t.weight} ${state.weightUnit}`;
+  }
+  return text;
+}
+function renderWorkoutPreview(){
+  const L = STR[state.lang];
+  const date = parseDateKey(wp.dayKey);
+  const r = previewedWorkout();
+  if(!r || r.session.t==='rest'){ closeWorkoutPreview(); return; }
+  const session = r.session, sL = ST(session);
+  const dow = (date.getDay()+6)%7;
+  document.getElementById('wpDayLabel').textContent = `${DAY_NAMES_FULL[state.lang][dow]}, ${MONTHS_SHORT[state.lang][date.getMonth()]} ${date.getDate()}`;
+  document.getElementById('wpIcon').innerHTML = TYPE_ICON[session.t] || '';
+  document.getElementById('wpTitle').textContent = sL.title;
+  document.getElementById('wpDetail').textContent = sL.detail || '';
+
+  const runSection = document.getElementById('wpRunSection');
+  runSection.hidden = session.t!=='run';
+  if(session.t==='run'){
+    const how = RUN_HOW[session.en.title];
+    document.getElementById('wpRunHow').textContent = how ? how[state.lang] : '';
+    document.getElementById('wpRunHow').hidden = !how;
+    const target = getProgressionTarget(session, state.intensityIdx);
+    document.getElementById('wpPace').textContent = target && target.pace ? `${L.wpTargetPace}: ${fmtPace(target.pace)}/mi` : '';
+  }
+
+  const exSection = document.getElementById('wpExerciseSection');
+  const exercises = exercisesForSession(session, date);
+  exSection.hidden = !exercises;
+  if(exercises){
+    document.getElementById('wpExerciseList').innerHTML = exercises.map((ex, i)=>{
+      const note = ex.swappedFrom
+        ? `<div class="wp-ex-note">${escapeHtml(L.wpReplaces.replace('{name}', exerciseDisplayName(ex.swappedFrom)))}<button class="btn-text" type="button" data-undo-swap="${escapeHtml(ex.swappedFrom)}">${L.wpUndo}</button></div>`
+        : '';
+      const row = `<div class="wp-ex" data-idx="${i}">
+          <div class="wp-ex-main">
+            <div class="wp-ex-name">${escapeHtml(ex.name)}</div>
+            <div class="wp-ex-rx">${escapeHtml(exerciseRxText(ex))}</div>
+            ${note}
+          </div>
+          <button class="wp-change" type="button" data-change="${i}">${L.wpChangeBtn}</button>
+        </div>`;
+      return row + (wp.editIdx===i ? exerciseChooserHtml(ex, exercises.length) : '');
+    }).join('');
+    document.getElementById('wpSkippedList').innerHTML = exercises.skipped.map(key=>
+      `<div class="wp-ex-note" style="padding-top:8px;">${escapeHtml(L.wpSkippedEvery.replace('{name}', exerciseDisplayName(key)))}<button class="btn-text" type="button" data-undo-swap="${escapeHtml(key)}">${L.wpUndo}</button></div>`
+    ).join('');
+  }
+
+  const companion = r.c && r.c.t!=='rest' ? ST(r.c) : null;
+  document.getElementById('wpCompanionSection').hidden = !companion;
+  if(companion) document.getElementById('wpCompanion').textContent = companion.title + (companion.detail ? ` · ${companion.detail}` : '');
+}
+function exerciseDisplayName(key){
+  const def = exerciseDef(key);
+  return def ? (state.lang==='es' ? def.es : def.en) : key;
+}
+// Under the exercise being changed: what it can be swapped for, or skipped (not the last one left --
+// that's "Skip this workout"); then, once picked, whether it's for this workout or every workout. A
+// move the user typed in themselves isn't part of the plan, so a change to it is always just this workout.
+function exerciseChooserHtml(ex, count){
+  const L = STR[state.lang];
+  const alts = ex.fromPlan || exerciseDef(ex.key) ? exerciseAlternatives(ex.key) : [];
+  const chips = alts.map(k=>`<div class="chip ${wp.choice===k?'sel':''}" data-alt="${escapeHtml(k)}">${escapeHtml(exerciseDisplayName(k))}</div>`).join('')
+    + (count>1 ? `<div class="chip ${wp.choice==='skip'?'sel':''}" data-alt="skip">${L.wpSkipExercise}</div>` : '');
+  const scope = wp.choice==null ? '' : ex.fromPlan
+    ? `<div class="st-label">${L.wpApplyTo}</div>
+       <div class="wp-scope">
+         <button class="btn btn-ghost" type="button" data-scope="one">${L.wpJustThis}</button>
+         <button class="btn btn-primary" type="button" data-scope="all">${L.wpEveryWorkout}</button>
+       </div>`
+    : `<div class="wp-scope"><button class="btn btn-primary" type="button" data-scope="one">${L.wpJustThis}</button></div>`;
+  return `<div class="wp-chooser">
+      <div class="st-label">${L.wpSwapFor}</div>
+      <div class="chip-row">${chips}</div>
+      ${scope}
+      <button class="btn-text" type="button" data-cancel-change style="margin-top:6px;">${L.wpCancel}</button>
+    </div>`;
+}
+// Saves an exercise list as this one workout's own (it stops following the plan's weekly picks).
+function saveWorkoutExercises(r, list){
+  const clean = list.map(ex=>{ const c = {...ex}; delete c.swappedFrom; return c; });
+  if(r.extra){
+    r.extra.session = {...r.extra.session, exercises: clean};
+    if(r.extra.supabaseId) cloudSetExtraWorkoutExercises(r.extra.supabaseId, clean);
+    return;
+  }
+  const date = parseDateKey(wp.dayKey);
+  const slot = getRawDaySlot(date);
+  const p = {...slot.p, exercises: clean};
+  writeDaySlot(date, {p, c: slot.c, completed: slot.completed, isCustom: true});
+  cloudSavePlannedSession(wp.dayKey, p);
+}
+function applyExerciseChange(idx, choice, scope){
+  const r = previewedWorkout();
+  const date = parseDateKey(wp.dayKey);
+  const exercises = exercisesForSession(r.session, date);
+  const ex = exercises[idx];
+  if(scope==='all'){
+    const original = ex.swappedFrom || ex.key;
+    const swaps = {...state.exerciseSwaps};
+    if(choice===original) delete swaps[original];
+    else swaps[original] = choice;
+    state.exerciseSwaps = swaps;
+    saveProfileToCloud();
+  } else {
+    const list = exercises.slice();
+    if(choice==='skip') list.splice(idx, 1);
+    else list[idx] = exerciseFromKey(choice, ex);
+    saveWorkoutExercises(r, list);
+  }
+  wp.editIdx = null; wp.choice = null;
+  refreshViews();
+  renderWorkoutPreview();
+  showToast(STR[state.lang].exerciseChangedToast);
+}
+document.getElementById('wpExerciseSection').addEventListener('click', (e)=>{
+  const change = e.target.closest('[data-change]');
+  if(change){
+    const idx = parseInt(change.getAttribute('data-change'),10);
+    wp.editIdx = wp.editIdx===idx ? null : idx;
+    wp.choice = null;
+    renderWorkoutPreview();
+    return;
+  }
+  const alt = e.target.closest('[data-alt]');
+  if(alt){ wp.choice = alt.getAttribute('data-alt'); renderWorkoutPreview(); return; }
+  const scope = e.target.closest('[data-scope]');
+  if(scope && wp.editIdx!=null && wp.choice!=null){ applyExerciseChange(wp.editIdx, wp.choice, scope.getAttribute('data-scope')); return; }
+  if(e.target.closest('[data-cancel-change]')){ wp.editIdx = null; wp.choice = null; renderWorkoutPreview(); return; }
+  const undo = e.target.closest('[data-undo-swap]');
+  if(undo){
+    const swaps = {...state.exerciseSwaps};
+    delete swaps[undo.getAttribute('data-undo-swap')];
+    state.exerciseSwaps = swaps;
+    saveProfileToCloud();
+    refreshViews();
+    renderWorkoutPreview();
+    showToast(STR[state.lang].exerciseChangedToast);
+  }
+});
+// Skipping a whole workout turns the day into a rest day the user chose (so the plan won't refill it;
+// Day Detail's "reset to suggested plan" brings it back), or removes an Additional Workout.
+document.getElementById('wpSkipWorkoutBtn').addEventListener('click', ()=>{
+  const r = previewedWorkout();
+  if(r && r.extra) deleteExtraWorkout(wp.dayKey, r.extra.id);
+  else if(r){
+    const rest = ses('rest','Rest Day','','Día de descanso','');
+    writeDaySlot(parseDateKey(wp.dayKey), {p: rest, c: null, completed: false, isCustom: true});
+    cloudSavePlannedSession(wp.dayKey, rest);
+  }
+  closeWorkoutPreview();
+  refreshViews();
+  showToast(STR[state.lang].workoutSkippedToast);
+});
+document.getElementById('wpDayOptionsBtn').addEventListener('click', ()=>{
+  const key = wp.dayKey;
+  closeWorkoutPreview();
+  if(document.getElementById('dayDetailOverlay').hidden) openDayDetail(key);
+});
+document.getElementById('closeWorkoutPreview').addEventListener('click', closeWorkoutPreview);
 function renderDayDetail(){
   if(!state.openDayKey) return;
   const L = STR[state.lang];
@@ -5036,7 +5413,7 @@ function renderDayDetail(){
     planRowEl.className = 'day-row-empty';
     planRowEl.innerHTML = L.statusRest;
   } else {
-    planRowEl.className = `day-row ${statusClassFor((status==='upcoming')?'':status, dd.isToday)}${dd.isFuture?'':' editable'}`;
+    planRowEl.className = `day-row ${statusClassFor((status==='upcoming')?'':status, dd.isToday)} editable`;
     planRowEl.innerHTML = planRowHtml(dd, status);
   }
 
@@ -5133,7 +5510,7 @@ function renderDayDetail(){
           : `<button class="btn-text" data-start-extra="${w.id}" type="button" style="white-space:nowrap;">${L.startWorkoutBtn}</button>`)
       : dd.isFuture ? ''
       : `<button class="btn-text" data-mark-extra-done="${w.id}" type="button" style="white-space:nowrap;${w.completed?'color:var(--ok-icon);':''}">${w.completed?ICONS.checkSm:''}${w.completed?L.recordDoneLabel:L.markDoneLabel}</button>`;
-    return `<div class="manual-entry${dd.isFuture?'':' editable'}" data-extra-id="${w.id}">
+    return `<div class="manual-entry editable" data-extra-id="${w.id}">
       <span class="ic">${TYPE_ICON[w.session.t]}</span>
       <div class="body">
         <div class="n">${escapeHtml(effL.title)}</div>
@@ -5144,16 +5521,16 @@ function renderDayDetail(){
       <button class="del" data-del-extra="${w.id}" type="button">${ICONS.trash}</button>
     </div>`;
   }).join('');
-  // Tapping the bubble body opens Log Performance for it (a future one can't be logged yet) -- the
-  // Start/Mark Done/trash buttons inside it stay their own dedicated actions.
-  if(!dd.isFuture){
-    extraWrap.querySelectorAll('[data-extra-id]').forEach(el=>{
-      el.addEventListener('click', (e)=>{
-        if(e.target.closest('[data-del-extra], [data-start-extra], [data-mark-extra-done]')) return;
-        openLogPerformanceFor({dayKey: state.openDayKey, kind:'extra', id: el.getAttribute('data-extra-id')});
-      });
+  // Tapping the bubble body opens Log Performance for it, or for a future one (which can't be logged
+  // yet) a preview of it -- the Start/Mark Done/trash buttons inside it stay their own dedicated actions.
+  extraWrap.querySelectorAll('[data-extra-id]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-del-extra], [data-start-extra], [data-mark-extra-done]')) return;
+      const target = {dayKey: state.openDayKey, kind:'extra', id: el.getAttribute('data-extra-id')};
+      if(dd.isFuture) openWorkoutPreview(state.openDayKey, {kind:'extra', id: target.id});
+      else openLogPerformanceFor(target);
     });
-  }
+  });
   extraWrap.querySelectorAll('[data-start-extra]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const id = btn.getAttribute('data-start-extra');
@@ -5945,6 +6322,7 @@ async function loadProfileFromCloud(){
   if(data.last_counted_date) state.lastCountedDate = data.last_counted_date;
   if(data.weekly_miles!=null) state.weeklyMiles = Number(data.weekly_miles);
   if(data.equipment) state.equipment = data.equipment;
+  if(data.exercise_swaps && typeof data.exercise_swaps==='object') state.exerciseSwaps = data.exercise_swaps;
   if(data.plan_start) state.planStart = data.plan_start;
   else if(!state.planStart){
     // An account from before plans were counted in weeks: its plan starts now.
@@ -5975,6 +6353,7 @@ async function saveProfileToCloud(){
       weekly_miles: state.weeklyMiles,
       equipment: state.equipment,
       plan_start: state.planStart,
+      exercise_swaps: state.exerciseSwaps,
       updated_at: new Date().toISOString(),
     };
     const { error } = await sb.from('profiles').update(payload).eq('id', state.userId);
@@ -5982,7 +6361,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }
@@ -6102,6 +6481,10 @@ async function cloudSetExtraWorkoutCompleted(supabaseId, completed){
   if(!state.userId || !supabaseId) return;
   try{ await sb.from('planned_workouts').update({completed}).eq('id', supabaseId); }catch(e){ /* best-effort */ }
 }
+async function cloudSetExtraWorkoutExercises(supabaseId, exercises){
+  if(!state.userId || !supabaseId) return;
+  try{ await sb.from('planned_workouts').update({exercises}).eq('id', supabaseId); }catch(e){ /* best-effort */ }
+}
 async function cloudSetExtraWorkoutDistance(supabaseId, distance){
   if(!state.userId || !supabaseId) return;
   try{ await sb.from('planned_workouts').update({actual_distance: distance}).eq('id', supabaseId); }catch(e){ /* best-effort */ }
@@ -6176,12 +6559,19 @@ async function cloudSavePlannedSession(dateStr, session){
   try{
     const row = await cloudGetOrCreateWorkoutLog(dateStr);
     if(!row) return;
-    await sb.from('workout_logs').update({
+    const fields = {
       planned_type: session.t, planned_title: session.en.title, planned_detail: session.en.detail || null,
       planned_interval_rounds: session.interval ? session.interval.rounds : null,
       planned_interval_work_sec: session.interval ? session.interval.workSec : null,
       planned_interval_rest_sec: session.interval ? session.interval.restSec : null,
-    }).eq('id', row.id);
+      planned_exercises: session.exercises || null, // the workout's own exercise list, when the user built or changed it
+    };
+    const { error } = await sb.from('workout_logs').update(fields).eq('id', row.id);
+    if(error){
+      // planned_exercises may not exist yet on this project's live database -- save the rest regardless.
+      delete fields.planned_exercises;
+      await sb.from('workout_logs').update(fields).eq('id', row.id);
+    }
   }catch(e){ /* best-effort */ }
 }
 async function cloudClearPlannedSession(dateStr){
@@ -6189,10 +6579,13 @@ async function cloudClearPlannedSession(dateStr){
   try{
     const row = await cloudGetOrCreateWorkoutLog(dateStr);
     if(!row) return;
-    await sb.from('workout_logs').update({
+    const fields = {
       planned_type:null, planned_title:null, planned_detail:null,
       planned_interval_rounds:null, planned_interval_work_sec:null, planned_interval_rest_sec:null,
-    }).eq('id', row.id);
+      planned_exercises:null,
+    };
+    const { error } = await sb.from('workout_logs').update(fields).eq('id', row.id);
+    if(error){ delete fields.planned_exercises; await sb.from('workout_logs').update(fields).eq('id', row.id); }
   }catch(e){ /* best-effort */ }
 }
 // Selects this user's rows, trying each column list in turn -- a column added by a newer migration can
@@ -6214,6 +6607,7 @@ async function loadWorkoutDataFromCloud(){
     const EXTRA_COLS = 'id, log_date, session_type, title, detail, exercises, interval_rounds, interval_work_sec, interval_rest_sec, completed';
     const [logsRes, extrasRes, targetsRes] = await Promise.all([
       selectOwnRows('workout_logs', [
+        `${LOG_COLS}, actual_run_distance, performance, planned_exercises, manual_entries(id, name, type, volume, notes, distance, duration_min, performance)`,
         `${LOG_COLS}, actual_run_distance, performance, manual_entries(id, name, type, volume, notes, distance, duration_min, performance)`,
         `${LOG_COLS}, actual_run_distance, manual_entries(id, name, type, volume, notes, distance, duration_min)`,
         `${LOG_COLS}, manual_entries(id, name, type, volume, notes)`,
@@ -6229,6 +6623,7 @@ async function loadWorkoutDataFromCloud(){
         const customSession = row.planned_type
           ? ses(row.planned_type, row.planned_title, row.planned_detail||'', row.planned_title, row.planned_detail||'')
           : null;
+        if(customSession && Array.isArray(row.planned_exercises) && row.planned_exercises.length) customSession.exercises = row.planned_exercises;
         if(customSession && row.planned_type==='interval' && row.planned_interval_rounds!=null){
           customSession.interval = {rounds: row.planned_interval_rounds, workSec: row.planned_interval_work_sec, restSec: row.planned_interval_rest_sec};
         }

@@ -12,7 +12,7 @@ const E = new Function(`
   const WEEK_MONDAY = new Date(2026,8,28), TODAY_DATE = WEEK_MONDAY;
   let state = {};
   ${src}
-  return {setState: s => { state = s; }, generatePlanWeek, planConfig, exercisesForSession, weeklyRunMiles, planWeekIndex,
+  return {setState: s => { state = s; }, generatePlanWeek, planConfig, exercisesForSession, exerciseAlternatives, weeklyRunMiles, planWeekIndex,
           LEVEL_PLAN, MOVEMENTS, EXERCISES, isRecoveryWeek};
 `)();
 
@@ -131,6 +131,32 @@ const setsRecovery = exercisesFor({days:[0,2,4], focus:4, level:'advanced'}, 'Pu
 check('Recovery week lifts a set less', setsRecovery===setsNormal-1, `${setsNormal} -> ${setsRecovery}`);
 const squatBw = exercisesFor({days:[0,2,4], focus:4, eq:'bodyweight'}, 'Lower Body Strength', new Date(2026,8,28))[0];
 check('A bodyweight move keeps its own reps (not the barbell lift\'s)', squatBw.reps!==8, `${squatBw.name} x${squatBw.reps}`);
+
+// ---- kettlebells and swap alternatives ----
+let kbOnly = true;
+for(let wkOffset=0; wkOffset<8; wkOffset++) for(const title of LIFTS){
+  exercisesFor({days:[0,2,4], focus:4, eq:'kettlebells'}, title, new Date(2026,8,30+wkOffset*7)).forEach(ex=>{
+    if(!Object.values(E.MOVEMENTS).some(m=>m.kettlebells.includes(ex.key) || m.bodyweight.includes(ex.key))) kbOnly = false;
+  });
+}
+check('Kettlebell plans only use kettlebell and bodyweight moves', kbOnly);
+check('Every movement has a kettlebell option list', Object.values(E.MOVEMENTS).every(m=>Array.isArray(m.kettlebells) && m.kettlebells.length));
+setup({days:[0,2,4], focus:4, eq:'bodyweight', level:'beginner'});
+const supermanAlts = E.exerciseAlternatives('Superman');
+check('Superman can be swapped for easier bodyweight moves', supermanAlts.length>=2 && supermanAlts.every(k=>E.EXERCISES[k].bodyweight), supermanAlts.join(', '));
+check('...never for a lift that needs equipment or is too technical', !supermanAlts.some(k=>E.EXERCISES[k].minLevel), supermanAlts.join(', '));
+setup({days:[0,2,4], focus:4, eq:'dumbbells'});
+const dbAlts = E.exerciseAlternatives('Dumbbell Row');
+check('A dumbbells-at-home user is only offered moves they can do', dbAlts.every(k=>Object.values(E.MOVEMENTS).some(m=>m.dumbbells.includes(k) || m.bodyweight.includes(k))), dbAlts.join(', '));
+setup({days:[0,2,4], focus:4, eq:'gym'});
+check('A gym user can also swap to kettlebell moves', E.exerciseAlternatives('Romanian Deadlift').some(k=>/Kettlebell/.test(k)));
+E.setState({trainingDays:[0,2,4], focusRatio:4, level:'intermediate', intensityIdx:1, equipment:'bodyweight', planStart:'2026-09-28', lang:'en', exerciseSwaps:{'Superman':'skip', 'Push-Up':'Incline Push-Up'}});
+let swapsApplied = true;
+for(let wkOffset=0; wkOffset<8; wkOffset++) for(const title of LIFTS){
+  const list = E.exercisesForSession({t:'strength', en:{title}}, new Date(2026,8,30+wkOffset*7));
+  if(list.some(ex=>ex.key==='Superman' || ex.key==='Push-Up')) swapsApplied = false;
+}
+check('Standing swaps and skips apply to every generated workout', swapsApplied);
 
 console.log('ALL DONE');
 process.exit(failures ? 1 : 0);

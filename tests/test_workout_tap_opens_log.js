@@ -100,7 +100,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('closeDayDetail').click();
   await wait(10);
 
-  // ---- A future workout can't be logged yet: tapping it does nothing ----
+  // ---- A future workout can't be logged yet: tapping it previews it ----
   doc.querySelector('.mo-cell[data-date="2026-09-19"]').click(); // Saturday, future
   await wait(20);
   doc.getElementById('addWorkoutBtn').click();
@@ -110,10 +110,11 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='run').click();
   doc.getElementById('saveManualEntry').click();
   await wait(20);
-  console.log('Future workout bubble is not marked tappable:', !doc.getElementById('dayDetailPlanRow').classList.contains('editable') ? 'OK' : 'FAIL');
   doc.getElementById('dayDetailPlanRow').click();
   await wait(20);
-  console.log('Tapping a future workout opens nothing:', !logPerfOpen() && !createOpen() ? 'OK' : 'FAIL');
+  console.log("Tapping a future workout previews it instead of logging it:",
+    !logPerfOpen() && !createOpen() && !doc.getElementById('workoutPreviewOverlay').hidden && doc.getElementById('wpTitle').textContent==='Weekend Ride' ? 'OK' : 'FAIL');
+  doc.getElementById('closeWorkoutPreview').click();
   doc.getElementById('closeDayDetail').click();
   await wait(10);
   console.log('Calendar shows it upcoming (yellow):', doc.querySelector('.mo-cell[data-date="2026-09-19"]').classList.contains('upcoming') ? 'OK' : 'FAIL');

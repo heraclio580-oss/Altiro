@@ -33,6 +33,7 @@ alter table profiles add column if not exists last_counted_date date; -- last da
 alter table profiles add column if not exists weekly_miles numeric;  -- about how many miles a week they run now -- where the plan's mileage starts
 alter table profiles add column if not exists equipment text;        -- 'gym' | 'dumbbells' | 'bodyweight' -- what the plan's lifts can use
 alter table profiles add column if not exists plan_start date;       -- Monday of the plan's week 0 (mileage builds week by week from here)
+alter table profiles add column if not exists exercise_swaps jsonb;   -- "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'}
 
 -- ---------------------------------------------------------------------------
 -- workout_logs: one row per (user, calendar day) -- mirrors state.dayLog[dateKey]
@@ -59,6 +60,7 @@ alter table workout_logs add column if not exists planned_interval_work_sec int;
 alter table workout_logs add column if not exists planned_interval_rest_sec int;
 alter table workout_logs add column if not exists actual_run_distance numeric; -- what was actually run, from Log Performance -- distinct from the plan's prescribed distance
 alter table workout_logs add column if not exists performance jsonb; -- what was logged for the day's own planned workout in Log Performance (sets/weights, distance/time, notes), shown again when it's reopened
+alter table workout_logs add column if not exists planned_exercises jsonb; -- the day's own workout's exercise list, when the user built or changed it
 
 -- manual_entries: free-text "+ Add a Workout" logs, children of a workout_log
 create table if not exists manual_entries (

@@ -38,15 +38,20 @@ for(const int of [0,1,2]) for(const mi of [0,8,25,45]) for(const n of [0,1,2,3,4
   const w = setup({days, focus, level, int, miles:mi})(n);
   const trained = w.filter(d=>d.p.t!=='rest').length;
   if(trained!==days.length){ sessionsOk = false; sessionsBad = `${days} f${focus} ${level}: ${trained}`; }
-  const runs = w.filter(d=>d.p.t==='run');
-  runs.forEach(d=>{ if(!/^\d+(\.5)?\s*mi\b/.test(d.p.en.detail) || !/^\d+(\.5)?\s*mi\b/.test(d.p.es.detail)){ detailOk = false; detailBad = d.p.en.detail; } });
+  // Timed sessions (a new runner's walks and run/walks) start with their minutes; every other run with its miles.
+  const timed = d => /^(Run\/Walk|Brisk Walk)$/.test(d.p.en.title);
+  const runs = w.filter(d=>d.p.t==='run' && !timed(d));
+  w.filter(d=>d.p.t==='run').forEach(d=>{
+    const lead = timed(d) ? /^\d+ min\b/ : /^\d+(\.5)?\s*mi\b/;
+    if(!lead.test(d.p.en.detail) || !lead.test(d.p.es.detail)){ detailOk = false; detailBad = d.p.en.detail; }
+  });
   const top = Math.max(0, ...runs.map(miles));
   const long = runs.find(d=>d.p.en.title==='Long Run');
   if(long && miles(long) < top){ longestOk = false; longestBad = `${days} ${level} n${n}`; }
   if(top > E.LEVEL_PLAN[level].longCap) capOk = false;
 }
 check('Every setup schedules exactly one session per training day', sessionsOk, sessionsBad);
-check('Every run\'s detail starts with its distance, in both languages', detailOk, detailBad);
+check('Every run\'s detail starts with its distance (or a timed session\'s minutes), in both languages', detailOk, detailBad);
 check('The long run is always the week\'s longest run', longestOk, longestBad);
 check('No run is ever longer than the level\'s longest run', capOk);
 
@@ -91,10 +96,23 @@ const oneRun = fewRuns.filter(d=>d.p.t==='run');
 check('Mostly lifting with 1 run day: that run is a normal length, not the whole week\'s miles', oneRun.length===1 && miles(oneRun[0]) <= 8, oneRun.map(d=>d.p.en.detail));
 
 // ---- beginners ----
-const newbie = setup({days:[1,3,5], focus:0, level:'beginner', miles:0});
-check('A brand-new runner starts on Run/Walk', newbie(0).filter(d=>d.p.t==='run').every(d=>d.p.en.title==='Run/Walk'));
-check('...with the running part growing week to week', /run 2 min/.test(newbie(0)[1].p.en.detail) && /run 5 min/.test(newbie(3)[1].p.en.detail), newbie(3)[1].p.en.detail);
-check('...and graduates to regular runs after 8 weeks', newbie(8).filter(d=>d.p.t==='run').every(d=>d.p.en.title!=='Run/Walk'));
+// New to running: timed walks and run/walks by feel, building step by step.
+const runsOf = w => w.filter(d=>d.p.t==='run');
+const newbie = setup({days:[1,3,5], focus:0, level:'beginner', miles:0}); // Moderate
+check('A brand-new runner starts on timed Run/Walk, not miles', runsOf(newbie(0)).every(d=>d.p.en.title==='Run/Walk' && /^\d+ min · run 1 min, walk 2 min/.test(d.p.en.detail)), runsOf(newbie(0)).map(d=>d.p.en.detail).join(' | '));
+check('...where the week\'s long day gets one more round', /× 7$/.test(newbie(0)[5].p.en.detail) && /× 6$/.test(newbie(0)[1].p.en.detail), newbie(0)[5].p.en.detail);
+check('...running a little longer each build week', /run 1 min, walk 1.5 min/.test(newbie(1)[1].p.en.detail) && /run 2 min, walk 2 min/.test(newbie(2)[1].p.en.detail), newbie(2)[1].p.en.detail);
+check('...repeating the step before in a recovery week', newbie(3)[1].p.en.detail===newbie(2)[1].p.en.detail, newbie(3)[1].p.en.detail);
+check('...with no miles planned for timed sessions', runsOf(newbie(0)).every(d=>!/\bmi\b/.test(d.p.en.detail)));
+check('...and running continuously once the steps are done (week 13)', runsOf(newbie(13)).every(d=>d.p.en.title==='Easy Run' || d.p.en.title==='Long Run'), runsOf(newbie(13)).map(d=>d.p.en.title).join(', '));
+check('...still with no hard sessions for a while after that', [13,14,15,16].every(n=> runsOf(newbie(n)).every(d=>!/Tempo|Interval|Fartlek|Hill/.test(d.p.en.title))));
+const newbieLight = setup({days:[1,3,5], focus:0, level:'beginner', int:0, miles:0});
+check('Light intensity: the first two weeks are brisk walks', [0,1].every(n=> runsOf(newbieLight(n)).every(d=>d.p.en.title==='Brisk Walk')), runsOf(newbieLight(0)).map(d=>d.p.en.title+' '+d.p.en.detail).join(', '));
+check('...20 minutes, then 25 (the long day 10 more)', newbieLight(0)[1].p.en.detail==='20 min' && newbieLight(1)[1].p.en.detail==='25 min' && newbieLight(0)[5].p.en.detail==='30 min',
+  [0,1].map(n=>newbieLight(n)[1].p.en.detail).join(', '));
+check('...then run/walk starts at the first step', /run 1 min, walk 2 min/.test(newbieLight(2)[1].p.en.detail), newbieLight(2)[1].p.en.detail);
+const newbieHigh = setup({days:[1,3,5], focus:0, level:'beginner', int:2, miles:0});
+check('High intensity: starts one step in', /run 1 min, walk 1.5 min/.test(newbieHigh(0)[1].p.en.detail), newbieHigh(0)[1].p.en.detail);
 const beginner = setup({days:[1,3,5], focus:0, level:'beginner', miles:8});
 check('A beginner gets no hard runs in their first 4 weeks', [0,1,2,3].every(n=> beginner(n).every(d=> !/Tempo|Interval|Fartlek|Hill/.test(d.p.en.title))));
 check('...and a gentle one (fartlek or hills) after that', beginner(4).some(d=>/Fartlek|Hill/.test(d.p.en.title)));

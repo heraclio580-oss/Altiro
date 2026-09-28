@@ -1083,7 +1083,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="bar-track"><div class="bar-fill" id="ovWorkoutsBar"></div></div>
       </div>
       <div class="ov-row">
-        <div class="ov-top"><span data-i18n="statDistance"></span><span id="ovDistanceVal"></span></div>
+        <div class="ov-top"><span id="ovDistanceLabel" data-i18n="statDistance"></span><span id="ovDistanceVal"></span></div>
         <div class="bar-track"><div class="bar-fill" id="ovDistanceBar"></div></div>
       </div>
     </div>
@@ -1833,6 +1833,10 @@ const STR = {
     pairedWithLabel: "Paired With",
     wpHowLabel: "How to run it",
     wpTargetPace: "Target pace",
+    effortLabel: "Effort",
+    effortEasy: "Easy",
+    effortEasyTalk: "Easy — you can still talk",
+    feelProgressMsg: "Nice work. Keep it easy — each week asks a little more, and it'll keep feeling easier.",
     wpExercisesLabel: "Exercises",
     wpChangeBtn: "Change",
     wpSwapFor: "Swap for",
@@ -2094,6 +2098,10 @@ const STR = {
     pairedWithLabel: "Combinado con",
     wpHowLabel: "Cómo correrla",
     wpTargetPace: "Ritmo objetivo",
+    effortLabel: "Esfuerzo",
+    effortEasy: "Suave",
+    effortEasyTalk: "Suave — puedes seguir hablando",
+    feelProgressMsg: "Buen trabajo. Mantenlo suave — cada semana pide un poco más, y se sentirá cada vez más fácil.",
     wpExercisesLabel: "Ejercicios",
     wpChangeBtn: "Cambiar",
     wpSwapFor: "Cambiar por",
@@ -2483,11 +2491,40 @@ function qualityRunCount(cfg, runDays, n){
   if(cfg.level==='beginner' && n>=4 && runDays>=3) q = 1;
   if(cfg.intensity===0) q -= 1;
   else if(cfg.intensity===2) q += 1;
-  if(isNewRunner(cfg) && n<8) q = 0;
+  // No hard sessions while on run/walk, nor for the first 4 weeks of running continuously after it.
+  if(isNewRunner(cfg) && newRunnerStage(cfg, n) < RUN_WALK_STEPS.length+4) q = 0;
   return Math.max(0, Math.min(q, 2, runDays-1));
 }
-// Someone who barely runs yet starts on run/walk intervals for their first 8 weeks.
+// Someone who barely runs yet ("New to running") starts with timed walking and run/walk sessions done
+// by feel -- no miles to hit, no paces anywhere -- building like a couch-to-5K plan: each step runs a
+// little longer and walks a little less. On Light intensity it opens with two weeks of brisk walks;
+// on High it skips the first step. Recovery weeks repeat the step before instead of moving up.
 function isNewRunner(cfg){ return (cfg.miles ?? LEVEL_PLAN[cfg.level].startMiles) < 3; }
+const RUN_WALK_STEPS = [
+  {run:1, walk:2, rounds:6}, {run:1, walk:1.5, rounds:8}, {run:2, walk:2, rounds:5}, {run:2, walk:1, rounds:6},
+  {run:3, walk:1.5, rounds:5}, {run:4, walk:1.5, rounds:4}, {run:5, walk:1, rounds:4}, {run:8, walk:1.5, rounds:3},
+  {run:10, walk:1, rounds:3}, {run:15, walk:1, rounds:2},
+];
+const BRISK_WALK_MINUTES = [20, 25]; // the walking weeks before running starts
+// Where a new runner is in that build: below 0 = still walking, past the last step = running continuously.
+function newRunnerStage(cfg, n){
+  const buildWeeks = n - Math.floor((n+1)/4);
+  return buildWeeks + ([-2, 0, 1][cfg.intensity] ?? 0);
+}
+function onRunWalkPlan(cfg, n){ return isNewRunner(cfg) && newRunnerStage(cfg, n) < RUN_WALK_STEPS.length; }
+// A timed walk or run/walk: 5 minutes' walking warm-up and cool-down around the intervals. The week's
+// long day gets one more round (or 10 more minutes of walking).
+function runWalkSessionFor(stage, longer){
+  if(stage<0){
+    const min = BRISK_WALK_MINUTES[Math.max(0, stage+BRISK_WALK_MINUTES.length)] + (longer ? 10 : 0);
+    return ses('run','Brisk Walk',`${min} min`,'Caminata rápida',`${min} min`);
+  }
+  const st = RUN_WALK_STEPS[stage];
+  const rounds = st.rounds + (longer ? 1 : 0);
+  const total = Math.round(10 + rounds*(st.run+st.walk));
+  return ses('run','Run/Walk',`${total} min · run ${st.run} min, walk ${st.walk} min × ${rounds}`,
+    'Correr/Caminar',`${total} min · corre ${st.run} min, camina ${st.walk} min × ${rounds}`);
+}
 
 // Splits a week's miles across its runs: the long run takes the biggest share (less of it the more
 // runs there are, and never past the level's longest run), hard sessions a little more than easy
@@ -2506,13 +2543,14 @@ function distributeRunMiles(total, roles, cfg){
 }
 function fmtMiles(mi){ return String(roundHalf(mi)); }
 // One run, in both languages. Every run's detail starts with its distance ("5 mi ...") -- weekly
-// planned-mile totals and the distance a completed run counts for both read it from there.
+// planned-mile totals and the distance a completed run counts for both read it from there (a timed
+// walk or run/walk -- see runWalkSessionFor -- starts with its minutes instead, and counts no miles
+// until the user logs some).
 function runSessionFor(kind, mi, extra){
   const d = fmtMiles(mi) + ' mi';
   switch(kind){
     case 'long': return ses('run','Long Run',d,'Carrera larga',d);
     case 'recovery': return ses('run','Recovery Jog',d,'Trote de recuperación',d);
-    case 'runwalk': return ses('run','Run/Walk',`${d} · run ${extra} min, walk 1 min`,'Correr/Caminar',`${d} · corre ${extra} min, camina 1 min`);
     case 'strides': return ses('run','Easy Run + Strides',`${d} · 4 x 20s strides`,'Carrera suave + progresiones',`${d} · 4 x 20s progresiones`);
     case 'tempo': return ses('run','Tempo Run',`${d} · ${fmtMiles(Math.max(1, mi*0.5))} mi at tempo pace`,'Carrera de tempo',`${d} · ${fmtMiles(Math.max(1, mi*0.5))} mi a ritmo de tempo`);
     case 'intervals': return ses('run','Interval Run',`${d} · ${extra.reps} x ${extra.meters}m`,'Carrera de intervalos',`${d} · ${extra.reps} x ${extra.meters}m`);
@@ -2652,7 +2690,7 @@ function generatePlanWeek(cfg, n){
     if(role==='quality') kind = recovery ? 'strides' : QUALITY_ROTATION[cfg.level][(n+qIdx++) % QUALITY_ROTATION[cfg.level].length];
     // A "long run" only earns the name once it's genuinely long.
     if(role==='long' && (mi<4 || runs===1 && mi<6)) kind = 'easy';
-    if(isNewRunner(cfg) && n<8 && (kind==='easy' || kind==='long')) kind = 'runwalk';
+    if(onRunWalkPlan(cfg, n)) kind = 'runwalk';
     const hard = role==='long' ? kind!=='easy' && kind!=='runwalk' : role==='quality' && !recovery;
     items.push({kind:'run', role, sub:kind, mi, hard, legs:true, sig:'run:'+role+':'+kind+':'+mi});
   });
@@ -2667,7 +2705,7 @@ function generatePlanWeek(cfg, n){
     const it = placed[i];
     if(it.kind==='run'){
       let p;
-      if(it.sub==='runwalk') p = runSessionFor('runwalk', it.mi, Math.min(8, 2+n));
+      if(it.sub==='runwalk') p = runWalkSessionFor(newRunnerStage(cfg, n), it.role==='long' && runs>1);
       else if(['tempo','intervals','fartlek','hills'].includes(it.sub)) p = qualityRunFor(it.sub, it.mi, n);
       else p = runSessionFor(it.sub, it.mi);
       const c = it.role==='long' ? COMPANION.foam()
@@ -3915,7 +3953,7 @@ function renderHome(){
   // so there's no single "Next Suggested" number to show here anymore -- the exercise list itself
   // (with its own sets x reps prescription) already represents the plan.
   const hasExerciseList = !!exercisesForSession(eff);
-  const suggestedTarget = (!hasExerciseList && (eff.t==='strength'||eff.t==='run')) ? getProgressionTarget(eff, state.intensityIdx) : null;
+  const suggestedTarget = (!hasExerciseList && !isPaceFree(eff) && (eff.t==='strength'||eff.t==='run')) ? getProgressionTarget(eff, state.intensityIdx) : null;
   const suggestedTargetStr = suggestedTarget ? (eff.t==='strength' ? `${suggestedTarget.weight} lb x ${suggestedTarget.reps}` : `${fmtPace(suggestedTarget.pace)}/mi`) : null;
 
   document.getElementById('homeGreeting').textContent = (eff.t==='rest' ? L.greetingRest : L.greetingActive).replace('{name}', state.userName.split(' ')[0]);
@@ -3933,10 +3971,14 @@ function renderHome(){
   const weekMileage = week.distance;
   const distanceGoal = week.plannedDistance>0 ? +week.plannedDistance.toFixed(2) : state.weeklyDistanceGoal;
   const wPct = Math.min(100, Math.round((state.doneCount/state.weeklyWorkoutGoal)*100));
-  const dPct = Math.min(100, Math.round((weekMileage/distanceGoal)*100));
+  let dPct = Math.min(100, Math.round((weekMileage/distanceGoal)*100));
   document.getElementById('ovWorkoutsVal').textContent = `${state.doneCount}/${state.weeklyWorkoutGoal}`;
   document.getElementById('ovWorkoutsBar').style.width = wPct+'%';
-  document.getElementById('ovDistanceVal').textContent = `${weekMileage.toFixed(1)}/${distanceGoal} mi`;
+  // A week of timed sessions (walks, run/walks) with no miles planned counts minutes instead.
+  const byTime = week.plannedDistance<=0 && week.plannedMinutes>0;
+  document.getElementById('ovDistanceLabel').textContent = byTime ? L.statTime : L.statDistance;
+  if(byTime) dPct = Math.min(100, Math.round((week.minutes/week.plannedMinutes)*100));
+  document.getElementById('ovDistanceVal').textContent = byTime ? `${Math.round(week.minutes)}/${week.plannedMinutes} min` : `${weekMileage.toFixed(1)}/${distanceGoal} mi`;
   document.getElementById('ovDistanceBar').style.width = dPct+'%';
 
   const todayKey = dateKey(TODAY_DATE);
@@ -3951,6 +3993,7 @@ function renderHome(){
       ${exerciseListHtml(eff).replace('r-exercise-list', 'r-exercise-list card')}
       <div class="session-tip"><p>${tip}</p></div>
       ${suggestedTargetStr ? `<div class="paired"><span>${L.statProgress}: <b>${suggestedTargetStr}</b></span></div>` : ''}
+      ${isPaceFree(eff) ? `<div class="paired"><span>${L.effortLabel}: <b>${L.effortEasyTalk}</b></span></div>` : ''}
       ${(eff.t!=='rest' && compL) ? `<div class="paired">${TYPE_ICON[comp.t]}<span>${L.pairedWithInline} <b>${compL.title}${compL.detail?', '+compL.detail:''}</b></span></div>` : ''}
     </div>
     ${eff.t!=='rest' ? `<button class="watch-demo-btn" id="watchDemoBtn" type="button">${ICONS.play}${L.watchDemoBtn}</button>` : ''}
@@ -4117,7 +4160,8 @@ function applyProgressionResult(session, logged){
     const met = logged.reps >= target.reps && logged.feel !== 'hard';
     if(met){ target.weight += 5; state._lastProgressed = true; }
   } else if(session.t==='run'){
-    const dist = logged.distance!=null ? logged.distance : (parseFloat(session.en.detail) || 3);
+    if(isPaceFree(session)) return; // goes by feel -- there's no pace target to move
+    const dist = logged.distance!=null ? logged.distance : (plannedMilesOf(session) || 3);
     const actualPace = dist>0 ? logged.time/dist : target.pace;
     const met = actualPace <= target.pace+0.05 && logged.feel !== 'hard';
     if(met){ target.pace = Math.max(4.0, +(target.pace-5/60).toFixed(3)); state._lastProgressed = true; }
@@ -4434,12 +4478,17 @@ function openLogPerformanceFor(logTarget, mode){
       : (logTarget.kind==='extra' && rec.actualDistance!=null) ? rec.actualDistance
       : (logTarget.kind==='primary' && log && log.actualRunDistance!=null) ? log.actualRunDistance
       : null;
-    const dist = knownDist!=null ? knownDist : (parseFloat(eff.en.detail) || 3);
+    // A timed session (walk, run/walk) has no planned distance -- the field starts empty (optional)
+    // and the time starts at its planned minutes; anything else starts from the plan's miles and a
+    // time at the target pace -- except for someone going by feel, who never gets a pace-based guess.
+    const planned = plannedMilesOf(eff);
+    const dist = knownDist!=null ? knownDist : (planned || (plannedMinutesOf(eff)!=null ? '' : 3));
     document.getElementById('logPerfDistanceInput').value = dist;
     const knownTime = (perf && perf.time!=null) ? perf.time
       : (mode==='revisit' && logTarget.kind==='entry' && rec.durationMin!=null) ? rec.durationMin
       : null;
-    writeHmsMinutes('logPerfTime', knownTime!=null ? knownTime : (target ? target.pace*dist : null));
+    const guessTime = plannedMinutesOf(eff) ?? (target && dist && !isPaceFree(eff) ? target.pace*dist : null);
+    writeHmsMinutes('logPerfTime', knownTime!=null ? knownTime : guessTime);
   }
   const notesInput = document.getElementById('logPerfNotesInput');
   notesInput.value = (perf && perf.notes) || (mode==='revisit' && logTarget.kind==='entry' ? (resolved.record.notes || '') : '');
@@ -4486,9 +4535,9 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     logged.reps = parseFloat(document.getElementById('logPerfRepsInput').value) || (target && target.reps) || 0;
   }
   if(eff.t==='run'){
-    const plannedDist = parseFloat(eff.en.detail) || 3;
+    const plannedDist = plannedMilesOf(eff) || (plannedMinutesOf(eff)!=null ? null : 3);
     logged.distance = parseFloat(document.getElementById('logPerfDistanceInput').value) || plannedDist;
-    logged.time = readHmsMinutes('logPerfTime') || ((target ? target.pace : 9.5)*logged.distance);
+    logged.time = readHmsMinutes('logPerfTime') || plannedMinutesOf(eff) || ((target ? target.pace : 9.5)*(logged.distance || 0)) || null;
   }
   logged.notes = document.getElementById('logPerfNotesInput').value.trim();
   document.getElementById('logPerfOverlay').hidden = true;
@@ -4546,7 +4595,7 @@ function recordTodayPrimary(eff, logged){
     // mileage totals -- falling back to the plan's prescribed distance only if none was entered.
     // Re-recording today replaces its previous distance contribution rather than stacking on top
     // of it, for the same reason as the streak/totalWorkouts guard above.
-    const mi = (logged && logged.distance!=null) ? logged.distance : (parseFloat(eff.en.detail)||0);
+    const mi = (logged && logged.distance!=null) ? logged.distance : plannedMilesOf(eff);
     const dayLog = ensureDayLog(dateKey(TODAY_DATE));
     const prevMi = dayLog.actualRunDistance!=null ? dayLog.actualRunDistance : 0;
     const delta = +(mi-prevMi).toFixed(1);
@@ -4571,7 +4620,7 @@ function startWorkout(logged){
         // Re-logging the same extra workout (e.g. correcting a mistaken distance) replaces its
         // previous contribution instead of stacking on top of it -- otherwise re-recording the
         // same workout twice silently inflates the running mileage totals a second time.
-        const mi = (logged && logged.distance!=null) ? logged.distance : (parseFloat(eff.en.detail)||0);
+        const mi = (logged && logged.distance!=null) ? logged.distance : plannedMilesOf(eff);
         const prevMi = w.actualDistance!=null ? w.actualDistance : 0;
         const delta = +(mi-prevMi).toFixed(1);
         w.actualDistance = mi;
@@ -5217,7 +5266,8 @@ const RUN_HOW = {
   'Fartlek Run': {en:"Easy running with one-minute fast bursts mixed in — jog easy between them until you're ready for the next.", es:"Carrera suave con ráfagas rápidas de un minuto — trota suave entre ellas hasta estar listo para la siguiente."},
   'Hill Repeats': {en:"Warm up easy, then run each 60 seconds uphill strong and walk or jog back down to recover.", es:"Calienta suave, corre cada subida de 60 segundos con fuerza y baja caminando o trotando para recuperar."},
   'Easy Run + Strides': {en:"An easy run, then four relaxed 20-second pickups to a fast (not all-out) pace, walking back between each.", es:"Una carrera suave y luego cuatro aceleraciones relajadas de 20 segundos a ritmo rápido (sin llegar al máximo), caminando entre cada una."},
-  'Run/Walk': {en:"Alternate running and walking as shown for the whole distance. Keep the running part easy — it gets longer each week.", es:"Alterna correr y caminar como se indica durante toda la distancia. Corre suave — la parte de correr se alarga cada semana."},
+  'Run/Walk': {en:"Walk 5 minutes to warm up, then alternate running and walking as shown, and walk 5 minutes to finish. Go by feel, not pace: run slowly enough that you could still talk, and walk briskly to recover. If a run feels too hard, slow down or walk — finishing matters more than speed. The running gets a little longer each week.", es:"Camina 5 minutos para calentar, alterna correr y caminar como se indica y termina caminando 5 minutos. Guíate por cómo te sientes, no por el ritmo: corre tan despacio que puedas hablar y camina a paso vivo para recuperar. Si te cuesta demasiado, baja el ritmo o camina — terminar importa más que la velocidad. La parte de correr se alarga un poco cada semana."},
+  'Brisk Walk': {en:"Walk at a purposeful pace — breathing a little harder, but still able to hold a conversation. There's no pace to hit; this builds the base your running will start from in a couple of weeks.", es:"Camina a paso decidido — respirando un poco más fuerte, pero pudiendo conversar. No hay ritmo que cumplir; esto crea la base desde la que empezarás a correr en un par de semanas."},
 };
 let wp = null; // {dayKey, target: {kind:'primary'} | {kind:'extra', id}, editIdx, choice, fromLog, changed}
 // fromLog: opened from Log Performance mid-workout -- only the exercises can be changed there (no
@@ -5277,8 +5327,9 @@ function renderWorkoutPreview(){
     const how = RUN_HOW[session.en.title];
     document.getElementById('wpRunHow').textContent = how ? how[state.lang] : '';
     document.getElementById('wpRunHow').hidden = !how;
-    const target = getProgressionTarget(session, state.intensityIdx);
-    document.getElementById('wpPace').textContent = target && target.pace ? `${L.wpTargetPace}: ${fmtPace(target.pace)}/mi` : '';
+    const target = isPaceFree(session) ? null : getProgressionTarget(session, state.intensityIdx);
+    document.getElementById('wpPace').textContent = isPaceFree(session) ? `${L.effortLabel}: ${L.effortEasyTalk}`
+      : target && target.pace ? `${L.wpTargetPace}: ${fmtPace(target.pace)}/mi` : '';
   }
 
   const exSection = document.getElementById('wpExerciseSection');
@@ -5878,6 +5929,23 @@ function deleteManualEntry(key, id){
 }
 
 /* ---------------- progress ---------------- */
+// The miles a run is planned for, from its detail ("4 mi", "5 mi · 6 x 800m", or a bare "5" the user
+// typed) -- 0 for a timed session ("28 min · run 1 min, walk 2 min × 6").
+function plannedMilesOf(session){
+  const detail = String((session && session.en && session.en.detail) || '');
+  const mi = milesInText(detail);
+  if(mi!=null) return mi;
+  if(/\bmin\b|\bsec\b|\d:\d/i.test(detail)) return 0;
+  return parseFloat(detail) || 0;
+}
+function plannedMinutesOf(session){
+  const m = String((session && session.en && session.en.detail) || '').match(/^(\d+)\s*min\b/);
+  return m ? Number(m[1]) : null;
+}
+// Someone new to running goes by feel: no pace targets, suggestions or pace-based progression anywhere.
+function isPaceFree(session){
+  return !!session && session.t==='run' && (isNewRunner(planConfig()) || /^(Run\/Walk|Brisk Walk)$/.test(session.en.title));
+}
 // Miles written in a workout's own text -- "4.5 miles", "16mile", "3.75mi", "4 mi", or "5k"/"10 km"
 // (converted). Null when there's no explicit distance.
 function milesInText(text){
@@ -5903,15 +5971,23 @@ function plannedRunMiles(session, actual){
 // even when the day's headline is really its first logged entry or first extra (see primaryLogTarget).
 function weekStats(offset){
   const dates = weekDates(offset);
-  let workouts = 0, distance = 0, plannedDistance = 0;
+  // minutes / plannedMinutes: the same for timed sessions (a new runner's walks and run/walks), which
+  // plan minutes rather than miles.
+  let workouts = 0, distance = 0, plannedDistance = 0, minutes = 0, plannedMinutes = 0;
   dates.forEach(date=>{
     const dd = getDayData(date);
     const done = dd.completed;
     if((dd.p.t!=='rest' && done) || dd.manualEntries.length>0) workouts++;
     const head = dd.p.t!=='rest' ? primaryLogTarget(dd) : null;
     if(dd.p.t==='run' && head.kind!=='extra'){
-      if(done) distance += dd.actualRunDistance!=null ? dd.actualRunDistance : (parseFloat(ST(dd.p).detail) || 0);
+      if(done) distance += dd.actualRunDistance!=null ? dd.actualRunDistance : plannedMilesOf(dd.p);
       plannedDistance += plannedRunMiles(dd.p, dd.actualRunDistance);
+      const pm = plannedMinutesOf(dd.p);
+      if(pm){
+        plannedMinutes += pm;
+        const perf = state.dayLog[dd.key] && state.dayLog[dd.key].performance;
+        if(done) minutes += (perf && perf.time) || pm;
+      }
     }
     // A run logged as an extra (secondary) workout for the day still counts toward weekly/lifetime
     // distance -- it's a real run regardless of which slot it was logged under.
@@ -5919,6 +5995,8 @@ function weekStats(offset){
       if(!w.session || w.session.t!=='run') return;
       if(w.completed && w.actualDistance!=null) distance += w.actualDistance;
       plannedDistance += plannedRunMiles(w.session, w.actualDistance);
+      const pm = plannedMinutesOf(w.session);
+      if(pm){ plannedMinutes += pm; if(w.completed) minutes += (w.performance && w.performance.time) || pm; }
     });
     // Same for a second logged run that isn't the day's headline.
     dd.manualEntries.forEach(e=>{
@@ -5927,7 +6005,7 @@ function weekStats(offset){
       plannedDistance += plannedRunMiles(ses(e.type, e.name, e.volume||'', e.name, e.volume||''), e.distance);
     });
   });
-  return {workouts, distance, plannedDistance};
+  return {workouts, distance, plannedDistance, minutes, plannedMinutes};
 }
 function weekBarLabel(offset){
   const L = STR[state.lang];
@@ -6194,7 +6272,17 @@ function getSummaryStats(session, intensityIdx, logged){
   if(session.t==='run'){
     // What was actually run (if it was logged) is what the summary/pace should reflect --
     // the planned distance is only a fallback for the pre-completion seeded preview.
-    const dist = (logged && logged.distance!=null) ? logged.distance : (parseFloat(session.en.detail) || 3);
+    if(isPaceFree(session)){
+      // Going by feel: what was done, never a pace or a pace target.
+      const mi = (logged && logged.distance!=null) ? logged.distance : plannedMilesOf(session);
+      const min = (logged && logged.time) || plannedMinutesOf(session);
+      const stats = [];
+      if(min) stats.push({l:L.statTime, v:fmtDurationClock(min)});
+      if(mi) stats.push({l:L.statDistance, v:mi.toFixed(1)+' mi'});
+      stats.push({l:L.effortLabel, v:L.effortEasy});
+      return stats;
+    }
+    const dist = (logged && logged.distance!=null) ? logged.distance : (plannedMilesOf(session) || 3);
     const totalMin = (logged && logged.time) ? logged.time : dist*tier.pace;
     const paceMin = dist>0 ? totalMin/dist : tier.pace;
     const paceStr = fmtPace(paceMin)+'/mi';
@@ -6295,6 +6383,10 @@ function renderSummary(){
     const msg = (state._lastProgressed ? L.progressionUpMsgExercises : L.progressionHoldMsgExercises)
       .replace('{count}', state._lastProgressedCount).replace('{total}', state._lastProgressedTotal);
     document.getElementById('summaryProgressMsg').textContent = msg;
+    progNoteEl.hidden = false;
+  } else if(isPaceFree(session) && logged){
+    reviewCardEl.hidden = true;
+    document.getElementById('summaryProgressMsg').textContent = L.feelProgressMsg;
     progNoteEl.hidden = false;
   } else if((session.t==='strength'||session.t==='run') && logged){
     reviewCardEl.hidden = true;

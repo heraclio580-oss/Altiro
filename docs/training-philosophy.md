@@ -1,0 +1,273 @@
+# Altiro Training Philosophy
+
+This document is the source of truth for how Altiro builds training plans. The plan generator
+(`www/index.html` → "plan engine") is built to follow it.
+
+**How to fill it in:**
+
+- Every section shows **what the app does today**, then asks for **your approach**.
+- Write under **✏️ Your approach** in plain language — bullet points, rough notes, "same as today" or
+  "never do this" are all fine. You don't need to know how it's coded.
+- Tick boxes where it helps (`[x]`), leave anything you're unsure about blank, and add sections if
+  something important is missing.
+- When a section changes, the plans change to match, with tests that check every generated plan follows it.
+
+---
+
+## 1. Core beliefs
+
+The few principles everything else should follow. If two rules ever conflict, these win.
+
+> **Today:** Build gradually, recover every 4th week, keep hard days apart, start people where they
+> actually are, and let beginners go by feel.
+
+✏️ **Your approach:**
+
+1.
+2.
+3.
+
+**Who is Altiro for?** (tick all that apply)
+
+- [ ] Brand-new exercisers
+- [ ] Runners who want to add strength
+- [ ] Lifters who want to add running
+- [ ] Race-focused runners (5K → marathon)
+- [ ] General health / longevity
+- [ ] Other:
+
+---
+
+## 2. Running
+
+### 2.1 Easy vs. hard balance
+
+> **Today:** 0–2 hard sessions a week by level (beginner 0 for the first 4 weeks then 1,
+> intermediate 1, advanced 2); intensity setting adds or removes one. Everything else is easy.
+
+✏️ **Your approach:** (e.g. "80/20 by time", "threshold-heavy", "never more than 2 quality days")
+
+- [ ] Polarized (mostly easy, some very hard, little in between)
+- [ ] 80/20 easy/hard
+- [ ] Threshold-focused
+- [ ] Other:
+
+Notes:
+
+### 2.2 Weekly volume and progression
+
+> **Today:** Start at the miles the runner does now. Increase each build week by +6% (beginner),
+> +8% (intermediate), +10% (advanced). Level off at 1.5× the starting mileage (or +10 mi), capped
+> at 25 / 40 / 60 mi a week by level.
+
+✏️ **Your approach:**
+
+- Build by: [ ] miles  [ ] time  [ ] either
+- Max weekly increase:
+- When should volume stop growing?
+- Notes:
+
+### 2.3 Recovery / deload weeks
+
+> **Today:** 3 build weeks, then 1 recovery week at 80% volume; hard sessions become easy runs
+> with strides; lifting drops a set.
+
+✏️ **Your approach:** (cycle length, how much to cut, what changes)
+
+### 2.4 The long run
+
+> **Today:** 30–55% of the week (less the more runs there are), capped at 10 / 16 / 22 mi by
+> level. On the weekend, Sunday preferred. Easy effort throughout.
+
+✏️ **Your approach:** (max % of week, max length/time, progression, any faster finishes?)
+
+### 2.5 Hard sessions — what, how often, how they progress
+
+> **Today:** rotated week to week —
+> beginner: fartlek, hills · intermediate: tempo, intervals, fartlek · advanced: tempo, intervals, hills.
+>
+> | Session | Today's structure |
+> |---|---|
+> | Tempo | warm-up, half the run at tempo (~1:15/mi faster than easy), cool-down |
+> | Intervals | warm-up, 4–12 × 400m / 800m / 1000m (~1:45/mi faster than easy), 200m jog recoveries, cool-down |
+> | Fartlek | warm-up, 6–12 × 1 min fast / 1–2 min easy, cool-down |
+> | Hills | warm-up, 4–10 × 60s uphill, walk/jog down, cool-down |
+> | Strides | easy run + 4 × 20s quick and relaxed |
+
+✏️ **Your approach:** (which sessions you use, favorite workouts, how they build over a block)
+
+| Session | Your structure | Who gets it | How it progresses |
+|---|---|---|---|
+|  |  |  |  |
+|  |  |  |  |
+|  |  |  |  |
+
+### 2.6 Paces and effort
+
+> **Today:** Paces are relative to the runner's easy pace (starts from their intensity setting,
+> then moves with logged runs). New runners get no paces at all — effort only.
+
+✏️ **Your approach:** [ ] pace  [ ] heart rate  [ ] effort (RPE)  [ ] a mix — explain:
+
+### 2.7 Brand-new runners
+
+> **Today:** Light intensity starts with 2 weeks of brisk walks (20, then 25 min), then run/walk:
+> run 1 / walk 2 × 6 → … → run 15 / walk 1 × 2, then continuous easy running. No hard sessions until
+> 4 weeks after that. All by feel.
+
+✏️ **Your approach:**
+
+---
+
+## 3. Weight training
+
+### 3.1 Weekly structure (splits)
+
+> **Today:**
+>
+> | Lifting days | Split |
+> |---|---|
+> | 1 | Full body |
+> | 2 | Full body A / B |
+> | 3 | Upper / Lower / Full (beginners: Full × 3) |
+> | 4 | Upper / Lower / Upper / Lower |
+> | 5 | Push / Pull / Legs / Upper / Lower |
+> | 6 | Push / Pull / Legs × 2 |
+
+✏️ **Your approach:**
+
+| Lifting days | Your split |
+|---|---|
+| 1 |  |
+| 2 |  |
+| 3 |  |
+| 4 |  |
+| 5–6 |  |
+
+### 3.2 Exercise selection
+
+> **Today:** Each workout is built from movement patterns (squat, hinge, lunge, horizontal/vertical
+> push & pull, arms, core, calves) with options for full gym, kettlebells, dumbbells at home, or
+> bodyweight only. Beginners don't get technical lifts (pull-ups, front squats, push press…).
+> Main lifts stay the same for a 4-week block; smaller lifts rotate weekly.
+
+✏️ **Your approach:** (must-have lifts, lifts you never program, how often to rotate)
+
+- Always include:
+- Never include:
+- Beginner-friendly swaps:
+
+### 3.3 Sets, reps and intensity
+
+> **Today:** 3–4 sets (beginner −1, advanced +1 on main lifts), a fixed rep target per lift
+> (6–15). No rep ranges, RPE/RIR, or %-of-max.
+
+✏️ **Your approach:**
+
+- [ ] Fixed reps (e.g. 3 × 8)
+- [ ] Rep ranges (e.g. 3 × 8–12, add weight at the top)
+- [ ] Effort-based (RPE / reps in reserve)
+- [ ] Percent of max
+- Main lifts:
+- Accessories:
+- Notes:
+
+### 3.4 Progression
+
+> **Today:** +5 lb when every rep is hit and the workout wasn't rated "hard". Users can also set
+> their own weight and reps per lift (My Lifts).
+
+✏️ **Your approach:** (how much to add, upper vs. lower body, what to do after a missed session or stall)
+
+### 3.5 Deloads for lifting
+
+> **Today:** In the recovery week (every 4th), each lift drops one set; weights stay the same.
+
+✏️ **Your approach:**
+
+---
+
+## 4. Running + lifting together
+
+This is where your philosophy really shows — how the two are combined.
+
+### 4.1 How the week is split
+
+> **Today:** The Running ↔ Weights slider splits training days 100 / 70 / 50 / 30 / 0% running.
+> The user's goal breaks a tie on an even split.
+
+✏️ **Your approach:**
+
+### 4.2 Scheduling rules
+
+> **Today:**
+> - Long run on the weekend (Sunday preferred)
+> - Hard days never back to back
+> - No heavy leg day right before a hard run
+> - Same muscle group never two days in a row
+
+✏️ **Your approach:** (tick or rewrite)
+
+- [ ] "Hard days hard, easy days easy" — pair heavy lifting with hard runs on the same day
+- [ ] Keep leg days at least ___ days from the long run
+- [ ] Lift before / after running on the same day:
+- [ ] Other rules:
+
+### 4.3 Balancing load as training builds
+
+> **Today:** Running volume and lifting are progressed separately.
+
+✏️ **Your approach:** (e.g. "cut lifting volume as mileage peaks", "maintenance lifting during race blocks")
+
+### 4.4 Mobility, core and extras
+
+> **Today:** Each day gets a short optional add-on — foam roll after the long run, hip activation
+> after hard runs, core or mobility after easy runs and lifts.
+
+✏️ **Your approach:**
+
+---
+
+## 5. Adjusting to the person
+
+> **Today:** Level (beginner / intermediate / advanced), intensity (light / moderate / high),
+> current weekly miles, equipment, and training days shape the plan. Feedback saying the plan is
+> "too hard" or "too easy" offers to adjust it.
+
+✏️ **Your approach:** (anything that should change the plan — age, injury history, missed workouts,
+how workouts felt, sleep/stress…)
+
+- After a missed workout:
+- After a workout rated "too hard":
+- Age / life-stage considerations:
+- Other:
+
+---
+
+## 6. Voice and coaching style
+
+How the app talks to people in workout descriptions, tips and messages.
+
+> **Today:** Short, friendly and practical ("Easy, conversational", "Finishing matters more than speed").
+
+✏️ **Your approach:** (tone, phrases you use, words to avoid)
+
+---
+
+## 7. Non-negotiables
+
+Anything every plan must always — or must never — do.
+
+✏️ **Always:**
+
+-
+
+✏️ **Never:**
+
+-
+
+---
+
+## 8. Anything else
+
+✏️

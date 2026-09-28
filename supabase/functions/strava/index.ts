@@ -15,6 +15,10 @@
 //   sync                          -> {connected, athlete_name, fetched}
 //   disconnect                    -> {connected:false}
 //
+// Deploy with "Verify JWT" turned OFF (Edge Functions -> strava -> Settings): the function checks the
+// caller itself through Supabase Auth, which understands the newer JWT signing keys that Supabase's
+// built-in gateway check rejects with a 401 before the function even runs.
+//
 // Secrets (Supabase dashboard -> Edge Functions -> Secrets): STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET.
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically.
 

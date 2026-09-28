@@ -1,6 +1,10 @@
 // Emails the team when a user sends feedback -- a Supabase Edge Function, called by the app (as the
 // signed-in user) right after it saves a row to the `feedback` table.
 //
+// Deploy with "Verify JWT" turned OFF (Edge Functions -> feedback-alert -> Settings): the function checks
+// the caller itself, through Supabase Auth, which understands the newer JWT signing keys that Supabase's
+// built-in gateway check rejects with a 401 before the function even runs.
+//
 // It only ever emails about a real feedback row, sent by the caller, that hasn't been emailed yet (it
 // stamps alerted_at), and at most ALERTS_PER_HOUR per user -- so it can't be used to spam the inbox.
 // Replying to the email replies to the user.
@@ -47,6 +51,8 @@ export type Deps = {
 };
 
 function json(body: unknown, status = 200) {
+  // Every outcome is also written to the function's Logs, so "why didn't I get an email?" has an answer there.
+  console.log(JSON.stringify({ status, ...(body as Record<string, unknown>) }));
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 }
 function esc(s: unknown) {
@@ -107,7 +113,7 @@ export function makeHandler(deps: Deps) {
     if (!apiKey || !to) return json({ error: "not_configured" }, 500);
     const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     const userId = jwt ? await deps.userIdFromJwt(jwt) : null;
-    if (!userId) return json({ error: "not_signed_in" }, 401);
+    if (!userId) return json({ error: "not_signed_in", detail: jwt ? "token rejected by Supabase Auth" : "no Authorization header" }, 401);
     let body: { id?: string } = {};
     try { body = await req.json(); } catch { /* empty */ }
     if (!body.id) return json({ error: "missing_id" }, 400);
@@ -145,7 +151,8 @@ if (!Deno.env.get("ALTIRO_FEEDBACK_TEST")) {
   });
   Deno.serve(makeHandler({
     async userIdFromJwt(jwt) {
-      const { data } = await admin.auth.getUser(jwt);
+      const { data, error } = await admin.auth.getUser(jwt);
+      if (error) console.log(JSON.stringify({ auth_error: error.message }));
       return data?.user?.id ?? null;
     },
     async getFeedback(id) {

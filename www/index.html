@@ -341,6 +341,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .session-tip p{font-size:12.5px;line-height:1.5;color:var(--text-2);margin:0;}
 .session-card .paired{margin-top:12px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-3);}
 .session-card .paired b{color:var(--text-2);font-weight:500;}
+.session-card .paired svg{width:14px;height:14px;flex-shrink:0;}
 
 /* ---------- week / plan / calendar rows ---------- */
 .day-row{margin:0 20px 10px;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:var(--r-lg);padding:12px 13px;}
@@ -517,6 +518,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .wp-scope{display:flex;gap:8px;margin-top:10px;}
 .wp-scope .btn{height:40px;font-size:11.5px;}
 .wp-companion{font-size:13px;color:var(--text-2);}
+#wpSkipWorkoutBtn[hidden],#wpDayOptionsBtn[hidden],#logPerfChangeExercisesBtn[hidden]{display:none;}
 .sheet-panel{width:100%;max-height:88%;background:var(--sheet-bg);border:1px solid var(--divider);border-bottom:none;border-radius:28px 28px 0 0;padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));overflow-y:auto;animation:sheetUp .26s ease both;}
 @keyframes sheetUp{from{transform:translateY(24px);opacity:0.4;}to{transform:none;opacity:1;}}
 @media (prefers-reduced-motion: reduce){.sheet-panel{animation:none;}}
@@ -1507,6 +1509,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="iconbtn" id="closeLogPerf"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       </div>
 
+      <button class="btn-text" id="logPerfChangeExercisesBtn" type="button" data-i18n="changeExercisesBtn" style="padding:0;margin-top:4px;" hidden></button>
       <div id="logPerfExercisesList"></div>
 
       <div class="sheet-section" id="logPerfWeightSection">
@@ -1747,6 +1750,7 @@ const ICONS = {
   calendar: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="14" height="13" rx="0.5"/><path d="M3 8h14M7 2v4M13 2v4"/></svg>',
   clock: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 5.5V10l3 2"/></svg>',
   pin: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 17.5S16 12 16 7.5a6 6 0 1 0-12 0C4 12 10 17.5 10 17.5z"/><circle cx="10" cy="7.5" r="2" stroke-width="1.4"/></svg>',
+  swap: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11l-3-3M16 13H5l3 3"/></svg>',
   gauge: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14a7 7 0 0 1 14 0"/><path d="M10 14l3-4"/><circle cx="10" cy="14" r="1" fill="currentColor" stroke="none"/></svg>'
 };
 const TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, interval: ICONS.interval, rest: ICONS.rest};
@@ -1841,6 +1845,7 @@ const STR = {
     wpSkippedEvery: "{name} is skipped in every workout",
     wpUndo: "Undo",
     wpSkipWorkout: "Skip this workout",
+    changeExercisesBtn: "Change exercises",
     wpDayOptions: "More options for this day",
     exerciseChangedToast: "Workout updated",
     workoutSkippedToast: "Workout skipped",
@@ -2101,6 +2106,7 @@ const STR = {
     wpSkippedEvery: "{name} se omite en todos los entrenamientos",
     wpUndo: "Deshacer",
     wpSkipWorkout: "Omitir este entrenamiento",
+    changeExercisesBtn: "Cambiar ejercicios",
     wpDayOptions: "Más opciones para este día",
     exerciseChangedToast: "Entrenamiento actualizado",
     workoutSkippedToast: "Entrenamiento omitido",
@@ -3948,7 +3954,8 @@ function renderHome(){
       ${(eff.t!=='rest' && compL) ? `<div class="paired">${TYPE_ICON[comp.t]}<span>${L.pairedWithInline} <b>${compL.title}${compL.detail?', '+compL.detail:''}</b></span></div>` : ''}
     </div>
     ${eff.t!=='rest' ? `<button class="watch-demo-btn" id="watchDemoBtn" type="button">${ICONS.play}${L.watchDemoBtn}</button>` : ''}
-    <button class="watch-demo-btn" id="addTodayWorkoutBtn" type="button">${ICONS.plus}${L.addWorkoutBtn}</button>
+    ${exercisesForSession(eff) && !isTodayDone() ? `<button class="watch-demo-btn" id="changeExercisesBtn" type="button">${ICONS.swap}${L.changeExercisesBtn}</button>` : ''}
+    <button class="watch-demo-btn" id="addTodayWorkoutBtn" type="button">${L.addWorkoutBtn}</button>
     ${eff.t!=='rest' ? `
     <div class="toggle-row" style="margin-top:14px;">
       <div>
@@ -3990,6 +3997,8 @@ function renderHome(){
   document.getElementById('sessionDescTap').addEventListener('click', ()=> openDayDetail(todayKey));
   const watchDemoBtn = document.getElementById('watchDemoBtn');
   if(watchDemoBtn) watchDemoBtn.addEventListener('click', ()=> openExerciseDetail(eff, 'home'));
+  const changeExercisesBtn = document.getElementById('changeExercisesBtn');
+  if(changeExercisesBtn) changeExercisesBtn.addEventListener('click', ()=> openWorkoutPreview(todayKey));
   document.getElementById('addTodayWorkoutBtn').addEventListener('click', ()=>{
     state.openDayKey = todayKey;
     openManualEntry();
@@ -4338,6 +4347,7 @@ function openLogPerformanceFor(logTarget, mode){
   state._pendingSession = eff;
   const perf = mode==='revisit' ? resolved.performance : null;
   const exercises = exercisesForSession(eff, parseDateKey(logTarget.dayKey));
+  document.getElementById('logPerfChangeExercisesBtn').hidden = !(exercises && mode==='record' && logTarget.kind!=='entry');
   const exercisesListEl = document.getElementById('logPerfExercisesList');
   logPerfSetChecks = {};
   logPerfSelectedKey = null;
@@ -5209,17 +5219,26 @@ const RUN_HOW = {
   'Easy Run + Strides': {en:"An easy run, then four relaxed 20-second pickups to a fast (not all-out) pace, walking back between each.", es:"Una carrera suave y luego cuatro aceleraciones relajadas de 20 segundos a ritmo rápido (sin llegar al máximo), caminando entre cada una."},
   'Run/Walk': {en:"Alternate running and walking as shown for the whole distance. Keep the running part easy — it gets longer each week.", es:"Alterna correr y caminar como se indica durante toda la distancia. Corre suave — la parte de correr se alarga cada semana."},
 };
-let wp = null; // {dayKey, target: {kind:'primary'} | {kind:'extra', id}, editIdx, choice}
-function openWorkoutPreview(dayKey, target){
-  wp = {dayKey, target: target || {kind:'primary'}, editIdx:null, choice:null};
+let wp = null; // {dayKey, target: {kind:'primary'} | {kind:'extra', id}, editIdx, choice, fromLog, changed}
+// fromLog: opened from Log Performance mid-workout -- only the exercises can be changed there (no
+// skipping the workout or jumping to the day's options), and Log Performance is rebuilt on close if
+// anything changed.
+function openWorkoutPreview(dayKey, target, opts){
+  wp = {dayKey, target: target || {kind:'primary'}, editIdx:null, choice:null, fromLog: !!(opts && opts.fromLog), changed:false};
   renderWorkoutPreview();
   if(!wp) return;
+  document.getElementById('wpSkipWorkoutBtn').hidden = wp.fromLog;
+  document.getElementById('wpDayOptionsBtn').hidden = wp.fromLog;
   document.getElementById('workoutPreviewOverlay').hidden = false;
   document.querySelector('#workoutPreviewOverlay .sheet-panel').scrollTop = 0;
 }
 function closeWorkoutPreview(){
   document.getElementById('workoutPreviewOverlay').hidden = true;
+  const was = wp;
   wp = null;
+  if(was && was.fromLog && was.changed && !document.getElementById('logPerfOverlay').hidden){
+    openLogPerformanceFor(state._logTarget, state._logMode);
+  }
 }
 // The workout being previewed: the day's own (which may really be its first Additional Workout, on a
 // day with nothing else planned), or one of its Additional Workouts.
@@ -5347,7 +5366,7 @@ function applyExerciseChange(idx, choice, scope){
     else list[idx] = exerciseFromKey(choice, ex);
     saveWorkoutExercises(r, list);
   }
-  wp.editIdx = null; wp.choice = null;
+  wp.editIdx = null; wp.choice = null; wp.changed = true;
   refreshViews();
   renderWorkoutPreview();
   showToast(STR[state.lang].exerciseChangedToast);
@@ -5372,6 +5391,7 @@ document.getElementById('wpExerciseSection').addEventListener('click', (e)=>{
     delete swaps[undo.getAttribute('data-undo-swap')];
     state.exerciseSwaps = swaps;
     saveProfileToCloud();
+    wp.changed = true;
     refreshViews();
     renderWorkoutPreview();
     showToast(STR[state.lang].exerciseChangedToast);
@@ -5397,6 +5417,10 @@ document.getElementById('wpDayOptionsBtn').addEventListener('click', ()=>{
   if(document.getElementById('dayDetailOverlay').hidden) openDayDetail(key);
 });
 document.getElementById('closeWorkoutPreview').addEventListener('click', closeWorkoutPreview);
+document.getElementById('logPerfChangeExercisesBtn').addEventListener('click', ()=>{
+  const t = state._logTarget;
+  if(t) openWorkoutPreview(t.dayKey, t.kind==='extra' ? {kind:'extra', id:t.id} : {kind:'primary'}, {fromLog:true});
+});
 function renderDayDetail(){
   if(!state.openDayKey) return;
   const L = STR[state.lang];

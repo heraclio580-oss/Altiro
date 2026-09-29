@@ -5145,7 +5145,7 @@ function applyProgressionResult(session, logged){
     // Structured strength session -- advance each exercise independently.
     let advanced = 0, total = 0;
     logged.exercises.forEach(res=>{
-      if(res.bodyweight) return;
+      if(res.bodyweight || res.own) return; // the user's own lifts are set from what they did (see saveLogPerf)
       total++;
       const target = state.progression[exerciseProgressionKey(res.key)];
       if(!target) return;
@@ -5159,8 +5159,10 @@ function applyProgressionResult(session, logged){
         }
         return;
       }
+      // Hit every rep (and it wasn't rated hard): 5 lb more than what was actually lifted -- or than the
+      // target, if that's higher.
       const met = res.reps >= target.reps && logged.feel !== 'hard';
-      if(met){ target.weight += 5; advanced++; saveExerciseTarget(res.key, target); }
+      if(met){ target.weight = Math.max(target.weight, res.weight||0) + 5; advanced++; saveExerciseTarget(res.key, target); }
     });
     state._lastProgressed = advanced>0;
     state._lastProgressedCount = advanced;
@@ -5180,6 +5182,23 @@ function applyProgressionResult(session, logged){
     const met = actualPace <= target.pace+0.05 && logged.feel !== 'hard';
     if(met){ target.pace = Math.max(4.0, +(target.pace-5/60).toFixed(3)); state._lastProgressed = true; }
   }
+}
+
+/* ---------------- last time ---------------- */
+// The sets a lift was last logged with ([{weight, reps}, ...]), from the most recent day on or before
+// `onOrBeforeKey` that has it -- the planned workout, an Additional Workout or a logged entry -- so a
+// week that repeats starts from what was actually done, not from a guess.
+function lastLoggedSets(exKey, onOrBeforeKey){
+  const keys = Object.keys(state.dayLog).filter(k=> !onOrBeforeKey || k<=onOrBeforeKey).sort().reverse();
+  for(const k of keys){
+    const log = state.dayLog[k];
+    const perfs = [log.performance, ...(log.extraWorkouts||[]).map(w=>w.performance), ...(log.manualEntries||[]).map(e=>e.performance)];
+    for(const perf of perfs){
+      const hit = perf && Array.isArray(perf.exercises) && perf.exercises.find(e=>e.key===exKey && Array.isArray(e.sets) && e.sets.length);
+      if(hit) return hit.sets;
+    }
+  }
+  return null;
 }
 
 /* ---------------- log performance sheet ---------------- */
@@ -5447,7 +5466,10 @@ function openLogPerformanceFor(logTarget, mode){
       const t = getExerciseTarget(ex, state.intensityIdx);
       const loggedEx = perf && perf.exercises ? perf.exercises.find(p=>p.key===ex.key) : null;
       const loggedSets = loggedEx && Array.isArray(loggedEx.sets) && loggedEx.sets.length ? loggedEx.sets : null;
-      const setCount = loggedSets ? loggedSets.length : ((loggedEx && loggedEx.setCount) || ex.sets || 1);
+      // Not logged yet: a lift the user added themselves starts from what they did last time -- every
+      // set's weight and reps. (The plan's own lifts start from their progressed target, or their pyramid.)
+      const lastSets = !loggedSets && !ex.fromPlan && !ex.pyramid && !ex.bodyweight ? lastLoggedSets(ex.key, dateKey(new Date(parseDateKey(logTarget.dayKey).getTime() - 86400000))) : null;
+      const setCount = loggedSets ? loggedSets.length : lastSets ? Math.min(LOG_PERF_MAX_SETS, lastSets.length) : ((loggedEx && loggedEx.setCount) || ex.sets || 1);
       // A workout that's already been logged reopens showing what was actually done -- every set
       // ticked, with its real weight/reps -- instead of the plan's suggested targets.
       logPerfSetChecks[ex.key] = new Array(setCount).fill(!!loggedEx);
@@ -5468,8 +5490,9 @@ function openLogPerformanceFor(logTarget, mode){
       const setRows = Array.from({length:setCount}, (_,i)=>{
         // A pyramid starts each set from its own step of the ladder.
         const step = !loggedSets && ex.pyramid ? ex.pyramid.steps[i] : null;
-        const w = loggedSets ? loggedSets[i].weight : step ? step.weight : (t?t.weight:'');
-        const r = loggedSets ? loggedSets[i].reps : step ? step.reps : (t?t.reps:ex.reps);
+        const prev = lastSets ? lastSets[i] : null;
+        const w = loggedSets ? loggedSets[i].weight : step ? step.weight : prev ? prev.weight : (t?t.weight:'');
+        const r = loggedSets ? loggedSets[i].reps : step ? step.reps : prev ? prev.reps : (t?t.reps:ex.reps);
         return `
         <div class="set-log-row" data-set-idx="${i}" data-stage="${step ? step.stage : ''}">
           <span class="set-log-num">${i+1}</span>
@@ -5593,7 +5616,10 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
       // app already uses for a single-target strength session -- since a pyramid/wave set means
       // there's no one number that represents the whole exercise otherwise.
       const top = sets.reduce((best,s)=> s.weight>best.weight ? s : best, sets[0]);
-      return {key, name: ex.name, weight: top.weight, reps: top.reps, sets, pyramid: !!ex.pyramid};
+      // A lift the user added themselves follows their own program: its numbers become exactly what
+      // they just did (shown on the workout, and where the next one starts), with no automatic jump.
+      if(!ex.fromPlan && top.weight>0) saveExerciseTarget(key, {...(state.progression[exerciseProgressionKey(key)]||{}), weight: top.weight, reps: top.reps});
+      return {key, name: ex.name, weight: top.weight, reps: top.reps, sets, pyramid: !!ex.pyramid, own: !ex.fromPlan};
     });
   } else if(eff.t==='strength'){
     logged.weight = parseFloat(document.getElementById('logPerfWeightInput').value) || (target && target.weight) || 0;

@@ -1041,6 +1041,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="st-label" data-i18n="weeklyMilesLabel"></div>
         <div class="chip-row" id="onbMilesChips"></div>
       </div>
+      <div class="sheet-section" id="onbMileSection">
+        <div class="st-label" data-i18n="mileTimeLabel"></div>
+        <div class="hms-row">
+          <input type="number" inputmode="numeric" min="3" max="25" class="text-input hms-box" id="onbMileMinInput" placeholder="8" aria-label="Minutes">
+          <span class="hms-sep">:</span>
+          <input type="number" inputmode="numeric" min="0" max="59" class="text-input hms-box" id="onbMileSecInput" placeholder="00" aria-label="Seconds">
+          <button class="btn-text" type="button" id="onbMileClearBtn" data-i18n="mileTimeClear" hidden></button>
+        </div>
+        <div class="footer-note" style="text-align:left;margin-top:8px;" id="onbMilePaces"></div>
+      </div>
       <div class="sheet-section" id="onbEquipSection">
         <div class="st-label" data-i18n="equipmentLabel"></div>
         <div class="chip-row" id="onbEquipChips"></div>
@@ -1439,6 +1449,17 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="st-label" data-i18n="weeklyMilesLabel"></div>
         <div class="chip-row" id="adjMilesChips"></div>
         <div class="footer-note" style="text-align:left;margin-top:8px;" data-i18n="weeklyMilesNote"></div>
+      </div>
+
+      <div class="sheet-section" id="adjMileSection">
+        <div class="st-label" data-i18n="mileTimeLabel"></div>
+        <div class="hms-row">
+          <input type="number" inputmode="numeric" min="3" max="25" class="text-input hms-box" id="adjMileMinInput" placeholder="8" aria-label="Minutes">
+          <span class="hms-sep">:</span>
+          <input type="number" inputmode="numeric" min="0" max="59" class="text-input hms-box" id="adjMileSecInput" placeholder="00" aria-label="Seconds">
+          <button class="btn-text" type="button" id="adjMileClearBtn" data-i18n="mileTimeClear" hidden></button>
+        </div>
+        <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjMilePaces"></div>
       </div>
 
       <div class="sheet-section" id="adjEquipSection">
@@ -2039,6 +2060,10 @@ const STR = {
     intensitySub: "Adjust this anytime from your plan.",
     weeklyMilesLabel: "Miles you run a week now",
     weeklyMilesNote: "Changing this restarts your mileage build-up from this week.",
+    mileTimeLabel: "Your mile time (optional)",
+    mileTimeClear: "Clear",
+    mileTimeHint: "Your fastest recent mile, or a hard all-out mile. Your paces are based on it.",
+    mileTimePaces: "Easy ~{easy}/mi · Tempo ~{tempo}/mi · Intervals ~{interval}/mi",
     equipmentLabel: "Equipment for strength workouts",
     strengthFocusLabel: "What do you most want to get stronger at?",
     pyramidRx: "Pyramid · {n} sets",
@@ -2377,6 +2402,10 @@ const STR = {
     intensitySub: "Ajusta esto cuando quieras desde tu plan.",
     weeklyMilesLabel: "Millas que corres por semana ahora",
     weeklyMilesNote: "Cambiar esto reinicia el aumento de millas desde esta semana.",
+    mileTimeLabel: "Tu tiempo en la milla (opcional)",
+    mileTimeClear: "Borrar",
+    mileTimeHint: "Tu milla más rápida reciente, o una milla a tope. Tus ritmos se basan en ella.",
+    mileTimePaces: "Suave ~{easy}/mi · Tempo ~{tempo}/mi · Series ~{interval}/mi",
     equipmentLabel: "Equipo para los entrenamientos de fuerza",
     strengthFocusLabel: "¿En qué quieres ganar más fuerza?",
     pyramidRx: "Pirámide · {n} series",
@@ -3597,6 +3626,7 @@ const defaultState = () => ({
   equipment:null, // 'gym' | 'dumbbells' | 'bodyweight' -- what the plan's lifts can use
   strengthFocus:'allround', // STRENGTH_FOCUS_OPTIONS key -- which lift each week's peak day builds
   planStart:null, // dateKey of the Monday the plan started (its week 0) -- see planWeekIndex()
+  mileTime:null, // seconds -- a recent mile time the run paces are based on (see mileTimePaces)
   jogBaseline:null, // a new runner's latest longest steady jog {min, week, held} -- see recordJogBaseline()
   exerciseSwaps:{}, // "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'} -- see applyStandingSwaps()
   week:null,
@@ -4292,6 +4322,7 @@ function renderBaselineChips(prefix, holder, onChange){
   document.getElementById(prefix+'EquipSection').hidden = holder.focusRatio<=0;
   renderChipRow(prefix+'MilesChips', MILES_OPTIONS, milesOptionKey(holder.weeklyMiles), k=>{ holder.weeklyMiles = Number(k); onChange(); });
   renderChipRow(prefix+'EquipChips', EQUIPMENT_OPTIONS, holder.equipment, k=>{ holder.equipment = k; onChange(); });
+  renderMileSection(prefix, holder);
   renderChipRow(prefix+'StrengthFocusChips', STRENGTH_FOCUS_OPTIONS, holder.strengthFocus || 'allround', k=>{ holder.strengthFocus = k; onChange(); });
 }
 // Continue needs an intensity, plus current miles if the plan has running and equipment if it has lifting.
@@ -4635,6 +4666,89 @@ function renderHome(){
   }
 }
 
+/* ---------------- paces from a mile time ---------------- */
+// A mile time sets the runner's paces through Jack Daniels' VDOT model: the mile's speed and length give
+// a fitness score (VDOT), and each kind of run is a share of it -- easy about 67%, tempo (threshold)
+// 88%, intervals 97.5%. For a 7:00 mile that's easy ~9:55, tempo ~8:05, intervals ~7:26. The easy-type
+// paces are capped a few minutes slower than the mile itself: the model runs slow for very slow miles.
+function vdotFromMile(sec){
+  const t = sec/60, v = 1609.344/t; // minutes, meters per minute
+  const vo2 = -4.6 + 0.182258*v + 0.000104*v*v;
+  const share = 0.8 + 0.1894393*Math.exp(-0.012778*t) + 0.2989558*Math.exp(-0.1932605*t);
+  return vo2/share;
+}
+function paceAtVdotShare(vdot, share){
+  const vo2 = vdot*share;
+  const v = (-0.182258 + Math.sqrt(0.182258*0.182258 + 4*0.000104*(vo2+4.6))) / (2*0.000104);
+  return 1609.344/v; // minutes per mile
+}
+const MILE_PACE_SHARE = {easy:[0.67, 3], long:[0.65, 3.25], recovery:[0.6, 3.5], tempo:[0.88], interval:[0.975]};
+function mileTimePaces(sec){
+  if(!(sec>0)) return null;
+  const vdot = vdotFromMile(sec), mile = sec/60, out = {};
+  Object.entries(MILE_PACE_SHARE).forEach(([k, [share, cap]])=>{
+    const p = paceAtVdotShare(vdot, share);
+    out[k] = +(cap ? Math.min(p, mile+cap) : p).toFixed(3);
+  });
+  return out;
+}
+// Which of those paces a run's own pace target starts from (its average pace for the whole run).
+const RUN_PACE_KIND = {'Long Run':'long', 'Recovery Jog':'recovery'};
+function mileSeedPace(session){
+  const paces = mileTimePaces(state.mileTime);
+  return paces ? paces[RUN_PACE_KIND[session.en.title] || 'easy'] : null;
+}
+// A new mile time moves every run pace target already set to the paces it gives.
+const RUN_TARGET_TITLES = ['Easy Run','Long Run','Recovery Jog','Easy Run + Strides','Tempo Run','Interval Run','Easy Jog','Fartlek Run','Hill Repeats'];
+function reseedRunPaces(){
+  if(!state.mileTime) return;
+  RUN_TARGET_TITLES.forEach(title=>{
+    const session = ses('run', title, '', title, '');
+    const target = {...(state.progression[progressionKey(session)] || {}), pace: mileSeedPace(session)};
+    state.progression[progressionKey(session)] = target;
+    cloudSaveProgressionTarget(session, target);
+  });
+}
+function readMileInputs(prefix){
+  const m = parseInt(document.getElementById(prefix+'MileMinInput').value, 10);
+  const sRaw = document.getElementById(prefix+'MileSecInput').value;
+  const sec = sRaw==='' ? 0 : parseInt(sRaw, 10);
+  if(isNaN(m) || isNaN(sec) || sec<0 || sec>59) return null;
+  const total = m*60 + sec;
+  return total>=180 && total<=1500 ? total : null; // 3:00 to 25:00
+}
+// The mile-time boxes and the paces they give (under them), for `holder` (state or the Adjust draft).
+function renderMileSection(prefix, holder){
+  const L = STR[state.lang];
+  const section = document.getElementById(prefix+'MileSection');
+  // Only for runners past "new to running" -- a new runner goes by feel, with no paces at all.
+  section.hidden = holder.focusRatio>=4 || !(holder.weeklyMiles>0);
+  const minEl = document.getElementById(prefix+'MileMinInput'), secEl = document.getElementById(prefix+'MileSecInput');
+  if(document.activeElement!==minEl && document.activeElement!==secEl){
+    minEl.value = holder.mileTime ? Math.floor(holder.mileTime/60) : '';
+    secEl.value = holder.mileTime ? String(holder.mileTime%60).padStart(2,'0') : '';
+  }
+  const paces = mileTimePaces(holder.mileTime);
+  document.getElementById(prefix+'MilePaces').textContent = paces
+    ? L.mileTimePaces.replace('{easy}', fmtPace(paces.easy)).replace('{tempo}', fmtPace(paces.tempo)).replace('{interval}', fmtPace(paces.interval))
+    : L.mileTimeHint;
+  document.getElementById(prefix+'MileClearBtn').hidden = !holder.mileTime;
+}
+function wireMileSection(prefix, holderFn){
+  const update = ()=>{ const h = holderFn(); if(!h) return; h.mileTime = readMileInputs(prefix); renderMileSection(prefix, h); };
+  document.getElementById(prefix+'MileMinInput').addEventListener('input', update);
+  document.getElementById(prefix+'MileSecInput').addEventListener('input', update);
+  document.getElementById(prefix+'MileClearBtn').addEventListener('click', ()=>{
+    const h = holderFn(); if(!h) return;
+    h.mileTime = null;
+    document.getElementById(prefix+'MileMinInput').value = '';
+    document.getElementById(prefix+'MileSecInput').value = '';
+    renderMileSection(prefix, h);
+  });
+}
+wireMileSection('onb', ()=>state);
+wireMileSection('adj', ()=>state.adjustDraft);
+
 /* ---------------- progression programming ---------------- */
 // A new runner's longest steady jog, from their latest walk/jog log -- what the next sessions' jog
 // blocks build from (see jogBlockFor). Week 1's jog isn't a block yet, so it never counts as held.
@@ -4652,7 +4766,7 @@ function seedProgressionTarget(session, intensityIdx){
     return {weight: [95,135,195][intensityIdx], reps: [12,10,5][intensityIdx]};
   }
   if(session.t==='run'){
-    return {pace: tier.pace};
+    return {pace: mileSeedPace(session) ?? tier.pace};
   }
   return null;
 }
@@ -6697,6 +6811,9 @@ function runBreakdown(session){
   const byFeel = isPaceFree(session);
   const easyPace = (getProgressionTarget(ses('run','Easy Run','','',''), state.intensityIdx) || {}).pace || INTENSITY[state.intensityIdx].pace;
   const pace = p => byFeel ? '' : ` · ~${fmtPace(p)}/mi`;
+  // From the mile time when there is one; otherwise relative to the easy pace.
+  const mp = mileTimePaces(state.mileTime);
+  const tempoPace = mp ? mp.tempo : easyPace-1.25, intervalPace = mp ? mp.interval : easyPace-1.75;
   // Warm-up and cool-down split whatever the main set leaves (at most 1.5 mi each, at least a quarter).
   const ends = mainMiles => {
     const rest = Math.max(0.5, total - mainMiles);
@@ -6709,12 +6826,12 @@ function runBreakdown(session){
   if(title==='Tempo Run' && (m = detail.match(/·\s*([\d.]+)\s*mi at tempo/))){
     const tempo = parseFloat(m[1]);
     const [w, c] = ends(tempo);
-    return [warm(w), {label:L.bdTempo, amount:fmtStepMiles(tempo), note:L.bdTempoEffort + pace(easyPace-1.25)}, cool(c)];
+    return [warm(w), {label:L.bdTempo, amount:fmtStepMiles(tempo), note:L.bdTempoEffort + pace(tempoPace)}, cool(c)];
   }
   if(title==='Interval Run' && (m = detail.match(/(\d+)\s*x\s*(\d+)m/))){
     const reps = +m[1], meters = +m[2];
     const [w, c] = ends(reps*(meters+200)/1609); // each rep plus a 200m recovery jog
-    return [warm(w), {label:L.bdRepeats, amount:`${reps} × ${meters}m`, note:L.bdFastEffort + pace(easyPace-1.75)},
+    return [warm(w), {label:L.bdRepeats, amount:`${reps} × ${meters}m`, note:L.bdFastEffort + pace(intervalPace)},
       {label:L.bdRecovery, amount:'200m', note:L.bdJogBetween}, cool(c)];
   }
   if(title==='Fartlek Run' && (m = detail.match(/(\d+)\s*x\s*1 min/))){
@@ -6991,7 +7108,7 @@ document.getElementById('signOutBtn').addEventListener('click', async ()=>{
 /* ---------------- adjust sheet ---------------- */
 function openAdjustSheet(){
   ensureWeek();
-  state.adjustDraft = {focusRatio: state.focusRatio, intensityIdx: state.intensityIdx, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, strengthFocus: state.strengthFocus};
+  state.adjustDraft = {focusRatio: state.focusRatio, intensityIdx: state.intensityIdx, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, strengthFocus: state.strengthFocus, mileTime: state.mileTime};
   document.getElementById('adjustOverlay').hidden = false;
   highlightNav('adjust');
   adjSlider.paint();
@@ -7041,6 +7158,8 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
   state.trainingDays = d.trainingDays.slice();
   state.equipment = d.equipment;
   state.strengthFocus = d.strengthFocus || 'allround';
+  const newMile = d.mileTime || null;
+  if(newMile!==state.mileTime){ state.mileTime = newMile; reseedRunPaces(); }
   // A new starting point restarts the mileage build-up from this week.
   if(d.weeklyMiles!==state.weeklyMiles) state.planStart = dateKey(WEEK_MONDAY);
   state.weeklyMiles = d.weeklyMiles;
@@ -7144,7 +7263,7 @@ function feedbackContext(){
   return {
     goal: state.goal, level: state.level, focus: state.focusRatio, intensity: (INTENSITY[state.intensityIdx]||{}).key,
     training_days: state.trainingDays, weekly_miles: state.weeklyMiles, equipment: state.equipment,
-    strength_focus: state.strengthFocus, plan_week: planWeekIndex(TODAY_DATE) + 1, lang: state.lang,
+    strength_focus: state.strengthFocus, mile_time: state.mileTime ? fmtPace(state.mileTime/60) : null, plan_week: planWeekIndex(TODAY_DATE) + 1, lang: state.lang,
     platform: (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : 'web',
     user_agent: navigator.userAgent,
   };
@@ -7399,6 +7518,7 @@ async function loadProfileFromCloud(){
   if(data.weekly_miles!=null) state.weeklyMiles = Number(data.weekly_miles);
   if(data.equipment) state.equipment = data.equipment;
   if(data.strength_focus) state.strengthFocus = data.strength_focus;
+  if(data.mile_time_sec) state.mileTime = Number(data.mile_time_sec);
   if(data.jog_baseline && typeof data.jog_baseline==='object') state.jogBaseline = data.jog_baseline;
   if(data.exercise_swaps && typeof data.exercise_swaps==='object') state.exerciseSwaps = data.exercise_swaps;
   if(data.plan_start) state.planStart = data.plan_start;
@@ -7434,6 +7554,7 @@ async function saveProfileToCloud(){
       exercise_swaps: state.exerciseSwaps,
       strength_focus: state.strengthFocus,
       jog_baseline: state.jogBaseline,
+      mile_time_sec: state.mileTime,
       updated_at: new Date().toISOString(),
     };
     const { error } = await sb.from('profiles').update(payload).eq('id', state.userId);
@@ -7441,7 +7562,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }

@@ -159,6 +159,11 @@ Notes:
 ✏️ **Your approach:** [ ] pace  [ ] heart rate  [ ] effort (RPE)  [ ] a mix — explain:
 
 - Easy runs are **zone 2**: relaxed, easy heart rate. ✅ The app's easy-run description says so.
+- ✅ **Mile time:** runners (not new runners) can enter a recent mile time in setup or Adjust. Paces come
+  from it through Jack Daniels' VDOT model: easy ~67% of VDOT, long run ~65%, recovery ~60%, tempo 88%,
+  intervals 97.5%. For a 7:00 mile that's easy 10:00, long 10:15, tempo 8:04, intervals 7:26. Easy-type
+  paces are capped at the mile plus 3 to 3.5 minutes, because the model runs too slow for slow miles.
+  A new mile time resets every run's pace target; without one, paces come from the intensity setting.
 
 ### 2.7 Brand-new runners
 

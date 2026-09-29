@@ -32,14 +32,15 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   console.log('Create Workout sheet opens:', doc.getElementById('manualEntryOverlay').hidden===false ? 'OK' : 'FAIL');
   console.log('"Mark as Completed" defaults OFF for a future date:', !doc.getElementById('createCompletedToggle').classList.contains('on') ? 'OK' : 'FAIL');
-  console.log('Strength is the default type, and target fields show since we\'re in planning mode:', !doc.getElementById('createWeightSection').hidden && !doc.getElementById('createRepsSection').hidden ? 'OK' : 'FAIL');
+  console.log('Strength is the default: a Description line, and three exercise rows ready to fill:', doc.getElementById('manualVolumeLabel').textContent==='Description' && doc.querySelectorAll('#createExercisesList .exercise-edit-row').length===3 ? 'OK' : 'FAIL');
+  console.log('...with no separate top-set weight or target-reps boxes:', !doc.getElementById('createWeightInput') && !doc.getElementById('createRepsInput') ? 'OK' : 'FAIL');
   console.log('Name label reads the planning phrasing, not the logging one:', doc.getElementById('createNameLabel').textContent === 'What are you planning?' ? 'OK' : `FAIL (${doc.getElementById('createNameLabel').textContent})`);
 
   doc.getElementById('manualNameInput').value = 'Saturday Leg Day';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
-  doc.getElementById('manualVolumeInput').value = '45 min';
-  doc.getElementById('createWeightInput').value = '185';
-  doc.getElementById('createRepsInput').value = '8';
+  doc.getElementById('manualVolumeInput').value = 'Legs, high intensity';
+  const legRow = doc.querySelector('#createExercisesList .exercise-edit-row');
+  legRow.querySelector('.ex-name').value = 'Back Squat'; legRow.querySelector('.ex-sets').value = '4'; legRow.querySelector('.ex-reps').value = '8';
   doc.getElementById('saveManualEntry').click();
   await wait(20);
 
@@ -79,11 +80,12 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   console.log('"Mark as Completed" defaults OFF for today too (planning, not logging, is the default everywhere):',
     !doc.getElementById('createCompletedToggle').classList.contains('on') ? 'OK' : 'FAIL');
-  console.log('Planning mode (the default) shows the target fields and the planning name label:', !doc.getElementById('createWeightSection').hidden && doc.getElementById('createNameLabel').textContent==='What are you planning?' ? 'OK' : 'FAIL');
+  console.log('Planning mode (the default) shows the exercise rows and the planning name label:', !doc.getElementById('createExercisesSection').hidden && doc.getElementById('createNameLabel').textContent==='What are you planning?' ? 'OK' : 'FAIL');
   doc.getElementById('manualNameInput').value = 'Custom Push Day';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
-  doc.getElementById('createWeightInput').value = '100';
-  doc.getElementById('createRepsInput').value = '10';
+  const pushRows = [...doc.querySelectorAll('#createExercisesList .exercise-edit-row')];
+  pushRows[0].querySelector('.ex-name').value = 'Push Press'; pushRows[0].querySelector('.ex-sets').value = '3'; pushRows[0].querySelector('.ex-reps').value = '10';
+  pushRows[1].querySelector('.ex-name').value = 'Dips'; pushRows[1].querySelector('.ex-reps').value = '12';
   doc.getElementById('saveManualEntry').click();
   await wait(20);
   doc.getElementById('closeDayDetail').click();
@@ -95,7 +97,10 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   doc.getElementById('recordBtn').click();
   await wait(950);
-  console.log('Log Performance sheet pre-seeds the weight/reps target set while planning:', doc.getElementById('logPerfWeightInput').value==='100' && doc.getElementById('logPerfRepsInput').value==='10' ? 'OK' : `FAIL (${doc.getElementById('logPerfWeightInput').value}/${doc.getElementById('logPerfRepsInput').value})`);
+  const pp = doc.querySelector('#logPerfExercisesList .exercise-log-row[data-exercise-key="Push Press"]');
+  const dips = doc.querySelector('#logPerfExercisesList .exercise-log-row[data-exercise-key="Dips"]');
+  console.log('Log Performance lists the planned exercises with their sets and reps:', pp && pp.querySelectorAll('.set-log-row').length===3 && pp.querySelector('[data-field="reps"]').value==='10' && dips && dips.querySelectorAll('.set-log-row').length===3 && dips.querySelector('[data-field="reps"]').value==='12' ? 'OK' : 'FAIL');
+  console.log('...blank rows were skipped:', doc.querySelectorAll('#logPerfExercisesList .exercise-log-row').length===2 ? 'OK' : `FAIL (${doc.querySelectorAll('#logPerfExercisesList .exercise-log-row').length})`);
   doc.getElementById('closeLogPerf').click();
   await wait(10);
 

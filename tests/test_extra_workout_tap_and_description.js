@@ -38,11 +38,10 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('manualNameInput').value = 'Chest';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='strength').click();
-  doc.getElementById('newExerciseName').value = 'Bench';
-  doc.getElementById('newExerciseSets').value = '3';
-  doc.getElementById('newExerciseReps').value = '10';
-  doc.getElementById('addExerciseBtn').click();
-  await wait(10);
+  const exRow = doc.querySelector('#createExercisesList .exercise-edit-row');
+  exRow.querySelector('.ex-name').value = 'Bench';
+  exRow.querySelector('.ex-sets').value = '3';
+  exRow.querySelector('.ex-reps').value = '10';
   doc.getElementById('saveManualEntry').click();
   await wait(20);
 

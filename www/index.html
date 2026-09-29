@@ -397,10 +397,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .exercise-build-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;font-size:12.5px;border-bottom:1px solid var(--divider-soft);}
 .exercise-build-row .eb-name{color:var(--text);}
 .exercise-build-row .eb-presc{font-family:var(--font-mono);color:var(--text-2);margin-left:6px;}
-.exercise-add-row{display:flex;gap:6px;margin-top:4px;}
-.exercise-add-row input{min-width:0;}
-.exercise-add-row #newExerciseName{flex:2;}
-.exercise-add-row #newExerciseSets,.exercise-add-row #newExerciseReps{flex:1;}
+.exercise-edit-head,.exercise-edit-row{display:grid;grid-template-columns:1fr 62px 62px 34px;gap:8px;align-items:center;}
+.exercise-edit-head{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;}
+.exercise-edit-row{margin-bottom:8px;}
+.exercise-edit-row input{min-width:0;height:52px;font-size:15px;}
+.exercise-edit-row .ex-sets,.exercise-edit-row .ex-reps{text-align:center;padding-left:4px;padding-right:4px;}
+.exercise-edit-row .del{width:34px;height:34px;border:none;background:none;color:var(--text-3);cursor:pointer;padding:0;}
+.exercise-edit-row .del svg{width:16px;height:16px;}
 .summary-exercises{margin:0 20px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 14px;}
 .summary-exercises .se-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;font-size:12.5px;}
 .summary-exercises .se-row+.se-row{border-top:1px solid var(--divider-soft);}
@@ -1638,7 +1641,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <div class="sheet-section" id="manualVolumeSection">
-        <div class="st-label" data-i18n="manualVolumeLabel"></div>
+        <div class="st-label" id="manualVolumeLabel" data-i18n="manualVolumeLabel"></div>
         <input type="text" class="text-input" id="manualVolumeInput">
       </div>
 
@@ -1687,16 +1690,6 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         </div>
       </div>
 
-      <div class="sheet-section" id="createWeightSection">
-        <div class="st-label" data-i18n="logPerfWeightLabel"></div>
-        <input type="number" inputmode="numeric" class="text-input" id="createWeightInput">
-      </div>
-
-      <div class="sheet-section" id="createRepsSection">
-        <div class="st-label" data-i18n="planTargetRepsLabel"></div>
-        <input type="number" inputmode="numeric" class="text-input" id="createRepsInput">
-      </div>
-
       <div class="sheet-section" id="createPaceSection">
         <div class="st-label" data-i18n="planPaceLabel"></div>
         <input type="text" class="text-input" id="createPaceInput" placeholder="9:30">
@@ -1714,12 +1707,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section" id="createExercisesSection">
         <div class="st-label" data-i18n="exercisesLabel"></div>
         <div class="footer-note" style="text-align:left;margin:2px 0 10px;" data-i18n="exercisesSub"></div>
+        <div class="exercise-edit-head"><span data-i18n="newExerciseNamePlaceholder"></span><span data-i18n="newExerciseSetsPlaceholder"></span><span data-i18n="newExerciseRepsPlaceholder"></span><span></span></div>
         <div id="createExercisesList"></div>
-        <div class="exercise-add-row">
-          <input type="text" class="text-input" id="newExerciseName">
-          <input type="number" inputmode="numeric" class="text-input" id="newExerciseSets">
-          <input type="number" inputmode="numeric" class="text-input" id="newExerciseReps">
-        </div>
         <button class="btn-text" id="addExerciseBtn" type="button" data-i18n="addExerciseBtn"></button>
       </div>
 
@@ -2333,6 +2322,10 @@ const STR = {
     typeInterval: "Interval",
     manualVolumeLabel: "Sets, reps, or duration",
     manualVolumePlaceholder: "e.g. 10 x 10, or 45 min",
+    descriptionLabel: "Description",
+    descriptionPlaceholder: "e.g. Back day, high intensity",
+    runVolumeLabel: "Distance or time",
+    runVolumePlaceholder: "e.g. 5 mi, or 45 min",
     activityStatsLabel: "Activity Stats",
     cardioDateLabel: "Date",
     cardioDurationLabel: "Duration (h:m:s)",
@@ -2354,7 +2347,7 @@ const STR = {
     intervalWorkLabel: "Round Duration (min:sec)",
     intervalRestLabel: "Rest Duration (min:sec)",
     exercisesLabel: "Exercises (optional)",
-    exercisesSub: "Add exercises to track sets and reps as you go — leave this empty for a simple entry.",
+    exercisesSub: "Fill in the exercises, sets and reps. Leave any row blank to skip it.",
     addExerciseBtn: "+ Add Exercise",
     newExerciseNamePlaceholder: "Exercise",
     newExerciseSetsPlaceholder: "Sets",
@@ -2700,6 +2693,10 @@ const STR = {
     typeInterval: "Intervalos",
     manualVolumeLabel: "Series, repeticiones o duración",
     manualVolumePlaceholder: "ej. 10 x 10, o 45 min",
+    descriptionLabel: "Descripción",
+    descriptionPlaceholder: "ej. Día de espalda, alta intensidad",
+    runVolumeLabel: "Distancia o tiempo",
+    runVolumePlaceholder: "ej. 5 mi, o 45 min",
     activityStatsLabel: "Estadísticas de la actividad",
     cardioDateLabel: "Fecha",
     cardioDurationLabel: "Duración (h:m:s)",
@@ -2721,7 +2718,7 @@ const STR = {
     intervalWorkLabel: "Duración de la ronda (min:seg)",
     intervalRestLabel: "Duración del descanso (min:seg)",
     exercisesLabel: "Ejercicios (opcional)",
-    exercisesSub: "Agrega ejercicios para hacer seguimiento de series y repeticiones — déjalo vacío para una entrada simple.",
+    exercisesSub: "Escribe los ejercicios, series y repeticiones. Deja en blanco las filas que no uses.",
     addExerciseBtn: "+ Agregar ejercicio",
     newExerciseNamePlaceholder: "Ejercicio",
     newExerciseSetsPlaceholder: "Series",
@@ -4442,9 +4439,9 @@ function applyLang(){
   if(!document.getElementById('manualEntryOverlay').hidden){
     const L2 = STR[state.lang];
     document.getElementById('manualNameInput').placeholder = L2.manualNamePlaceholder;
-    document.getElementById('manualVolumeInput').placeholder = L2.manualVolumePlaceholder;
     document.getElementById('manualNotesInput').placeholder = L2.manualNotesPlaceholder;
     renderManualTypeRow();
+    updateCreateTargetSections();
   }
 }
 
@@ -6975,9 +6972,6 @@ function updateCreateTargetSections(){
   // Once a real exercise breakdown is being built, the single session-level weight x reps target
   // is redundant (and its progression data would go unused, since a structured session progresses
   // each exercise on its own) -- so it only shows while the exercise list is still empty.
-  const hasExercises = manualEntryType==='strength' && manualExercises.length>0;
-  document.getElementById('createWeightSection').hidden = !(showTargets && manualEntryType==='strength') || hasExercises;
-  document.getElementById('createRepsSection').hidden = !(showTargets && manualEntryType==='strength') || hasExercises;
   document.getElementById('createPaceSection').hidden = !(showTargets && manualEntryType==='run');
   document.getElementById('createIntervalSection').hidden = manualEntryType!=='interval';
   // Available for any strength entry, planned or already-done -- separate from the single weight x
@@ -6993,6 +6987,11 @@ function updateCreateTargetSections(){
   const isCardioLog = manualEntryType==='run' && createMarkCompleted;
   document.getElementById('cardioLogSection').hidden = !isCardioLog;
   document.getElementById('manualVolumeSection').hidden = isCardioLog;
+  // A lifting or interval workout's top line is a description of it ("Back day, high intensity"); a
+  // run's is its distance or time (the plan reads a run's miles from it).
+  const L = STR[state.lang];
+  document.getElementById('manualVolumeLabel').textContent = manualEntryType==='run' ? L.runVolumeLabel : L.descriptionLabel;
+  document.getElementById('manualVolumeInput').placeholder = manualEntryType==='run' ? L.runVolumePlaceholder : L.descriptionPlaceholder;
 }
 // The Duration stat reads as separate hour/minute/second fields (so a logged run's real clock time,
 // e.g. a 1:23:45 half marathon, doesn't get crammed into a single "minutes" box), but everything
@@ -7007,34 +7006,49 @@ function updateManualPaceDisplay(){
 ['manualDurationHInput','manualDurationMInput','manualDurationSInput','manualDistanceInput'].forEach(id=>{
   document.getElementById(id).addEventListener('input', updateManualPaceDisplay);
 });
-function renderManualExercisesList(){
+// The exercise list is a set of rows to fill in directly -- exercise, sets, reps -- three ready to go,
+// with "+ Add Exercise" for more. Blank rows are skipped when saving.
+const EXERCISE_ROWS_READY = 3;
+function exerciseEditRowHtml(ex){
   const L = STR[state.lang];
-  const listEl = document.getElementById('createExercisesList');
-  listEl.innerHTML = manualExercises.map((ex,i)=>`<div class="exercise-build-row" data-idx="${i}">
-    <span><span class="eb-name">${escapeHtml(ex.name)}</span><span class="eb-presc">${fmtExercisePrescription(ex)}</span></span>
-    <button class="del" data-del-exercise="${i}" type="button">${ICONS.trash}</button>
-  </div>`).join('');
-  listEl.querySelectorAll('[data-del-exercise]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      manualExercises.splice(parseInt(btn.getAttribute('data-del-exercise'),10), 1);
-      renderManualExercisesList();
-    });
+  return `<div class="exercise-edit-row">
+    <input type="text" class="text-input ex-name" placeholder="${escapeHtml(L.newExerciseNamePlaceholder)}" value="${escapeHtml(ex ? ex.name : '')}">
+    <input type="number" inputmode="numeric" min="1" class="text-input ex-sets" placeholder="3" value="${ex ? ex.sets : ''}">
+    <input type="number" inputmode="numeric" min="1" class="text-input ex-reps" placeholder="10" value="${ex ? ex.reps : ''}">
+    <button class="del" type="button" aria-label="Remove">${ICONS.trash}</button>
+  </div>`;
+}
+function wireExerciseEditRow(row){
+  row.querySelector('.del').addEventListener('click', ()=>{
+    const list = document.getElementById('createExercisesList');
+    if(list.querySelectorAll('.exercise-edit-row').length>1) row.remove();
+    else row.querySelectorAll('input').forEach(i=>{ i.value = ''; });
   });
+}
+function renderManualExercisesList(){
+  const listEl = document.getElementById('createExercisesList');
+  const rows = manualExercises.length ? manualExercises : [];
+  listEl.innerHTML = rows.map(exerciseEditRowHtml).join('')
+    + Array.from({length: Math.max(0, EXERCISE_ROWS_READY - rows.length)}, ()=>exerciseEditRowHtml(null)).join('');
+  listEl.querySelectorAll('.exercise-edit-row').forEach(wireExerciseEditRow);
   updateCreateTargetSections();
 }
+// The filled-in rows, as the workout's exercises.
+function readManualExercises(){
+  return [...document.querySelectorAll('#createExercisesList .exercise-edit-row')].map(row=>{
+    const name = row.querySelector('.ex-name').value.trim();
+    if(!name) return null;
+    const sets = Math.max(1, parseInt(row.querySelector('.ex-sets').value,10) || 3);
+    const reps = Math.max(1, parseInt(row.querySelector('.ex-reps').value,10) || 10);
+    return {key:name, name, sets, reps};
+  }).filter(Boolean);
+}
 document.getElementById('addExerciseBtn').addEventListener('click', ()=>{
-  const nameInput = document.getElementById('newExerciseName');
-  const name = nameInput.value.trim();
-  if(!name){ nameInput.style.borderColor = 'var(--accent)'; nameInput.focus(); return; }
-  nameInput.style.borderColor = '';
-  const sets = Math.max(1, parseInt(document.getElementById('newExerciseSets').value,10) || 3);
-  const reps = Math.max(1, parseInt(document.getElementById('newExerciseReps').value,10) || 10);
-  manualExercises.push({key:name, name, sets, reps});
-  renderManualExercisesList();
-  document.getElementById('newExerciseName').value = '';
-  document.getElementById('newExerciseSets').value = '';
-  document.getElementById('newExerciseReps').value = '';
-  nameInput.focus();
+  const listEl = document.getElementById('createExercisesList');
+  listEl.insertAdjacentHTML('beforeend', exerciseEditRowHtml(null));
+  const row = listEl.lastElementChild;
+  wireExerciseEditRow(row);
+  row.querySelector('.ex-name').focus();
 });
 function updateCreateCompletedUI(){
   // Adding or revising a workout always starts as "just planned" -- the user has to explicitly
@@ -7062,8 +7076,6 @@ function openManualEntry(){
   document.getElementById('manualVolumeInput').placeholder = L.manualVolumePlaceholder;
   document.getElementById('manualNotesInput').value = '';
   document.getElementById('manualNotesInput').placeholder = L.manualNotesPlaceholder;
-  document.getElementById('createWeightInput').value = '';
-  document.getElementById('createRepsInput').value = '';
   document.getElementById('createPaceInput').value = '';
   document.getElementById('createRoundsInput').value = '6';
   document.getElementById('createWorkDurationInput').value = '';
@@ -7074,13 +7086,6 @@ function openManualEntry(){
   writeHmsMinutes('manualDuration', null);
   document.getElementById('manualDistanceInput').value = '';
   updateManualPaceDisplay();
-  document.getElementById('newExerciseName').value = '';
-  document.getElementById('newExerciseName').placeholder = L.newExerciseNamePlaceholder;
-  document.getElementById('newExerciseName').style.borderColor = '';
-  document.getElementById('newExerciseSets').value = '';
-  document.getElementById('newExerciseSets').placeholder = L.newExerciseSetsPlaceholder;
-  document.getElementById('newExerciseReps').value = '';
-  document.getElementById('newExerciseReps').placeholder = L.newExerciseRepsPlaceholder;
   manualExercises = [];
   renderManualExercisesList();
   renderManualTypeRow();
@@ -7093,11 +7098,6 @@ function closeManualEntry(){
 document.getElementById('addWorkoutBtn').addEventListener('click', openManualEntry);
 document.getElementById('closeManualEntry').addEventListener('click', closeManualEntry);
 function readCreateTarget(){
-  if(manualEntryType==='strength'){
-    const w = parseFloat(document.getElementById('createWeightInput').value);
-    const r = parseFloat(document.getElementById('createRepsInput').value);
-    return (w>0 && r>0) ? {weight:w, reps:r} : null;
-  }
   if(manualEntryType==='run'){
     const m = document.getElementById('createPaceInput').value.trim().match(/^(\d+):(\d\d)$/);
     return m ? {pace: parseInt(m[1],10) + parseInt(m[2],10)/60} : null;
@@ -7177,7 +7177,7 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     logCompletedEntry(targetDayKey, {name, type:manualEntryType, volume, notes, distance:cardioDistance, durationMin:cardioDuration});
     state.openDayKey = targetDayKey;
   } else {
-    planCustomWorkout(state.openDayKey, {title:name, type:manualEntryType, detail:volume, target:readCreateTarget(), exercises: manualEntryType==='strength' ? manualExercises.slice() : null});
+    planCustomWorkout(state.openDayKey, {title:name, type:manualEntryType, detail:volume, target:readCreateTarget(), exercises: manualEntryType==='strength' ? readManualExercises() : null});
   }
 
   closeManualEntry();

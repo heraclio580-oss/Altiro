@@ -47,8 +47,6 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='strength').click();
   if(doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
-  doc.getElementById('createWeightInput').value = '150';
-  doc.getElementById('createRepsInput').value = '8';
   doc.getElementById('saveManualEntry').click();
   await wait(20);
   console.log('Calendar ring is red/missed before logging:', doc.querySelector('.mo-cell[data-date="2026-09-14"]').classList.contains('missed') ? 'OK' : 'FAIL');
@@ -56,8 +54,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('dayDetailPlanRow').click();
   await wait(20);
   console.log("Tapping a past day's workout opens Log Performance:", logPerfOpen() && !createOpen() ? 'OK' : 'FAIL');
-  console.log('Starts from the planned target (150 x 8):', doc.getElementById('logPerfWeightInput').value==='150' && doc.getElementById('logPerfRepsInput').value==='8' ? 'OK' : `FAIL (${doc.getElementById('logPerfWeightInput').value} x ${doc.getElementById('logPerfRepsInput').value})`);
+  console.log('Shows weight and reps to fill in:', !doc.getElementById('logPerfWeightSection').hidden && !doc.getElementById('logPerfRepsSection').hidden ? 'OK' : 'FAIL');
   doc.getElementById('logPerfWeightInput').value = '155';
+  doc.getElementById('logPerfRepsInput').value = '8';
   doc.getElementById('logPerfNotesInput').value = 'Knee felt fine';
   doc.getElementById('saveLogPerf').click();
   await wait(30);

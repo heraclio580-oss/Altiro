@@ -4129,11 +4129,19 @@ function applyRepeatWeek(){
       const date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+i);
       const key = dateKey(date);
       if(key < todayKey) return; // never rewrite the past
-      if(day.own){
+      // A workout the user already put on that day is never replaced: the copy goes alongside it as an
+      // Additional Workout instead (unless it's the same workout), and it's never turned into a rest day.
+      const slot = getRawDaySlot(date);
+      const theirs = slot.isCustom && slot.p.t!=='rest' ? slot.p : null;
+      if(day.own && theirs){
+        const log = state.dayLog[key];
+        const extras = ((log && log.extraWorkouts) || []).map(w=>w.session && w.session.en.title);
+        if(theirs.en.title!==day.own.en.title && !extras.includes(day.own.en.title)) addExtraWorkout(key, cloneSession(day.own));
+      } else if(day.own){
         const session = cloneSession(day.own);
         writeDaySlot(date, {p: session, c: null, completed: false, isCustom: true});
         cloudSavePlannedSession(key, session);
-      } else if(d.others==='rest'){
+      } else if(d.others==='rest' && !theirs){
         const rest = ses('rest','Rest Day','','Día de descanso','');
         writeDaySlot(date, {p: rest, c: null, completed: false, isCustom: true});
         cloudSavePlannedSession(key, rest);

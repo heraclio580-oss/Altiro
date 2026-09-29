@@ -35,9 +35,12 @@ function click(el){ el.dispatchEvent(new window.Event('click', {bubbles:true, ca
   await addWorkout(1, 2, 'Pull Day', '60 min');
   await addWorkout(1, 4, 'Leg Day', '60 min');
   console.log('Their week is planned:', title(1,0)==='Push Day' && title(1,2)==='Pull Day' && title(1,4)==='Leg Day' ? 'OK' : `FAIL (${[0,2,4].map(d=>title(1,d))})`);
+  // The week after already has two workouts of the user's own, on days the copy will cover.
+  await addWorkout(2, 1, 'Swim', '30 min');        // Tue Sep 29 -- a day the copies make a rest day
+  await addWorkout(2, 2, 'Partner WOD', '45 min'); // Wed Sep 30 -- where Pull Day gets copied
   const btn = doc.querySelector('[data-repeat-week="1"]');
   console.log('The week now has a Repeat button:', btn && /Repeat/.test(btn.textContent) ? 'OK' : 'FAIL');
-  console.log('...weeks without their own workouts don\'t:', !doc.querySelector('[data-repeat-week="2"]') ? 'OK' : 'FAIL');
+  console.log('...weeks without their own workouts don\'t:', !doc.querySelector('[data-repeat-week="3"]') ? 'OK' : 'FAIL');
 
   click(btn);
   await wait(10);
@@ -69,7 +72,8 @@ function click(el){ el.dispatchEvent(new window.Event('click', {bubbles:true, ca
   go('week');
   await wait(20);
   const wk = w => [0,1,2,3,4,5,6].map(d=>title(w,d)).join(',');
-  console.log('The next weeks match it, rest days between:', [2,3].every(w=> wk(w)==='Push Day,Rest Day,Pull Day,Rest Day,Leg Day,Rest Day,Rest Day') ? 'OK' : `FAIL (${wk(2)} / ${wk(3)})`);
+  console.log('The next weeks match it, rest days between:', wk(3)==='Push Day,Rest Day,Pull Day,Rest Day,Leg Day,Rest Day,Rest Day' ? 'OK' : `FAIL (${wk(3)})`);
+  console.log('Workouts already there are never replaced or made rest days:', wk(2)==='Push Day,Swim,Partner WOD,Rest Day,Leg Day,Rest Day,Rest Day' ? 'OK' : `FAIL (${wk(2)})`);
 
   // Further out, on the calendar: Oct 19-25 copied, Oct 26 on is Altiro's plan again.
   go('calendar');
@@ -79,6 +83,15 @@ function click(el){ el.dispatchEvent(new window.Event('click', {bubbles:true, ca
   const cell = key => (doc.querySelector(`.mo-cell[data-date="${key}"]`)||{}).textContent || '';
   console.log('4th week out (Oct 19-25) is copied too:', /Leg/.test(cell('2026-10-23')) && /Push/.test(cell('2026-10-19')) ? 'OK' : `FAIL (${cell('2026-10-19')} / ${cell('2026-10-23')})`);
   console.log('...and the week after is left alone:', !/Leg|Push|Pull/.test(cell('2026-10-26')+cell('2026-10-28')+cell('2026-10-30')) ? 'OK' : `FAIL (${cell('2026-10-26')})`);
+  doc.getElementById('calPrev').click();
+  await wait(20);
+  doc.querySelector('.mo-cell[data-date="2026-09-30"]').click();
+  await wait(20);
+  const wed = doc.getElementById('dayDetailOverlay').textContent;
+  console.log('...the copy goes alongside instead:', /Partner WOD/.test(wed) && /Pull Day/.test(wed) ? 'OK' : `FAIL (${wed.replace(/\s+/g,' ').slice(0,160)})`);
+  doc.getElementById('closeDayDetail').click();
+  doc.getElementById('calNext').click();
+  await wait(20);
   doc.querySelector('.mo-cell[data-date="2026-10-05"]').click();
   await wait(20);
   const dd = doc.getElementById('dayDetailOverlay').textContent;

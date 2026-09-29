@@ -3,7 +3,8 @@ const path = require('path');
 const { JSDOM } = require('jsdom');
 
 // A runner can enter a recent mile time; their easy, long, tempo and interval paces are worked out
-// from it (Daniels' VDOT model) instead of from the intensity setting alone.
+// from it -- as shares of the mile's speed: tempo 85-90%, easy under 80% -- instead of from the intensity
+// setting alone.
 const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 const secs = str => { const m = String(str).match(/(\d+):(\d\d)/); return m ? +m[1]*60 + +m[2] : null; };
@@ -63,9 +64,14 @@ function makeBackend(){
   console.log('Adjust asks for a mile time (optional):', !section.hidden && /mile time \(optional\)/i.test(section.textContent) ? 'OK' : `FAIL (${section.hidden})`);
   type('adjMileMinInput', 7); type('adjMileSecInput', '00');
   const paces = doc.getElementById('adjMilePaces').textContent;
-  const [easy, tempo, interval] = (paces.match(/\d+:\d\d/g)||[]).map(secs);
-  console.log('A 7:00 mile shows easy ~10:00, tempo ~8:05, intervals ~7:26:',
-    easy>=585 && easy<=605 && tempo>=480 && tempo<=495 && interval>=440 && interval<=452 ? `OK (${paces})` : `FAIL (${paces})`);
+  const [easy, tempoFast, tempoSlow, interval] = (paces.match(/\d+:\d\d/g)||[]).map(secs);
+  console.log('A 7:00 mile: tempo at 85-90% of its speed (7:47-8:14), easy under 80% (9:20), intervals ~7:22:',
+    tempoFast===467 && tempoSlow===494 && easy===560 && easy > 420/0.8 && interval===442 ? `OK (${paces})` : `FAIL (${paces})`);
+  type('adjMileMinInput', 10);
+  const ten = (doc.getElementById('adjMilePaces').textContent.match(/\d+:\d\d/g)||[]).map(secs);
+  console.log('A 10:00 mile: tempo 11:07-11:46, easy 13:20 (slower than the 12:30 that 80% would be):',
+    ten[1]===667 && ten[2]===706 && ten[0]===800 ? `OK (${doc.getElementById('adjMilePaces').textContent})` : `FAIL (${doc.getElementById('adjMilePaces').textContent})`);
+  type('adjMileMinInput', 7);
   doc.querySelector('#adjMilesChips .chip[data-key="0"]').click();
   await wait(5);
   console.log('...not asked of someone new to running (they go by feel):', section.hidden ? 'OK' : 'FAIL');
@@ -92,8 +98,8 @@ function makeBackend(){
   await wait(10);
   const found = await previewFirst('Tempo Run') || await previewFirst('Interval Run');
   const main = [...doc.querySelectorAll('#wpBreakdown .wp-ex')][1];
-  const mainPace = main && secs(main.querySelector('.wp-ex-rx').textContent.split('~')[1]);
-  const wantMain = /Tempo/.test(doc.getElementById('wpTitle').textContent) ? tempo : interval;
+  const mainPace = main && secs(main.querySelector('.wp-ex-rx').textContent.split('·')[1]);
+  const wantMain = /Tempo/.test(doc.getElementById('wpTitle').textContent) ? tempoFast : interval;
   console.log('...and the fast part of a quality run too:', found && Math.abs(mainPace-wantMain)<=2 ? `OK (${doc.getElementById('wpTitle').textContent}: ${main.querySelector('.wp-ex-rx').textContent})` : `FAIL (${main && main.textContent} vs ${wantMain})`);
   doc.getElementById('closeWorkoutPreview').click();
   await wait(10);

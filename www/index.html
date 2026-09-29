@@ -2063,7 +2063,7 @@ const STR = {
     mileTimeLabel: "Your mile time (optional)",
     mileTimeClear: "Clear",
     mileTimeHint: "Your fastest recent mile, or a hard all-out mile. Your paces are based on it.",
-    mileTimePaces: "Easy ~{easy}/mi · Tempo ~{tempo}/mi · Intervals ~{interval}/mi",
+    mileTimePaces: "Easy ~{easy}/mi · Tempo {tempo}/mi · Intervals ~{interval}/mi",
     equipmentLabel: "Equipment for strength workouts",
     strengthFocusLabel: "What do you most want to get stronger at?",
     pyramidRx: "Pyramid · {n} sets",
@@ -2405,7 +2405,7 @@ const STR = {
     mileTimeLabel: "Tu tiempo en la milla (opcional)",
     mileTimeClear: "Borrar",
     mileTimeHint: "Tu milla más rápida reciente, o una milla a tope. Tus ritmos se basan en ella.",
-    mileTimePaces: "Suave ~{easy}/mi · Tempo ~{tempo}/mi · Series ~{interval}/mi",
+    mileTimePaces: "Suave ~{easy}/mi · Tempo {tempo}/mi · Series ~{interval}/mi",
     equipmentLabel: "Equipo para los entrenamientos de fuerza",
     strengthFocusLabel: "¿En qué quieres ganar más fuerza?",
     pyramidRx: "Pirámide · {n} series",
@@ -4667,29 +4667,14 @@ function renderHome(){
 }
 
 /* ---------------- paces from a mile time ---------------- */
-// A mile time sets the runner's paces through Jack Daniels' VDOT model: the mile's speed and length give
-// a fitness score (VDOT), and each kind of run is a share of it -- easy about 67%, tempo (threshold)
-// 88%, intervals 97.5%. For a 7:00 mile that's easy ~9:55, tempo ~8:05, intervals ~7:26. The easy-type
-// paces are capped a few minutes slower than the mile itself: the model runs slow for very slow miles.
-function vdotFromMile(sec){
-  const t = sec/60, v = 1609.344/t; // minutes, meters per minute
-  const vo2 = -4.6 + 0.182258*v + 0.000104*v*v;
-  const share = 0.8 + 0.1894393*Math.exp(-0.012778*t) + 0.2989558*Math.exp(-0.1932605*t);
-  return vo2/share;
-}
-function paceAtVdotShare(vdot, share){
-  const vo2 = vdot*share;
-  const v = (-0.182258 + Math.sqrt(0.182258*0.182258 + 4*0.000104*(vo2+4.6))) / (2*0.000104);
-  return 1609.344/v; // minutes per mile
-}
-const MILE_PACE_SHARE = {easy:[0.67, 3], long:[0.65, 3.25], recovery:[0.6, 3.5], tempo:[0.88], interval:[0.975]};
+// A best mile time is the marker every pace is set from, as a share of the mile's speed: tempo runs at
+// 85-90% of it, easy running below 80% (75%), the long run and recovery runs a little easier still, and
+// interval reps near it (95%). A 10:00 mile gives tempo 11:07-11:46, easy 13:20, intervals 10:32.
+const MILE_PACE_SHARE = {easy:0.75, long:0.72, recovery:0.68, tempo:0.875, tempoFast:0.9, tempoSlow:0.85, interval:0.95};
 function mileTimePaces(sec){
   if(!(sec>0)) return null;
-  const vdot = vdotFromMile(sec), mile = sec/60, out = {};
-  Object.entries(MILE_PACE_SHARE).forEach(([k, [share, cap]])=>{
-    const p = paceAtVdotShare(vdot, share);
-    out[k] = +(cap ? Math.min(p, mile+cap) : p).toFixed(3);
-  });
+  const mile = sec/60, out = {};
+  Object.entries(MILE_PACE_SHARE).forEach(([k, share])=>{ out[k] = +(mile/share).toFixed(3); });
   return out;
 }
 // Which of those paces a run's own pace target starts from (its average pace for the whole run).
@@ -4730,7 +4715,7 @@ function renderMileSection(prefix, holder){
   }
   const paces = mileTimePaces(holder.mileTime);
   document.getElementById(prefix+'MilePaces').textContent = paces
-    ? L.mileTimePaces.replace('{easy}', fmtPace(paces.easy)).replace('{tempo}', fmtPace(paces.tempo)).replace('{interval}', fmtPace(paces.interval))
+    ? L.mileTimePaces.replace('{easy}', fmtPace(paces.easy)).replace('{tempo}', `${fmtPace(paces.tempoFast)}–${fmtPace(paces.tempoSlow)}`).replace('{interval}', fmtPace(paces.interval))
     : L.mileTimeHint;
   document.getElementById(prefix+'MileClearBtn').hidden = !holder.mileTime;
 }
@@ -6811,9 +6796,10 @@ function runBreakdown(session){
   const byFeel = isPaceFree(session);
   const easyPace = (getProgressionTarget(ses('run','Easy Run','','',''), state.intensityIdx) || {}).pace || INTENSITY[state.intensityIdx].pace;
   const pace = p => byFeel ? '' : ` · ~${fmtPace(p)}/mi`;
-  // From the mile time when there is one; otherwise relative to the easy pace.
+  // From the mile time when there is one (tempo as its 85-90% range); otherwise relative to the easy pace.
   const mp = mileTimePaces(state.mileTime);
-  const tempoPace = mp ? mp.tempo : easyPace-1.25, intervalPace = mp ? mp.interval : easyPace-1.75;
+  const intervalPace = mp ? mp.interval : easyPace-1.75;
+  const tempoText = byFeel ? '' : mp ? ` · ${fmtPace(mp.tempoFast)}–${fmtPace(mp.tempoSlow)}/mi` : pace(easyPace-1.25);
   // Warm-up and cool-down split whatever the main set leaves (at most 1.5 mi each, at least a quarter).
   const ends = mainMiles => {
     const rest = Math.max(0.5, total - mainMiles);
@@ -6826,7 +6812,7 @@ function runBreakdown(session){
   if(title==='Tempo Run' && (m = detail.match(/·\s*([\d.]+)\s*mi at tempo/))){
     const tempo = parseFloat(m[1]);
     const [w, c] = ends(tempo);
-    return [warm(w), {label:L.bdTempo, amount:fmtStepMiles(tempo), note:L.bdTempoEffort + pace(tempoPace)}, cool(c)];
+    return [warm(w), {label:L.bdTempo, amount:fmtStepMiles(tempo), note:L.bdTempoEffort + tempoText}, cool(c)];
   }
   if(title==='Interval Run' && (m = detail.match(/(\d+)\s*x\s*(\d+)m/))){
     const reps = +m[1], meters = +m[2];

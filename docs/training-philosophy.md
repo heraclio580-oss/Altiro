@@ -70,6 +70,17 @@ Example: an experienced runner, 4 days a week:
 Days can move around to suit the user; the shape stays: one fast day early, easy in the middle, long
 run at the weekend, easy the day after.
 
+**The building block:** one fast session (tempo or intervals) + two easy runs (the first one a bit
+longer) + the long run. A real week:
+
+| Run | Miles | Share of the week |
+|---|---|---|
+| Tempo | 4.5 | ~15% |
+| Longer easy | 6.5 | ~21% |
+| Long run | 16 | ~52% |
+| Easy recovery (Sunday) | 3.5 | ~11% |
+| **Total** | **30.5** | |
+
 - [ ] Polarized (mostly easy, some very hard, little in between)
 - [ ] 80/20 easy/hard
 - [ ] Threshold-focused

@@ -455,6 +455,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .cal-weekday-row{display:grid;grid-template-columns:repeat(7,1fr);padding:16px 14px 6px;}
 .cal-weekday-row span{text-align:center;font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.06em;color:var(--text-3);text-transform:uppercase;}
 .mo-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:0 14px 14px;}
+#calendarViewPane{overflow-x:clip;touch-action:pan-y;} /* horizontal swipes change the month (see the calendar swipe) */
 .mo-cell{min-height:74px;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;padding:7px 2px 6px;border-radius:var(--r-md);background:var(--card);border:1px solid var(--border);cursor:pointer;}
 .mo-cell .mo-desc{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;gap:1px;text-align:center;min-width:0;}
 .mo-cell .mo-desc-t{font-size:9px;line-height:1.15;color:var(--text);font-weight:500;width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere;}
@@ -6379,6 +6380,53 @@ document.getElementById('calPrev').addEventListener('click', ()=>{
 document.getElementById('calNext').addEventListener('click', ()=>{
   if(state.calMonthOffset<CAL_MAX_OFFSET){ state.calMonthOffset++; renderCalendar(); }
 });
+// Swiping the month left or right moves to the next or previous month, same as the arrows: the grid
+// follows the finger, and past a short distance slides out and the new month slides in (it just springs
+// back at the first/last month). An up/down drag is left to scroll the page, and a swipe never also
+// opens the day it started on.
+(function(){
+  const pane = document.getElementById('calendarViewPane');
+  const grid = document.getElementById('calGrid');
+  const SWIPE_PX = 60;
+  let x0 = null, y0 = 0, dx = 0, horizontal = null, suppressClick = false;
+  const canGo = dir => dir>0 ? state.calMonthOffset<CAL_MAX_OFFSET : state.calMonthOffset>CAL_MIN_OFFSET;
+  pane.addEventListener('touchstart', e=>{
+    if(e.touches.length!==1){ x0 = null; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; horizontal = null;
+    grid.style.transition = 'none';
+  }, {passive:true});
+  pane.addEventListener('touchmove', e=>{
+    if(x0==null) return;
+    const mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+    if(horizontal==null && (Math.abs(mx)>10 || Math.abs(my)>10)) horizontal = Math.abs(mx) > Math.abs(my)*1.2;
+    if(!horizontal) return;
+    dx = mx;
+    grid.style.transform = `translateX(${canGo(dx<0 ? 1 : -1) ? dx : dx/4}px)`; // resists at the ends
+  }, {passive:true});
+  function finish(){
+    if(x0==null) return;
+    x0 = null;
+    if(!horizontal) return;
+    suppressClick = true;
+    setTimeout(()=>{ suppressClick = false; }, 400);
+    const dir = Math.abs(dx)>=SWIPE_PX ? (dx<0 ? 1 : -1) : 0;
+    grid.style.transition = 'transform 0.16s ease-out';
+    if(!dir || !canGo(dir)){ grid.style.transform = ''; return; }
+    grid.style.transform = `translateX(${dir>0 ? '-100%' : '100%'})`;
+    setTimeout(()=>{
+      state.calMonthOffset += dir;
+      renderCalendar();
+      grid.style.transition = 'none';
+      grid.style.transform = `translateX(${dir>0 ? '100%' : '-100%'})`;
+      void grid.offsetWidth; // apply the start position before sliding in
+      grid.style.transition = 'transform 0.18s ease-out';
+      grid.style.transform = '';
+    }, 160);
+  }
+  pane.addEventListener('touchend', finish);
+  pane.addEventListener('touchcancel', ()=>{ dx = 0; finish(); });
+  grid.addEventListener('click', e=>{ if(suppressClick){ e.stopPropagation(); e.preventDefault(); } }, true);
+})();
 
 /* ---------------- day detail sheet ---------------- */
 // tappable: each lift opens its numbers to edit (the Today card).

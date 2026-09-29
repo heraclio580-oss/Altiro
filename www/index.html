@@ -1057,7 +1057,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <span class="eyebrow" data-i18n="eyebrowIntensity"></span>
       <h2 class="hl" data-i18n="intensityHeadline"></h2>
       <p class="sub" data-i18n="intensitySub"></p>
+      <div class="st-label" id="onbRunIntensityLabel" style="margin-top:6px;" data-i18n="runIntensityLabel" hidden></div>
       <div class="option-list" id="intensityList"></div>
+      <div class="sheet-section" id="onbLiftIntensitySection" hidden>
+        <div class="st-label" data-i18n="liftIntensityLabel"></div>
+        <div class="tabs-row" id="onbLiftIntensityTabs"></div>
+        <div class="footer-note" style="text-align:left;margin-top:8px;" data-i18n="liftIntensityNote"></div>
+      </div>
       <div class="sheet-section" id="onbMilesSection">
         <div class="st-label" data-i18n="weeklyMilesLabel"></div>
         <div class="chip-row" id="onbMilesChips"></div>
@@ -1486,8 +1492,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <div class="sheet-section">
-        <div class="st-label" data-i18n="intensityLabel"></div>
+        <div class="st-label" id="adjIntensityLabel" data-i18n="intensityLabel"></div>
         <div class="tabs-row" id="adjIntensityTabs"></div>
+        <div id="adjLiftIntensitySection" hidden>
+          <div class="st-label" style="margin-top:14px;" data-i18n="liftIntensityLabel"></div>
+          <div class="tabs-row" id="adjLiftIntensityTabs"></div>
+          <div class="footer-note" style="text-align:left;margin-top:8px;" data-i18n="liftIntensityNote"></div>
+        </div>
       </div>
 
       <div class="sheet-section" id="adjMilesSection">
@@ -2176,6 +2187,9 @@ const STR = {
     focusRatioLabel: "Focus Ratio",
     focusRatioMidWeekNote: "Applies to the rest of this week — days you've already done or missed stay as they are.",
     intensityLabel: "Intensity",
+    runIntensityLabel: "Running intensity",
+    liftIntensityLabel: "Lifting intensity",
+    liftIntensityNote: "Set separately from your running, so heavy lifting and an easy run or walk never clash.",
     trainingDaysLabel: "Training Days",
     trainingDaysMidWeekNote: "Applies to the rest of this week — days you've already done or missed stay as they are.",
     editNameTitle: "Edit Name",
@@ -2540,6 +2554,9 @@ const STR = {
     focusRatioLabel: "Proporción de enfoque",
     focusRatioMidWeekNote: "Se aplica al resto de esta semana — los días que ya completaste o perdiste no cambian.",
     intensityLabel: "Intensidad",
+    runIntensityLabel: "Intensidad al correr",
+    liftIntensityLabel: "Intensidad en pesas",
+    liftIntensityNote: "Aparte de la de correr, para que levantar pesado y una carrera o caminata suave no choquen.",
     trainingDaysLabel: "Días de entrenamiento",
     trainingDaysMidWeekNote: "Se aplica al resto de esta semana — los días que ya completaste o perdiste no cambian.",
     editNameTitle: "Editar nombre",
@@ -2743,6 +2760,13 @@ const INTENSITY = [
   {key:'moderate', en:{t:'Moderate', s:'Steady, consistent effort'}, es:{t:'Moderada', s:'Esfuerzo constante y estable'}, pace:9.5, vol:6100},
   {key:'high', en:{t:'High Intensity', s:'Max effort, highest volume'}, es:{t:'Alta intensidad', s:'Esfuerzo máximo, mayor volumen'}, pace:8.25, vol:8800},
 ];
+// Lifting's own three levels (the plan's running uses INTENSITY): starting weights, and how many sets
+// the accessory lifts get.
+const LIFT_INTENSITY = [
+  {key:'light', en:{t:'Light', s:'Lighter weights, fewer sets'}, es:{t:'Ligera', s:'Menos peso, menos series'}},
+  {key:'moderate', en:{t:'Moderate', s:'Solid working sets'}, es:{t:'Moderada', s:'Series de trabajo sólidas'}},
+  {key:'high', en:{t:'High', s:'Heavier, more sets'}, es:{t:'Alta', s:'Más peso, más series'}},
+];
 const FOCUS_LABELS = {
   en:['Running Only','Mostly Running','Balanced Mix','Mostly Weight Training','Weight Training Only'],
   es:['Solo correr','Mayormente correr','Mezcla equilibrada','Mayormente pesas','Solo pesas'],
@@ -2857,6 +2881,11 @@ const STRENGTH_FOCUS_OPTIONS = [
   {key:'press', en:{t:'Overhead press'}, es:{t:'Press militar'}},
   {key:'arms', en:{t:'Arm & grip strength'}, es:{t:'Fuerza de brazo y agarre'}},
 ];
+// Running and lifting each have their own intensity: state.intensityIdx is running's (and the plan's
+// overall), state.liftIntensityIdx lifting's when set apart from it (null = the same).
+function runIntensity(){ return state.intensityIdx; }
+function liftIntensity(){ return state.liftIntensityIdx ?? state.intensityIdx; }
+function hasRunAndLift(focus){ return focus>0 && focus<4; }
 function planConfig(overrides){
   return {
     days: state.trainingDays.slice().sort((a,b)=>a-b),
@@ -3634,6 +3663,7 @@ function plannedExercises(session, date){
     let sets = slot.sets || base.sets;
     if(level==='beginner') sets -= 1;
     else if(level==='advanced' && i<2) sets += 1;
+    if(i>0) sets += [-1, 0, 1][liftIntensity()] ?? 0; // accessory volume follows lifting intensity
     if(recovery) sets -= 1;
     const ex = {...base, key, sets: Math.max(2, sets), fromPlan:true};
     if(slot.reps && !base.bodyweight) ex.reps = slot.reps; // a bodyweight move keeps its own rep count
@@ -3769,7 +3799,7 @@ const defaultState = () => ({
   goal:null, level:null,
   trainingDays:[0,2,4], // Mon/Wed/Fri by default
   age:null, gender:null, weight:null, weightUnit:'lb',
-  focusRatio:2, intensityIdx:1,
+  focusRatio:2, intensityIdx:1, liftIntensityIdx:null, // see runIntensity() / liftIntensity()
   weeklyMiles:null, // about how many miles a week they run now (onboarding / Adjust) -- where the plan's mileage starts
   equipment:null, // 'gym' | 'dumbbells' | 'bodyweight' -- what the plan's lifts can use
   strengthFocus:'allround', // STRENGTH_FOCUS_OPTIONS key -- which lift each week's peak day builds
@@ -4703,7 +4733,21 @@ function renderIntensityList(){
       renderIntensityList();
     });
   });
+  // A plan with running and lifting: the cards are running's intensity, with lifting's own row below
+  // (it follows running's until picked).
+  const both = hasRunAndLift(state.focusRatio);
+  document.getElementById('onbRunIntensityLabel').hidden = !both;
+  document.getElementById('onbLiftIntensitySection').hidden = !both || !state._intensityChosen;
+  renderIntensityTabs('onbLiftIntensityTabs', LIFT_INTENSITY, liftIntensity(), idx=>{ state.liftIntensityIdx = idx; renderIntensityList(); });
   renderOnbBaseline();
+}
+function renderIntensityTabs(id, levels, selected, onPick){
+  const el = document.getElementById(id);
+  el.innerHTML = levels.map((it,idx)=>{
+    const Lo = it[state.lang];
+    return `<div class="tab-btn ${idx===selected?'sel':''}" data-idx="${idx}"><div class="t">${Lo.t}</div><div class="s">${Lo.s}</div></div>`;
+  }).join('');
+  el.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> onPick(parseInt(b.getAttribute('data-idx'),10))));
 }
 
 /* ---------------- optional info chips ---------------- */
@@ -4820,7 +4864,7 @@ function setupSliders(){
     document.getElementById('adjSliderFill'),
     ()=> state.adjustDraft ? state.adjustDraft.focusRatio : state.focusRatio,
     (v)=>{ if(state.adjustDraft) state.adjustDraft.focusRatio=v; },
-    (v)=>{ document.getElementById('adjSliderLabel').textContent = FOCUS_LABELS[state.lang][v]; renderAdjBaseline(); }
+    (v)=>{ document.getElementById('adjSliderLabel').textContent = FOCUS_LABELS[state.lang][v]; renderAdjBaseline(); if(state.adjustDraft) renderAdjIntensityTabs(); }
   );
 }
 
@@ -5102,6 +5146,7 @@ function progressionKey(session){
   return session.t + ':' + session.en.title;
 }
 function seedProgressionTarget(session, intensityIdx){
+  intensityIdx = session.t==='strength' ? liftIntensity() : session.t==='run' ? runIntensity() : intensityIdx;
   const tier = INTENSITY[intensityIdx];
   if(session.t==='strength'){
     return {weight: [95,135,195][intensityIdx], reps: [12,10,5][intensityIdx]};
@@ -5130,7 +5175,7 @@ function exerciseProgressionKey(exerciseKey){
 }
 function seedExerciseTarget(ex, intensityIdx){
   if(ex.bodyweight) return null; // nothing to load/track -- just a sets x reps (or duration) prescription
-  const base = [95,135,195][intensityIdx];
+  const base = [95,135,195][liftIntensity()];
   return {weight: Math.round(base*(ex.seedFactor||0.5)/5)*5, reps: ex.reps || 10};
 }
 function getExerciseTarget(ex, intensityIdx){
@@ -7180,7 +7225,7 @@ function runBreakdown(session){
   const title = session.en.title, detail = session.en.detail || '';
   const total = plannedMilesOf(session);
   const byFeel = isPaceFree(session);
-  const easyPace = (getProgressionTarget(ses('run','Easy Run','','',''), state.intensityIdx) || {}).pace || INTENSITY[state.intensityIdx].pace;
+  const easyPace = (getProgressionTarget(ses('run','Easy Run','','',''), state.intensityIdx) || {}).pace || INTENSITY[runIntensity()].pace;
   const pace = p => byFeel ? '' : ` · ~${fmtPace(p)}/mi`;
   // From the mile time when there is one (tempo as its 85-90% range); otherwise relative to the easy pace.
   const mp = mileTimePaces(state.mileTime);
@@ -7480,7 +7525,7 @@ document.getElementById('signOutBtn').addEventListener('click', async ()=>{
 /* ---------------- adjust sheet ---------------- */
 function openAdjustSheet(){
   ensureWeek();
-  state.adjustDraft = {focusRatio: state.focusRatio, intensityIdx: state.intensityIdx, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, strengthFocus: state.strengthFocus, mileTime: state.mileTime};
+  state.adjustDraft = {focusRatio: state.focusRatio, intensityIdx: state.focusRatio>=4 ? liftIntensity() : state.intensityIdx, liftIntensityIdx: state.liftIntensityIdx ?? null, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, strengthFocus: state.strengthFocus, mileTime: state.mileTime};
   document.getElementById('adjustOverlay').hidden = false;
   highlightNav('adjust');
   adjSlider.paint();
@@ -7500,20 +7545,14 @@ function closeAdjustSheet(){
 }
 document.getElementById('closeAdjust').addEventListener('click', closeAdjustSheet);
 
+// Running-only or weights-only: one Intensity row. Both: Running intensity, then Lifting intensity.
 function renderAdjIntensityTabs(){
-  const el = document.getElementById('adjIntensityTabs');
-  el.innerHTML = INTENSITY.map((it,idx)=>{
-    const Lo = it[state.lang];
-    return `<div class="tab-btn ${idx===state.adjustDraft.intensityIdx?'sel':''}" data-idx="${idx}">
-      <div class="t">${Lo.t}</div><div class="s">${Lo.s}</div>
-    </div>`;
-  }).join('');
-  el.querySelectorAll('.tab-btn').forEach(b=>{
-    b.addEventListener('click', ()=>{
-      state.adjustDraft.intensityIdx = parseInt(b.getAttribute('data-idx'),10);
-      renderAdjIntensityTabs();
-    });
-  });
+  const L = STR[state.lang], d = state.adjustDraft;
+  const both = hasRunAndLift(d.focusRatio);
+  document.getElementById('adjIntensityLabel').textContent = both ? L.runIntensityLabel : L.intensityLabel;
+  renderIntensityTabs('adjIntensityTabs', d.focusRatio>=4 ? LIFT_INTENSITY : INTENSITY, d.intensityIdx, idx=>{ d.intensityIdx = idx; renderAdjIntensityTabs(); });
+  document.getElementById('adjLiftIntensitySection').hidden = !both;
+  renderIntensityTabs('adjLiftIntensityTabs', LIFT_INTENSITY, d.liftIntensityIdx ?? d.intensityIdx, idx=>{ d.liftIntensityIdx = idx; renderAdjIntensityTabs(); });
 }
 function renderAdjDaysChips(){
   const L = STR[state.lang];
@@ -7528,6 +7567,8 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
   const d = state.adjustDraft;
   state.focusRatio = d.focusRatio;
   state.intensityIdx = d.intensityIdx;
+  // Weights only: the one row is lifting's. Both: lifting keeps its own (unless it matches running's).
+  state.liftIntensityIdx = d.focusRatio>=4 || d.liftIntensityIdx==null || d.liftIntensityIdx===d.intensityIdx ? null : d.liftIntensityIdx;
   state.trainingDays = d.trainingDays.slice();
   state.equipment = d.equipment;
   state.strengthFocus = d.strengthFocus || 'allround';
@@ -7637,7 +7678,7 @@ function renderFeedbackForm(){
 // What the team needs to act on it, without asking: the plan setup and where the user is in it.
 function feedbackContext(){
   return {
-    goal: state.goal, level: state.level, focus: state.focusRatio, intensity: (INTENSITY[state.intensityIdx]||{}).key,
+    goal: state.goal, level: state.level, focus: state.focusRatio, intensity: (INTENSITY[state.intensityIdx]||{}).key, lift_intensity: (LIFT_INTENSITY[liftIntensity()]||{}).key,
     training_days: state.trainingDays, weekly_miles: state.weeklyMiles, equipment: state.equipment,
     strength_focus: state.strengthFocus, mile_time: state.mileTime ? fmtPace(state.mileTime/60) : null, plan_week: planWeekIndex(TODAY_DATE) + 1, lang: state.lang,
     platform: (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : 'web',
@@ -7811,7 +7852,7 @@ function renderSummary(){
   const sessL = ST(session);
   document.getElementById('summarySessTitle').textContent = `${sessL.title}${sessL.detail?', '+sessL.detail:''}`;
   const logged = state._lastLogged;
-  const stats = getSummaryStats(session, state.intensityIdx, logged);
+  const stats = getSummaryStats(session, session.t==='strength' ? liftIntensity() : runIntensity(), logged);
   document.getElementById('summaryStats').innerHTML = stats.map(s=>`<div class="cell"><div class="l">${s.l}</div><div class="v">${s.v}</div></div>`).join('');
   const exercisesEl = document.getElementById('summaryExercisesList');
   const exResults = getSummaryExercises(logged);
@@ -7881,6 +7922,7 @@ async function loadProfileFromCloud(){
   if(data.training_days) state.trainingDays = data.training_days;
   if(data.focus_ratio!=null) state.focusRatio = data.focus_ratio;
   if(data.intensity_idx!=null) state.intensityIdx = data.intensity_idx;
+  if(data.lift_intensity_idx!=null) state.liftIntensityIdx = data.lift_intensity_idx;
   if(data.age_bracket) state.age = data.age_bracket;
   if(data.gender) state.gender = data.gender;
   if(data.weight!=null) state.weight = data.weight;
@@ -7916,6 +7958,7 @@ async function saveProfileToCloud(){
       training_days: state.trainingDays,
       focus_ratio: state.focusRatio,
       intensity_idx: state.intensityIdx,
+      lift_intensity_idx: state.liftIntensityIdx ?? null,
       age_bracket: state.age,
       gender: state.gender,
       weight: state.weight,
@@ -7940,7 +7983,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }

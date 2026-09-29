@@ -54,7 +54,21 @@ efficiently. As a truck driver I don't have much time, so every part of training
 > **Today:** 0–2 hard sessions a week by level (beginner 0 for the first 4 weeks then 1,
 > intermediate 1, advanced 2); intensity setting adds or removes one. Everything else is easy.
 
-✏️ **Your approach:** (e.g. "80/20 by time", "threshold-heavy", "never more than 2 quality days")
+✏️ **Your approach:** mostly easy, with **one quality session a week** (intervals or tempo) for
+runners with some experience.
+
+Example: an experienced runner, 4 days a week:
+
+| Day | Run |
+|---|---|
+| Tuesday | **Tempo or intervals**: start the week fast |
+| Wednesday | Rest |
+| Thursday | Longer easy run: zone 2, relaxed |
+| Saturday | **Long run**: the longest of the week; how long depends on the runner |
+| Sunday | Short, really easy recovery: light jog, hike or even a walk |
+
+Days can move around to suit the user; the shape stays: one fast day early, easy in the middle, long
+run at the weekend, easy the day after.
 
 - [ ] Polarized (mostly easy, some very hard, little in between)
 - [ ] 80/20 easy/hard
@@ -90,6 +104,8 @@ Notes:
 
 ✏️ **Your approach:** (max % of week, max length/time, progression, any faster finishes?)
 
+- Saturday morning, followed by a short easy recovery run (or hike/walk) on Sunday.
+
 ### 2.5 Hard sessions — what, how often, how they progress
 
 > **Today:** rotated week to week —
@@ -105,6 +121,8 @@ Notes:
 
 ✏️ **Your approach:** (which sessions you use, favorite workouts, how they build over a block)
 
+- Favorites: **intervals** and **tempo**. One of them a week.
+
 | Session | Your structure | Who gets it | How it progresses |
 |---|---|---|---|
 |  |  |  |  |
@@ -117,6 +135,8 @@ Notes:
 > then moves with logged runs). New runners get no paces at all — effort only.
 
 ✏️ **Your approach:** [ ] pace  [ ] heart rate  [ ] effort (RPE)  [ ] a mix — explain:
+
+- Easy runs are **zone 2**: relaxed, easy heart rate.
 
 ### 2.7 Brand-new runners
 

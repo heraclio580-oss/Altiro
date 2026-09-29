@@ -169,6 +169,21 @@ how heavy it goes changes.
 
 The number of days varies by person; the idea is the same: build slowly to a mid-week peak, then taper.
 
+**The peak lift rotates.** Don't peak the same lift every week. Run a ~3-week rotation of focus lifts,
+e.g. week 1 peaks the press (dumbbell or bench), week 2 the squat, week 3 the deadlift, then around
+again with new variations (e.g. back squat instead of front). The focus follows what the person
+wants to train.
+
+**Light days don't go to a single.** They top out around 80–90% with sets of 5:
+
+| Light-day pyramid | Sets |
+|---|---|
+| Warm-up | 3 × 10 |
+| Working 10s | 3–4 × 10 |
+| Working 5s (top ≈ 80–90%) | 3 × 5 |
+| Taper down | 2 × 5 |
+| Finish | 2 × 10 |
+
 ### 3.2 Exercise selection
 
 > **Today:** Each workout is built from movement patterns (squat, hinge, lunge, horizontal/vertical

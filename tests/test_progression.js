@@ -23,6 +23,8 @@ function readWeighted(doc){
     key: row.getAttribute('data-exercise-key'),
     weight: parseFloat(row.querySelector('[data-field="weight"]').value),
     reps: parseFloat(row.querySelector('[data-field="reps"]').value),
+    pyramid: !!row.querySelector('.pyr-actions'),
+    top: Math.max(...[...row.querySelectorAll('[data-field="weight"]')].map(i=>parseFloat(i.value)||0)),
   }));
 }
 function fillRow(doc, key, weight, reps){
@@ -86,8 +88,12 @@ function fillRow(doc, key, weight, reps){
 
   console.log('Review card hides after submitting:', doc.getElementById('summaryReviewCard').hidden===true ? 'OK' : 'FAIL');
   console.log('Progression note visible:', doc.getElementById('summaryProgressNote').hidden===false ? 'OK' : 'FAIL');
-  const upMsgExpected = `Nice work — ${seeded1.length} of ${seeded1.length} exercises get heavier next time.`;
-  console.log('Progression note reports every weighted exercise advancing:', doc.getElementById('summaryProgressMsg').textContent === upMsgExpected ? 'OK' : `FAIL (got: ${doc.getElementById('summaryProgressMsg').textContent}, expected: ${upMsgExpected})`);
+  // Every straight-set lift advances; a pyramid only moves up when a set of 5+ beats its best (a light
+  // day's ladder doesn't), so it may or may not be counted.
+  const straight = seeded1.filter(s=>!s.pyramid).length;
+  const upMsg = doc.getElementById('summaryProgressMsg').textContent;
+  const upCount = +(upMsg.match(/Nice work — (\d+) of (\d+)/)||[])[1];
+  console.log('Progression note reports every straight-set exercise advancing:', upCount>=straight && upMsg.includes(`of ${seeded1.length} exercises get heavier`) ? `OK (${upMsg})` : `FAIL (got: ${upMsg})`);
 
   // Go back to Home; reopen today's slot via the Completed toggle, purely through the same DOM
   // affordance an end user has -- no internal state poking.
@@ -102,7 +108,9 @@ function fillRow(doc, key, weight, reps){
   doc.getElementById('recordBtn').click();
   await wait(950);
   const seeded2 = readWeighted(doc);
-  console.log('Second round reseeds every weighted exercise +5 lb from last time:', seeded1.every((s,i)=>seeded2[i].key===s.key && seeded2[i].weight===s.weight+5) ? 'OK' : `FAIL (${JSON.stringify(seeded2)} vs +5 of ${JSON.stringify(seeded1)})`);
+  // Straight-set lifts go up 5 lb; a pyramid is rebuilt from its best set, so its whole ladder moves up.
+  console.log('Second round reseeds every straight-set exercise +5 lb from last time:', seeded1.every((s,i)=>seeded2[i].key===s.key && (s.pyramid || seeded2[i].weight===s.weight+5)) ? 'OK' : `FAIL (${JSON.stringify(seeded2)} vs +5 of ${JSON.stringify(seeded1)})`);
+  console.log('...and the pyramid lift never gets lighter:', seeded1.every((s,i)=>!s.pyramid || seeded2[i].top>=s.top) ? 'OK' : `FAIL (${JSON.stringify(seeded2)} vs ${JSON.stringify(seeded1)})`);
 
   // This time, miss every rep target AND give it a rough (hard) rating -> should hold steady.
   seeded2.forEach(s => fillRow(doc, s.key, s.weight, 1));

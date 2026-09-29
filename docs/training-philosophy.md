@@ -230,12 +230,21 @@ how heavy it goes changes.
 
 The number of days varies by person; the idea is the same: build slowly to a mid-week peak, then taper.
 
+✅ **In the app:** each lifting day's pyramid tops out at a share of the lift's top weight: light 80%,
+building 90%, peak 100% (a single, focus lift only), step-down 85%. The workout that trains the focus
+lift is placed mid-week (the later middle day for an even number). Recovery weeks stay light.
+
 **The peak lift rotates.** Don't peak the same lift every week. Run a ~3-week rotation of focus lifts,
 e.g. week 1 peaks the press (dumbbell or bench), week 2 the squat, week 3 the deadlift, then around
 again with new variations (e.g. back squat instead of front).
 
 **The user picks their strength focus.** Ask in setup what they want to get stronger at: bench press,
 deadlift, squat, arm & grip strength (arm wrestlers), etc. Their focus drives which lifts peak.
+
+✅ **In the app:** setup and Adjust ask for a focus: All-round (press → squat → deadlift), Bench press,
+Squat, Deadlift, Overhead press, or Arm & grip strength (curls peak; upper-body days add wrist curls or
+dead hangs). A single focus peaks a different variation each week. After 3 peak weeks comes a
+recovery week, then the next round of variations.
 
 **Light days don't go to a single.** They top out around 80–90% with sets of 5:
 
@@ -291,6 +300,13 @@ The rules that make it work:
   exact weight matters much less than completing the sets.
 - **Coming back down**, go back to 10s as soon as 10 clean reps are possible again.
 
+✅ **In the app:** the main (first) lift of every lifting workout is a pyramid; the other lifts are
+straight sets, and a workout is 4 lifts at most. The ladder is built from the lift's own numbers (a set
+of 80 × 10 gives a top single of about 100, exactly the ladder above). During the workout, **Switch to
+5s** turns the rest of the climb into 5s, and **Top single now** makes the next set the single and
+lays out the way back down from it. Beginners climb to the heavy 5s but don't single yet. Bodyweight
+plans have no pyramid.
+
 - Main lifts:
 - Accessories:
 - Notes:
@@ -303,6 +319,9 @@ The rules that make it work:
 ✏️ **Your approach:** (how much to add, upper vs. lower body, what to do after a missed session or stall)
 
 - Progress comes from building volume over time; the pyramid sets its own top weight each day.
+- ✅ **In the app:** a pyramid lift moves up when a logged set of 5 or more beats its best (e.g. hitting
+  the peak day's heavy 5s), never on a session rated hard. The top single is the day's number, not
+  something to build on. Other lifts go up 5 lb when every rep is hit.
 
 ### 3.5 Deloads for lifting
 

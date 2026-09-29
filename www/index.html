@@ -536,6 +536,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .lift-row-name{font-size:14px;color:var(--text);}
 .lift-row .lift-fields{margin-top:8px;}
 .r-exercise-list li.lift-tap{cursor:pointer;}
+.wp-pyramid{margin-top:8px;display:flex;flex-direction:column;gap:3px;}
+.pyr-step{display:flex;gap:10px;font-size:12px;color:var(--text-2);}
+.pyr-step b{flex:0 0 96px;font-weight:500;color:var(--text-3);}
+.pyr-step span{font-family:var(--font-mono);}
+.pyr-step[data-stage="top"] span{color:var(--text);font-weight:600;}
+.pyr-actions{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;}
 .r-exercise-list li.lift-tap span{text-decoration:underline dotted;text-underline-offset:3px;}
 .fb-error{margin-top:12px;font-size:12.5px;color:var(--alert);}
 .fb-error[hidden],#feedbackForm[hidden],#feedbackThanks[hidden],#feedbackAdjustCard[hidden]{display:none;}
@@ -1018,6 +1024,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section" id="onbEquipSection">
         <div class="st-label" data-i18n="equipmentLabel"></div>
         <div class="chip-row" id="onbEquipChips"></div>
+        <div class="st-label" style="margin-top:14px;" data-i18n="strengthFocusLabel"></div>
+        <div class="chip-row" id="onbStrengthFocusChips"></div>
       </div>
     </div>
     <div class="footer-cta">
@@ -1400,6 +1408,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section" id="adjEquipSection">
         <div class="st-label" data-i18n="equipmentLabel"></div>
         <div class="chip-row" id="adjEquipChips"></div>
+        <div class="st-label" style="margin-top:14px;" data-i18n="strengthFocusLabel"></div>
+        <div class="chip-row" id="adjStrengthFocusChips"></div>
       </div>
 
       <div class="sheet-section">
@@ -1980,6 +1990,17 @@ const STR = {
     weeklyMilesLabel: "Miles you run a week now",
     weeklyMilesNote: "Changing this restarts your mileage build-up from this week.",
     equipmentLabel: "Equipment for strength workouts",
+    strengthFocusLabel: "What do you most want to get stronger at?",
+    pyramidRx: "Pyramid · {n} sets",
+    pyramidPeakRx: "Peak pyramid · {n} sets",
+    pyramidTop: "top {w}",
+    pyrStage_warm: "Warm-up", pyrStage_work: "Working sets", pyrStage_heavy: "Heavy sets", pyrStage_top: "Top single", pyrStage_down: "Back down",
+    pyramidRulesPeak: "Peak day, the heaviest of your week. Every rep clean: when a set of 10 would get ugly, switch to 5s. When 5 isn't there, do one clean single (that's your top for today, not a max), then work back down.",
+    pyramidRulesPeakBeginner: "Peak day, the heaviest of your week. Every rep clean: when a set of 10 would get ugly, switch to 5s. Build up to the heavy 5s; no single yet.",
+    pyramidRulesLight: "{day}: no single today. Every rep clean: when a set of 10 would get ugly, switch to 5s.",
+    wave_light: "Light day", wave_build: "Building day", wave_step: "Step-down day", wave_peak: "Peak day",
+    pyrFivesBtn: "Switch to 5s",
+    pyrSingleBtn: "Top single now",
     planWeekBuild: "Build week",
     planWeekRecovery: "Recovery week",
     continueBtn: "Continue",
@@ -2298,6 +2319,17 @@ const STR = {
     weeklyMilesLabel: "Millas que corres por semana ahora",
     weeklyMilesNote: "Cambiar esto reinicia el aumento de millas desde esta semana.",
     equipmentLabel: "Equipo para los entrenamientos de fuerza",
+    strengthFocusLabel: "¿En qué quieres ganar más fuerza?",
+    pyramidRx: "Pirámide · {n} series",
+    pyramidPeakRx: "Pirámide de pico · {n} series",
+    pyramidTop: "tope {w}",
+    pyrStage_warm: "Calentamiento", pyrStage_work: "Series de trabajo", pyrStage_heavy: "Series pesadas", pyrStage_top: "Una repetición tope", pyrStage_down: "Bajada",
+    pyramidRulesPeak: "Día pico, el más pesado de tu semana. Cada repetición limpia: cuando una serie de 10 se vaya a poner fea, pasa a series de 5. Cuando no salgan 5, haz una sola repetición limpia (tu tope de hoy, no un máximo) y luego baja.",
+    pyramidRulesPeakBeginner: "Día pico, el más pesado de tu semana. Cada repetición limpia: cuando una serie de 10 se vaya a poner fea, pasa a series de 5. Sube hasta las series pesadas de 5; todavía sin la repetición tope.",
+    pyramidRulesLight: "{day}: hoy sin repetición tope. Cada repetición limpia: cuando una serie de 10 se vaya a poner fea, pasa a series de 5.",
+    wave_light: "Día ligero", wave_build: "Día de subida", wave_step: "Día de bajada", wave_peak: "Día pico",
+    pyrFivesBtn: "Pasar a series de 5",
+    pyrSingleBtn: "Repetición tope ahora",
     planWeekBuild: "Semana de progresión",
     planWeekRecovery: "Semana de recuperación",
     continueBtn: "Continuar",
@@ -2626,6 +2658,16 @@ const QUALITY_ROTATION = {
 };
 const INTERVAL_REP_METERS = [400, 800, 1000, 800]; // changes every 4-week block
 
+// The lift a user most wants to build. Their plan's heaviest ("peak") day each week goes to it -- a
+// different variation each week -- see FOCUS_ROTATION.
+const STRENGTH_FOCUS_OPTIONS = [
+  {key:'allround', en:{t:'All-round'}, es:{t:'General'}},
+  {key:'bench', en:{t:'Bench press'}, es:{t:'Press de banca'}},
+  {key:'squat', en:{t:'Squat'}, es:{t:'Sentadilla'}},
+  {key:'deadlift', en:{t:'Deadlift'}, es:{t:'Peso muerto'}},
+  {key:'press', en:{t:'Overhead press'}, es:{t:'Press militar'}},
+  {key:'arms', en:{t:'Arm & grip strength'}, es:{t:'Fuerza de brazo y agarre'}},
+];
 function planConfig(overrides){
   return {
     days: state.trainingDays.slice().sort((a,b)=>a-b),
@@ -2634,6 +2676,8 @@ function planConfig(overrides){
     level: LEVEL_PLAN[state.level] ? state.level : 'intermediate',
     intensity: state.intensityIdx,
     miles: state.weeklyMiles,
+    equipment: planEquipment(),
+    strengthFocus: STRENGTH_FOCUS_OPTIONS.some(o=>o.key===state.strengthFocus) ? state.strengthFocus : 'allround',
     ...(overrides||{}),
   };
 }
@@ -2838,8 +2882,15 @@ function placeSessions(days, items){
     if(mixed && a.kind===b.kind) c += 0.5;
     return c;
   }
+  const liftCount = items.filter(it=>it.kind==='lift').length;
   function cost(assign){ // assign[dayIdxInDays] = item
     let c = 0;
+    // The week's peak lifting day sits in the middle of its lifting days (the later one of two middles).
+    const liftPos = assign.filter(it=>it.kind==='lift').findIndex(it=>it.peak);
+    if(liftPos>=0){
+      const mid = (liftCount-1)/2;
+      c += 3*Math.abs(liftPos-mid) + (liftPos<mid ? 0.1 : 0);
+    }
     const byDay = {};
     days.forEach((d,i)=>{ byDay[d] = assign[i]; });
     days.forEach((d,i)=>{
@@ -2898,9 +2949,17 @@ function generatePlanWeek(cfg, n){
     const hard = role==='long' ? kind!=='easy' && kind!=='runwalk' : role==='quality' && !recovery;
     items.push({kind:'run', role, sub:kind, mi, hard, legs:true, sig:'run:'+role+':'+kind+':'+mi});
   });
-  liftSplitFor(lifts, cfg.level).forEach(split=>{
+  // The workout that trains the week's focus lift is its peak, placed mid-week (see liftWave).
+  const focus = peakFocusFor(cfg, n);
+  const splits = liftSplitFor(lifts, cfg.level);
+  // (Of several that do, the one nearest the middle of the split, so the week keeps its usual order.)
+  const trainsFocus = sp => focus && liftTemplateFor(LIFT_SESSIONS[sp].en).some(sl=>FOCUS_SLOTS[focus.movement].includes(sl.m));
+  const splitMid = (splits.length-1)/2;
+  const peakSplit = splits.map((_,k)=>k).filter(k=>trainsFocus(splits[k]))
+    .sort((a,b)=> Math.abs(a-splitMid)-Math.abs(b-splitMid) || b-a)[0] ?? -1;
+  splits.forEach((split, k)=>{
     const L = LIFT_SESSIONS[split];
-    items.push({kind:'lift', split, group:L.group, legs:L.legs, hard:false, sig:'lift:'+split});
+    items.push({kind:'lift', split, group:L.group, legs:L.legs, hard:false, peak:k===peakSplit, sig:'lift:'+split+(k===peakSplit ? ':peak' : '')});
   });
 
   const placed = placeSessions(days, items);
@@ -2920,7 +2979,54 @@ function generatePlanWeek(cfg, n){
       week[d] = {p: liftSessionFor(it.split, cfg, recovery), c: it.legs ? COMPANION.mobility() : COMPANION.core()};
     }
   });
+  // The lifting days' weekly wave (see liftWave), in day order.
+  const liftDays = days.filter((d,i)=>placed[i].kind==='lift');
+  liftWave(liftDays.map(d=>placed[days.indexOf(d)]), cfg, n).forEach((w,i)=>{ week[liftDays[i]].wave = w; });
   return week;
+}
+
+// The weekly wave: lifting starts the week light, builds to one peak day in the middle -- the week's
+// heaviest, where the focus lift goes all the way up to a top single -- then steps back down, so the
+// week ends recovered rather than sore. top: how heavy each day's pyramid gets, as a share of the
+// lift's top weight (see pyramidSteps). A recovery week stays light throughout.
+const WAVE_TOP = {light:0.8, build:0.9, step:0.85, peak:1};
+// Each week's peak lift, by the user's strength focus. A plan runs in 4-week blocks -- 3 build weeks
+// then a recovery week -- and the peak moves on every build week: All-round goes press -> squat ->
+// deadlift, then round again with the next variation of each; a single focus peaks a different
+// variation of its lift each week, so the same lift is never peaked week after week.
+const FOCUS_ROTATION = {
+  allround: ['hpush','squat','deadlift'],
+  bench: ['hpush'], squat: ['squat'], deadlift: ['deadlift'], press: ['vpush'], arms: ['armstrength'],
+};
+// A workout "has" the focus lift if it trains that movement -- a deadlift can take a hinge slot, an
+// arm-strength lift an arms slot.
+const FOCUS_SLOTS = {hpush:['hpush'], squat:['squat'], deadlift:['deadlift','hinge'], vpush:['vpush'], armstrength:['armstrength','arms']};
+function peakFocusFor(cfg, n){
+  if(isRecoveryWeek(n)) return null;
+  const rot = FOCUS_ROTATION[cfg.strengthFocus] || FOCUS_ROTATION.allround;
+  const buildWeek = n - Math.floor((n+1)/4);
+  return {movement: rot[buildWeek % rot.length], variant: Math.floor(buildWeek / rot.length)};
+}
+function liftTemplateFor(title){ return LIFT_TEMPLATES[title] || LIFT_TEMPLATES[title.replace(/ B$/,'')] || null; }
+// lifts: the week's placed lifting workouts in day order. The peak is the one that trains the focus lift
+// (placed mid-week), or when none does, simply the middle one, which then gets it added; the day before
+// it builds, the day after steps down, the rest are light.
+function liftWave(lifts, cfg, n){
+  if(!lifts.length) return [];
+  const focus = peakFocusFor(cfg, n);
+  if(!focus) return lifts.map(()=>({pos:'light', focus:null}));
+  const found = lifts.findIndex(it=>it.peak);
+  const peak = found>=0 ? found : Math.ceil((lifts.length-1)/2);
+  return lifts.map((_,i)=>({
+    pos: i===peak ? 'peak' : i===peak-1 ? 'build' : i===peak+1 ? 'step' : 'light',
+    focus: i===peak ? focus : null,
+  }));
+}
+// A generated lifting workout's place in its week's wave, or null for a workout that isn't the plan's
+// own for that day (moved there, or added by the user).
+function liftWaveFor(session, date){
+  const e = planWeekFor(date)[(date.getDay()+6)%7];
+  return e && e.wave && e.p.en.title===session.en.title ? e.wave : null;
 }
 const planWeekCache = new Map();
 function planWeekFor(date){
@@ -3039,6 +3145,9 @@ const EXERCISES = {
   'Wall Angel': {en:'Wall Angel', es:'Ángel en la Pared', sets:3, reps:12, bodyweight:true},
   'Bird Dog': {en:'Bird Dog', es:'Bird Dog', sets:3, reps:10, bodyweight:true},
   'Hanging Knee Raise': {en:'Hanging Knee Raise', es:'Elevación de Rodillas Colgado', sets:3, reps:12, bodyweight:true},
+  'Reverse Curl': {en:'Reverse Curl', es:'Curl Inverso', sets:3, reps:12, seedFactor:0.12},
+  'Wrist Curl': {en:'Wrist Curl', es:'Curl de Muñeca', sets:3, reps:15, seedFactor:0.1},
+  'Dead Hang': {en:'Dead Hang', es:'Colgado en Barra', sets:3, durationSec:30, bodyweight:true},
   'Ab Wheel Rollout': {en:'Ab Wheel Rollout', es:'Rueda Abdominal', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
 };
 // Each movement pattern's options by the equipment the user has. A workout slot cycles through the
@@ -3058,6 +3167,8 @@ const MOVEMENTS = {
   triceps:  {gym:['Triceps Pushdown','Overhead Triceps Extension','Triceps Dip'], kettlebells:['Kettlebell Overhead Triceps Extension','Bench Dip'], dumbbells:['Overhead Triceps Extension','Bench Dip'], bodyweight:['Bench Dip','Diamond Push-Up']},
   reardelt: {gym:['Face Pull','Reverse Fly','Band Pull-Apart'], kettlebells:['Kettlebell High Pull','Prone Y-T-W Raise'], dumbbells:['Reverse Fly','Band Pull-Apart'], bodyweight:['Prone Y-T-W Raise','Wall Angel']},
   calves:   {gym:['Calf Raise','Single-Leg Calf Raise'], kettlebells:['Calf Raise','Single-Leg Calf Raise'], dumbbells:['Calf Raise','Single-Leg Calf Raise'], bodyweight:['Calf Raise','Single-Leg Calf Raise']},
+  armstrength: {gym:['Hammer Curl','Bicep Curl','Reverse Curl'], kettlebells:['Kettlebell Curl'], dumbbells:['Hammer Curl','Bicep Curl','Reverse Curl'], bodyweight:['Towel Row','Chin-Up']},
+  grip:     {gym:['Wrist Curl','Dead Hang'], kettlebells:['Dead Hang'], dumbbells:['Wrist Curl','Dead Hang'], bodyweight:['Dead Hang']},
   core:     {gym:['Plank','Hanging Knee Raise','Turkish Get-Up','Dead Bug','Ab Wheel Rollout'], kettlebells:['Turkish Get-Up','Plank','Kettlebell Windmill','Dead Bug'], dumbbells:['Plank','Dead Bug','Side Plank','Bicycle Crunch'], bodyweight:['Plank','Dead Bug','Side Plank','Bird Dog','Bicycle Crunch']},
 };
 // Which equipment lists a user can draw on when swapping an exercise: a gym has kettlebells, dumbbells
@@ -3215,15 +3326,27 @@ function plannedExercises(session, date){
     return mobility.map((options, i)=> localizedExercise({...options[(seed + i) % options.length], fromPlan:true}));
   }
   const isB = !LIFT_TEMPLATES[title] && / B$/.test(title);
-  const slots = LIFT_TEMPLATES[title] || LIFT_TEMPLATES[title.replace(/ B$/,'')];
+  let slots = liftTemplateFor(title);
   if(!slots) return null;
   const level = planLevel(), equipment = planEquipment();
   const planWeek = planWeekIndex(d);
   const recovery = isRecoveryWeek(planWeek);
-  return slots.map((slot, i)=>{
+  // The week's peak workout leads with the focus lift (moved up from its own slot, or added).
+  const focus = (liftWaveFor(session, d) || {}).focus;
+  if(focus){
+    const j = slots.findIndex(sl=>FOCUS_SLOTS[focus.movement].includes(sl.m));
+    const rest = j>=0 ? slots.filter((_,i)=>i!==j) : slots;
+    slots = [{m:focus.movement, focus:true}, ...rest];
+  }
+  // Short and efficient: with a pyramid on the main lift, a workout is 4 lifts (3 when an arm & grip
+  // focus adds its grip work to an upper-body day).
+  if(equipment!=='bodyweight') slots = slots.slice(0, 4);
+  if(state.strengthFocus==='arms' && !/Lower/.test(title) && !slots.some(sl=>sl.m==='grip')) slots = [...slots.slice(0, 3), {m:'grip'}];
+  const list = slots.map((slot, i)=>{
     const options = movementOptions(slot.m, equipment, level);
-    // Main lifts change with each of the plan's 4-week cycles; the rest every week.
-    const rotation = (i<2 ? Math.floor(planWeek/4) : seed) + i + (isB ? 1 : 0);
+    // Main lifts change with each of the plan's 4-week cycles; the rest every week. The peak lift is
+    // the week's own variation of the focus.
+    const rotation = slot.focus ? focus.variant : (i<2 ? Math.floor(planWeek/4) : seed) + i + (isB ? 1 : 0);
     const key = options[rotation % options.length];
     const base = EXERCISES[key];
     let sets = slot.sets || base.sets;
@@ -3235,14 +3358,61 @@ function plannedExercises(session, date){
     delete ex.minLevel;
     return localizedExercise(ex);
   });
+  // The focus lift can land on a move another slot also picked -- keep the first.
+  return list.filter((ex,i)=> list.findIndex(o=>o.key===ex.key)===i);
 }
 // A strength session's exercises, or null when it has none -- the list the user built or changed
 // (session.exercises), else the plan's picks; the user's standing swaps/skips applied either way.
 function exercisesForSession(session, date){
   if(!session || session.t!=='strength') return null;
-  if(session.exercises && session.exercises.length) return applyLiftTargets(applyStandingSwaps(session.exercises.map(localizedExercise)));
+  if(session.exercises && session.exercises.length) return applyPyramid(applyLiftTargets(applyStandingSwaps(session.exercises.map(localizedExercise))), session, date);
   const planned = plannedExercises(session, date);
-  return planned ? applyLiftTargets(applyStandingSwaps(planned)) : null;
+  return planned ? applyPyramid(applyLiftTargets(applyStandingSwaps(planned)), session, date) : null;
+}
+
+// The pyramid: a workout's main lift climbs in clean sets of 10, switches to 5s when 10 would get
+// ugly, and comes back down -- on the week's peak day all the way up to one heavy single, the top for
+// that day (not a true max). Each step is [share of the day's top, reps, stage].
+const PYRAMID_PEAK = [
+  [.45,10,'warm'],[.5,10,'warm'],[.55,10,'warm'], [.6,10,'work'],[.7,10,'work'],[.8,10,'work'],
+  [.85,5,'heavy'],[.9,5,'heavy'],[.95,5,'heavy'], [1,1,'top'],
+  [.9,5,'down'],[.8,5,'down'],[.7,10,'down'],[.6,10,'down'],[.5,10,'down'],[.4,10,'down'],
+];
+// Every other day: no single -- it tops out with sets of 5, tapers with two 5s and finishes with two 10s.
+const PYRAMID_LIGHT = [
+  [.55,10,'warm'],[.6,10,'warm'],[.65,10,'warm'], [.7,10,'work'],[.75,10,'work'],[.8,10,'work'],
+  [.9,5,'heavy'],[.95,5,'heavy'],[1,5,'heavy'],
+  [.9,5,'down'],[.8,5,'down'],[.7,10,'down'],[.6,10,'down'],
+];
+// Back down from a top single, whenever it comes.
+const PYRAMID_BACK_DOWN = [[.9,5,'down'],[.8,5,'down'],[.7,10,'down'],[.6,10,'down'],[.5,10,'down'],[.4,10,'down']];
+function estimatedMax(weight, reps){ return reps<=1 ? weight : weight*(1+reps/30); }
+function roundPlate(w){
+  const inc = state.weightUnit==='kg' ? 2.5 : 5;
+  return Math.max(inc, Math.round(w/inc)*inc);
+}
+// A lift's top weight for a peak day, from its target (the user's own numbers, or the last best set):
+// about 93% of the max that set suggests -- 80 x 10 makes a top single of about 100.
+function pyramidTop(target){ return roundPlate(estimatedMax(target.weight, target.reps||10)*0.93); }
+function pyramidSteps(ladder, top){
+  return ladder.map(([pct, reps, stage])=>({weight: roundPlate(top*pct), reps, stage}));
+}
+function applyPyramid(list, session, date){
+  const ex = list[0];
+  if(!ex || !ex.fromPlan || ex.bodyweight || ex.durationSec!=null || !liftTemplateFor(session.en.title)) return list;
+  const target = getExerciseTarget(ex, state.intensityIdx);
+  if(!target || !target.weight) return list;
+  const d = date || TODAY_DATE;
+  const wave = liftWaveFor(session, d) || {pos: isRecoveryWeek(planWeekIndex(d)) ? 'light' : 'build', focus:null};
+  const top = pyramidTop(target);
+  const peak = wave.pos==='peak';
+  // Beginners build up to the heavy 5s but don't do the single yet.
+  const ladder = peak ? PYRAMID_PEAK.filter(st=> planLevel()!=='beginner' || st[2]!=='top') : PYRAMID_LIGHT;
+  const steps = pyramidSteps(ladder, peak ? top : top*WAVE_TOP[wave.pos]);
+  const out = list.slice();
+  out[0] = {...ex, sets: steps.length, reps: 10, pyramid: {peak, pos: wave.pos, steps, top: Math.max(...steps.map(st=>st.weight))}};
+  out.skipped = list.skipped || [];
+  return out;
 }
 // Each lift's reps come from its own target -- the same numbers Log Performance pre-fills and progression
 // checks against, which the user can set themselves (see the lift editor / My Lifts) -- so a lift shows
@@ -3286,6 +3456,7 @@ function readLiftNumberInputs(scope){
 }
 function fmtExercisePrescription(ex){
   const L = STR[state.lang];
+  if(ex.pyramid) return (ex.pyramid.peak ? L.pyramidPeakRx : L.pyramidRx).replace('{n}', ex.sets);
   const setsPrefix = `${ex.sets} x `;
   return ex.durationSec!=null ? `${setsPrefix}${fmtClock(ex.durationSec)}` : `${setsPrefix}${ex.reps}`;
 }
@@ -3311,6 +3482,7 @@ const defaultState = () => ({
   focusRatio:2, intensityIdx:1,
   weeklyMiles:null, // about how many miles a week they run now (onboarding / Adjust) -- where the plan's mileage starts
   equipment:null, // 'gym' | 'dumbbells' | 'bodyweight' -- what the plan's lifts can use
+  strengthFocus:'allround', // STRENGTH_FOCUS_OPTIONS key -- which lift each week's peak day builds
   planStart:null, // dateKey of the Monday the plan started (its week 0) -- see planWeekIndex()
   exerciseSwaps:{}, // "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'} -- see applyStandingSwaps()
   week:null,
@@ -4006,6 +4178,7 @@ function renderBaselineChips(prefix, holder, onChange){
   document.getElementById(prefix+'EquipSection').hidden = holder.focusRatio<=0;
   renderChipRow(prefix+'MilesChips', MILES_OPTIONS, milesOptionKey(holder.weeklyMiles), k=>{ holder.weeklyMiles = Number(k); onChange(); });
   renderChipRow(prefix+'EquipChips', EQUIPMENT_OPTIONS, holder.equipment, k=>{ holder.equipment = k; onChange(); });
+  renderChipRow(prefix+'StrengthFocusChips', STRENGTH_FOCUS_OPTIONS, holder.strengthFocus || 'allround', k=>{ holder.strengthFocus = k; onChange(); });
 }
 // Continue needs an intensity, plus current miles if the plan has running and equipment if it has lifting.
 function renderOnbBaseline(){
@@ -4408,6 +4581,16 @@ function applyProgressionResult(session, logged){
       total++;
       const target = state.progression[exerciseProgressionKey(res.key)];
       if(!target) return;
+      if(res.pyramid){
+        // A pyramid's weights come from the lift's best set (see pyramidTop): it moves up whenever a
+        // set of 5 or more beats it -- the top single is the day's, not something to build on.
+        const best = logged.feel==='hard' ? null : (res.sets||[]).filter(st=>st.reps>=5 && st.weight>0)
+          .reduce((b,st)=> !b || estimatedMax(st.weight, st.reps) > estimatedMax(b.weight, b.reps) ? st : b, null);
+        if(best && estimatedMax(best.weight, best.reps) > estimatedMax(target.weight, target.reps||10) + 0.5){
+          target.weight = best.weight; target.reps = best.reps; advanced++; saveExerciseTarget(res.key, target);
+        }
+        return;
+      }
       const met = res.reps >= target.reps && logged.feel !== 'hard';
       if(met){ target.weight += 5; advanced++; saveExerciseTarget(res.key, target); }
     });
@@ -4474,32 +4657,65 @@ function updateLogPerfPrescriptionLabel(rowEl, ex){
   const label = rowEl.querySelector('.exercise-log-name span');
   if(label) label.textContent = fmtExercisePrescription({...ex, sets: logPerfSetChecks[ex.key].length});
 }
-const LOG_PERF_MAX_SETS = 12;
+const LOG_PERF_MAX_SETS = 20;
 // The prescribed set count is just a starting suggestion -- the user might do one more, or cut a
 // set short, so it's editable live while the workout is being logged.
+// Adds one weight/reps set row (not yet ticked) to a weighted exercise in Log Performance.
+function appendLogPerfSetRow(rowEl, ex, weight, reps, stage){
+  const checks = logPerfSetChecks[ex.key];
+  const idx = checks.length;
+  checks.push(false);
+  const div = document.createElement('div');
+  div.className = 'set-log-row';
+  div.setAttribute('data-set-idx', String(idx));
+  div.setAttribute('data-stage', stage || '');
+  div.innerHTML = `<span class="set-log-num">${idx+1}</span>
+    <input type="number" inputmode="numeric" class="text-input" data-field="weight" data-set-idx="${idx}" placeholder="${state.weightUnit}" value="${escapeHtml(String(weight ?? ''))}">
+    <input type="number" inputmode="numeric" class="text-input" data-field="reps" data-set-idx="${idx}" value="${escapeHtml(String(reps ?? ''))}">
+    <button type="button" class="set-check-dot" data-set-idx="${idx}">${idx+1}</button>`;
+  rowEl.querySelector('.set-rows').appendChild(div);
+  wireSetCheckDot(div.querySelector('.set-check-dot'), rowEl, ex);
+}
 function addLogPerfSet(rowEl, ex){
   const checks = logPerfSetChecks[ex.key];
   if(checks.length>=LOG_PERF_MAX_SETS) return;
-  const idx = checks.length;
-  checks.push(false);
   if(!ex.bodyweight){
-    const setRowsEl = rowEl.querySelector('.set-rows');
-    const existingRows = [...setRowsEl.querySelectorAll('.set-log-row')];
+    const existingRows = [...rowEl.querySelectorAll('.set-rows .set-log-row')];
     const last = existingRows[existingRows.length-1];
     const t = getExerciseTarget(ex, state.intensityIdx);
     // A new set starts from whatever the last set currently shows -- closer to what the user
     // will actually do next than resetting back to the original seeded target.
     const lastWeight = last ? last.querySelector('[data-field="weight"]').value : (t?t.weight:'');
     const lastReps = last ? last.querySelector('[data-field="reps"]').value : (t?t.reps:ex.reps);
-    const div = document.createElement('div');
-    div.className = 'set-log-row';
-    div.setAttribute('data-set-idx', String(idx));
-    div.innerHTML = `<span class="set-log-num">${idx+1}</span>
-      <input type="number" inputmode="numeric" class="text-input" data-field="weight" data-set-idx="${idx}" placeholder="${state.weightUnit}" value="${escapeHtml(lastWeight)}">
-      <input type="number" inputmode="numeric" class="text-input" data-field="reps" data-set-idx="${idx}" value="${escapeHtml(lastReps)}">
-      <button type="button" class="set-check-dot" data-set-idx="${idx}">${idx+1}</button>`;
-    setRowsEl.appendChild(div);
-    wireSetCheckDot(div.querySelector('.set-check-dot'), rowEl, ex);
+    appendLogPerfSetRow(rowEl, ex, lastWeight, lastReps, '');
+  } else checks.push(false);
+  updateLogPerfPrescriptionLabel(rowEl, ex);
+  refreshLogPerfRowState(rowEl, ex);
+  refreshLogPerfCurrentHighlight();
+}
+// The pyramid's calls, made mid-set from the next set not yet ticked:
+//   fives  -- a set of 10 would get ugly: it and the rest of the climb become sets of 5.
+//   single -- 5 isn't there: this set becomes one clean single (the top for today), and the sets after
+//             it are replaced by the way back down from that weight.
+function pyramidAction(rowEl, ex, action){
+  const checks = logPerfSetChecks[ex.key];
+  const rows = [...rowEl.querySelectorAll('.set-rows .set-log-row')];
+  const from = checks.findIndex(c=>!c);
+  if(from<0) return;
+  if(action==='fives'){
+    rows.slice(from).forEach(r=>{
+      if(r.dataset.stage==='down' || r.dataset.stage==='top') return;
+      const reps = r.querySelector('[data-field="reps"]');
+      if(!(parseFloat(reps.value)<=5)) reps.value = 5;
+    });
+  } else {
+    const topRow = rows[from];
+    topRow.querySelector('[data-field="reps"]').value = 1;
+    topRow.dataset.stage = 'top';
+    const top = parseFloat(topRow.querySelector('[data-field="weight"]').value) || 0;
+    rows.slice(from+1).forEach(r=>r.remove());
+    checks.length = from+1;
+    PYRAMID_BACK_DOWN.forEach(([pct, reps, stage])=> appendLogPerfSetRow(rowEl, ex, roundPlate(top*pct), reps, stage));
   }
   updateLogPerfPrescriptionLabel(rowEl, ex);
   refreshLogPerfRowState(rowEl, ex);
@@ -4682,10 +4898,12 @@ function openLogPerformanceFor(logTarget, mode){
       // pyramid or a wave-loaded set varies on purpose), so the sheet needs to capture what
       // actually happened set by set, not one number applied to all of them.
       const setRows = Array.from({length:setCount}, (_,i)=>{
-        const w = loggedSets ? loggedSets[i].weight : (t?t.weight:'');
-        const r = loggedSets ? loggedSets[i].reps : (t?t.reps:ex.reps);
+        // A pyramid starts each set from its own step of the ladder.
+        const step = !loggedSets && ex.pyramid ? ex.pyramid.steps[i] : null;
+        const w = loggedSets ? loggedSets[i].weight : step ? step.weight : (t?t.weight:'');
+        const r = loggedSets ? loggedSets[i].reps : step ? step.reps : (t?t.reps:ex.reps);
         return `
-        <div class="set-log-row" data-set-idx="${i}">
+        <div class="set-log-row" data-set-idx="${i}" data-stage="${step ? step.stage : ''}">
           <span class="set-log-num">${i+1}</span>
           <input type="number" inputmode="numeric" class="text-input" data-field="weight" data-set-idx="${i}" placeholder="${state.weightUnit}" value="${escapeHtml(String(w ?? ''))}">
           <input type="number" inputmode="numeric" class="text-input" data-field="reps" data-set-idx="${i}" value="${escapeHtml(String(r ?? ''))}">
@@ -4695,6 +4913,10 @@ function openLogPerformanceFor(logTarget, mode){
       return `<div class="exercise-log-row" data-exercise-key="${escapeHtml(ex.key)}">
         <div class="exercise-log-name">${escapeHtml(ex.name)}<span>${fmtExercisePrescription(shownEx)}</span>${stepperHtml}</div>
         <div class="set-rows">${setRows}</div>
+        ${ex.pyramid ? `<div class="pyr-actions">
+          <button type="button" class="btn-text" data-pyr="fives">${STR[state.lang].pyrFivesBtn}</button>
+          <button type="button" class="btn-text" data-pyr="single">${STR[state.lang].pyrSingleBtn}</button>
+        </div>` : ''}
       </div>`;
     }).join('');
     exercisesListEl.querySelectorAll('.exercise-log-row').forEach(rowEl=>{
@@ -4707,6 +4929,10 @@ function openLogPerformanceFor(logTarget, mode){
         });
       });
       if(!ex.bodyweight) rowEl.querySelectorAll('.set-check-dot').forEach(dot=> wireSetCheckDot(dot, rowEl, ex));
+      rowEl.querySelectorAll('[data-pyr]').forEach(btn=> btn.addEventListener('click', e=>{
+        e.stopPropagation();
+        pyramidAction(rowEl, ex, btn.getAttribute('data-pyr'));
+      }));
       refreshLogPerfRowState(rowEl, ex);
       // Tapping anywhere on an exercise -- its name, sets, or the weight/reps fields -- picks it
       // as the one being worked on right now, regardless of what order the list shows.
@@ -4791,7 +5017,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
       // app already uses for a single-target strength session -- since a pyramid/wave set means
       // there's no one number that represents the whole exercise otherwise.
       const top = sets.reduce((best,s)=> s.weight>best.weight ? s : best, sets[0]);
-      return {key, name: ex.name, weight: top.weight, reps: top.reps, sets};
+      return {key, name: ex.name, weight: top.weight, reps: top.reps, sets, pyramid: !!ex.pyramid};
     });
   } else if(eff.t==='strength'){
     logged.weight = parseFloat(document.getElementById('logPerfWeightInput').value) || (target && target.weight) || 0;
@@ -5501,7 +5727,8 @@ function exerciseListHtml(session, date, tappable){
   if(!exercises) return '';
   return `<ul class="r-exercise-list">${exercises.map(ex=>{
     const t = !ex.bodyweight && ex.durationSec==null ? getExerciseTarget(ex, state.intensityIdx) : null;
-    const weight = t && t.weight ? ` · ${t.weight} ${state.weightUnit}` : '';
+    const weight = ex.pyramid ? ` · ${STR[state.lang].pyramidTop.replace('{w}', ex.pyramid.top)} ${state.weightUnit}`
+      : t && t.weight ? ` · ${t.weight} ${state.weightUnit}` : '';
     const attr = tappable && ex.durationSec==null ? ` class="lift-tap" data-lift-key="${escapeHtml(ex.key)}"` : '';
     return `<li${attr}>${escapeHtml(ex.name)} <span>${fmtExercisePrescription(ex)}${weight}</span></li>`;
   }).join('')}</ul>`;
@@ -5607,6 +5834,7 @@ function previewedWorkout(){
 }
 function exerciseRxText(ex){
   let text = fmtExercisePrescription(ex);
+  if(ex.pyramid) return `${text} · ${STR[state.lang].pyramidTop.replace('{w}', ex.pyramid.top)} ${state.weightUnit}`;
   if(!ex.bodyweight){
     const t = getExerciseTarget(ex, state.intensityIdx);
     if(t && t.weight) text += ` · ${t.weight} ${state.weightUnit}`;
@@ -5623,7 +5851,8 @@ function renderWorkoutPreview(){
   document.getElementById('wpDayLabel').textContent = `${DAY_NAMES_FULL[state.lang][dow]}, ${MONTHS_SHORT[state.lang][date.getMonth()]} ${date.getDate()}`;
   document.getElementById('wpIcon').innerHTML = TYPE_ICON[session.t] || '';
   document.getElementById('wpTitle').textContent = sL.title;
-  document.getElementById('wpDetail').textContent = sL.detail || '';
+  const wave = session.t==='strength' && !r.extra ? liftWaveFor(session, date) : null;
+  document.getElementById('wpDetail').textContent = [sL.detail, wave ? L['wave_'+wave.pos] : ''].filter(Boolean).join(' · ');
 
   const runSection = document.getElementById('wpRunSection');
   runSection.hidden = session.t!=='run';
@@ -5662,6 +5891,7 @@ function renderWorkoutPreview(){
           <div class="wp-ex-main">
             <div class="wp-ex-name">${escapeHtml(ex.name)}</div>
             ${rx}
+            ${ex.pyramid ? pyramidLadderHtml(ex) : ''}
             ${note}
           </div>
           <button class="wp-change" type="button" data-change="${i}">${L.wpChangeBtn}</button>
@@ -5685,6 +5915,23 @@ function renderWorkoutPreview(){
   const companion = r.c && r.c.t!=='rest' ? ST(r.c) : null;
   document.getElementById('wpCompanionSection').hidden = !companion;
   if(companion) document.getElementById('wpCompanion').textContent = companion.title + (companion.detail ? ` · ${companion.detail}` : '');
+}
+// A pyramid, step by step -- "Warm-up 45 · 50 · 55 lb × 10", "Heavy sets 85 · 90 · 95 lb × 5", ... --
+// with how to run it.
+function pyramidLadderHtml(ex){
+  const L = STR[state.lang], pyr = ex.pyramid;
+  const groups = [];
+  pyr.steps.forEach(st=>{
+    const g = groups[groups.length-1];
+    if(g && g.stage===st.stage && g.reps===st.reps) g.weights.push(st.weight);
+    else groups.push({stage:st.stage, reps:st.reps, weights:[st.weight]});
+  });
+  const rules = !pyr.peak ? L.pyramidRulesLight.replace('{day}', L['wave_'+pyr.pos])
+    : pyr.steps.some(st=>st.stage==='top') ? L.pyramidRulesPeak : L.pyramidRulesPeakBeginner;
+  return `<div class="wp-pyramid">${groups.map((g,i)=>`<div class="pyr-step" data-stage="${g.stage}">
+      <b>${i && groups[i-1].stage===g.stage ? '' : escapeHtml(L['pyrStage_'+g.stage])}</b>
+      <span>${g.weights.join(' · ')} ${state.weightUnit} × ${g.reps}</span></div>`).join('')}
+    <div class="wp-ex-note">${escapeHtml(rules)}</div></div>`;
 }
 function exerciseDisplayName(key){
   const def = exerciseDef(key);
@@ -5714,7 +5961,7 @@ function exerciseChooserHtml(ex, count){
 }
 // Saves an exercise list as this one workout's own (it stops following the plan's weekly picks).
 function saveWorkoutExercises(r, list){
-  const clean = list.map(ex=>{ const c = {...ex}; delete c.swappedFrom; return c; });
+  const clean = list.map(ex=>{ const c = {...ex}; delete c.swappedFrom; delete c.pyramid; return c; });
   if(r.extra){
     r.extra.session = {...r.extra.session, exercises: clean};
     if(r.extra.supabaseId) cloudSetExtraWorkoutExercises(r.extra.supabaseId, clean);
@@ -6589,7 +6836,7 @@ document.getElementById('signOutBtn').addEventListener('click', async ()=>{
 /* ---------------- adjust sheet ---------------- */
 function openAdjustSheet(){
   ensureWeek();
-  state.adjustDraft = {focusRatio: state.focusRatio, intensityIdx: state.intensityIdx, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment};
+  state.adjustDraft = {focusRatio: state.focusRatio, intensityIdx: state.intensityIdx, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, strengthFocus: state.strengthFocus};
   document.getElementById('adjustOverlay').hidden = false;
   highlightNav('adjust');
   adjSlider.paint();
@@ -6638,6 +6885,7 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
   state.intensityIdx = d.intensityIdx;
   state.trainingDays = d.trainingDays.slice();
   state.equipment = d.equipment;
+  state.strengthFocus = d.strengthFocus || 'allround';
   // A new starting point restarts the mileage build-up from this week.
   if(d.weeklyMiles!==state.weeklyMiles) state.planStart = dateKey(WEEK_MONDAY);
   state.weeklyMiles = d.weeklyMiles;
@@ -6741,7 +6989,7 @@ function feedbackContext(){
   return {
     goal: state.goal, level: state.level, focus: state.focusRatio, intensity: (INTENSITY[state.intensityIdx]||{}).key,
     training_days: state.trainingDays, weekly_miles: state.weeklyMiles, equipment: state.equipment,
-    plan_week: planWeekIndex(TODAY_DATE) + 1, lang: state.lang,
+    strength_focus: state.strengthFocus, plan_week: planWeekIndex(TODAY_DATE) + 1, lang: state.lang,
     platform: (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : 'web',
     user_agent: navigator.userAgent,
   };
@@ -6995,6 +7243,7 @@ async function loadProfileFromCloud(){
   if(data.last_counted_date) state.lastCountedDate = data.last_counted_date;
   if(data.weekly_miles!=null) state.weeklyMiles = Number(data.weekly_miles);
   if(data.equipment) state.equipment = data.equipment;
+  if(data.strength_focus) state.strengthFocus = data.strength_focus;
   if(data.exercise_swaps && typeof data.exercise_swaps==='object') state.exerciseSwaps = data.exercise_swaps;
   if(data.plan_start) state.planStart = data.plan_start;
   else if(!state.planStart){
@@ -7027,6 +7276,7 @@ async function saveProfileToCloud(){
       equipment: state.equipment,
       plan_start: state.planStart,
       exercise_swaps: state.exerciseSwaps,
+      strength_focus: state.strengthFocus,
       updated_at: new Date().toISOString(),
     };
     const { error } = await sb.from('profiles').update(payload).eq('id', state.userId);
@@ -7034,7 +7284,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }

@@ -64,7 +64,7 @@ function contextRows(ctx: Record<string, unknown> | null): [string, string][] {
   if (!ctx) return [];
   const labels: Record<string, string> = {
     level: "Level", goal: "Goal", focus: "Focus (0 run – 4 lift)", intensity: "Intensity", training_days: "Training days",
-    weekly_miles: "Weekly miles", equipment: "Equipment", plan_week: "Plan week", platform: "Platform", lang: "Language",
+    weekly_miles: "Weekly miles", equipment: "Equipment", strength_focus: "Strength focus", plan_week: "Plan week", platform: "Platform", lang: "Language",
   };
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const rows: [string, string][] = [];

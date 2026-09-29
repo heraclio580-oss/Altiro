@@ -44,7 +44,7 @@ function fillSet(setRow, weight, reps){
   while(setLogRows(weightedRow).length > 4) minusBtn.click();
   while(setLogRows(weightedRow).length < 4) plusBtn.click();
   console.log('Set-count stepper adjusts the exercise to exactly 4 sets:', setLogRows(weightedRow).length===4 ? 'OK' : `FAIL (${setLogRows(weightedRow).length})`);
-  console.log('The sets x reps label updates to match the new set count:', weightedRow.querySelector('.exercise-log-name span').textContent.startsWith('4 x') ? 'OK' : `FAIL (${weightedRow.querySelector('.exercise-log-name span').textContent})`);
+  console.log('The sets x reps label updates to match the new set count:', /^4 x|· 4 sets$/.test(weightedRow.querySelector('.exercise-log-name span').textContent) ? 'OK' : `FAIL (${weightedRow.querySelector('.exercise-log-name span').textContent})`);
 
   console.log('Set-count stepper refuses to go below 1 set:', (()=>{ while(setLogRows(weightedRow).length>1) minusBtn.click(); minusBtn.click(); return setLogRows(weightedRow).length===1; })() ? 'OK' : 'FAIL');
   while(setLogRows(weightedRow).length < 4) plusBtn.click();

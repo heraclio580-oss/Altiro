@@ -43,10 +43,16 @@ function makeBackend(){
   console.log('...Today by default:', (d0.querySelector('#onbStartChips .chip.sel')||{}).textContent==='Today' && /Friday, Sep 18/.test(d0.getElementById('onbStartNote').textContent) ? 'OK' : `FAIL (${d0.getElementById('onbStartNote').textContent})`);
   [...d0.querySelectorAll('#onbStartChips .chip')].find(c=>c.textContent==='Pick a date').click();
   await wait(5);
-  const dateEl = d0.getElementById('onbStartDate');
-  console.log('"Pick a date" shows a date picker, from today on:', !dateEl.hidden && dateEl.min==='2026-09-18' ? 'OK' : `FAIL (${dateEl.hidden} ${dateEl.min})`);
-  dateEl.value = '2026-10-05'; dateEl.dispatchEvent(new dom0.window.Event('input', {bubbles:true}));
+  const cal = () => d0.getElementById('onbStartCal');
+  console.log('"Pick a date" opens a calendar of this month:', !cal().hidden && /September 2026/.test(cal().textContent) && cal().querySelectorAll('[data-date]').length===30 ? 'OK' : `FAIL (${cal().hidden} ${cal().textContent.slice(0,40)})`);
+  console.log('...where days before today can\'t be picked:', cal().querySelector('[data-date="2026-09-17"]').disabled && !cal().querySelector('[data-date="2026-09-18"]').disabled ? 'OK' : 'FAIL');
+  console.log('...and can\'t go back to an earlier month:', cal().querySelector('[data-cal-step="-1"]').disabled ? 'OK' : 'FAIL');
+  cal().querySelector('[data-cal-step="1"]').click();
   await wait(5);
+  console.log('Next month:', /October 2026/.test(cal().textContent) ? 'OK' : `FAIL (${cal().textContent.slice(0,40)})`);
+  cal().querySelector('[data-date="2026-10-05"]').click();
+  await wait(5);
+  console.log('Tapping a day picks it:', cal().querySelector('[data-date="2026-10-05"]').classList.contains('sel') ? 'OK' : 'FAIL');
   console.log('...and says when the plan will start:', d0.getElementById('onbStartNote').textContent==='Your plan starts Monday, Oct 5.' ? 'OK' : `FAIL (${d0.getElementById('onbStartNote').textContent})`);
 
   // ---- Adjust: start the plan next Monday ----
@@ -87,8 +93,9 @@ function makeBackend(){
   await wait(20);
   [...doc.querySelectorAll('#adjStartChips .chip')].find(c=>c.textContent==='Pick a date').click();
   await wait(5);
-  const adjDate = doc.getElementById('adjStartDate');
-  adjDate.value = '2026-10-07'; adjDate.dispatchEvent(new dom.window.Event('input', {bubbles:true}));
+  doc.querySelector('#adjStartCal [data-cal-step="1"]').click();
+  await wait(5);
+  doc.querySelector('#adjStartCal [data-date="2026-10-07"]').click();
   await wait(5);
   doc.getElementById('applyAdjust').click();
   await wait(30);

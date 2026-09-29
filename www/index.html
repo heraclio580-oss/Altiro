@@ -597,6 +597,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .strava-btn:disabled{opacity:0.5;cursor:default;}
 /* Strava's own button and logo: shown as-is from their brand pack; the fallback only until it's added. */
 .strava-connect{display:block;margin-top:12px;padding:0;border:none;background:none;cursor:pointer;}
+.strava-connect[hidden]{display:none;}
 .strava-connect img{display:block;height:48px;width:auto;}
 .strava-connect .strava-fallback{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 18px;border-radius:4px;background:#FC5200;color:#fff;font-family:var(--font-body);font-weight:700;font-size:15px;}
 .strava-connect .strava-mark{width:18px;height:18px;}
@@ -613,6 +614,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 [data-strava-asset] + .strava-fallback{display:none !important;}
 .asset-missing > [data-strava-asset]{display:none;}
 .asset-missing > [data-strava-asset] + .strava-fallback{display:inline-flex !important;}
+.start-cal{margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--well);}
+.start-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.start-cal-head b{font-family:var(--font-display);font-size:14px;color:var(--text);font-weight:700;}
+.start-cal-head .iconbtn:disabled{opacity:0.3;cursor:default;}
+.start-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}
+.start-cal-grid i{font-style:normal;font-family:var(--font-mono);font-size:10.5px;color:var(--text-3);padding:4px 0;}
+.start-cal-grid button{width:38px;height:38px;margin:0 auto;border:1px solid transparent;border-radius:50%;background:none;color:var(--text);font-family:var(--font-mono);font-size:13.5px;cursor:pointer;padding:0;}
+.start-cal-grid button.today{border-color:var(--border);}
+.start-cal-grid button.sel{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600;}
+.start-cal-grid button:disabled{color:var(--text-3);opacity:0.35;cursor:default;}
 .settings-link{display:inline-block;margin-top:10px;font-size:12px;color:var(--text-3);text-decoration:underline;text-underline-offset:3px;}
 .strava-view-link{display:inline-block;margin-top:10px;font-size:13px;font-weight:700;color:#FC5200;text-decoration:underline;text-underline-offset:3px;}
 #stravaDisconnectBtn{margin-top:6px;}
@@ -956,7 +967,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="days-summary" id="daysSummary"></div>
       <div class="label" style="margin-top:22px;" data-i18n="startLabel"></div>
       <div class="chip-row" id="onbStartChips"></div>
-      <input type="date" class="text-input" id="onbStartDate" style="margin-top:10px;" hidden>
+      <div class="start-cal" id="onbStartCal" hidden></div>
       <div class="days-summary" id="onbStartNote"></div>
     </div>
     <div class="footer-cta">
@@ -1485,7 +1496,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section">
         <div class="st-label" data-i18n="adjStartLabel"></div>
         <div class="chip-row" id="adjStartChips"></div>
-        <input type="date" class="text-input" id="adjStartDate" style="margin-top:10px;" hidden>
+        <div class="start-cal" id="adjStartCal" hidden></div>
         <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjStartNote"></div>
       </div>
 
@@ -4365,10 +4376,9 @@ function renderStartSection(prefix, holder, withKeep, onChange){
   const label = {keep:L.startKeep, today:L.startToday, tomorrow:L.startTomorrow, monday:L.startMonday, date:L.startPick};
   const choice = holder.startChoice || choices[0];
   renderChipRow(prefix+'StartChips', choices.map(k=>({key:k, en:{t:label[k]}, es:{t:label[k]}})), choice, k=>{ holder.startChoice = k; onChange(); });
-  const dateEl = document.getElementById(prefix+'StartDate');
-  dateEl.hidden = choice!=='date';
-  dateEl.min = dateKey(TODAY_DATE);
-  if(choice==='date' && holder.startPick && dateEl.value!==holder.startPick) dateEl.value = holder.startPick;
+  const calEl = document.getElementById(prefix+'StartCal');
+  calEl.hidden = choice!=='date';
+  if(choice==='date') renderStartCalendar(calEl, holder, onChange);
   const note = document.getElementById(prefix+'StartNote');
   const start = startDateFor(choice, holder.startPick);
   if(choice==='keep'){
@@ -4377,16 +4387,43 @@ function renderStartSection(prefix, holder, withKeep, onChange){
   } else if(!start) note.textContent = L.startNotePickDate;
   else note.textContent = (withKeep ? L.startNoteRestart : L.startNoteOn).replace('{date}', fmtDayDate(start, state.lang));
 }
-function wireStartDate(prefix, holderFn, onChange){
-  document.getElementById(prefix+'StartDate').addEventListener('input', e=>{
-    const h = holderFn(); if(!h) return;
-    h.startPick = e.target.value || null;
+// "Pick a date": a month calendar to tap a day on -- from today up to a year ahead, today and the
+// picked day marked. holder.calMonth is the month showing ("2026-10").
+const START_CAL_MONTHS_AHEAD = 12;
+function renderStartCalendar(el, holder, onChange){
+  const lang = state.lang, todayKey = dateKey(TODAY_DATE);
+  const minMonth = todayKey.slice(0,7);
+  const maxDate = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth()+START_CAL_MONTHS_AHEAD, 1);
+  const maxMonth = dateKey(maxDate).slice(0,7);
+  let month = holder.calMonth || (holder.startPick || todayKey).slice(0,7);
+  if(month < minMonth) month = minMonth;
+  const [y, m] = month.split('-').map(Number);
+  const lead = (new Date(y, m-1, 1).getDay()+6)%7;
+  const daysIn = new Date(y, m, 0).getDate();
+  const cells = Array.from({length:lead}, ()=>'<span></span>');
+  for(let d=1; d<=daysIn; d++){
+    const key = `${month}-${String(d).padStart(2,'0')}`;
+    const cls = [key===holder.startPick ? 'sel' : '', key===todayKey ? 'today' : ''].filter(Boolean).join(' ');
+    cells.push(`<button type="button" class="${cls}" data-date="${key}"${key<todayKey ? ' disabled' : ''}>${d}</button>`);
+  }
+  el.innerHTML = `<div class="start-cal-head">
+      <button type="button" class="iconbtn" data-cal-step="-1"${month<=minMonth ? ' disabled' : ''} aria-label="Previous month"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4l-6 6 6 6"/></svg></button>
+      <b>${MONTHS_FULL[lang][m-1]} ${y}</b>
+      <button type="button" class="iconbtn" data-cal-step="1"${month>=maxMonth ? ' disabled' : ''} aria-label="Next month"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 4l6 6-6 6"/></svg></button>
+    </div>
+    <div class="start-cal-grid">${DAY_NAMES_SHORT[lang].map(n=>`<i>${n.charAt(0)}</i>`).join('')}${cells.join('')}</div>`;
+  el.querySelectorAll('[data-cal-step]').forEach(b=> b.addEventListener('click', ()=>{
+    const next = new Date(y, m-1+Number(b.getAttribute('data-cal-step')), 1);
+    holder.calMonth = dateKey(next).slice(0,7);
     onChange();
-  });
+  }));
+  el.querySelectorAll('[data-date]').forEach(b=> b.addEventListener('click', ()=>{
+    holder.startPick = b.getAttribute('data-date');
+    holder.calMonth = month;
+    onChange();
+  }));
 }
 function renderOnbStart(){ renderStartSection('onb', state, false, renderOnbStart); }
-wireStartDate('onb', ()=>state, renderOnbStart);
-wireStartDate('adj', ()=>state.adjustDraft, ()=> renderAdjStart());
 function renderAdjStart(){ if(state.adjustDraft) renderStartSection('adj', state.adjustDraft, true, renderAdjStart); }
 function renderDaysScreen(){
   renderOnbStart();

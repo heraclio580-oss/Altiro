@@ -124,7 +124,7 @@ Notes:
 >
 > | Session | Today's structure |
 > |---|---|
-> | Tempo | warm-up, half the run at tempo (~1:15/mi faster than easy), cool-down |
+> | Tempo | 1 mi warm-up, the rest at tempo (~1:15/mi faster than easy), 1 mi cool-down |
 > | Intervals | warm-up, 4–12 × 400m / 800m / 1000m (~1:45/mi faster than easy), 200m jog recoveries, cool-down |
 > | Fartlek | warm-up, 6–12 × 1 min fast / 1–2 min easy, cool-down |
 > | Hills | warm-up, 4–10 × 60s uphill, walk/jog down, cool-down |
@@ -133,6 +133,9 @@ Notes:
 ✏️ **Your approach:** (which sessions you use, favorite workouts, how they build over a block)
 
 - Favorites: **intervals** and **tempo**. One of them a week.
+- **Every quality run has a warm-up and a cool-down** of easy, conversational running. A tempo run is
+  1 mile easy + the tempo + 1 mile easy, e.g. 4.5 mi = 1 warm-up + 2.5 at tempo + 1 cool-down (half a
+  mile each on runs under 3 miles). ✅ In the app.
 
 | Session | Your structure | Who gets it | How it progresses |
 |---|---|---|---|

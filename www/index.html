@@ -2742,6 +2742,12 @@ function distributeRunMiles(total, roles, cfg){
   return [long, ...others.map(r=> Math.min(long, Math.max(P.minRun, roundHalf(rest*WEIGHT[r]/wsum))))];
 }
 function fmtMiles(mi){ return String(roundHalf(mi)); }
+// A tempo run is a mile easy to warm up, the tempo, and a mile easy to cool down (half a mile each on
+// a run under 3 miles) -- 4.5 mi is 1 + 2.5 at tempo + 1.
+function tempoMiles(mi){
+  const total = roundHalf(mi);
+  return Math.max(1, total - 2*(total>=3 ? 1 : 0.5));
+}
 // One run, in both languages. Every run's detail starts with its distance ("5 mi ...") -- weekly
 // planned-mile totals and the distance a completed run counts for both read it from there (a timed
 // walk or run/walk -- see runWalkSessionFor -- starts with its minutes instead, and counts no miles
@@ -2752,7 +2758,7 @@ function runSessionFor(kind, mi, extra){
     case 'long': return ses('run','Long Run',d,'Carrera larga',d);
     case 'recovery': return ses('run','Recovery Jog',d,'Trote de recuperación',d);
     case 'strides': return ses('run','Easy Run + Strides',`${d} · 4 x 20s strides`,'Carrera suave + progresiones',`${d} · 4 x 20s progresiones`);
-    case 'tempo': return ses('run','Tempo Run',`${d} · ${fmtMiles(Math.max(1, mi*0.5))} mi at tempo pace`,'Carrera de tempo',`${d} · ${fmtMiles(Math.max(1, mi*0.5))} mi a ritmo de tempo`);
+    case 'tempo': return ses('run','Tempo Run',`${d} · ${fmtMiles(tempoMiles(mi))} mi at tempo pace`,'Carrera de tempo',`${d} · ${fmtMiles(tempoMiles(mi))} mi a ritmo de tempo`);
     case 'intervals': return ses('run','Interval Run',`${d} · ${extra.reps} x ${extra.meters}m`,'Carrera de intervalos',`${d} · ${extra.reps} x ${extra.meters}m`);
     case 'fartlek': return ses('run','Fartlek Run',`${d} · ${extra} x 1 min fast`,'Fartlek',`${d} · ${extra} x 1 min rápido`);
     case 'hills': return ses('run','Hill Repeats',`${d} · ${extra} x 60s uphill`,'Repeticiones en cuesta',`${d} · ${extra} x 60s en subida`);
@@ -6310,10 +6316,11 @@ function runBreakdown(session){
   const byFeel = isPaceFree(session);
   const easyPace = (getProgressionTarget(ses('run','Easy Run','','',''), state.intensityIdx) || {}).pace || INTENSITY[state.intensityIdx].pace;
   const pace = p => byFeel ? '' : ` · ~${fmtPace(p)}/mi`;
-  // Warm-up and cool-down split whatever the main set leaves (at most 1.5 mi each, at least a quarter).
+  // Warm-up and cool-down split whatever the main set leaves: a mile of easy running to warm up (less
+  // on a short run, at least a quarter), the rest to cool down.
   const ends = mainMiles => {
     const rest = Math.max(0.5, total - mainMiles);
-    const warm = Math.max(0.25, quarterMile(Math.min(1.5, rest/2)));
+    const warm = Math.max(0.25, quarterMile(Math.min(1, rest/2)));
     return [warm, Math.max(0.25, quarterMile(rest - warm))];
   };
   const warm = mi => ({label:L.bdWarmup, amount:fmtStepMiles(mi), note:L.bdEasy});

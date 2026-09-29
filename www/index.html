@@ -7385,6 +7385,13 @@ async function stravaCall(action, extra){
     return {data};
   }catch(e){ return {error:{code: String((e && e.message) || e)}}; }
 }
+// "Couldn't connect to Strava (401)" -- the reason in brackets, so a setup problem can be told apart
+// from a passing hiccup (401: the function's "Verify JWT" is on; 5xx: a secret or table is missing).
+function stravaFailedText(error){
+  const L = STR[state.lang];
+  const why = error && (error.status || error.code);
+  return why ? `${L.stravaFailedToast} (${why})` : L.stravaFailedToast;
+}
 function stravaUnavailable(error){
   return error.status===404 || error.code==='not_configured';
 }
@@ -7494,7 +7501,8 @@ async function connectStrava(){
   const { data, error } = await stravaCall('authorize_url', {redirect_uri: stravaRedirectUri()});
   if(error || !data || !data.url){
     if(error && stravaUnavailable(error)){ strava.status = 'unavailable'; renderStravaSettings(); }
-    showToast(L.stravaFailedToast);
+    if(error) console.warn('Strava authorize_url failed', error);
+    showToast(stravaFailedText(error));
     return;
   }
   window.location.href = data.url;
@@ -7519,7 +7527,8 @@ async function finishStravaConnect(){
   strava.status = 'idle';
   if(error || !data || !data.connected){
     renderStravaSettings();
-    showToast(error && error.code==='missing_activity_scope' ? L.stravaNeedsActivityToast : L.stravaFailedToast);
+    if(error) console.warn('Strava connect failed', error);
+    showToast(error && error.code==='missing_activity_scope' ? L.stravaNeedsActivityToast : stravaFailedText(error));
     return true;
   }
   strava.connected = true;
@@ -7541,7 +7550,7 @@ document.getElementById('stravaConnectBtn').addEventListener('click', async ()=>
 });
 document.getElementById('stravaDisconnectBtn').addEventListener('click', async ()=>{
   const { error } = await stravaCall('disconnect');
-  if(error){ showToast(STR[state.lang].stravaFailedToast); return; }
+  if(error){ showToast(stravaFailedText(error)); return; }
   strava.connected = false;
   strava.athleteName = '';
   renderStravaSettings();

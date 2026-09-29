@@ -23,8 +23,13 @@ The few principles everything else should follow. If two rules ever conflict, th
 
 ✏️ **Your approach:**
 
-1.
-2.
+**Where it comes from:** a background in competitive powerlifting and strongman, and competing in arm
+wrestling now. Strength is at the center: I know how to get people strong, and how to do it
+efficiently. As a truck driver I don't have much time, so every part of training has to earn its place.
+
+1. **Strength first.** Getting stronger is the foundation the rest of the training is built on.
+2. **Efficiency.** Every exercise and every minute should give the most return for the time spent.
+   No filler.
 3.
 
 **Who is Altiro for?** (tick all that apply)

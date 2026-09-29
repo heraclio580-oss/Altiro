@@ -153,6 +153,22 @@ Notes:
 | 4 |  |
 | 5–6 |  |
 
+### 3.1b The weekly wave
+
+Intensity rises through the week to one peak day in the middle, then comes back down, so the week
+ends recovered instead of sore going into the weekend. Same reps and the same pyramid every day; only
+how heavy it goes changes.
+
+| 5-day example | Intensity |
+|---|---|
+| Monday | Light: start the week easy |
+| Tuesday | Heavier: a bit more weight |
+| **Wednesday** | **Peak: the heaviest day, the main focus of the week** |
+| Thursday | Step down: recover from the peak |
+| Friday | Light again, back near Monday's level |
+
+The number of days varies by person; the idea is the same: build slowly to a mid-week peak, then taper.
+
 ### 3.2 Exercise selection
 
 > **Today:** Each workout is built from movement patterns (squat, hinge, lunge, horizontal/vertical

@@ -954,6 +954,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="label" style="margin-top:22px;" data-i18n="whichDaysLabel"></div>
       <div class="chip-row" id="weekdayChips"></div>
       <div class="days-summary" id="daysSummary"></div>
+      <div class="label" style="margin-top:22px;" data-i18n="startLabel"></div>
+      <div class="chip-row" id="onbStartChips"></div>
+      <input type="date" class="text-input" id="onbStartDate" style="margin-top:10px;" hidden>
+      <div class="days-summary" id="onbStartNote"></div>
     </div>
     <div class="footer-cta">
       <button class="btn btn-primary" data-i18n="continueBtn" data-go="onb-focus"></button>
@@ -1476,6 +1480,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="chip-row" id="adjWeekdayChips"></div>
         <div class="days-summary" id="adjDaysSummary"></div>
         <div class="footer-note" style="text-align:left;margin-top:8px;" data-i18n="trainingDaysMidWeekNote"></div>
+      </div>
+
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="adjStartLabel"></div>
+        <div class="chip-row" id="adjStartChips"></div>
+        <input type="date" class="text-input" id="adjStartDate" style="margin-top:10px;" hidden>
+        <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjStartNote"></div>
       </div>
 
       <button class="btn btn-primary sheet-apply" id="applyAdjust" data-i18n="applyBtn"></button>
@@ -2073,11 +2084,21 @@ const STR = {
     pyramidRulesPeak: "Peak day, the heaviest of your week. Every rep clean: when a set of 10 would get ugly, switch to 5s. When 5 isn't there, do one clean single (that's your top for today, not a max), then work back down.",
     pyramidRulesPeakBeginner: "Peak day, the heaviest of your week. Every rep clean: when a set of 10 would get ugly, switch to 5s. Build up to the heavy 5s; no single yet.",
     pyramidRulesLight: "{day}: no single today. Every rep clean: when a set of 10 would get ugly, switch to 5s.",
-    wave_light: "Light day", wave_build: "Building day", wave_step: "Step-down day", wave_peak: "Peak day",
+    wave_light: "Light day", wave_build: "Building day", wave_step: "Step-down day", wave_peak: "Peak day", wave_deload: "Deload day",
+    pyramidRulesDeload: "Deload week: lighter weights and fewer sets so your body recovers and comes back stronger. Every rep clean, nothing close to a grind. If it all feels easy, that's the point.",
     pyrFivesBtn: "Switch to 5s",
     pyrSingleBtn: "Top single now",
     planWeekBuild: "Build week",
-    planWeekRecovery: "Recovery week",
+    planWeekRecovery: "Deload week",
+    planStartsOn: "Plan starts {date}",
+    startLabel: "When do you want to start?",
+    adjStartLabel: "When should your plan start?",
+    startKeep: "Keep my plan", startToday: "Today", startTomorrow: "Tomorrow", startMonday: "Next Monday", startPick: "Pick a date",
+    startNoteOn: "Your plan starts {date}.",
+    startNoteKeep: "Your plan started {date}.",
+    startNoteKeepFuture: "Your plan starts {date}.",
+    startNoteRestart: "Your plan starts over {date}: week 1 again, from where you are now. Days before then stay open.",
+    startNotePickDate: "Pick the day you want to start.",
     continueBtn: "Continue",
     loadingEyebrow: "One sec",
     loadingHeadline: "Building your plan",
@@ -2415,11 +2436,21 @@ const STR = {
     pyramidRulesPeak: "Día pico, el más pesado de tu semana. Cada repetición limpia: cuando una serie de 10 se vaya a poner fea, pasa a series de 5. Cuando no salgan 5, haz una sola repetición limpia (tu tope de hoy, no un máximo) y luego baja.",
     pyramidRulesPeakBeginner: "Día pico, el más pesado de tu semana. Cada repetición limpia: cuando una serie de 10 se vaya a poner fea, pasa a series de 5. Sube hasta las series pesadas de 5; todavía sin la repetición tope.",
     pyramidRulesLight: "{day}: hoy sin repetición tope. Cada repetición limpia: cuando una serie de 10 se vaya a poner fea, pasa a series de 5.",
-    wave_light: "Día ligero", wave_build: "Día de subida", wave_step: "Día de bajada", wave_peak: "Día pico",
+    wave_light: "Día ligero", wave_build: "Día de subida", wave_step: "Día de bajada", wave_peak: "Día pico", wave_deload: "Día de descarga",
+    pyramidRulesDeload: "Semana de descarga: menos peso y menos series para que el cuerpo se recupere y vuelva más fuerte. Cada repetición limpia, nada cerca del fallo. Si todo se siente fácil, de eso se trata.",
     pyrFivesBtn: "Pasar a series de 5",
     pyrSingleBtn: "Repetición tope ahora",
     planWeekBuild: "Semana de progresión",
-    planWeekRecovery: "Semana de recuperación",
+    planWeekRecovery: "Semana de descarga",
+    planStartsOn: "El plan empieza el {date}",
+    startLabel: "¿Cuándo quieres empezar?",
+    adjStartLabel: "¿Cuándo empieza tu plan?",
+    startKeep: "Mantener mi plan", startToday: "Hoy", startTomorrow: "Mañana", startMonday: "El próximo lunes", startPick: "Elegir fecha",
+    startNoteOn: "Tu plan empieza el {date}.",
+    startNoteKeep: "Tu plan empezó el {date}.",
+    startNoteKeepFuture: "Tu plan empieza el {date}.",
+    startNoteRestart: "Tu plan vuelve a empezar el {date}: otra vez semana 1, desde donde estás ahora. Los días de antes quedan libres.",
+    startNotePickDate: "Elige el día en que quieres empezar.",
     continueBtn: "Continuar",
     loadingEyebrow: "Un momento",
     loadingHeadline: "Creando tu plan",
@@ -2728,7 +2759,8 @@ const REVIEW_RATING_LABELS = {
 /* ---------------- plan engine ---------------- */
 // Every generated week is built from the user's own setup -- goal, level, the miles they run now,
 // equipment, training days, focus and intensity -- and counted from the week their plan started
-// (planStartKey), so running and lifting build week to week (every 4th week an easier recovery week)
+// (planStartKey), so running and lifting build week to week. Every 4th week is a deload week: the same
+// training days, with the volume and intensity brought down to recover (never a week off)
 // instead of repeating one fixed week forever. Nothing here is stored: a generated day is recomputed
 // whenever it's shown, and only what the user plans or logs themselves is saved.
 
@@ -2782,6 +2814,18 @@ function mondayOf(date){
 // The plan's week 0 -- set when the plan is first built (and restarted when the user changes their
 // current weekly miles); an account from before this existed counts from the current week.
 function planStartKey(){ return state.planStart || dateKey(WEEK_MONDAY); }
+// The day the plan begins (the user can start it today or on a later date): nothing is planned before
+// it, and its week is the plan's week 0. null for a plan that simply runs from planStart's Monday.
+function beforePlanStart(date){ return !!state.planStartDate && dateKey(date) < state.planStartDate; }
+function startPlanOn(key){
+  state.planStartDate = key;
+  state.planStart = dateKey(mondayOf(parseDateKey(key)));
+}
+// "Monday, Oct 5"
+function fmtDayDate(key, lang){
+  const d = parseDateKey(key);
+  return `${DAY_NAMES_FULL[lang][(d.getDay()+6)%7]}, ${MONTHS_SHORT[lang][d.getMonth()]} ${d.getDate()}`;
+}
 function planWeekIndex(date){
   const weeks = Math.round((mondayOf(date).getTime() - parseDateKey(planStartKey()).getTime()) / (7*86400000));
   return Math.max(0, weeks);
@@ -3130,7 +3174,8 @@ function generatePlanWeek(cfg, n){
 // The weekly wave: lifting starts the week light, builds to one peak day in the middle -- the week's
 // heaviest, where the focus lift goes all the way up to a top single -- then steps back down, so the
 // week ends recovered rather than sore. top: how heavy each day's pyramid gets, as a share of the
-// lift's top weight (see pyramidSteps). A recovery week stays light throughout.
+// lift's top weight (see pyramidSteps). A deload week keeps the wave's shape but brings every day down
+// (see DELOAD_FACTOR) with a shorter pyramid and no single.
 const WAVE_TOP = {light:0.8, build:0.9, step:0.85, peak:1};
 // Each week's peak lift, by the user's strength focus. A plan runs in 4-week blocks -- 3 build weeks
 // then a recovery week -- and the peak moves on every build week: All-round goes press -> squat ->
@@ -3156,12 +3201,13 @@ function liftTemplateFor(title){ return LIFT_TEMPLATES[title] || LIFT_TEMPLATES[
 function liftWave(lifts, cfg, n){
   if(!lifts.length) return [];
   const focus = peakFocusFor(cfg, n);
-  if(!focus) return lifts.map(()=>({pos:'light', focus:null}));
+  const deload = isRecoveryWeek(n);
   const found = lifts.findIndex(it=>it.peak);
   const peak = found>=0 ? found : Math.ceil((lifts.length-1)/2);
   return lifts.map((_,i)=>({
     pos: i===peak ? 'peak' : i===peak-1 ? 'build' : i===peak+1 ? 'step' : 'light',
-    focus: i===peak ? focus : null,
+    focus: i===peak && !deload ? focus : null,
+    deload,
   }));
 }
 // A generated lifting workout's place in its week's wave, or null for a workout that isn't the plan's
@@ -3183,6 +3229,10 @@ function planWeekFor(date){
 }
 // The generated session for a date, as a fresh copy (callers may edit it).
 function plannedSessionFor(date){
+  if(beforePlanStart(date)){
+    return {p: ses('rest','Rest Day', STR.en.planStartsOn.replace('{date}', fmtDayDate(state.planStartDate,'en')),
+      'Día de descanso', STR.es.planStartsOn.replace('{date}', fmtDayDate(state.planStartDate,'es'))), c: null};
+  }
   const e = planWeekFor(date)[(date.getDay()+6)%7];
   return {p:{...e.p}, c: e.c ? {...e.c} : null};
 }
@@ -3526,6 +3576,13 @@ const PYRAMID_LIGHT = [
   [.9,5,'heavy'],[.95,5,'heavy'],[1,5,'heavy'],
   [.9,5,'down'],[.8,5,'down'],[.7,10,'down'],[.6,10,'down'],
 ];
+// A deload week: every day ~85% of what it would be, with about 80% of a light day's sets and no single.
+const DELOAD_FACTOR = 0.85;
+const PYRAMID_DELOAD = [
+  [.55,10,'warm'],[.6,10,'warm'],[.65,10,'warm'], [.7,10,'work'],[.8,10,'work'],
+  [.9,5,'heavy'],[1,5,'heavy'],
+  [.9,5,'down'],[.8,5,'down'],[.7,10,'down'],
+];
 // Back down from a top single, whenever it comes.
 const PYRAMID_BACK_DOWN = [[.9,5,'down'],[.8,5,'down'],[.7,10,'down'],[.6,10,'down'],[.5,10,'down'],[.4,10,'down']];
 function estimatedMax(weight, reps){ return reps<=1 ? weight : weight*(1+reps/30); }
@@ -3545,14 +3602,15 @@ function applyPyramid(list, session, date){
   const target = getExerciseTarget(ex, state.intensityIdx);
   if(!target || !target.weight) return list;
   const d = date || TODAY_DATE;
-  const wave = liftWaveFor(session, d) || {pos: isRecoveryWeek(planWeekIndex(d)) ? 'light' : 'build', focus:null};
+  const deloadWeek = isRecoveryWeek(planWeekIndex(d));
+  const wave = liftWaveFor(session, d) || {pos: deloadWeek ? 'light' : 'build', focus:null, deload: deloadWeek};
   const top = pyramidTop(target);
-  const peak = wave.pos==='peak';
+  const peak = wave.pos==='peak' && !wave.deload;
   // Beginners build up to the heavy 5s but don't do the single yet.
-  const ladder = peak ? PYRAMID_PEAK.filter(st=> planLevel()!=='beginner' || st[2]!=='top') : PYRAMID_LIGHT;
-  const steps = pyramidSteps(ladder, peak ? top : top*WAVE_TOP[wave.pos]);
+  const ladder = wave.deload ? PYRAMID_DELOAD : peak ? PYRAMID_PEAK.filter(st=> planLevel()!=='beginner' || st[2]!=='top') : PYRAMID_LIGHT;
+  const steps = pyramidSteps(ladder, peak ? top : top*WAVE_TOP[wave.pos]*(wave.deload ? DELOAD_FACTOR : 1));
   const out = list.slice();
-  out[0] = {...ex, sets: steps.length, reps: 10, pyramid: {peak, pos: wave.pos, steps, top: Math.max(...steps.map(st=>st.weight))}};
+  out[0] = {...ex, sets: steps.length, reps: 10, pyramid: {peak, pos: wave.pos, deload: !!wave.deload, steps, top: Math.max(...steps.map(st=>st.weight))}};
   out.skipped = list.skipped || [];
   return out;
 }
@@ -3626,6 +3684,7 @@ const defaultState = () => ({
   equipment:null, // 'gym' | 'dumbbells' | 'bodyweight' -- what the plan's lifts can use
   strengthFocus:'allround', // STRENGTH_FOCUS_OPTIONS key -- which lift each week's peak day builds
   planStart:null, // dateKey of the Monday the plan started (its week 0) -- see planWeekIndex()
+  planStartDate:null, // dateKey of the day the plan begins -- nothing is planned before it (see beforePlanStart)
   mileTime:null, // seconds -- a recent mile time the run paces are based on (see mileTimePaces)
   jogBaseline:null, // a new runner's latest longest steady jog {min, week, held} -- see recordJogBaseline()
   exerciseSwaps:{}, // "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'} -- see applyStandingSwaps()
@@ -3717,7 +3776,7 @@ function weekWorkoutGoal(){
   return weekDates(0).filter((date, i)=>{
     const dd = getDayData(date);
     if(dd.p.t!=='rest') return true;
-    return state.trainingDays.includes(i) && !dd.isCustom;
+    return state.trainingDays.includes(i) && !dd.isCustom && !beforePlanStart(date);
   }).length;
 }
 function dayStatus(i){
@@ -4290,7 +4349,47 @@ function renderDayChips(countId, weekdayId, holder, minDays, onChange){
     });
   });
 }
+// "When do you want to start?" -- in setup (Today by default) and Adjust ("Keep my plan" by default).
+// holder.startChoice: keep | today | tomorrow | monday | date; holder.startPick: the picked dateKey.
+function startDateFor(choice, pickedKey){
+  const t = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth(), TODAY_DATE.getDate());
+  if(choice==='today') return dateKey(t);
+  if(choice==='tomorrow'){ t.setDate(t.getDate()+1); return dateKey(t); }
+  if(choice==='monday'){ t.setDate(t.getDate() + 7 - (t.getDay()+6)%7); return dateKey(t); }
+  if(choice==='date') return pickedKey && pickedKey >= dateKey(t) ? pickedKey : null;
+  return null;
+}
+function renderStartSection(prefix, holder, withKeep, onChange){
+  const L = STR[state.lang];
+  const choices = [...(withKeep ? ['keep'] : []), 'today', ...(withKeep ? [] : ['tomorrow']), 'monday', 'date'];
+  const label = {keep:L.startKeep, today:L.startToday, tomorrow:L.startTomorrow, monday:L.startMonday, date:L.startPick};
+  const choice = holder.startChoice || choices[0];
+  renderChipRow(prefix+'StartChips', choices.map(k=>({key:k, en:{t:label[k]}, es:{t:label[k]}})), choice, k=>{ holder.startChoice = k; onChange(); });
+  const dateEl = document.getElementById(prefix+'StartDate');
+  dateEl.hidden = choice!=='date';
+  dateEl.min = dateKey(TODAY_DATE);
+  if(choice==='date' && holder.startPick && dateEl.value!==holder.startPick) dateEl.value = holder.startPick;
+  const note = document.getElementById(prefix+'StartNote');
+  const start = startDateFor(choice, holder.startPick);
+  if(choice==='keep'){
+    const key = state.planStartDate || planStartKey();
+    note.textContent = (key > dateKey(TODAY_DATE) ? L.startNoteKeepFuture : L.startNoteKeep).replace('{date}', fmtDayDate(key, state.lang));
+  } else if(!start) note.textContent = L.startNotePickDate;
+  else note.textContent = (withKeep ? L.startNoteRestart : L.startNoteOn).replace('{date}', fmtDayDate(start, state.lang));
+}
+function wireStartDate(prefix, holderFn, onChange){
+  document.getElementById(prefix+'StartDate').addEventListener('input', e=>{
+    const h = holderFn(); if(!h) return;
+    h.startPick = e.target.value || null;
+    onChange();
+  });
+}
+function renderOnbStart(){ renderStartSection('onb', state, false, renderOnbStart); }
+wireStartDate('onb', ()=>state, renderOnbStart);
+wireStartDate('adj', ()=>state.adjustDraft, ()=> renderAdjStart());
+function renderAdjStart(){ if(state.adjustDraft) renderStartSection('adj', state.adjustDraft, true, renderAdjStart); }
 function renderDaysScreen(){
+  renderOnbStart();
   renderDayChips('dayCountChips', 'weekdayChips', state, 1, ()=>{ state.week = null; renderDaysScreen(); });
   document.getElementById('daysSummary').textContent = `${state.trainingDays.length} ${STR[state.lang].daysSelectedSuffix}`;
 }
@@ -4485,7 +4584,7 @@ function runLoading(){
       step++;
       state.loadTimer = setTimeout(tick, 850);
     } else {
-      state.planStart = dateKey(WEEK_MONDAY);
+      startPlanOn(startDateFor(state.startChoice || 'today', state.startPick) || dateKey(TODAY_DATE));
       state.week = buildWeek();
       if(state.signedIn && state.userId) saveProfileToCloud();
       state.loadTimer = setTimeout(()=>showScreen('home'), 550);
@@ -5649,7 +5748,9 @@ document.getElementById('submitReviewBtn').addEventListener('click', function(){
 function weekPlanMetaHtml(weekIdx){
   if(!state.trainingDays.length) return '';
   const L = STR[state.lang];
-  const phase = isRecoveryWeek(planWeekIndex(weekDates(weekIdx)[0])) ? L.planWeekRecovery : L.planWeekBuild;
+  const dates = weekDates(weekIdx);
+  if(beforePlanStart(dates[6])) return `<span class="week-block-meta">${L.planStartsOn.replace('{date}', fmtDayDate(state.planStartDate, state.lang))}</span>`;
+  const phase = isRecoveryWeek(planWeekIndex(dates[0])) ? L.planWeekRecovery : L.planWeekBuild;
   const mi = weekStats(weekIdx).plannedDistance;
   return `<span class="week-block-meta">${phase}${mi>0 ? ` · ${+mi.toFixed(1)} mi` : ''}</span>`;
 }
@@ -6087,7 +6188,7 @@ function renderWorkoutPreview(){
   document.getElementById('wpIcon').innerHTML = TYPE_ICON[session.t] || '';
   document.getElementById('wpTitle').textContent = sL.title;
   const wave = session.t==='strength' && !r.extra ? liftWaveFor(session, date) : null;
-  document.getElementById('wpDetail').textContent = [sL.detail, wave ? L['wave_'+wave.pos] : ''].filter(Boolean).join(' · ');
+  document.getElementById('wpDetail').textContent = [sL.detail, wave ? L['wave_'+(wave.deload ? 'deload' : wave.pos)] : ''].filter(Boolean).join(' · ');
 
   const runSection = document.getElementById('wpRunSection');
   runSection.hidden = session.t!=='run';
@@ -6161,7 +6262,8 @@ function pyramidLadderHtml(ex){
     if(g && g.stage===st.stage && g.reps===st.reps) g.weights.push(st.weight);
     else groups.push({stage:st.stage, reps:st.reps, weights:[st.weight]});
   });
-  const rules = !pyr.peak ? L.pyramidRulesLight.replace('{day}', L['wave_'+pyr.pos])
+  const rules = pyr.deload ? L.pyramidRulesDeload
+    : !pyr.peak ? L.pyramidRulesLight.replace('{day}', L['wave_'+pyr.pos])
     : pyr.steps.some(st=>st.stage==='top') ? L.pyramidRulesPeak : L.pyramidRulesPeakBeginner;
   return `<div class="wp-pyramid">${groups.map((g,i)=>`<div class="pyr-step" data-stage="${g.stage}">
       <b>${i && groups[i-1].stage===g.stage ? '' : escapeHtml(L['pyrStage_'+g.stage])}</b>
@@ -7102,6 +7204,7 @@ function openAdjustSheet(){
   renderAdjIntensityTabs();
   renderAdjDaysChips();
   renderAdjBaseline();
+  renderAdjStart();
 }
 function renderAdjBaseline(){
   if(state.adjustDraft) renderBaselineChips('adj', state.adjustDraft, renderAdjBaseline);
@@ -7146,8 +7249,11 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
   state.strengthFocus = d.strengthFocus || 'allround';
   const newMile = d.mileTime || null;
   if(newMile!==state.mileTime){ state.mileTime = newMile; reseedRunPaces(); }
-  // A new starting point restarts the mileage build-up from this week.
-  if(d.weeklyMiles!==state.weeklyMiles) state.planStart = dateKey(WEEK_MONDAY);
+  // A chosen start date starts the plan over from that day. Otherwise a new starting mileage restarts
+  // the build-up from today -- unless the plan hasn't started yet, in which case it keeps its date.
+  const restartOn = d.startChoice && d.startChoice!=='keep' ? startDateFor(d.startChoice, d.startPick) : null;
+  if(restartOn) startPlanOn(restartOn);
+  else if(d.weeklyMiles!==state.weeklyMiles && !(state.planStartDate && state.planStartDate > dateKey(TODAY_DATE))) startPlanOn(dateKey(TODAY_DATE));
   state.weeklyMiles = d.weeklyMiles;
   state.week = regenerateUpcomingWeek();
   state.doneCount = computeDoneCount();
@@ -7508,6 +7614,7 @@ async function loadProfileFromCloud(){
   if(data.jog_baseline && typeof data.jog_baseline==='object') state.jogBaseline = data.jog_baseline;
   if(data.exercise_swaps && typeof data.exercise_swaps==='object') state.exerciseSwaps = data.exercise_swaps;
   if(data.plan_start) state.planStart = data.plan_start;
+  if(data.plan_start_date) state.planStartDate = String(data.plan_start_date).slice(0,10);
   else if(!state.planStart){
     // An account from before plans were counted in weeks: its plan starts now.
     state.planStart = dateKey(WEEK_MONDAY);
@@ -7537,6 +7644,7 @@ async function saveProfileToCloud(){
       weekly_miles: state.weeklyMiles,
       equipment: state.equipment,
       plan_start: state.planStart,
+      plan_start_date: state.planStartDate,
       exercise_swaps: state.exerciseSwaps,
       strength_focus: state.strengthFocus,
       jog_baseline: state.jogBaseline,
@@ -7548,7 +7656,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }

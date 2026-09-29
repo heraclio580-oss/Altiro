@@ -82,9 +82,9 @@ function openSession(backend){
   await wait(20);
   const meta = i => { const el = doc.querySelector(`.week-block[data-week-idx="${i}"] .week-block-meta`); return el ? el.textContent : ''; };
   console.log('Next week is a build week with its planned miles:', /^Build week · \d+(\.\d)? mi$/.test(meta(1)) ? `OK (${meta(1)})` : `FAIL (${meta(1)})`);
-  console.log('Every 4th week of the plan is a recovery week:', meta(3).startsWith('Recovery week') ? `OK (${meta(3)})` : `FAIL (${meta(3)})`);
+  console.log('Every 4th week of the plan is a deload week:', meta(3).startsWith('Deload week') ? `OK (${meta(3)})` : `FAIL (${meta(3)})`);
   const mi = i => parseFloat(meta(i).split('· ')[1]);
-  console.log('Build weeks grow, then the recovery week drops:', mi(1) < mi(2) && mi(3) < mi(2) ? 'OK' : `FAIL (${[1,2,3].map(mi)})`);
+  console.log('Build weeks grow, then the deload week drops:', mi(1) < mi(2) && mi(3) < mi(2) ? 'OK' : `FAIL (${[1,2,3].map(mi)})`);
   const nextRows = [...doc.querySelectorAll('.week-block[data-week-idx="1"] .plan-row')];
   const longDay = nextRows.findIndex(r=>r.textContent.includes('Long Run'));
   console.log("Next week's long run is on the weekend (Saturday first):", longDay===5 || (longDay===6 && !/Run|Jog/.test(nextRows[5].textContent)) ? 'OK' : `FAIL (${nextRows.map(r=>r.textContent.replace(/\s+/g,' ').trim().slice(0,30)).join(' | ')})`);

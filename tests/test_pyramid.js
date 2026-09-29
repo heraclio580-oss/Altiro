@@ -57,11 +57,16 @@ check('The week builds to the peak and comes back down', tops[0]<=tops[1] && top
 check('Only the main lift is a pyramid; accessories stay straight sets', wk0.every(d=>exs(d).slice(1).every(e=>!e.pyramid)));
 check('Every workout is 4 lifts or fewer', wk0.every(d=>exs(d).length<=4), wk0.map(d=>exs(d).length).join());
 
-// All-round: press -> squat -> deadlift, then a recovery week with no peak, then the next variations.
-const peakOf = n => { const d = liftDays(n).find(x=>x.wave.pos==='peak'); return d ? exs(d)[0].key : null; };
+// All-round: press -> squat -> deadlift, then a deload week with no peak, then the next variations.
+const peakOf = n => { const d = liftDays(n).find(x=>x.wave.pos==='peak' && x.wave.focus); return d ? exs(d)[0].key : null; };
 const rot = [0,1,2,3,4,5,6].map(peakOf);
 check('All-round rotation: press, squat, deadlift', movementOf(rot[0]).includes('hpush') && movementOf(rot[1]).includes('squat') && movementOf(rot[2]).includes('deadlift'), rot.slice(0,3).join(', '));
-check('Recovery week (4th): no peak, every day light', rot[3]===null && liftDays(3).every(d=>d.wave.pos==='light' && !(exs(d)[0].pyramid||{}).peak));
+const deload = liftDays(3);
+check('Deload week (4th): every training day still has its workout', deload.length===liftDays(2).length && deload.length===5, deload.length);
+check('...no peak single, a shorter pyramid (10 sets, not 13+)', rot[3]===null && deload.every(d=>{ const p = exs(d)[0].pyramid; return p && p.deload && !p.peak && p.steps.length===10 && p.steps.every(s=>s.reps>=5); }));
+const tops2 = liftDays(2).map(d=>exs(d)[0].pyramid.top), tops3 = deload.map(d=>exs(d)[0].pyramid.top);
+check('...and lighter every day than the week before (about 85%)', tops3.every((t,i)=> t < tops2[i] && t >= tops2[i]*0.6), tops2.join('/')+' -> '+tops3.join('/'));
+check('...accessories a set less', deload.every((d,i)=> exs(d).slice(1).every(e=> e.sets <= 3)));
 check('Next round peaks new variations', rot[4]!==rot[0] && rot[5]!==rot[1] && movementOf(rot[4]).includes('hpush'), rot.slice(4).join(', '));
 
 // A single focus: the same lift every week, a different variation each week.

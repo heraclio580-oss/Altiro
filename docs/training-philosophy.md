@@ -115,6 +115,20 @@ Notes:
 
 ✏️ **Your approach:** (cycle length, how much to cut, what changes)
 
+**Every 4th week is a deload week, not a rest week.** People build their week around their workouts,
+so the training days stay the same. Only the volume and intensity come down, to about 80–90% of the
+week before. After it, the user can adjust things up if the workouts have felt good.
+
+✅ **In the app** ("Deload week" on the Plan tab):
+- Runs: about 80% of the miles, and the tempo or interval run becomes an easy run with strides.
+- Lifting: every day's pyramid tops out at about 85% of that day's level the week before, with no
+  single. It's a shorter ladder: 10 sets instead of 13 (3 × 10 warm-up, 2 × 10, 2 × 5, then 2 × 5
+  and 1 × 10 back down). Accessories are a set less.
+
+**Starting the plan.** Users choose when their plan starts: today, tomorrow, next Monday or a date they
+pick, in setup and in Adjust (where "Keep my plan" is the default). Nothing is planned before that day,
+and its week is week 1.
+
 ### 2.4 The long run
 
 > **Today:** 30–55% of the week (less the more runs there are), capped at 10 / 16 / 22 mi by

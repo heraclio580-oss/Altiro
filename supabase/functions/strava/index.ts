@@ -63,6 +63,8 @@ export type Deps = {
 };
 
 function json(body: unknown, status = 200) {
+  // Every outcome is also written to the function's Logs, so a failed connection has an answer there.
+  console.log(JSON.stringify({ status, ...(body as Record<string, unknown>) }));
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 }
 
@@ -153,7 +155,7 @@ export function makeHandler(deps: Deps) {
     }
     const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     const userId = jwt ? await deps.db.userIdFromJwt(jwt) : null;
-    if (!userId) return json({ error: "not_signed_in" }, 401);
+    if (!userId) return json({ error: "not_signed_in", detail: jwt ? "token rejected by Supabase Auth" : "no Authorization header" }, 401);
 
     let body: Record<string, string> = {};
     try { body = await req.json(); } catch { /* empty body */ }
@@ -225,7 +227,8 @@ function supabaseDb(): Db {
   const check = ({ error }: { error: unknown }) => { if (error) throw error; };
   return {
     async userIdFromJwt(jwt) {
-      const { data } = await admin.auth.getUser(jwt);
+      const { data, error } = await admin.auth.getUser(jwt);
+      if (error) console.log(JSON.stringify({ auth_error: error.message }));
       return data?.user?.id ?? null;
     },
     async getConnection(userId) {

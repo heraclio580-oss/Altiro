@@ -1629,6 +1629,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <input type="number" inputmode="numeric" class="text-input" id="logPerfRepsInput">
       </div>
 
+      <div class="sheet-section" id="logPerfJogSection" hidden>
+        <div class="st-label" data-i18n="logPerfJogLabel"></div>
+        <input type="number" inputmode="decimal" step="0.5" min="0" class="text-input" id="logPerfJogInput">
+        <div class="footer-note" style="text-align:left;margin-top:6px;" data-i18n="logPerfJogNote"></div>
+      </div>
+
       <div class="sheet-section" id="logPerfDistanceSection">
         <div class="st-label" data-i18n="logPerfDistanceLabel"></div>
         <input type="number" inputmode="decimal" step="0.01" class="text-input" id="logPerfDistanceInput">
@@ -1952,6 +1958,13 @@ const STR = {
     bdEasyRun: "Easy run",
     bdStrides: "Strides",
     bdRunWalk: "Run + walk",
+    bdWalkLabel: "Walk", bdJogLabel: "Jog", bdJogWalkLabel: "Jog + walk", bdJogRestLabel: "Jog to the end",
+    bdJogAtWalkPace: "keep your walking pace, just the motion of a jog",
+    bdJogQuicker: "a touch quicker than your walk",
+    bdJogEasy: "easy, by feel: you can still talk",
+    bdJogWalkNote: "jog {j} min, walk 1 min",
+    logPerfJogLabel: "Longest steady jog (min)",
+    logPerfJogNote: "How long you jogged without stopping to walk. Your next walk/jogs build from it.",
     bdEasy: "easy, conversational",
     bdWarmEasy: "start easy, conversational",
     bdCoolEasy: "slow back down to easy, conversational",
@@ -2281,6 +2294,13 @@ const STR = {
     bdEasyRun: "Carrera suave",
     bdStrides: "Progresiones",
     bdRunWalk: "Correr + caminar",
+    bdWalkLabel: "Caminar", bdJogLabel: "Trotar", bdJogWalkLabel: "Trotar + caminar", bdJogRestLabel: "Trota hasta el final",
+    bdJogAtWalkPace: "mantén tu ritmo de caminar, solo el movimiento de trotar",
+    bdJogQuicker: "un poco más rápido que al caminar",
+    bdJogEasy: "suave, por sensaciones: puedes hablar",
+    bdJogWalkNote: "trota {j} min, camina 1 min",
+    logPerfJogLabel: "Trote más largo sin parar (min)",
+    logPerfJogNote: "Cuánto trotaste sin parar a caminar. Tus próximas sesiones parten de ahí.",
     bdEasy: "suave, conversacional",
     bdWarmEasy: "empieza suave, conversacional",
     bdCoolEasy: "baja de nuevo a suave, conversacional",
@@ -2651,10 +2671,11 @@ const LEVEL_PLAN = {
   advanced:     {growth:1.10, longCap:22, weeklyCap:60, quality:2, minRun:3,   startMiles:25},
 };
 const INTENSITY_SCALE = [0.9, 1, 1.1]; // light / moderate / high -- scales weekly mileage
+// One quality run a week, alternating tempo and intervals -- mostly easy running around it.
 const QUALITY_ROTATION = {
-  beginner: ['fartlek','hills'],
-  intermediate: ['tempo','intervals','fartlek'],
-  advanced: ['tempo','intervals','hills'],
+  beginner: ['tempo','intervals'],
+  intermediate: ['tempo','intervals'],
+  advanced: ['tempo','intervals'],
 };
 const INTERVAL_REP_METERS = [400, 800, 1000, 800]; // changes every 4-week block
 
@@ -2677,6 +2698,7 @@ function planConfig(overrides){
     intensity: state.intensityIdx,
     miles: state.weeklyMiles,
     equipment: planEquipment(),
+    jog: state.jogBaseline || null,
     strengthFocus: STRENGTH_FOCUS_OPTIONS.some(o=>o.key===state.strengthFocus) ? state.strengthFocus : 'allround',
     ...(overrides||{}),
   };
@@ -2739,39 +2761,66 @@ function qualityRunCount(cfg, runDays, n){
   if(cfg.level==='beginner' && n>=4 && runDays>=3) q = 1;
   if(cfg.intensity===0) q -= 1;
   else if(cfg.intensity===2) q += 1;
-  // No hard sessions while on run/walk, nor for the first 4 weeks of running continuously after it.
-  if(isNewRunner(cfg) && newRunnerStage(cfg, n) < RUN_WALK_STEPS.length+4) q = 0;
-  return Math.max(0, Math.min(q, 2, runDays-1));
+  // No hard sessions while on walk/jog, nor for the first 4 weeks of running continuously after it.
+  if(isNewRunner(cfg) && !(newRunnerGraduatedAt(cfg, n) <= buildWeekOf(n) - 4)) q = 0;
+  return Math.max(0, Math.min(q, 1, runDays-1));
 }
-// Someone who barely runs yet ("New to running") starts with timed walking and run/walk sessions done
-// by feel -- no miles to hit, no paces anywhere -- building like a couch-to-5K plan: each step runs a
-// little longer and walks a little less. On Light intensity it opens with two weeks of brisk walks;
-// on High it skips the first step. Recovery weeks repeat the step before instead of moving up.
+// Someone who barely runs yet ("New to running") starts with time, not distance -- 20-minute sessions,
+// all by feel -- and grows the jog from the END of the walk:
+//   week 1: a 20-minute brisk walk; then 15 minutes' walk and the last 5 jogging at walking pace (just
+//           the motion of a jog); then the same, the jog a touch quicker.
+//   The longest steady jog they hold (logged after each session) is their baseline.
+//   week 2+: a brisk walk to start (10 min, then 5, then none), then jog blocks of the baseline with a
+//           minute's walk between, jogging to the end. Blocks grow each week they're held (repeat when
+//           they aren't), until they jog the whole 20 minutes -- then it's continuous easy running.
+// Recovery weeks repeat the week before.
 function isNewRunner(cfg){ return (cfg.miles ?? LEVEL_PLAN[cfg.level].startMiles) < 3; }
-const RUN_WALK_STEPS = [
-  {run:1, walk:2, rounds:6}, {run:1, walk:1.5, rounds:8}, {run:2, walk:2, rounds:5}, {run:2, walk:1, rounds:6},
-  {run:3, walk:1.5, rounds:5}, {run:4, walk:1.5, rounds:4}, {run:5, walk:1, rounds:4}, {run:8, walk:1.5, rounds:3},
-  {run:10, walk:1, rounds:3}, {run:15, walk:1, rounds:2},
-];
-const BRISK_WALK_MINUTES = [20, 25]; // the walking weeks before running starts
-// Where a new runner is in that build: below 0 = still walking, past the last step = running continuously.
-function newRunnerStage(cfg, n){
-  const buildWeeks = n - Math.floor((n+1)/4);
-  return buildWeeks + ([-2, 0, 1][cfg.intensity] ?? 0);
+const WALK_JOG_MINUTES = 20;
+// Plan weeks that moved the build on (a recovery week repeats the one before): 0, 1, 2, 2, 3, 4, 5, 5 ...
+function buildWeekOf(n){ return n - Math.floor((n+1)/4); }
+// The jog block for build week b (>= 1), from the latest logged baseline {min, week (a build week),
+// held: whether it matched what was planned} -- or 3 minutes from week 1 when nothing's logged yet.
+function jogBlockFor(cfg, b){
+  const base = cfg.jog && cfg.jog.min>0 ? cfg.jog : {min:3, week:0, held:false};
+  let block = base.min;
+  for(let i=0; i < b - base.week - (base.held ? 0 : 1); i++) block += Math.max(1, Math.round(block*0.25));
+  return Math.max(1, Math.min(WALK_JOG_MINUTES, block));
 }
-function onRunWalkPlan(cfg, n){ return isNewRunner(cfg) && newRunnerStage(cfg, n) < RUN_WALK_STEPS.length; }
-// A timed walk or run/walk: 5 minutes' walking warm-up and cool-down around the intervals. The week's
-// long day gets one more round (or 10 more minutes of walking).
-function runWalkSessionFor(stage, longer){
-  if(stage<0){
-    const min = BRISK_WALK_MINUTES[Math.max(0, stage+BRISK_WALK_MINUTES.length)] + (longer ? 10 : 0);
-    return ses('run','Brisk Walk',`${min} min`,'Caminata rápida',`${min} min`);
+function warmWalkFor(b){ return b<=1 ? 10 : b<=3 ? 5 : 0; }
+// The build week a new runner first jogged the whole 20 minutes (running continuously from the week
+// after), or Infinity if not yet by week b.
+function newRunnerGraduatedAt(cfg, n){
+  const b = buildWeekOf(n);
+  for(let k=1; k<=b; k++) if(jogBlockFor(cfg, k) >= WALK_JOG_MINUTES - warmWalkFor(k) && warmWalkFor(k)===0) return k;
+  return Infinity;
+}
+function onWalkJogPlan(cfg, n){ return isNewRunner(cfg) && newRunnerGraduatedAt(cfg, n) >= buildWeekOf(n); }
+// One walk/jog session: order is its place among the week's runs (week 1 builds day by day).
+function walkJogSessionFor(cfg, n, order){
+  const b = buildWeekOf(n);
+  const M = WALK_JOG_MINUTES;
+  if(b===0){
+    if(order===0) return ses('run','Brisk Walk',`${M} min`,'Caminata rápida',`${M} min`);
+    return order===1
+      ? ses('run','Walk + Jog',`${M} min · walk 15 min, then jog the last 5 min at your walking pace`,'Caminar + trotar',`${M} min · camina 15 min y trota los últimos 5 min a tu ritmo de caminar`)
+      : ses('run','Walk + Jog',`${M} min · walk 15 min, then jog the last 5 min a touch quicker`,'Caminar + trotar',`${M} min · camina 15 min y trota los últimos 5 min un poco más rápido`);
   }
-  const st = RUN_WALK_STEPS[stage];
-  const rounds = st.rounds + (longer ? 1 : 0);
-  const total = Math.round(10 + rounds*(st.run+st.walk));
-  return ses('run','Run/Walk',`${total} min · run ${st.run} min, walk ${st.walk} min × ${rounds}`,
-    'Correr/Caminar',`${total} min · corre ${st.run} min, camina ${st.walk} min × ${rounds}`);
+  const warm = warmWalkFor(b), block = jogBlockFor(cfg, b);
+  if(block >= M - warm){
+    return warm
+      ? ses('run','Walk + Jog',`${M} min · walk ${warm} min, then jog ${M-warm} min`,'Caminar + trotar',`${M} min · camina ${warm} min y trota ${M-warm} min`)
+      : ses('run','Walk + Jog',`${M} min · jog the whole ${M} min`,'Caminar + trotar',`${M} min · trota los ${M} min`);
+  }
+  const en = warm ? `walk ${warm} min, then jog ${block} min / walk 1 min to the end` : `jog ${block} min / walk 1 min to the end`;
+  const es = warm ? `camina ${warm} min, luego trota ${block} min / camina 1 min hasta el final` : `trota ${block} min / camina 1 min hasta el final`;
+  return ses('run','Walk + Jog',`${M} min · ${en}`,'Caminar + trotar',`${M} min · ${es}`);
+}
+// How many minutes of steady jogging a walk/jog session plans in one go (null if it isn't one).
+function plannedJogBlock(session){
+  if(!session || session.en.title!=='Walk + Jog') return null;
+  const d = session.en.detail || '';
+  const m = d.match(/jog (?:the whole |the last )?(\d+) min/);
+  return m ? Number(m[1]) : null;
 }
 
 // Splits a week's miles across its runs: the long run takes the biggest share (less of it the more
@@ -2781,9 +2830,10 @@ function distributeRunMiles(total, roles, cfg){
   const P = LEVEL_PLAN[cfg.level];
   if(!roles.length) return [];
   if(roles.length===1) return [Math.max(P.minRun, roundHalf(Math.min(total, P.longCap)))];
-  const longShare = roles.length===2 ? 0.55 : roles.length===3 ? 0.4 : 0.3;
+  // Shaped like a real week -- 4 runs of 30 mi: tempo 4.5, longer easy 6.5, long 16, recovery 3.5.
+  const longShare = [0, 1, 0.55, 0.45, 0.5, 0.42, 0.36, 0.32][roles.length] ?? 0.3;
   const long = Math.max(P.minRun, roundHalf(Math.min(P.longCap, total*longShare)));
-  const WEIGHT = {quality:1.15, easy:1, recovery:0.7};
+  const WEIGHT = {quality:1.4, easyLong:2, easy:1.4, recovery:1};
   const others = roles.slice(1);
   const wsum = others.reduce((s,r)=>s+WEIGHT[r], 0);
   const rest = Math.max(0, total - long);
@@ -2792,13 +2842,14 @@ function distributeRunMiles(total, roles, cfg){
 function fmtMiles(mi){ return String(roundHalf(mi)); }
 // One run, in both languages. Every run's detail starts with its distance ("5 mi ...") -- weekly
 // planned-mile totals and the distance a completed run counts for both read it from there (a timed
-// walk or run/walk -- see runWalkSessionFor -- starts with its minutes instead, and counts no miles
+// walk or walk/jog -- see walkJogSessionFor -- starts with its minutes instead, and counts no miles
 // until the user logs some).
 function runSessionFor(kind, mi, extra){
   const d = fmtMiles(mi) + ' mi';
   switch(kind){
     case 'long': return ses('run','Long Run',d,'Carrera larga',d);
     case 'recovery': return ses('run','Recovery Jog',d,'Trote de recuperación',d);
+    case 'easyLong': return ses('run','Easy Run',`${d} · the longer easy one`,'Carrera suave',`${d} · la suave más larga`);
     case 'strides': return ses('run','Easy Run + Strides',`${d} · 4 x 20s strides`,'Carrera suave + progresiones',`${d} · 4 x 20s progresiones`);
     case 'tempo': return ses('run','Tempo Run',`${d} · ${fmtMiles(Math.max(1, mi*0.5))} mi at tempo pace`,'Carrera de tempo',`${d} · ${fmtMiles(Math.max(1, mi*0.5))} mi a ritmo de tempo`);
     case 'intervals': return ses('run','Interval Run',`${d} · ${extra.reps} x ${extra.meters}m`,'Carrera de intervalos',`${d} · ${extra.reps} x ${extra.meters}m`);
@@ -2856,6 +2907,7 @@ const COMPANION = {
   hips: ()=> ses('strength','Hip & Glute Activation','10 min','Activación de cadera y glúteos','10 min'),
   core: ()=> ses('strength','Core Activation','10 min','Activación del core','10 min'),
   mobility: ()=> ses('strength','Mobility & Stretch','10 min','Movilidad y estiramiento','10 min'),
+  jog: ()=> ses('run','Easy Jog','20–30 min after lifting','Trote suave','20–30 min después de las pesas'),
 };
 
 // Which session goes on which training day. Every arrangement is scored and the best one kept: hard
@@ -2897,7 +2949,12 @@ function placeSessions(days, items){
       const it = assign[i];
       const next = d===6 ? byDay[0] : byDay[d+1];
       if(next) c += pairCost(it, next) * (d===6 ? 0.5 : 1);
-      if(it.role==='long') c += hasWeekend ? (d===6 ? 0 : d===5 ? 1 : 8) : (lastDay-d);
+      // Long run Saturday morning (or Sunday); the short recovery run the day after it; the week's fast
+      // session early; the longer easy run mid-week.
+      if(it.role==='long') c += hasWeekend ? (d===5 ? 0 : d===6 ? 1 : 8) : (lastDay-d);
+      if(it.role==='recovery'){ const prev = byDay[d===0 ? 6 : d-1]; c += prev && prev.role==='long' ? 0 : 2; }
+      if(it.role==='quality') c += 0.3*d;
+      if(it.role==='easyLong') c += 0.2*Math.abs(d-3);
     });
     return c;
   }
@@ -2931,10 +2988,14 @@ function generatePlanWeek(cfg, n){
   const recovery = isRecoveryWeek(n);
   const {runs, lifts} = splitTrainingDays(days.length, cfg.focus, cfg.goal);
 
+  // The running week's building block: one fast session (tempo or intervals), a longer easy run, the
+  // long run, and -- with 4 or more runs -- a short recovery run the day after it; any more are easy.
   const q = qualityRunCount(cfg, runs, n);
   const roles = runs ? ['long'] : [];
-  for(let k=0; k<q && roles.length<runs; k++) roles.push('quality');
-  while(roles.length<runs) roles.push(roles.length>=5 ? 'recovery' : 'easy');
+  if(q && roles.length<runs) roles.push('quality');
+  if(roles.length<runs) roles.push('easyLong');
+  const extra = runs - roles.length;
+  for(let k=0; k<extra; k++) roles.push(k===extra-1 && runs>=4 ? 'recovery' : 'easy');
   const miles = distributeRunMiles(weeklyRunMiles(cfg, runs, n), roles, cfg);
 
   const items = [];
@@ -2945,8 +3006,8 @@ function generatePlanWeek(cfg, n){
     if(role==='quality') kind = recovery ? 'strides' : QUALITY_ROTATION[cfg.level][(n+qIdx++) % QUALITY_ROTATION[cfg.level].length];
     // A "long run" only earns the name once it's genuinely long.
     if(role==='long' && (mi<4 || runs===1 && mi<6)) kind = 'easy';
-    if(onRunWalkPlan(cfg, n)) kind = 'runwalk';
-    const hard = role==='long' ? kind!=='easy' && kind!=='runwalk' : role==='quality' && !recovery;
+    if(onWalkJogPlan(cfg, n)) kind = 'walkjog';
+    const hard = role==='long' ? kind!=='easy' && kind!=='walkjog' : role==='quality' && !recovery;
     items.push({kind:'run', role, sub:kind, mi, hard, legs:true, sig:'run:'+role+':'+kind+':'+mi});
   });
   // The workout that trains the week's focus lift is its peak, placed mid-week (see liftWave).
@@ -2963,14 +3024,15 @@ function generatePlanWeek(cfg, n){
   });
 
   const placed = placeSessions(days, items);
-  let easyCount = 0;
+  let easyCount = 0, runOrder = 0;
   days.forEach((d,i)=>{
     const it = placed[i];
     if(it.kind==='run'){
       let p;
-      if(it.sub==='runwalk') p = runWalkSessionFor(newRunnerStage(cfg, n), it.role==='long' && runs>1);
+      if(it.sub==='walkjog') p = walkJogSessionFor(cfg, n, runOrder);
       else if(['tempo','intervals','fartlek','hills'].includes(it.sub)) p = qualityRunFor(it.sub, it.mi, n);
       else p = runSessionFor(it.sub, it.mi);
+      runOrder++;
       const c = it.role==='long' ? COMPANION.foam()
         : it.role==='quality' ? COMPANION.hips()
         : (easyCount++ % 2 ? COMPANION.mobility() : COMPANION.core());
@@ -2982,6 +3044,16 @@ function generatePlanWeek(cfg, n){
   // The lifting days' weekly wave (see liftWave), in day order.
   const liftDays = days.filter((d,i)=>placed[i].kind==='lift');
   liftWave(liftDays.map(d=>placed[days.indexOf(d)]), cfg, n).forEach((w,i)=>{ week[liftDays[i]].wave = w; });
+  // Running and lifting go hand in hand: in a plan with both, a lifting day is followed by an easy
+  // 20-30 minute jog -- except the peak day, a day before a hard run or the long run, and for someone
+  // still building up to running.
+  if(runs && !onWalkJogPlan(cfg, n)){
+    liftDays.forEach(d=>{
+      const next = week[(d+1)%7].p;
+      const hardNext = next.t==='run' && /Long Run|Tempo Run|Interval Run/.test(next.en.title);
+      if(week[d].wave && week[d].wave.pos!=='peak' && !hardNext) week[d].c = COMPANION.jog();
+    });
+  }
   return week;
 }
 
@@ -3484,6 +3556,7 @@ const defaultState = () => ({
   equipment:null, // 'gym' | 'dumbbells' | 'bodyweight' -- what the plan's lifts can use
   strengthFocus:'allround', // STRENGTH_FOCUS_OPTIONS key -- which lift each week's peak day builds
   planStart:null, // dateKey of the Monday the plan started (its week 0) -- see planWeekIndex()
+  jogBaseline:null, // a new runner's latest longest steady jog {min, week, held} -- see recordJogBaseline()
   exerciseSwaps:{}, // "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'} -- see applyStandingSwaps()
   week:null,
   todayCompleted:false,
@@ -4522,6 +4595,13 @@ function renderHome(){
 }
 
 /* ---------------- progression programming ---------------- */
+// A new runner's longest steady jog, from their latest walk/jog log -- what the next sessions' jog
+// blocks build from (see jogBlockFor). Week 1's jog isn't a block yet, so it never counts as held.
+function recordJogBaseline(min, planned, date){
+  const b = buildWeekOf(planWeekIndex(date));
+  state.jogBaseline = {min: Math.max(0.5, Math.round(min*2)/2), week: b, held: b>0 && min>=planned};
+  saveProfileToCloud();
+}
 function progressionKey(session){
   return session.t + ':' + session.en.title;
 }
@@ -4949,6 +5029,10 @@ function openLogPerformanceFor(logTarget, mode){
   document.getElementById('logPerfWeightSection').hidden = !(eff.t==='strength' && !exercises);
   document.getElementById('logPerfRepsSection').hidden = !(eff.t==='strength' && !exercises);
   document.getElementById('logPerfDistanceSection').hidden = eff.t!=='run';
+  // A walk/jog asks how long they jogged without stopping -- the baseline the next sessions build from.
+  const jogBlock = plannedJogBlock(eff);
+  document.getElementById('logPerfJogSection').hidden = jogBlock==null;
+  if(jogBlock!=null) document.getElementById('logPerfJogInput').value = (perf && perf.jogMin!=null) ? perf.jogMin : jogBlock;
   document.getElementById('logPerfTimeSection').hidden = eff.t!=='run';
   // The sheet is shared by every workout now, so every field is set explicitly on each open --
   // nothing left over from whichever workout was logged last.
@@ -5026,6 +5110,11 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   if(eff.t==='run'){
     const plannedDist = plannedMilesOf(eff) || (plannedMinutesOf(eff)!=null ? null : 3);
     logged.distance = parseFloat(document.getElementById('logPerfDistanceInput').value) || plannedDist;
+    const jogBlock = plannedJogBlock(eff);
+    if(jogBlock!=null){
+      const jog = parseFloat(document.getElementById('logPerfJogInput').value);
+      if(jog>=0){ logged.jogMin = jog; recordJogBaseline(jog, jogBlock, parseDateKey(logTarget.dayKey)); }
+    }
     logged.time = readHmsMinutes('logPerfTime') || plannedMinutesOf(eff) || ((target ? target.pace : 9.5)*(logged.distance || 0)) || null;
   }
   logged.notes = document.getElementById('logPerfNotesInput').value.trim();
@@ -5782,16 +5871,18 @@ document.getElementById('dayDetailPlanRow').addEventListener('click', ()=>{
 // workout's exercises with their targets -- and where it can be changed: any exercise swapped for
 // another or skipped (for just this workout, or every workout from now on), or the whole workout skipped.
 const RUN_HOW = {
-  'Easy Run': {en:"Relaxed, conversational pace — you should be able to talk in full sentences the whole way.", es:"Ritmo relajado y conversacional — deberías poder hablar con frases completas todo el tiempo."},
+  'Easy Run': {en:"Zone 2: relaxed, easy heart rate, conversational — you should be able to talk in full sentences the whole way.", es:"Zona 2: relajado, pulso suave, conversacional — deberías poder hablar con frases completas todo el tiempo."},
   'Long Run': {en:"Your longest run of the week. Start easy and stay steady; walk breaks are fine. Bring water and fuel if it's over an hour.", es:"Tu carrera más larga de la semana. Empieza suave y mantén el ritmo; puedes caminar a ratos. Lleva agua y energía si dura más de una hora."},
-  'Recovery Jog': {en:"Very easy — slower than your easy pace. It's for loosening up, not fitness.", es:"Muy suave — más lento que tu ritmo fácil. Es para soltar las piernas, no para ganar forma."},
+  'Recovery Jog': {en:"Short and really easy, the day after your long run — slower than your easy pace. A light jog, a hike or even a walk all count: it's for loosening up, not fitness.", es:"Corto y muy suave, el día después de tu carrera larga — más lento que tu ritmo fácil. Un trote ligero, una caminata por el monte o incluso un paseo valen: es para soltar las piernas, no para ganar forma."},
+  'Walk + Jog': {en:"Start with the brisk walk, then jog exactly as shown. No speed needed — go by feel, slow enough that you could still talk. If you can't hold a jog, walk the rest; then note the longest stretch you jogged without stopping. Your next sessions build from it.", es:"Empieza con la caminata rápida y trota como se indica. No hace falta velocidad — guíate por cómo te sientes, tan despacio que puedas hablar. Si no puedes mantener el trote, camina el resto y apunta el tramo más largo que trotaste sin parar. Tus próximas sesiones parten de ahí."},
   'Tempo Run': {en:"Start with the easy warm-up, run the tempo part at a comfortably hard pace (you can say a few words at a time, not hold a conversation), then finish with the easy cool-down.", es:"Empieza con el calentamiento suave, corre la parte de tempo a un ritmo cómodamente exigente (puedes decir unas palabras, no conversar) y termina con el enfriamiento suave."},
   'Interval Run': {en:"After the easy warm-up, run each rep hard but controlled — the last one should feel like the first — with an easy jog between. Finish with the easy cool-down.", es:"Tras el calentamiento suave, corre cada repetición fuerte pero controlada — la última debe sentirse como la primera — con trote suave entre ellas. Termina con el enfriamiento suave."},
   'Fartlek Run': {en:"Easy running with one-minute fast bursts mixed in — jog easy between them until you're ready for the next.", es:"Carrera suave con ráfagas rápidas de un minuto — trota suave entre ellas hasta estar listo para la siguiente."},
   'Hill Repeats': {en:"Warm up easy, then run each 60 seconds uphill strong and walk or jog back down to recover.", es:"Calienta suave, corre cada subida de 60 segundos con fuerza y baja caminando o trotando para recuperar."},
   'Easy Run + Strides': {en:"An easy run, then four relaxed 20-second pickups to a fast (not all-out) pace, walking back between each.", es:"Una carrera suave y luego cuatro aceleraciones relajadas de 20 segundos a ritmo rápido (sin llegar al máximo), caminando entre cada una."},
   'Run/Walk': {en:"Walk 5 minutes to warm up, then alternate running and walking as shown, and walk 5 minutes to finish. Go by feel, not pace: run slowly enough that you could still talk, and walk briskly to recover. If a run feels too hard, slow down or walk — finishing matters more than speed. The running gets a little longer each week.", es:"Camina 5 minutos para calentar, alterna correr y caminar como se indica y termina caminando 5 minutos. Guíate por cómo te sientes, no por el ritmo: corre tan despacio que puedas hablar y camina a paso vivo para recuperar. Si te cuesta demasiado, baja el ritmo o camina — terminar importa más que la velocidad. La parte de correr se alarga un poco cada semana."},
-  'Brisk Walk': {en:"Walk at a purposeful pace — breathing a little harder, but still able to hold a conversation. There's no pace to hit; this builds the base your running will start from in a couple of weeks.", es:"Camina a paso decidido — respirando un poco más fuerte, pero pudiendo conversar. No hay ritmo que cumplir; esto crea la base desde la que empezarás a correr en un par de semanas."},
+  'Brisk Walk': {en:"Walk at a purposeful pace for the whole 20 minutes — breathing a little harder, but still able to hold a conversation. There's no pace to hit. Afterwards, check in with yourself: how did it feel? Was there more in the tank?", es:"Camina a paso decidido los 20 minutos — respirando un poco más fuerte, pero pudiendo conversar. No hay ritmo que cumplir. Después, pregúntate: ¿cómo te sentiste? ¿Te quedaba energía?"},
+  'Easy Jog': {en:"An easy 20–30 minute jog right after lifting — zone 2, relaxed, conversational. Optional.", es:"Un trote suave de 20–30 minutos justo después de las pesas — zona 2, relajado, conversacional. Opcional."},
 };
 let wp = null; // {dayKey, target: {kind:'primary'} | {kind:'extra', id}, editIdx, choice, tuneIdx, fromLog, changed}
 // fromLog: opened from Log Performance mid-workout -- only the exercises can be changed there (no
@@ -6544,7 +6635,7 @@ function plannedMinutesOf(session){
 }
 // Someone new to running goes by feel: no pace targets, suggestions or pace-based progression anywhere.
 function isPaceFree(session){
-  return !!session && session.t==='run' && (isNewRunner(planConfig()) || /^(Run\/Walk|Brisk Walk)$/.test(session.en.title));
+  return !!session && session.t==='run' && (isNewRunner(planConfig()) || /^(Run\/Walk|Brisk Walk|Walk \+ Jog)$/.test(session.en.title));
 }
 // A structured run, step by step -- warm-up, the main set, recovery between reps, cool-down -- worked out
 // from the run's own plan text ("3.5 mi · 2 mi at tempo pace", "5 mi · 9 x 400m", "28 min · run 1 min,
@@ -6595,6 +6686,25 @@ function runBreakdown(session){
   }
   if(title==='Easy Run + Strides' && total){
     return [{label:L.bdEasyRun, amount:fmtStepMiles(total), note:L.bdEasy + pace(easyPace)}, {label:L.bdStrides, amount:'4 × 20s', note:L.bdStridesEffort}];
+  }
+  if(title==='Walk + Jog'){
+    const M = plannedMinutesOf(session) || 20;
+    const walkStep = min => ({label:L.bdWalkLabel, amount:`${min} min`, note:L.bdWalk});
+    if((m = detail.match(/walk (\d+) min, then jog the last (\d+) min/))){
+      return [walkStep(+m[1]), {label:L.bdJogLabel, amount:`${m[2]} min`, note: /quicker/.test(detail) ? L.bdJogQuicker : L.bdJogAtWalkPace}];
+    }
+    const warmM = detail.match(/walk (\d+) min, then/);
+    const warmMin = warmM ? +warmM[1] : 0;
+    const steps = warmMin ? [walkStep(warmMin)] : [];
+    if((m = detail.match(/jog (\d+) min \/ walk 1 min/))){
+      // Blocks of jog + a minute's walk, as many as fit, then jog whatever's left to the end.
+      const block = +m[1], left = M - warmMin, rounds = Math.floor(left/(block+1)), rest = left - rounds*(block+1);
+      if(rounds) steps.push({label:L.bdJogWalkLabel, amount:`${rounds} × (${block} + 1 min)`, note:L.bdJogWalkNote.replace('{j}', block)});
+      if(rest) steps.push({label:L.bdJogRestLabel, amount:`${rest} min`, note:L.bdJogEasy});
+      return steps;
+    }
+    if((m = detail.match(/jog (?:the whole )?(\d+) min/))) return [...steps, {label:L.bdJogLabel, amount:`${m[1]} min`, note:L.bdJogEasy}];
+    return null;
   }
   if(title==='Run/Walk' && (m = detail.match(/run ([\d.]+) min, walk ([\d.]+) min × (\d+)/))){
     return [{label:L.bdWarmup, amount:'5 min', note:L.bdWalk},
@@ -7244,6 +7354,7 @@ async function loadProfileFromCloud(){
   if(data.weekly_miles!=null) state.weeklyMiles = Number(data.weekly_miles);
   if(data.equipment) state.equipment = data.equipment;
   if(data.strength_focus) state.strengthFocus = data.strength_focus;
+  if(data.jog_baseline && typeof data.jog_baseline==='object') state.jogBaseline = data.jog_baseline;
   if(data.exercise_swaps && typeof data.exercise_swaps==='object') state.exerciseSwaps = data.exercise_swaps;
   if(data.plan_start) state.planStart = data.plan_start;
   else if(!state.planStart){
@@ -7277,6 +7388,7 @@ async function saveProfileToCloud(){
       plan_start: state.planStart,
       exercise_swaps: state.exerciseSwaps,
       strength_focus: state.strengthFocus,
+      jog_baseline: state.jogBaseline,
       updated_at: new Date().toISOString(),
     };
     const { error } = await sb.from('profiles').update(payload).eq('id', state.userId);
@@ -7284,7 +7396,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }

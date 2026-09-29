@@ -85,8 +85,9 @@ function openSession(backend){
   console.log('Every 4th week of the plan is a recovery week:', meta(3).startsWith('Recovery week') ? `OK (${meta(3)})` : `FAIL (${meta(3)})`);
   const mi = i => parseFloat(meta(i).split('· ')[1]);
   console.log('Build weeks grow, then the recovery week drops:', mi(1) < mi(2) && mi(3) < mi(2) ? 'OK' : `FAIL (${[1,2,3].map(mi)})`);
-  const sunNext = [...doc.querySelectorAll('.week-block[data-week-idx="1"] .plan-row')][6];
-  console.log("Next week's Sunday is the long run:", sunNext && sunNext.textContent.includes('Long Run') ? 'OK' : `FAIL (${sunNext && sunNext.textContent})`);
+  const nextRows = [...doc.querySelectorAll('.week-block[data-week-idx="1"] .plan-row')];
+  const longDay = nextRows.findIndex(r=>r.textContent.includes('Long Run'));
+  console.log("Next week's long run is on the weekend (Saturday first):", longDay===5 || (longDay===6 && !/Run|Jog/.test(nextRows[5].textContent)) ? 'OK' : `FAIL (${nextRows.map(r=>r.textContent.replace(/\s+/g,' ').trim().slice(0,30)).join(' | ')})`);
 
   // ---- a fresh session reads the saved setup back ----
   const dom2 = openSession(backend);

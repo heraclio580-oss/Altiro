@@ -81,6 +81,13 @@ longer) + the long run. A real week:
 | Easy recovery (Sunday) | 3.5 | ~11% |
 | **Total** | **30.5** | |
 
+✅ **In the app:** runs are one quality session (alternating tempo and intervals, at most one a week at
+every level), a longer easy run, the long run, and with 4+ runs a short recovery run; any more are easy.
+The long run takes about half of a 4-run week (45% of 3 runs, 42% of 5), still capped by level (10 /
+16 / 22 mi). It's placed Saturday (Sunday if there's no Saturday), the recovery run the day after, the
+fast session early in the week and the longer easy run mid-week. 30 mi comes out as about 4.5 / 7 / 15
+/ 3.5.
+
 - [ ] Polarized (mostly easy, some very hard, little in between)
 - [ ] 80/20 easy/hard
 - [ ] Threshold-focused
@@ -151,7 +158,7 @@ Notes:
 
 ✏️ **Your approach:** [ ] pace  [ ] heart rate  [ ] effort (RPE)  [ ] a mix — explain:
 
-- Easy runs are **zone 2**: relaxed, easy heart rate.
+- Easy runs are **zone 2**: relaxed, easy heart rate. ✅ The app's easy-run description says so.
 
 ### 2.7 Brand-new runners
 
@@ -186,6 +193,16 @@ Example: 3 days a week (Mon / Wed / Fri), 20 minutes each.
 | 18–20 | Jog the rest |
 
 Jog blocks are the length of the baseline, with 1-minute walks between them, in the second half of the session.
+
+✅ **In the app:** exactly the week 1 and week 2 above. After each walk/jog the app asks for the
+**longest steady jog**, which becomes the baseline. After that:
+
+- The starting walk is 10 minutes in week 2, 5 minutes in weeks 3–4, then none.
+- Jog blocks grow each week they're held (+1 min at first, about 25% once they're longer: 3, 4, 5, 6,
+  8, 10, 13, 16, 20). If a block wasn't held, the next week repeats what they managed.
+- Recovery weeks repeat the week before.
+- Once they jog the whole 20 minutes, they move on to continuous easy running, with no tempo or
+  intervals for another 4 weeks. Everything is by feel, with no paces.
 
 ---
 
@@ -343,6 +360,9 @@ This is where your philosophy really shows — how the two are combined.
 ✏️ **Your approach:** running and lifting go hand in hand, and running fits well after any lifting
 session. How much running is up to the user. A favorite: lift, then a **20–30 minute easy jog**
 right after.
+
+✅ **In the app:** in a plan with both, lifting days are paired with an optional easy 20–30 minute jog.
+It's left off the peak lifting day, the day before a hard run or the long run, and for new runners.
 
 ### 4.2 Scheduling rules
 

@@ -94,10 +94,10 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await adjust(()=>{ doc.querySelector('#adjMilesChips .chip[data-key="0"]').click(); });
   go('week');
   await wait(20);
-  await previewFirst('Run/Walk');
+  await previewFirst('Walk + Jog');
   const rw = steps();
-  console.log('Run/walk breakdown: walk warm-up, run + walk rounds, walk cool-down:',
-    rw.map(s=>s.label).join()==='Warm-up,Run + walk,Cool-down' && rw[0].amount==='5 min' && /^\d+ × \(/.test(rw[1].amount) ? `OK (${rw[1].amount})` : `FAIL (${rw.map(s=>s.label+' '+s.amount)})`);
+  console.log('Walk + jog breakdown: a brisk walk, then jog + walk rounds, then jog to the end:',
+    rw.map(s=>s.label).join()==='Walk,Jog + walk,Jog to the end' && rw[0].amount==='10 min' && /^\d+ × \(\d+ \+ 1 min\)$/.test(rw[1].amount) ? `OK (${rw.map(s=>s.label+' '+s.amount).join(', ')})` : `FAIL (${rw.map(s=>s.label+' '+s.amount)})`);
   console.log('...by feel, with no pace anywhere:', !/\d:\d\d\/mi/.test(doc.getElementById('workoutPreviewOverlay').textContent) ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');

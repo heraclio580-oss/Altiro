@@ -35,6 +35,7 @@ alter table profiles add column if not exists equipment text;        -- 'gym' | 
 alter table profiles add column if not exists plan_start date;       -- Monday of the plan's week 0 (mileage builds week by week from here)
 alter table profiles add column if not exists exercise_swaps jsonb;   -- "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'}
 alter table profiles add column if not exists strength_focus text;   -- the lift each week's peak lifting day builds (allround | bench | squat | deadlift | press | arms)
+alter table profiles add column if not exists jog_baseline jsonb;   -- a new runner's latest longest steady jog {min, week, held}
 
 -- ---------------------------------------------------------------------------
 -- workout_logs: one row per (user, calendar day) -- mirrors state.dayLog[dateKey]

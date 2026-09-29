@@ -4423,6 +4423,28 @@ function renderStartCalendar(el, holder, onChange){
     onChange();
   }));
 }
+// Starting the plan over on a date: what the old plan left saved on that date or later -- a day it
+// skipped (a saved Rest Day), a plan workout moved or changed -- would override the new plan's days, so
+// it's cleared. Workouts the user created and named themselves, and anything logged, stay.
+function isPlanTitle(title){
+  return title==='Rest Day' || RUN_TARGET_TITLES.includes(title) || ['Brisk Walk','Walk + Jog','Run/Walk'].includes(title)
+    || Object.values(LIFT_SESSIONS).some(L=>L.en===title) || !!MOBILITY_TEMPLATES[title];
+}
+function clearOldPlanDays(startKey){
+  Object.entries(state.dayLog).forEach(([key, log])=>{
+    if(key < startKey || !log.session || !isPlanTitle(log.session.p.en.title)) return;
+    delete log.session;
+    cloudClearPlannedSession(key);
+  });
+  const todayKey = dateKey(TODAY_DATE);
+  weekDates(0).forEach((date, i)=>{
+    const key = dateKey(date), d = state.week[i];
+    if(key >= startKey && key >= todayKey && d.isCustom && isPlanTitle(d.p.en.title)){
+      d.isCustom = false;
+      cloudClearPlannedSession(key);
+    }
+  });
+}
 function renderOnbStart(){ renderStartSection('onb', state, false, renderOnbStart); }
 function renderAdjStart(){ if(state.adjustDraft) renderStartSection('adj', state.adjustDraft, true, renderAdjStart); }
 function renderDaysScreen(){
@@ -7289,7 +7311,7 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
   // A chosen start date starts the plan over from that day. Otherwise a new starting mileage restarts
   // the build-up from today -- unless the plan hasn't started yet, in which case it keeps its date.
   const restartOn = d.startChoice && d.startChoice!=='keep' ? startDateFor(d.startChoice, d.startPick) : null;
-  if(restartOn) startPlanOn(restartOn);
+  if(restartOn){ startPlanOn(restartOn); clearOldPlanDays(restartOn); }
   else if(d.weeklyMiles!==state.weeklyMiles && !(state.planStartDate && state.planStartDate > dateKey(TODAY_DATE))) startPlanOn(dateKey(TODAY_DATE));
   state.weeklyMiles = d.weeklyMiles;
   state.week = regenerateUpcomingWeek();

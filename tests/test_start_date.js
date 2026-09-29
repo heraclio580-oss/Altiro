@@ -8,22 +8,32 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'u
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
 function makeBackend(){
-  const profileUpdates = [];
+  const profileUpdates = [], logUpdates = [];
+  // Left over from the old plan: a skipped day (saved as a Rest Day) on Monday the 21st, and a run the
+  // user planned and named themselves on Tuesday the 22nd.
+  const logRows = [
+    {id:'w1', user_id:'u1', log_date:'2026-09-21', completed_override:null, planned_type:'rest', planned_title:'Rest Day', planned_detail:'', manual_entries:[]},
+    {id:'w2', user_id:'u1', log_date:'2026-09-22', completed_override:null, planned_type:'run', planned_title:'Hill workout with the club', planned_detail:'5 mi', manual_entries:[]},
+  ];
   function from(table){
     let op = 'select', payload = null;
+    const filters = {};
     const api = {
-      select(){ return api; }, eq(){ return api; }, is(){ return api; }, order(){ return api; }, gte(){ return api; },
+      select(){ return api; }, eq(c, v){ filters[c] = v; return api; }, is(){ return api; }, order(){ return api; }, gte(){ return api; },
       insert(){ op = 'insert'; return api; }, delete(){ return api; },
       update(p){ op = 'update'; payload = p; return api; }, upsert(p){ op = 'upsert'; payload = p; return api; },
-      maybeSingle(){ return Promise.resolve({data: table==='profiles' ? {id:'u1', training_days:[0,2,4], focus_ratio:2, intensity_idx:1, level:'intermediate', weekly_miles:15, equipment:'gym', plan_start:'2026-09-07'} : null, error:null}); },
+      maybeSingle(){
+        if(table==='workout_logs' && op==='select') return Promise.resolve({data: logRows.find(r=>filters.log_date===r.log_date) || null, error:null});
+        return Promise.resolve({data: table==='profiles' ? {id:'u1', training_days:[0,2,4], focus_ratio:2, intensity_idx:1, level:'intermediate', weekly_miles:15, equipment:'gym', plan_start:'2026-09-07'} : null, error:null}); },
       then(res, rej){
         if(op==='update' && table==='profiles') profileUpdates.push(payload);
-        return Promise.resolve({data: op==='select' ? [] : null, error:null}).then(res, rej);
+        if(op==='update' && table==='workout_logs') logUpdates.push({id: filters.id, ...payload});
+        return Promise.resolve({data: op==='select' ? (table==='workout_logs' ? logRows : []) : null, error:null}).then(res, rej);
       },
     };
     return api;
   }
-  return { profileUpdates, createClient: () => ({
+  return { profileUpdates, logUpdates, createClient: () => ({
     auth: {
       onAuthStateChange(){ return {data:{subscription:{unsubscribe(){}}}}; },
       async getSession(){ return {data:{session:{user:{id:'u1', email:'athlete@example.com'}}}}; },
@@ -83,7 +93,9 @@ function makeBackend(){
   await wait(20);
   const row = (w,d) => doc.querySelector(`.plan-row[data-week-idx="${w}"][data-day="${d}"]`).textContent.replace(/\s+/g,' ');
   console.log('...nor on the weekend before it:', /Rest Day/.test(row(0,5)) && /Rest Day/.test(row(0,6)) ? 'OK' : `FAIL (${row(0,5)} | ${row(0,6)})`);
-  console.log('The plan begins Monday the 21st:', !/Rest Day/.test(row(1,0)) ? `OK (${row(1,0).slice(0,40)})` : `FAIL (${row(1,0)})`);
+  console.log('The plan begins Monday the 21st (the old plan\'s skipped day there is cleared):', !/Rest Day/.test(row(1,0)) ? `OK (${row(1,0).slice(0,40)})` : `FAIL (${row(1,0)})`);
+  console.log('...cleared on the account too:', backend.logUpdates.some(u=>u.id==='w1' && u.planned_type===null) ? 'OK' : `FAIL (${JSON.stringify(backend.logUpdates)})`);
+  console.log('...but a workout the user named themselves stays:', /Hill workout with the club/.test(row(1,1)) && !backend.logUpdates.some(u=>u.id==='w2') ? 'OK' : `FAIL (${row(1,1)})`);
   const meta = i => { const el = doc.querySelector(`.week-block[data-week-idx="${i}"] .week-block-meta`); return el ? el.textContent : ''; };
   // (it used to be in week 3 of a plan started Sep 7, whose deload would have fallen on Sep 28)
   console.log('...as week 1 of the plan: three build weeks ahead, no deload yet:', [1,2,3].every(i=>/^Build week/.test(meta(i))) ? 'OK' : `FAIL (${[1,2,3].map(meta).join(' | ')})`);

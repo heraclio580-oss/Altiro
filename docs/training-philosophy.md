@@ -137,6 +137,21 @@ Example: 3 days a week (Mon / Wed / Fri), 20 minutes each.
 - If they can't hold the jog for the full 5 minutes, that's fine: note how long they jogged and walk
   the rest of the 20 minutes.
 
+**Week 1 sets the baseline:** the longest steady jog they held. Say it was 3 minutes out of the 5.
+
+**Week 2** builds from that baseline, still 20 minutes:
+
+| Minutes | Do |
+|---|---|
+| 0–10 | Brisk walk |
+| 10–13 | Jog 3 min (the baseline) |
+| 13–14 | Walk 1 min |
+| 14–17 | Jog 3 min |
+| 17–18 | Walk 1 min |
+| 18–20 | Jog the rest |
+
+Jog blocks are the length of the baseline, with 1-minute walks between them, in the second half of the session.
+
 ---
 
 ## 3. Weight training

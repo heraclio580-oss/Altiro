@@ -2948,21 +2948,30 @@ function plannedJogBlock(session){
   return m ? Number(m[1]) : null;
 }
 
-// Splits a week's miles across its runs: the long run takes the biggest share (less of it the more
-// runs there are, and never past the level's longest run), hard sessions a little more than easy
-// runs, a recovery jog less; no run shorter than the level's minimum or longer than the long run.
+// Splits a week's miles across its runs, calibrated on real training weeks:
+//   21 mi: repeats 3.8, easy 4.5, easy 4.5, long 8.5      (18 / 21 / 21 / 40%)
+//   27 mi: tempo 4.5, easy 5.5, easy 3.25, long 14         (16.5 / 20 / 12 / 51%)
+//   30 mi: tempo 4.5, easy 6.5, recovery 3.5, long 16      (15 / 21 / 11.5 / 52%)
+// The quality run and the longer easy run hold steady shares (~17% and ~21%); as the week grows the
+// long run takes the extra and a 4th run shrinks from a second easy run (~21%) to a short recovery run
+// (~12%). The long run is whatever's left, kept between 35% and 55% of the week and within the level's
+// longest run; no other run gets close to it (the longer easy run at most 55% of it).
+const RUN_SHARE = {quality:0.17, easyLong:0.21, easy:0.15, recovery:0.12};
+function fourthRunShare(total){ return total<=21 ? 0.21 : total>=27 ? 0.12 : 0.21 - (total-21)/6*0.09; }
 function distributeRunMiles(total, roles, cfg){
   const P = LEVEL_PLAN[cfg.level];
   if(!roles.length) return [];
   if(roles.length===1) return [Math.max(P.minRun, roundHalf(Math.min(total, P.longCap)))];
-  // Shaped like a real week -- 4 runs of 30 mi: tempo 4.5, longer easy 6.5, long 16, recovery 3.5.
-  const longShare = [0, 1, 0.55, 0.45, 0.5, 0.42, 0.36, 0.32][roles.length] ?? 0.3;
+  const shares = roles.map(r=> r==='long' ? 0 : roles.length===4 && (r==='easy' || r==='recovery') ? fourthRunShare(total) : RUN_SHARE[r]);
+  const others = shares.reduce((a,b)=>a+b, 0);
+  const longShare = Math.min(0.55, Math.max(0.35, 1-others));
+  const scale = (1-longShare)/others;
   const long = Math.max(P.minRun, roundHalf(Math.min(P.longCap, total*longShare)));
-  const WEIGHT = {quality:1.4, easyLong:2, easy:1.4, recovery:1};
-  const others = roles.slice(1);
-  const wsum = others.reduce((s,r)=>s+WEIGHT[r], 0);
-  const rest = Math.max(0, total - long);
-  return [long, ...others.map(r=> Math.min(long, Math.max(P.minRun, roundHalf(rest*WEIGHT[r]/wsum))))];
+  const easyCap = long*0.55;
+  return [long, ...roles.slice(1).map((r,i)=>{
+    const mi = total*shares[i+1]*scale;
+    return Math.max(P.minRun, roundHalf(Math.min(mi, easyCap, long)));
+  })];
 }
 function fmtMiles(mi){ return String(roundHalf(mi)); }
 // One run, in both languages. Every run's detail starts with its distance ("5 mi ...") -- weekly
@@ -3116,12 +3125,15 @@ function generatePlanWeek(cfg, n){
   // The running week's building block: one fast session (tempo or intervals), a longer easy run, the
   // long run, and -- with 4 or more runs -- a short recovery run the day after it; any more are easy.
   const q = qualityRunCount(cfg, runs, n);
+  const weekMiles = weeklyRunMiles(cfg, runs, n);
   const roles = runs ? ['long'] : [];
   if(q && roles.length<runs) roles.push('quality');
   if(roles.length<runs) roles.push('easyLong');
   const extra = runs - roles.length;
-  for(let k=0; k<extra; k++) roles.push(k===extra-1 && runs>=4 ? 'recovery' : 'easy');
-  const miles = distributeRunMiles(weeklyRunMiles(cfg, runs, n), roles, cfg);
+  // With 4 runs, the last is a second easy run in a smaller week and a short recovery run (the day after
+  // the long run) once the week is big enough for the long run to need one.
+  for(let k=0; k<extra; k++) roles.push(k===extra-1 && (runs>4 || runs===4 && weekMiles>=24) ? 'recovery' : 'easy');
+  const miles = distributeRunMiles(weekMiles, roles, cfg);
 
   const items = [];
   let qIdx = 0;
@@ -3148,7 +3160,19 @@ function generatePlanWeek(cfg, n){
     items.push({kind:'lift', split, group:L.group, legs:L.legs, hard:false, peak:k===peakSplit, sig:'lift:'+split+(k===peakSplit ? ':peak' : '')});
   });
 
-  const placed = placeSessions(days, items);
+  const placed = placeSessions(days, items).slice();
+  // A short run that can't be the day after the long run is simply a short easy run -- and the longer
+  // easy run comes before it in the week (e.g. Tue fast, Wed longer easy, Thu short easy, Sat long).
+  const rec = placed.findIndex(it=>it.kind==='run' && it.role==='recovery');
+  if(rec>=0){
+    const prevDay = days[rec]===0 ? 6 : days[rec]-1;
+    const prev = days.includes(prevDay) ? placed[days.indexOf(prevDay)] : null;
+    if(!(prev && prev.role==='long')){
+      placed[rec] = {...placed[rec], sub:'easy'};
+      const el = placed.findIndex(it=>it.kind==='run' && it.role==='easyLong');
+      if(el>rec) [placed[rec], placed[el]] = [placed[el], placed[rec]];
+    }
+  }
   let easyCount = 0, runOrder = 0;
   days.forEach((d,i)=>{
     const it = placed[i];

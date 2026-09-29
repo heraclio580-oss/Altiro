@@ -81,12 +81,28 @@ longer) + the long run. A real week:
 | Easy recovery (Sunday) | 3.5 | ~11% |
 | **Total** | **30.5** | |
 
-✅ **In the app:** runs are one quality session (alternating tempo and intervals, at most one a week at
-every level), a longer easy run, the long run, and with 4+ runs a short recovery run; any more are easy.
-The long run takes about half of a 4-run week (45% of 3 runs, 42% of 5), still capped by level (10 /
-16 / 22 mi). It's placed Saturday (Sunday if there's no Saturday), the recovery run the day after, the
-fast session early in the week and the longer easy run mid-week. 30 mi comes out as about 4.5 / 7 / 15
-/ 3.5.
+**More real weeks** (4 runs):
+
+| Week | Quality | Longer easy | 4th run | Long |
+|---|---|---|---|---|
+| ~21 mi | 800m repeats 3.8 (18%) | 4.5 (21%) | easy 4.5 (21%) | 8.5 (40%) |
+| ~27 mi | steady into tempo 4.5 (16.5%) | 5.5 (20%) | easy 3.25 (12%) | 14 hilly (51%) |
+| ~30 mi | tempo 4.5 (15%) | 6.5 (21%) | recovery 3.5 (11.5%) | 16 (52%) |
+
+The quality run and the longer easy run hold steady shares. As the week grows, the long run takes the
+extra and the 4th run shrinks from a second easy run to a short recovery run.
+
+✅ **In the app:**
+- **Shares:** quality ~17% and longer easy ~21% of the week. A 4th run is ~21% at 21 mi or less,
+  shrinking to ~12% by 27 mi; any more runs are ~15% each (the recovery run ~12%).
+- **The long run** is what's left, kept between 35% and 55% of the week and within the level's cap. No
+  other run goes past 55% of it.
+- **Result:** 21 mi comes out 3.5 / 4.5 / 4.5 / 9; 27 mi comes out 4.5 / 5.5 / 3.5 / 13.5; 30 mi
+  comes out 5 / 6.5 / 3.5 / 15.5.
+- **Placement:** one quality run a week (tempo or intervals) early in the week, and the long run on
+  Saturday (Sunday if there's no Saturday). The short run goes the day after the long run as a
+  recovery run. If it can't, it becomes a short easy run placed after the longer easy one: Tue fast,
+  Wed longer easy, Thu short easy, Sat long.
 
 - [ ] Polarized (mostly easy, some very hard, little in between)
 - [ ] 80/20 easy/hard

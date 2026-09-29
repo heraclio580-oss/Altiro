@@ -139,6 +139,25 @@ const beginner = setup({days:[1,3,5], focus:0, level:'beginner', miles:8});
 check('A beginner gets no hard runs in their first 4 weeks', [0,1,2,3].every(n=> beginner(n).every(d=> !/Tempo|Interval|Fartlek|Hill/.test(d.p.en.title))));
 check('...and one tempo or interval run a week after that', beginner(4).filter(d=>/Tempo|Interval/.test(d.p.en.title)).length===1);
 
+// ---- the weekly split matches real training weeks ----
+// 21 mi: repeats 3.8, easy 4.5, easy 4.5, long 8.5 · 27 mi: tempo 4.5, easy 5.5, easy 3.25, long 14 · 30 mi: tempo 4.5, easy 6.5, recovery 3.5, long 16
+const split = (mi, days) => { const w = setup({days, focus:0, level:'intermediate', miles:mi})(1); return days.map(d=>({t:w[d].p.en.title, mi:miles(w[d])})); };
+const near = (a, b, tol) => Math.abs(a-b) <= tol;
+const w21 = split(20, [1,2,3,5]), w30 = split(30, [1,2,3,5]);
+check('~21 mi week: fast 3.5-4, longer easy 4.5, easy 4.5, long 8.5-9', near(w21[0].mi,3.8,0.5) && near(w21[1].mi,4.5,0.5) && near(w21[2].mi,4.5,0.5) && near(w21[3].mi,8.75,0.5), w21.map(r=>r.t+' '+r.mi).join(' | '));
+check('~30 mi week: long about half, longer easy ~6.5, short easy ~3.5-4', w30[3].mi>=14 && near(w30[1].mi,6.75,0.75) && w30[2].mi<=4.5, w30.map(r=>r.t+' '+r.mi).join(' | '));
+check('...the longer easy run comes before the short one, and is well short of the long run', w30[1].mi > w30[2].mi && w30[1].mi <= w30[3].mi*0.55 && w21[1].mi <= w21[3].mi*0.55, `${w30[1].mi} vs long ${w30[3].mi}; ${w21[1].mi} vs ${w21[3].mi}`);
+check('...a short run that isn\'t the day after the long run is an Easy Run, not a Recovery Jog', w30[2].t==='Easy Run', w30[2].t);
+let nearLong = null;
+for(const lvl of ['beginner','intermediate','advanced']) for(const mi of [10,15,20,25,30,40,50]) for(const days of [[1,3,5],[1,2,3,5],[1,3,5,6],[0,1,2,3,5,6]]){
+  const w = setup({days, focus:0, level:lvl, miles:mi})(2);
+  const long = w.find(d=>d.p.en.title==='Long Run');
+  if(!long) continue;
+  const other = Math.max(...w.filter(d=>d.p.t==='run' && d!==long).map(miles));
+  if(other > miles(long)*0.6) nearLong = `${lvl} ${mi}mi ${days}: ${other} vs long ${miles(long)}`;
+}
+check('No other run is ever close to the long run (at most ~55-60% of it)', !nearLong, nearLong);
+
 // ---- running and lifting together: an easy jog after lifting ----
 const hybrid = setup({days:[0,1,2,3,4,5], focus:2, level:'intermediate', miles:15})(0);
 const liftDaysH = [0,1,2,3,4,5].filter(d=>hybrid[d].p.t==='strength');

@@ -7111,7 +7111,7 @@ async function cloudSendFeedback(row){
     // Best-effort: ask the `feedback-alert` function to email the team about it. The feedback itself is
     // already saved, so a failure here (not set up yet, offline) never shows as a failed send.
     if(!error && data && data.id && sb.functions){
-      sb.functions.invoke('feedback-alert', {body: {id: data.id}}).catch(()=>{});
+      invokeFunction('feedback-alert', {id: data.id}).catch(()=>{});
     }
     return {error};
   }catch(e){ return {error:e}; }
@@ -7737,16 +7737,28 @@ const STRAVA_CALLBACK_KEY = 'altiro_strava_callback';
 const STRAVA_RESYNC_MS = 60*1000;
 let strava = {connected:false, athleteName:'', status:'idle', lastSyncAt:0}; // status: 'idle' | 'syncing' | 'unavailable'
 
+// Calls one of Altiro's Edge Functions as the signed-in user. The user's session token rides in
+// x-altiro-user, and Authorization carries the project's anon key: Supabase's "Verify JWT" gateway
+// rejects user tokens signed with the newer JWT signing keys (a 401 before the function even runs) but
+// accepts the anon key -- so the functions work whether that setting is on or off. Each function checks
+// the user's token itself.
+async function invokeFunction(name, body){
+  let token = null;
+  try{ const { data } = await sb.auth.getSession(); token = data && data.session && data.session.access_token; }catch(e){}
+  const headers = {Authorization: `Bearer ${SUPABASE_ANON_KEY}`};
+  if(token) headers['x-altiro-user'] = token;
+  return sb.functions.invoke(name, {body, headers});
+}
 async function stravaCall(action, extra){
   if(!sb.functions) return {error:{code:'offline'}};
   try{
-    const { data, error } = await sb.functions.invoke('strava', {body: {action, ...(extra||{})}});
+    const { data, error } = await invokeFunction('strava', {action, ...(extra||{})});
     if(error){
       // A non-2xx reply carries the function's own {error} code in its body; a 404 means the
       // function hasn't been deployed to this project yet.
-      let code = null, status = error.context && error.context.status;
-      try{ const body = await error.context.json(); code = body && body.error; }catch(e){}
-      return {error:{code: code || error.message, status}};
+      let code = null, detail = null, status = error.context && error.context.status;
+      try{ const body = await error.context.json(); code = body && body.error; detail = body && (body.message || body.msg); }catch(e){}
+      return {error:{code: code || error.message, status, detail}};
     }
     return {data};
   }catch(e){ return {error:{code: String((e && e.message) || e)}}; }
@@ -7758,7 +7770,7 @@ function stravaFailedText(error){
   // The function's own error code ("not_signed_in", "not_configured"...) when it sent one -- otherwise the
   // HTTP status, e.g. a bare 401 from Supabase's gateway when the function's Verify JWT is still on.
   const ownCode = error && /^[a-z_0-9]+$/.test(error.code || '') ? error.code : null;
-  const why = ownCode || (error && error.status);
+  const why = ownCode || (error && error.status && [error.status, error.detail].filter(Boolean).join(' · '));
   return why ? `${L.stravaFailedToast} (${why})` : L.stravaFailedToast;
 }
 function stravaUnavailable(error){

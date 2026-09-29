@@ -15,9 +15,11 @@
 //   sync                          -> {connected, athlete_name, fetched}
 //   disconnect                    -> {connected:false}
 //
-// Deploy with "Verify JWT" turned OFF (Edge Functions -> strava -> Settings): the function checks the
-// caller itself through Supabase Auth, which understands the newer JWT signing keys that Supabase's
-// built-in gateway check rejects with a 401 before the function even runs.
+// "Verify JWT" (Edge Functions -> strava -> Settings) can be on or off. The app sends the user's token in
+// an x-altiro-user header and the project's anon key in Authorization -- see invokeFunction() in
+// www/index.html -- because Supabase's built-in gateway check rejects user tokens signed with the newer
+// JWT signing keys (a 401 before the function even runs) but accepts the anon key. The function checks
+// the user's token itself, through Supabase Auth, which understands every key.
 //
 // Secrets (Supabase dashboard -> Edge Functions -> Secrets): STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET.
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically.
@@ -29,7 +31,7 @@ const RUN_TYPES = ["Run", "TrailRun", "VirtualRun"];
 const DAY_SEC = 24 * 60 * 60;
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-altiro-user",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -153,7 +155,9 @@ export function makeHandler(deps: Deps) {
     if (!deps.env("STRAVA_CLIENT_ID") || !deps.env("STRAVA_CLIENT_SECRET")) {
       return json({ error: "not_configured" }, 500);
     }
-    const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    // The app sends the user's token in x-altiro-user (Authorization then carries the anon key, which gets
+    // past Supabase's "Verify JWT" gateway whether it's on or off); plain Authorization also works.
+    const jwt = req.headers.get("x-altiro-user") || (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     const userId = jwt ? await deps.db.userIdFromJwt(jwt) : null;
     if (!userId) return json({ error: "not_signed_in", detail: jwt ? "token rejected by Supabase Auth" : "no Authorization header" }, 401);
 

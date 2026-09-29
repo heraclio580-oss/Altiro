@@ -31,9 +31,9 @@ function setup(opts: { recent?: number; resendStatus?: number; noKey?: boolean }
     },
     now: () => NOW,
   };
-  const call = async (body: unknown, jwt = "good-jwt") => {
+  const call = async (body: unknown, jwt = "good-jwt", headers?: Record<string, string>) => {
     const res = await makeHandler(deps)(new Request("http://x/feedback-alert", {
-      method: "POST", headers: { Authorization: `Bearer ${jwt}` }, body: JSON.stringify(body),
+      method: "POST", headers: headers ?? { Authorization: `Bearer ${jwt}` }, body: JSON.stringify(body),
     }));
     return { status: res.status, body: await res.json() };
   };
@@ -73,6 +73,13 @@ Deno.test("won't email about someone else's feedback, or feedback that doesn't e
   assertEquals((await call({ id: "fb2" })).status, 404);
   assertEquals((await call({ id: "nope" })).status, 404);
   assertEquals(sent.length, 0);
+});
+
+Deno.test("reads the user's token from x-altiro-user (the anon key in Authorization gets past the gateway)", async () => {
+  const { call } = setup();
+  const res = await call({ id: "fb1" }, "", { Authorization: "Bearer anon-key", "x-altiro-user": "good-jwt" });
+  assertEquals(res.status === 401, false);
+  assertEquals((await call({ id: "fb1" }, "", { Authorization: "Bearer anon-key", "x-altiro-user": "bad-jwt" })).status, 401);
 });
 
 Deno.test("rejects callers who aren't signed in", async () => {

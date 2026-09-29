@@ -1943,8 +1943,10 @@ const STR = {
     bdStrides: "Strides",
     bdRunWalk: "Run + walk",
     bdEasy: "easy, conversational",
-    bdTempoEffort: "comfortably hard",
-    bdFastEffort: "hard but controlled",
+    bdWarmEasy: "start easy, conversational",
+    bdCoolEasy: "slow back down to easy, conversational",
+    bdTempoEffort: "pick up the pace: comfortably hard",
+    bdFastEffort: "pick up the pace: hard but controlled",
     bdJogBetween: "easy jog between reps",
     bdEasyJog: "easy jog between",
     bdHillEffort: "strong effort uphill",
@@ -2259,8 +2261,10 @@ const STR = {
     bdStrides: "Progresiones",
     bdRunWalk: "Correr + caminar",
     bdEasy: "suave, conversacional",
-    bdTempoEffort: "cómodamente exigente",
-    bdFastEffort: "fuerte pero controlado",
+    bdWarmEasy: "empieza suave, conversacional",
+    bdCoolEasy: "baja de nuevo a suave, conversacional",
+    bdTempoEffort: "sube el ritmo: cómodamente exigente",
+    bdFastEffort: "sube el ritmo: fuerte pero controlado",
     bdJogBetween: "trote suave entre repeticiones",
     bdEasyJog: "trote suave entre ellas",
     bdHillEffort: "esfuerzo fuerte cuesta arriba",
@@ -6316,8 +6320,8 @@ function runBreakdown(session){
     const warm = Math.max(0.25, quarterMile(Math.min(1.5, rest/2)));
     return [warm, Math.max(0.25, quarterMile(rest - warm))];
   };
-  const warm = mi => ({label:L.bdWarmup, amount:fmtStepMiles(mi), note:L.bdEasy});
-  const cool = mi => ({label:L.bdCooldown, amount:fmtStepMiles(mi), note:L.bdEasy});
+  const warm = mi => ({label:L.bdWarmup, amount:fmtStepMiles(mi), note:L.bdWarmEasy});
+  const cool = mi => ({label:L.bdCooldown, amount:fmtStepMiles(mi), note:L.bdCoolEasy});
   let m;
   if(title==='Tempo Run' && (m = detail.match(/·\s*([\d.]+)\s*mi at tempo/))){
     const tempo = parseFloat(m[1]);

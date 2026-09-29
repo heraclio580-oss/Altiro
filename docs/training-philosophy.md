@@ -133,6 +133,10 @@ Notes:
 ✏️ **Your approach:** (which sessions you use, favorite workouts, how they build over a block)
 
 - Favorites: **intervals** and **tempo**. One of them a week.
+- **Spell out every quality run for new runners.** Many don't know what "tempo" or "warm-up" means,
+  or when to speed up. Show the warm-up distance (easy), the work (pick up the pace), and the
+  cool-down (slow back down). The distances are guidance, e.g. about a mile each side of a 4.5 mi
+  tempo, and scale with the run and the runner. ✅ In the app.
 
 | Session | Your structure | Who gets it | How it progresses |
 |---|---|---|---|

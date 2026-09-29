@@ -297,13 +297,29 @@ lift is placed mid-week (the later middle day for an even number). Recovery week
 e.g. week 1 peaks the press (dumbbell or bench), week 2 the squat, week 3 the deadlift, then around
 again with new variations (e.g. back squat instead of front).
 
-**The user picks their strength focus.** Ask in setup what they want to get stronger at: bench press,
-deadlift, squat, arm & grip strength (arm wrestlers), etc. Their focus drives which lifts peak.
+**The user picks their split.** Instead of asking what they want to get stronger at, ask how they
+like to split their lifting: full body every day, push / pull / legs, or one muscle group a day.
 
-✅ **In the app:** setup and Adjust ask for a focus: All-round (press → squat → deadlift), Bench press,
-Squat, Deadlift, Overhead press, or Arm & grip strength (curls peak; upper-body days add wrist curls or
-dead hangs). A single focus peaks a different variation each week. After 3 peak weeks comes a
-recovery week, then the next round of variations.
+✅ **In the app:** setup and Adjust ask "How do you want to split your lifting?", and show the week it
+gives (e.g. "5 lifting days a week: Chest Day · Back Day · Leg Day · Shoulder Day · Arm Day"):
+
+| Lifting days | Full body every day | Push / Pull / Legs | One muscle group a day |
+|---|---|---|---|
+| 1 | Full body | Full body | Full body |
+| 2 | Full body A / B | Push & Legs / Pull & Legs | Upper / Lower |
+| 3 | Full body A / B / C | Push / Pull / Legs | Chest & Triceps / Back & Biceps / Legs & Shoulders |
+| 4 | A / B / C / A | Push / Pull / Legs / Push B | Chest / Back / Legs / Shoulders & Arms |
+| 5 | A / B / C / A / B | Push / Pull / Legs / Push B / Pull B | Chest / Back / Legs / Shoulders / Arms |
+| 6 | A / B / C × 2 | Push / Pull / Legs × 2 | Chest / Back / Legs / Shoulders / Arms / Legs B |
+
+"Let Altiro choose" (the default) keeps the split in the table above. The peak lift still rotates press
+→ squat → deadlift, so the peak lands on Chest (or Push), Leg, or Back (or Pull) day.
+
+**Arm and shoulder work.** Arm Day pairs curls with triceps work; curls rotate through bicep, preacher,
+hammer and concentration curls, and triceps through pushdowns, overhead extensions, skull crushers and
+dips. Shoulder Day is a shoulder press, lateral raises, rear-delt raises (or reverse flys / face pulls)
+and front raises (or upright rows). Push days add lateral raises and pull days add curls. Each move has a
+dumbbell, kettlebell and bodyweight option for home training.
 
 **Light days don't go to a single.** They top out around 80–90% with sets of 5:
 

@@ -69,21 +69,6 @@ check('...and lighter every day than the week before (about 85%)', tops3.every((
 check('...accessories a set less', deload.every((d,i)=> exs(d).slice(1).every(e=> e.sets <= 3)));
 check('Next round peaks new variations', rot[4]!==rot[0] && rot[5]!==rot[1] && movementOf(rot[4]).includes('hpush'), rot.slice(4).join(', '));
 
-// A single focus: the same lift every week, a different variation each week.
-setup({days:[0,2,4], focus:'bench'});
-const bench = [0,1,2].map(peakOf);
-check('Bench focus: every build week peaks a bench press variation', bench.every(k=>movementOf(k).includes('hpush')), bench.join(', '));
-check('...a different one each week', new Set(bench).size===3);
-setup({days:[0,2,4], focus:'deadlift'});
-check('Deadlift focus on a 3-day plan puts the deadlift on the peak day', /Deadlift/.test(peakOf(0)||''), peakOf(0));
-
-// Arm & grip focus: arm lifts peak, and upper-body days get grip work.
-setup({days:[0,1,3,4], focus:'arms'});
-const armPeak = peakOf(0);
-check('Arm & grip focus peaks an arm lift', /Curl/.test(armPeak||''), armPeak);
-const upper = liftDays(0).filter(d=>!/Lower/.test(d.p.en.title));
-check('...and upper-body days include grip work', upper.length && upper.every(d=>exs(d).some(e=>['Wrist Curl','Dead Hang'].includes(e.key))), upper.map(d=>exs(d).map(e=>e.key).join('/')).join(' | '));
-
 // Beginners build up to the heavy 5s but don't single yet.
 setup({days:[0,2,4], level:'beginner'});
 const bPeak = liftDays(0).find(d=>d.wave.pos==='peak');
@@ -104,20 +89,16 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const doc = window.document;
   const go = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
 
-  // Weights only, Monday to Friday, Squat focus.
+  // Weights only, Monday to Friday (week 2 of the plan peaks the squat).
   go('adjust');
   await wait(10);
   for(let i=0;i<4;i++) doc.getElementById('adjSliderThumb').dispatchEvent(new window.KeyboardEvent('keydown', {key:'ArrowRight', bubbles:true}));
-  const focusChips = [...doc.querySelectorAll('#adjStrengthFocusChips .chip')].map(c=>c.textContent);
-  check('Adjust asks what they want to get stronger at', focusChips.includes('Bench press') && focusChips.includes('Arm & grip strength'), focusChips.join(', '));
-  check('...All-round picked by default', (doc.querySelector('#adjStrengthFocusChips .chip.sel')||{}).textContent==='All-round');
   doc.querySelector('#adjDayCountChips .chip[data-count="5"]').click();
   for(let pass=0; pass<2; pass++) for(let d=0; d<7; d++){
     const chip = doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`);
     const want = d<5;
     if(chip.classList.contains('sel')!==want && (pass===0 ? !want : want)) chip.click();
   }
-  [...doc.querySelectorAll('#adjStrengthFocusChips .chip')].find(c=>c.textContent==='Squat').click();
   doc.getElementById('applyAdjust').click();
   await wait(20);
 

@@ -124,7 +124,18 @@ Notes:
 > run 1 / walk 2 × 6 → … → run 15 / walk 1 × 2, then continuous easy running. No hard sessions until
 > 4 weeks after that. All by feel.
 
-✏️ **Your approach:**
+✏️ **Your approach:** start with time, not distance, and grow the jog **from the end** of the session.
+
+Example: 3 days a week (Mon / Wed / Fri), 20 minutes each.
+
+| Day | Session |
+|---|---|
+| Mon | 20 min brisk walk. That's it. Then ask: how did it feel? Was there more in the tank? |
+| Wed | 20 min: brisk walk, and the **last 5 min a light jog**. No speed-up needed: keep the walking pace and just do the motion of a jog. |
+| Fri | 20 min: brisk walk, last 5 min a jog a touch quicker (e.g. walk 3.0 mph → jog 3.5 mph on a treadmill). |
+
+- If they can't hold the jog for the full 5 minutes, that's fine: note how long they jogged and walk
+  the rest of the 20 minutes.
 
 ---
 
@@ -171,8 +182,10 @@ The number of days varies by person; the idea is the same: build slowly to a mid
 
 **The peak lift rotates.** Don't peak the same lift every week. Run a ~3-week rotation of focus lifts,
 e.g. week 1 peaks the press (dumbbell or bench), week 2 the squat, week 3 the deadlift, then around
-again with new variations (e.g. back squat instead of front). The focus follows what the person
-wants to train.
+again with new variations (e.g. back squat instead of front).
+
+**The user picks their strength focus.** Ask in setup what they want to get stronger at: bench press,
+deadlift, squat, arm & grip strength (arm wrestlers), etc. Their focus drives which lifts peak.
 
 **Light days don't go to a single.** They top out around 80–90% with sets of 5:
 
@@ -258,7 +271,9 @@ This is where your philosophy really shows — how the two are combined.
 > **Today:** The Running ↔ Weights slider splits training days 100 / 70 / 50 / 30 / 0% running.
 > The user's goal breaks a tie on an even split.
 
-✏️ **Your approach:**
+✏️ **Your approach:** running and lifting go hand in hand, and running fits well after any lifting
+session. How much running is up to the user. A favorite: lift, then a **20–30 minute easy jog**
+right after.
 
 ### 4.2 Scheduling rules
 

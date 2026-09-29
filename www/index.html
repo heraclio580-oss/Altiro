@@ -602,7 +602,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .strava-connect .strava-mark{width:18px;height:18px;}
 .strava-connect:disabled{opacity:0.5;cursor:default;}
 .strava-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;}
-.strava-powered img{display:block;height:22px;width:auto;}
+.strava-powered img{display:block;height:16px;width:auto;}
+/* Strava's white logo on the dark theme, their orange one on the light theme. */
+.strava-powered img.on-light{display:none;}
+#device[data-theme="light"] .strava-powered img.on-dark{display:none;}
+#device[data-theme="light"] .strava-powered img.on-light{display:block;}
 .strava-powered .strava-fallback{display:inline-flex;align-items:center;gap:4px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
 .strava-powered .strava-fallback b{color:#FC5200;font-weight:800;letter-spacing:0.02em;font-size:12px;}
 .strava-powered .strava-mark{width:12px;height:12px;color:#FC5200;}
@@ -1250,7 +1254,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         </button>
         <div class="strava-footer">
           <span class="strava-powered">
-            <img data-strava-asset src="img/strava/powered-by-strava.svg" alt="Powered by Strava">
+            <img data-strava-asset class="on-dark" src="img/strava/powered-by-strava-white.svg" alt="Powered by Strava">
+            <img data-strava-asset class="on-light" src="img/strava/powered-by-strava.svg" alt="Powered by Strava">
             <span class="strava-fallback">Powered by <svg class="strava-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg><b>STRAVA</b></span>
           </span>
           <button class="btn-text" id="stravaDisconnectBtn" type="button" data-i18n="stravaDisconnectBtn" hidden></button>

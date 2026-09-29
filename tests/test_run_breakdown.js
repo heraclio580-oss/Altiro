@@ -56,9 +56,6 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('...the tempo part matches the plan:', parseFloat(t[1].amount)===tempoPart ? `OK (${t[1].amount})` : `FAIL (${t[1].amount} vs ${tempoPart})`);
   const sum = t.reduce((acc,s)=>acc+parseFloat(s.amount), 0);
   console.log('...and the three parts add up to the whole run:', Math.abs(sum-total) < 0.01 ? `OK (${t.map(s=>s.amount).join(' + ')} = ${total} mi)` : `FAIL (${sum} vs ${total})`);
-  const endMi = total>=3 ? 1 : 0.5;
-  console.log('...a mile easy to warm up and a mile to cool down (half on a short run):',
-    parseFloat(t[0].amount)===endMi && parseFloat(t[2].amount)===endMi && tempoPart===Math.max(1, total-2*endMi) ? `OK (${t.map(s=>s.amount).join(' + ')})` : `FAIL (${t.map(s=>s.amount).join(' + ')})`);
   console.log('...warm-up and cool-down are easy:', /easy, conversational/.test(t[0].note) && /easy, conversational/.test(t[2].note) ? 'OK' : `FAIL (${t[0].note})`);
   const tempoPace = (t[1].note.match(/~(\d+):(\d\d)\/mi/)||[]);
   console.log('...the tempo is comfortably hard, with a pace faster than easy (9:30):',

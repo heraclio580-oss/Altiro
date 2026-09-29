@@ -140,6 +140,12 @@ const text = (doc, id) => doc.getElementById(id).textContent;
   doc.querySelector('.mo-cell[data-date="2026-09-18"]').click();
   await wait(20);
   console.log("Today's plan keeps its own name:", text(doc,'dayDetailPlanRow').includes('16 mile long run') ? 'OK' : `FAIL (${text(doc,'dayDetailPlanRow')})`);
+  doc.getElementById('dayDetailPlanRow').click();
+  await wait(20);
+  const viewLink = doc.getElementById('logPerfStravaLink');
+  console.log('The imported run links back to it on Strava:', !viewLink.hidden && viewLink.textContent==='View on Strava' && viewLink.href==='https://www.strava.com/activities/101' ? 'OK' : `FAIL (${viewLink.hidden} ${viewLink.href})`);
+  doc.getElementById('closeLogPerf').click();
+  await wait(10);
   doc.getElementById('closeDayDetail').click();
   await wait(10);
 
@@ -151,11 +157,13 @@ const text = (doc, id) => doc.getElementById(id).textContent;
   go('settings');
   await wait(20);
   console.log('Settings shows the connection:', text(doc,'stravaStatusText')==='Connected as Sam Runner · runs import automatically' ? 'OK' : `FAIL (${text(doc,'stravaStatusText')})`);
-  console.log('...with Sync now and Disconnect:', text(doc,'stravaConnectBtn')==='Sync now' && !doc.getElementById('stravaDisconnectBtn').hidden ? 'OK' : `FAIL (${text(doc,'stravaConnectBtn')})`);
+  console.log('...with Sync now and Disconnect (no Connect button):', text(doc,'stravaSyncBtn')==='Sync now' && !doc.getElementById('stravaSyncBtn').hidden && doc.getElementById('stravaConnectBtn').hidden && !doc.getElementById('stravaDisconnectBtn').hidden ? 'OK' : `FAIL (${text(doc,'stravaSyncBtn')})`);
+  console.log('...a "Powered by Strava" logo:', /Powered by/.test(doc.querySelector('.strava-powered').textContent) || doc.querySelector('.strava-powered img[alt="Powered by Strava"]') ? 'OK' : 'FAIL');
+  console.log('...and a link to how Altiro uses Strava data:', (doc.querySelector('a[href="privacy.html#strava"]')||{}).textContent==='How Altiro uses your Strava data' ? 'OK' : 'FAIL');
 
   // A second run today arrives later -- it's a separate run, so it's added alongside.
   backend.addStrava(105, '2026-09-18', 'Evening Run', 4828, 1500); // 3.0 mi
-  doc.getElementById('stravaConnectBtn').click();
+  doc.getElementById('stravaSyncBtn').click();
   await wait(80);
   console.log('Sync now files the new run:', text(doc,'toastMsg')==='From Strava: Evening Run · 3.0 mi' ? 'OK' : `FAIL (${text(doc,'toastMsg')})`);
   const eveningRuns = Object.values(backend.db.manual_entries).filter(e=>e.name==='Evening Run');
@@ -168,13 +176,13 @@ const text = (doc, id) => doc.getElementById(id).textContent;
 
   go('settings');
   await wait(20);
-  doc.getElementById('stravaConnectBtn').click();
+  doc.getElementById('stravaSyncBtn').click();
   await wait(80);
   console.log('Syncing again imports nothing twice:', text(doc,'toastMsg')==='Already up to date' && Object.values(backend.db.manual_entries).filter(e=>e.name==='Evening Run').length===1 ? 'OK' : `FAIL (${text(doc,'toastMsg')})`);
 
   doc.getElementById('stravaDisconnectBtn').click();
   await wait(40);
-  console.log('Disconnect goes back to Connect:', text(doc,'stravaConnectBtn')==='Connect' && doc.getElementById('stravaDisconnectBtn').hidden ? 'OK' : `FAIL (${text(doc,'stravaConnectBtn')})`);
+  console.log('Disconnect goes back to the Connect with Strava button:', !doc.getElementById('stravaConnectBtn').hidden && /Connect with Strava/.test(doc.getElementById('stravaConnectBtn').textContent + (doc.querySelector('#stravaConnectBtn img')||{}).alt) && doc.getElementById('stravaSyncBtn').hidden && doc.getElementById('stravaDisconnectBtn').hidden ? 'OK' : 'FAIL');
 
   // ---- Coming back from Strava's Authorize page ----
   const b2 = makeBackend({connected:false});

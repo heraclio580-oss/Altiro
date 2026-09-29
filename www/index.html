@@ -595,6 +595,22 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .strava-btn{flex-shrink:0;height:34px;padding:0 14px;border-radius:var(--r-pill);border:none;background:#FC4C02;color:#fff;font-family:var(--font-display);font-weight:600;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;}
 .strava-btn.secondary{background:transparent;color:var(--text-2);border:1px solid var(--border);}
 .strava-btn:disabled{opacity:0.5;cursor:default;}
+/* Strava's own button and logo: shown as-is from their brand pack; the fallback only until it's added. */
+.strava-connect{display:block;margin-top:12px;padding:0;border:none;background:none;cursor:pointer;}
+.strava-connect img{display:block;height:48px;width:auto;}
+.strava-connect .strava-fallback{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 18px;border-radius:4px;background:#FC5200;color:#fff;font-family:var(--font-body);font-weight:700;font-size:15px;}
+.strava-connect .strava-mark{width:18px;height:18px;}
+.strava-connect:disabled{opacity:0.5;cursor:default;}
+.strava-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;}
+.strava-powered img{display:block;height:22px;width:auto;}
+.strava-powered .strava-fallback{display:inline-flex;align-items:center;gap:4px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
+.strava-powered .strava-fallback b{color:#FC5200;font-weight:800;letter-spacing:0.02em;font-size:12px;}
+.strava-powered .strava-mark{width:12px;height:12px;color:#FC5200;}
+[data-strava-asset] + .strava-fallback{display:none !important;}
+.asset-missing > [data-strava-asset]{display:none;}
+.asset-missing > [data-strava-asset] + .strava-fallback{display:inline-flex !important;}
+.settings-link{display:inline-block;margin-top:10px;font-size:12px;color:var(--text-3);text-decoration:underline;text-underline-offset:3px;}
+.strava-view-link{display:inline-block;margin-top:10px;font-size:13px;font-weight:700;color:#FC5200;text-decoration:underline;text-underline-offset:3px;}
 #stravaDisconnectBtn{margin-top:6px;}
 #stravaDisconnectBtn[hidden]{display:none;}
 .toggle{width:38px;height:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-pill);position:relative;cursor:pointer;flex-shrink:0;}
@@ -1068,6 +1084,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div id="authError" class="footer-note" style="margin-top:10px;color:var(--accent);"></div>
 
       <div class="footer-note" style="margin-top:14px;" data-i18n="mockAuthNote"></div>
+      <a class="settings-link" style="display:block;text-align:center;margin-top:8px;" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a>
     </div>
   </section>
 
@@ -1223,9 +1240,22 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
             <div class="tt">Strava</div>
             <div class="ts" id="stravaStatusText"></div>
           </div>
-          <button class="strava-btn" id="stravaConnectBtn" type="button"></button>
+          <button class="strava-btn secondary" id="stravaSyncBtn" type="button" data-i18n="stravaSyncBtn" hidden></button>
         </div>
-        <button class="btn-text" id="stravaDisconnectBtn" type="button" data-i18n="stravaDisconnectBtn" hidden></button>
+        <!-- Strava's official "Connect with Strava" button (www/img/strava/, from Strava's brand pack);
+             until those files are added, a stand-in in Strava's orange with their mark. -->
+        <button class="strava-connect" id="stravaConnectBtn" type="button" aria-label="Connect with Strava">
+          <img data-strava-asset src="img/strava/connect-with-strava.svg" alt="Connect with Strava">
+          <span class="strava-fallback"><svg class="strava-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg><span>Connect with Strava</span></span>
+        </button>
+        <div class="strava-footer">
+          <span class="strava-powered">
+            <img data-strava-asset src="img/strava/powered-by-strava.svg" alt="Powered by Strava">
+            <span class="strava-fallback">Powered by <svg class="strava-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg><b>STRAVA</b></span>
+          </span>
+          <button class="btn-text" id="stravaDisconnectBtn" type="button" data-i18n="stravaDisconnectBtn" hidden></button>
+        </div>
+        <a class="settings-link" href="privacy.html#strava" target="_blank" rel="noopener" data-i18n="stravaPrivacyLink"></a>
       </div>
 
       <div class="sheet-section">
@@ -1253,6 +1283,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <button class="btn btn-ghost" style="margin-top:28px;" id="signOutBtn" data-i18n="signOutBtn"></button>
+      <a class="settings-link" style="display:block;text-align:center;margin-top:14px;" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a>
     </div>
   </section>
 
@@ -1654,6 +1685,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section">
         <div class="st-label" data-i18n="workoutNotesLabel"></div>
         <textarea class="text-input" id="logPerfNotesInput" rows="3"></textarea>
+        <a class="strava-view-link" id="logPerfStravaLink" target="_blank" rel="noopener" data-i18n="viewOnStrava" hidden></a>
       </div>
 
       <button class="btn btn-primary sheet-apply" id="saveLogPerf" data-i18n="saveWorkoutBtn"></button>
@@ -2116,8 +2148,10 @@ const STR = {
     stravaConnectedSubPlain: "Connected · runs import automatically",
     stravaSyncingSub: "Syncing with Strava…",
     stravaUnavailableSub: "Strava isn't set up on the server yet",
-    stravaConnectBtn: "Connect",
     stravaSyncBtn: "Sync now",
+    stravaPrivacyLink: "How Altiro uses your Strava data",
+    privacyPolicyLink: "Privacy policy",
+    viewOnStrava: "View on Strava",
     stravaDisconnectBtn: "Disconnect Strava",
     stravaConnectedToast: "Strava connected",
     stravaDisconnectedToast: "Strava disconnected",
@@ -2447,12 +2481,14 @@ const STR = {
     lightModeSub: "Cambia entre el tema claro y oscuro",
     notificationsLabel: "Notificaciones",
     connectedAppsLabel: "Apps conectadas",
+    stravaPrivacyLink: "Cómo usa Altiro tus datos de Strava",
+    privacyPolicyLink: "Política de privacidad",
+    viewOnStrava: "View on Strava",
     stravaConnectSub: "Importa tus carreras del reloj automáticamente",
     stravaConnectedSub: "Conectado como {name} · las carreras se importan solas",
     stravaConnectedSubPlain: "Conectado · las carreras se importan solas",
     stravaSyncingSub: "Sincronizando con Strava…",
     stravaUnavailableSub: "Strava aún no está configurado en el servidor",
-    stravaConnectBtn: "Conectar",
     stravaSyncBtn: "Sincronizar",
     stravaDisconnectBtn: "Desconectar Strava",
     stravaConnectedToast: "Strava conectado",
@@ -5063,6 +5099,10 @@ function openLogPerformanceFor(logTarget, mode){
     const guessTime = plannedMinutesOf(eff) ?? (target && dist && !isPaceFree(eff) ? target.pace*dist : null);
     writeHmsMinutes('logPerfTime', knownTime!=null ? knownTime : guessTime);
   }
+  // A run that came in from Strava links back to it there.
+  const stravaLink = document.getElementById('logPerfStravaLink');
+  stravaLink.hidden = !(perf && perf.source==='strava' && perf.stravaId);
+  if(!stravaLink.hidden) stravaLink.href = `https://www.strava.com/activities/${encodeURIComponent(perf.stravaId)}`;
   const notesInput = document.getElementById('logPerfNotesInput');
   notesInput.value = (perf && perf.notes) || (mode==='revisit' && logTarget.kind==='entry' ? (resolved.record.notes || '') : '');
   notesInput.placeholder = STR[state.lang].workoutNotesPlaceholder;
@@ -7784,10 +7824,11 @@ function renderStravaSettings(){
   else if(strava.connected) text = strava.athleteName ? L.stravaConnectedSub.replace('{name}', strava.athleteName) : L.stravaConnectedSubPlain;
   else text = L.stravaConnectSub;
   document.getElementById('stravaStatusText').textContent = text;
-  const btn = document.getElementById('stravaConnectBtn');
-  btn.textContent = strava.connected ? L.stravaSyncBtn : L.stravaConnectBtn;
-  btn.classList.toggle('secondary', strava.connected);
-  btn.disabled = strava.status==='syncing';
+  // Not connected: Strava's own "Connect with Strava" button. Connected: Sync now and Disconnect.
+  const connectBtn = document.getElementById('stravaConnectBtn'), syncBtn = document.getElementById('stravaSyncBtn');
+  connectBtn.hidden = strava.connected || strava.status==='unavailable';
+  syncBtn.hidden = !strava.connected;
+  connectBtn.disabled = syncBtn.disabled = strava.status==='syncing';
   document.getElementById('stravaDisconnectBtn').hidden = !strava.connected;
 }
 
@@ -7923,11 +7964,20 @@ async function finishStravaConnect(){
 function startStravaSync(){
   finishStravaConnect().then(finished=>{ if(!finished) syncStrava({force:true}); });
 }
-document.getElementById('stravaConnectBtn').addEventListener('click', async ()=>{
-  if(strava.status==='syncing') return;
-  if(!strava.connected){ connectStrava(); return; }
+document.getElementById('stravaConnectBtn').addEventListener('click', ()=>{
+  if(strava.status==='syncing' || strava.connected) return;
+  connectStrava();
+});
+document.getElementById('stravaSyncBtn').addEventListener('click', async ()=>{
+  if(strava.status==='syncing' || !strava.connected) return;
   const count = await syncStrava({force:true});
   if(count===0) showToast(STR[state.lang].stravaUpToDateToast);
+});
+// Strava's official button/logo files; if one isn't in www/img/strava/ yet, its stand-in shows instead.
+document.querySelectorAll('img[data-strava-asset]').forEach(img=>{
+  const missing = ()=> img.parentElement.classList.add('asset-missing');
+  img.addEventListener('error', missing);
+  if(img.complete && !img.naturalWidth) missing();
 });
 document.getElementById('stravaDisconnectBtn').addEventListener('click', async ()=>{
   const { error } = await stravaCall('disconnect');

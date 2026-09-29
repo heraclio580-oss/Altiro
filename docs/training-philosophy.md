@@ -30,7 +30,11 @@ efficiently. As a truck driver I don't have much time, so every part of training
 1. **Strength first.** Getting stronger is the foundation the rest of the training is built on.
 2. **Efficiency.** Every exercise and every minute should give the most return for the time spent.
    No filler.
-3.
+3. **Start light and build over time.** In lifting and in running. One light day is worth far more
+   than one all-out day that ends in an injury and sets you back weeks.
+4. **Volume over intensity.** Volume is the key, and intensity still matters, but the number on the
+   bar matters less than the amount of good-quality work done.
+5. **Every rep clean.** Form never breaks down to hit a number.
 
 **Who is Altiro for?** (tick all that apply)
 
@@ -158,6 +162,8 @@ Notes:
 
 ✏️ **Your approach:** (must-have lifts, lifts you never program, how often to rotate)
 
+- **Dumbbells over barbells, when there's a choice.** They work both sides of the body evenly and
+  build the small stabilizer muscles, which later carry over to the barbell lifts.
 - Always include:
 - Never include:
 - Beginner-friendly swaps:
@@ -169,10 +175,28 @@ Notes:
 
 ✏️ **Your approach:**
 
-- [ ] Fixed reps (e.g. 3 × 8)
-- [ ] Rep ranges (e.g. 3 × 8–12, add weight at the top)
-- [ ] Effort-based (RPE / reps in reserve)
-- [ ] Percent of max
+**The pyramid.** Climb in weight with clean sets of 10, switch to 5s when 10 would get ugly, touch a
+single "max of the day", then work back down. Example on the dumbbell press:
+
+| Stage | Sets | Example | ≈ % of the day's top |
+|---|---|---|---|
+| Warm-up | 3 × 10 | 45, 50, 55 lb | 45 · 50 · 55% |
+| Working 10s | 3 × 10 | 60, 70, 80 lb | 60 · 70 · 80% |
+| Heavy 5s | 3 × 5 | 85, 90, 95 lb | 85 · 90 · 95% |
+| Top single | 1 × 1 | 100 lb | 100% (max of the day, not a true 1-rep max) |
+| Back down, 5s | 2 × 5 | 90, 80 lb | 90 · 80% |
+| Back down, 10s | 4 × 10 | 70, 60, 50, 40 lb | 70 · 60 · 50 · 40% (5s instead of 10 if needed) |
+
+The rules that make it work:
+
+- **Drop to 5 when 10 would get ugly.** If the last rep of a set of 10 looks like it'll be a grind, or
+  might not happen, that set becomes a set of 5, and so does everything heavier.
+- **Single when 5 isn't there.** When a set of 5 isn't possible, do one clean rep. That is the top of
+  the day.
+- **The top moves with the person.** It depends on how rested or tired they are that week. The
+  exact weight matters much less than completing the sets.
+- **Coming back down**, go back to 10s as soon as 10 clean reps are possible again.
+
 - Main lifts:
 - Accessories:
 - Notes:
@@ -183,6 +207,8 @@ Notes:
 > their own weight and reps per lift (My Lifts).
 
 ✏️ **Your approach:** (how much to add, upper vs. lower body, what to do after a missed session or stall)
+
+- Progress comes from building volume over time; the pyramid sets its own top weight each day.
 
 ### 3.5 Deloads for lifting
 
@@ -265,7 +291,8 @@ Anything every plan must always — or must never — do.
 
 ✏️ **Always:**
 
--
+- Start lighter than you think and build up.
+- Keep every rep clean. When a set of 10 would get ugly, it becomes a set of 5.
 
 ✏️ **Never:**
 

@@ -334,6 +334,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .th-start.done{color:var(--ok-icon);border-color:var(--ok-border);background:var(--ok-bg);}
 .th-start.done:hover,.th-start.disabled:hover{background:var(--well);}
 .th-start.done:hover{background:var(--ok-bg);}
+#resendConfirmBtn[hidden]{display:none;}
 .th-start.disabled{display:none;} /* a rest day: nothing to start -- the card says what's next instead */
 .th-next{position:relative;font-size:12px;color:var(--text-3);margin-top:10px;text-align:center;}
 .th-next:empty{display:none;}
@@ -1335,6 +1336,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <button class="btn btn-primary" id="emailSignupBtn" data-i18n="createAccountBtn" style="margin-top:16px;" disabled></button>
       <button class="btn-text" id="toggleAuthMode" type="button" style="margin-top:12px;width:100%;text-align:center;" data-i18n="alreadyHaveAccount"></button>
       <div id="authError" class="footer-note" style="margin-top:10px;color:var(--accent);"></div>
+      <button class="btn-text" id="resendConfirmBtn" type="button" style="margin-top:6px;width:100%;text-align:center;" data-i18n="resendConfirmBtn" hidden></button>
 
       <div class="footer-note" style="margin-top:14px;" data-i18n="mockAuthNote"></div>
       <a class="settings-link" style="display:block;text-align:center;margin-top:8px;" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a>
@@ -2302,6 +2304,7 @@ function makeOfflineSupabaseStub(){
       getSession: () => Promise.resolve({ data: { session: null } }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } }),
       signUp: () => Promise.resolve({ data: null, error: offlineError }),
+      resend: () => Promise.resolve({ error: offlineError }),
       signInWithPassword: () => Promise.resolve({ data: null, error: offlineError }),
       signInWithOAuth: () => Promise.resolve({ error: offlineError }),
       signOut: () => Promise.resolve({ error: null }),
@@ -2318,6 +2321,19 @@ function makeOfflineSupabaseStub(){
 // supabaseReady resolves once that swap has happened (or attempts run out), so the one-time
 // page-load session check can wait for it instead of racing a stub that always says "no session".
 let sb = makeOfflineSupabaseStub();
+// Where an email link (or Google) sends people back to: this site, or the hosted app from the native
+// shell. Supabase only honors it if it's listed under Authentication -> URL Configuration -> Redirect URLs.
+const APP_URL = 'https://heraclio580-oss.github.io/Altiro/';
+function authRedirectUrl(){
+  return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^/]*$/, '') : APP_URL;
+}
+// What the confirmation link brought back in the address -- read now, before the Supabase client
+// signs the user in from it and clears it: "#access_token=...&type=signup", or an error such as
+// "#error=access_denied&error_code=otp_expired" for an expired or already-used link.
+const AUTH_RETURN = (()=>{
+  const q = new URLSearchParams((location.hash||'').replace(/^#/, '') + '&' + (location.search||'').replace(/^\?/, ''));
+  return { type: q.get('type'), error: q.get('error_code') || q.get('error'), errorDescription: q.get('error_description') };
+})();
 const supabaseReady = new Promise((resolve)=>{
   (function poll(attemptsLeft){
     if(window.supabase && window.supabase.createClient){
@@ -2428,7 +2444,12 @@ const STR = {
     alreadyHaveAccount: "Already have an account? Sign in",
     needAccount: "Need an account? Create one",
     signInBtn: "Sign In",
-    confirmEmailMsg: "Check your email to confirm your account, then sign in below.",
+    confirmEmailMsg: "Check your email and tap the link to confirm. It brings you right back here, signed in, with your plan ready.",
+    emailConfirmedToast: "Email confirmed. Welcome to Altiro!",
+    confirmLinkExpired: "That confirmation link has expired or was already used. Sign in below, or send yourself a new link.",
+    emailNotConfirmedMsg: "Confirm your email first: tap the link we sent you.",
+    resendConfirmBtn: "Send a new confirmation link",
+    resendSentMsg: "Sent. Check your email for the new link.",
     eyebrowGoal: "Goal",
     goalHeadline: "What are you working toward?",
     goalSub: "This shapes your plan — nothing here is locked in.",
@@ -2858,7 +2879,12 @@ const STR = {
     alreadyHaveAccount: "¿Ya tienes una cuenta? Inicia sesión",
     needAccount: "¿Necesitas una cuenta? Crea una",
     signInBtn: "Iniciar sesión",
-    confirmEmailMsg: "Revisa tu correo para confirmar tu cuenta y luego inicia sesión.",
+    confirmEmailMsg: "Revisa tu correo y toca el enlace para confirmar. Te trae de vuelta aquí, con la sesión iniciada y tu plan listo.",
+    emailConfirmedToast: "Correo confirmado. ¡Bienvenido a Altiro!",
+    confirmLinkExpired: "Ese enlace de confirmación expiró o ya se usó. Inicia sesión abajo, o envíate un enlace nuevo.",
+    emailNotConfirmedMsg: "Primero confirma tu correo: toca el enlace que te enviamos.",
+    resendConfirmBtn: "Enviar un nuevo enlace de confirmación",
+    resendSentMsg: "Enviado. Revisa tu correo para ver el nuevo enlace.",
     eyebrowGoal: "Objetivo",
     goalHeadline: "¿Hacia qué estás trabajando?",
     goalSub: "Esto da forma a tu plan — nada aquí es definitivo.",
@@ -8533,6 +8559,60 @@ function renderSummary(){
   }
 }
 
+/* ---------------- email confirmation ---------------- */
+// When a new account has to confirm its email first, the answers from setup (goal, days, balance...)
+// are kept on this device until the link is tapped, so the account comes back with the plan it chose
+// instead of a default one. The link usually opens in the same browser (or one that shares it).
+const PENDING_SIGNUP_KEY = 'altiro_pending_signup';
+const SIGNUP_FIELDS = ['goal','level','trainingDays','focusRatio','intensityIdx','liftIntensityIdx','age','gender','weight','weightUnit',
+  'weeklyMiles','equipment','liftSplit','mileTime','jogBaseline','startChoice','startPick','lang'];
+function savePendingSignup(email){
+  const fields = {};
+  SIGNUP_FIELDS.forEach(k=>{ if(state[k]!==undefined) fields[k] = state[k]; });
+  try{ localStorage.setItem(PENDING_SIGNUP_KEY, JSON.stringify({email: String(email).toLowerCase(), at: Date.now(), fields})); }catch(e){}
+}
+function readPendingSignup(){
+  try{
+    const p = JSON.parse(localStorage.getItem(PENDING_SIGNUP_KEY) || 'null');
+    if(p && p.email && Date.now()-p.at < 30*24*60*60*1000) return p;
+  }catch(e){}
+  return null;
+}
+// Only for a brand-new account (its profile has no plan saved yet), and only its own answers.
+function applyPendingSignup(user, profile){
+  const pending = readPendingSignup();
+  if(!pending || pending.email!==String(user.email||'').toLowerCase()) return false;
+  try{ localStorage.removeItem(PENDING_SIGNUP_KEY); }catch(e){}
+  if(profile && profile.goal) return false;
+  Object.assign(state, pending.fields);
+  startPlanOn(startDateFor(state.startChoice || 'today', state.startPick) || dateKey(TODAY_DATE));
+  state.week = buildWeek();
+  saveProfileToCloud();
+  return true;
+}
+function showResendConfirm(email){
+  const btn = document.getElementById('resendConfirmBtn');
+  btn.hidden = false;
+  btn.dataset.email = email || '';
+}
+document.getElementById('resendConfirmBtn').addEventListener('click', async function(){
+  const L = STR[state.lang];
+  const email = (document.getElementById('emailInput').value.trim() || this.dataset.email || '');
+  const errEl = document.getElementById('authError');
+  if(!email){ document.getElementById('emailInput').focus(); return; }
+  this.disabled = true;
+  try{
+    const { error } = await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: authRedirectUrl() } });
+    if(error) throw error;
+    if(!readPendingSignup()) savePendingSignup(email);
+    errEl.style.color = 'var(--ok-icon)';
+    errEl.textContent = L.resendSentMsg;
+  }catch(err){
+    errEl.style.color = 'var(--accent)';
+    errEl.textContent = err.message || 'Something went wrong.';
+  }finally{ this.disabled = false; }
+});
+
 /* ---------------- account / sign-in (real Supabase Auth) ---------------- */
 let authMode = 'signup';
 // true when the account screen was opened from Welcome's "Sign in" button -- a returning user who
@@ -8553,6 +8633,7 @@ function openReturningSignIn(){
   accountReturning = true;
   authMode = 'signin';
   document.getElementById('authError').textContent = '';
+  document.getElementById('resendConfirmBtn').hidden = true;
   updateAuthModeUI();
   showScreen('onb-account');
 }
@@ -8578,7 +8659,7 @@ document.getElementById('toggleAuthMode').addEventListener('click', ()=>{
 async function loadProfileFromCloud(){
   if(!state.userId) return;
   const { data, error } = await sb.from('profiles').select('*').eq('id', state.userId).maybeSingle();
-  if(error || !data) return;
+  if(error || !data) return null;
   if(data.goal) state.goal = data.goal;
   if(data.level) state.level = data.level;
   if(data.training_days) state.trainingDays = data.training_days;
@@ -8609,6 +8690,7 @@ async function loadProfileFromCloud(){
     saveProfileToCloud();
   }
   state.week = buildWeek();
+  return data;
 }
 async function saveProfileToCloud(){
   if(!state.userId) return;
@@ -9255,7 +9337,7 @@ document.getElementById('googleSignInBtn').addEventListener('click', async funct
   btn.disabled = true;
   labelEl.textContent = L.signingInMsg;
   document.getElementById('authError').textContent = '';
-  const { error } = await sb.auth.signInWithOAuth({ provider: 'google' });
+  const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: authRedirectUrl() } });
   if(error){
     // Expected until Google OAuth is configured in the Supabase dashboard
     // (Authentication -> Providers -> Google). Surface it rather than fake success.
@@ -9290,7 +9372,8 @@ function enterSignedIn(user){
   if(signedInLoad && signedInLoad.userId===user.id) return signedInLoad.promise;
   setSignedInUser(user);
   const promise = (async ()=>{
-    await loadProfileFromCloud(); // rebuilds state.week, which the workout data below is merged into
+    const profile = await loadProfileFromCloud(); // rebuilds state.week, which the workout data below is merged into
+    applyPendingSignup(user, profile);
     await Promise.all([loadWorkoutDataFromCloud(), loadPRsFromCloud()]);
     await loadReminderSettings();
     applyLang();
@@ -9312,18 +9395,21 @@ document.getElementById('emailSignupBtn').addEventListener('click', async functi
   const errEl = document.getElementById('authError');
   errEl.style.color = 'var(--accent)';
   errEl.textContent = '';
+  document.getElementById('resendConfirmBtn').hidden = true;
   btn.disabled = true;
   btn.textContent = authMode==='signup' ? L.creatingAccountMsg : L.signingInMsg;
   try{
     if(authMode==='signup'){
       signingUp = true;
-      const { data, error } = await sb.auth.signUp({ email, password }).finally(()=>{ signingUp = false; });
+      const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: authRedirectUrl() } }).finally(()=>{ signingUp = false; });
       if(error) throw error;
       if(!data.session){
         // Email confirmation is required by this Supabase project's Auth settings --
         // there's no session yet, so don't pretend the user is signed in.
         errEl.style.color = 'var(--ok-icon)';
         errEl.textContent = L.confirmEmailMsg;
+        savePendingSignup(email);
+        showResendConfirm(email);
         authMode = 'signin';
         return;
       }
@@ -9337,6 +9423,12 @@ document.getElementById('emailSignupBtn').addEventListener('click', async functi
     }
   }catch(err){
     errEl.style.color = 'var(--accent)';
+    // Signing in before confirming: say so plainly, and offer a new link.
+    if(/not confirmed/i.test(err.message || '') || err.code==='email_not_confirmed'){
+      errEl.textContent = L.emailNotConfirmedMsg;
+      showResendConfirm(email);
+      return;
+    }
     errEl.textContent = err.message || 'Something went wrong.';
   }finally{
     btn.disabled = false;
@@ -10021,7 +10113,22 @@ showScreen('welcome');
   try{
     await supabaseReady; // don't ask the offline stub whether a real session exists
     const { data: { session } } = await sb.auth.getSession();
-    if(session) await enterSignedIn(session.user);
+    if(session){
+      await enterSignedIn(session.user);
+      if(AUTH_RETURN.type==='signup') showToast(STR[state.lang].emailConfirmedToast);
+    } else if(AUTH_RETURN.error){
+      // An expired or already-used link: to sign in, with a way to get a new one.
+      openReturningSignIn();
+      const pending = readPendingSignup();
+      if(pending) document.getElementById('emailInput').value = pending.email;
+      const errEl = document.getElementById('authError');
+      errEl.style.color = 'var(--accent)';
+      errEl.textContent = STR[state.lang].confirmLinkExpired;
+      showResendConfirm(pending ? pending.email : '');
+    }
+    if(AUTH_RETURN.type || AUTH_RETURN.error){
+      try{ history.replaceState(null, '', location.pathname); }catch(e){}
+    }
   }catch(e){ /* stay on Welcome if the session check fails */ }
 })();
 })();

@@ -2,6 +2,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Altiro</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0B0B0C">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Altiro">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -605,6 +613,25 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:12px 13px;}
 .toggle-row .tt{font-size:13px;color:var(--text);font-weight:500;}
 .toggle-row .ts{font-size:11px;color:var(--text-3);margin-top:2px;}
+.reminder-time-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:0 4px 0 13px;font-size:13px;color:var(--text-2);}
+.reminder-time-row[hidden]{display:none;}
+.reminder-time-select{flex:0 0 auto;width:auto;min-width:118px;height:40px;cursor:pointer;}
+.reminder-note{text-align:left;margin-top:8px;line-height:1.45;}
+.reminder-note[hidden]{display:none;}
+.install-nudge{display:flex;align-items:center;gap:10px;margin:4px 20px 6px;padding:10px 8px 10px 10px;background:var(--well);border:1px solid var(--border);border-radius:var(--r-lg);}
+.install-nudge[hidden]{display:none;}
+.install-nudge-ic{width:40px;height:40px;border-radius:10px;flex-shrink:0;}
+.install-nudge-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;font-size:11.5px;color:var(--text-3);line-height:1.35;}
+.install-nudge-text b{font-size:13px;color:var(--text);font-weight:600;}
+.install-nudge-add{flex-shrink:0;font-weight:700;color:var(--accent-bright);padding:8px 6px;}
+.install-nudge-x{width:28px;height:28px;flex-shrink:0;}
+.install-nudge-x svg{width:14px;height:14px;}
+#installSection[hidden]{display:none;}
+.install-steps{margin:4px 0 6px;padding:0;list-style:none;counter-reset:step;display:flex;flex-direction:column;gap:12px;}
+.install-steps li{counter-increment:step;display:flex;align-items:flex-start;gap:12px;font-size:14px;line-height:1.45;color:var(--text-2);}
+.install-steps li::before{content:counter(step);flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--accent-tint);color:var(--text);font-family:var(--font-mono);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;}
+.install-steps b{color:var(--text);font-weight:600;}
+.install-steps svg{width:16px;height:16px;vertical-align:-3px;margin:0 2px;color:var(--today-ring);}
 .sheet-section[hidden]{display:none;}
 .strava-btn{flex-shrink:0;height:34px;padding:0 14px;border-radius:var(--r-pill);border:none;background:#FC4C02;color:#fff;font-family:var(--font-display);font-weight:600;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;}
 .strava-btn.secondary{background:transparent;color:var(--text-2);border:1px solid var(--border);}
@@ -1292,6 +1319,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
     </div>
 
+    <div class="install-nudge" id="installNudge" hidden>
+      <img class="install-nudge-ic" src="icons/icon-192.png" alt="" width="40" height="40">
+      <div class="install-nudge-text"><b data-i18n="installNudgeTitle"></b><span data-i18n="installNudgeSub"></span></div>
+      <button class="btn-text install-nudge-add" id="installNudgeAdd" type="button" data-i18n="installNudgeAdd"></button>
+      <button class="iconbtn install-nudge-x" id="installNudgeClose" type="button" aria-label="Close"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M6 6l8 8M14 6l-8 8"/></svg></button>
+    </div>
+
     <div class="record-hero">
       <button class="record-circle" id="recordBtn" type="button"><span id="recordIcon"></span></button>
       <div class="record-label" id="recordLabel"></div>
@@ -1407,8 +1441,21 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
             <div class="tt" data-i18n="notificationsTitle"></div>
             <div class="ts" data-i18n="notificationsSub"></div>
           </div>
-          <div class="toggle" id="notifToggle"><div class="knob"></div></div>
+          <div class="toggle" id="notifToggle" role="switch" tabindex="0"><div class="knob"></div></div>
         </div>
+        <div class="reminder-time-row" id="reminderTimeRow" hidden>
+          <label for="reminderTimeSelect" data-i18n="reminderTimeLabel"></label>
+          <select class="text-input reminder-time-select" id="reminderTimeSelect"></select>
+        </div>
+        <div class="footer-note reminder-note" id="reminderNote" hidden></div>
+      </div>
+
+      <div class="sheet-section" id="installSection" hidden>
+        <div class="st-label" data-i18n="installLabel"></div>
+        <button class="how-it-works-btn" id="installBtn" type="button">
+          <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="10" height="16" rx="2"/><path d="M10 6v6M7.5 9.5L10 12l2.5-2.5"/></svg></span>
+          <span data-i18n="installBtn"></span>
+        </button>
       </div>
 
       <div class="sheet-section">
@@ -1548,6 +1595,19 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   </div>
 
   <!-- FEEDBACK SHEET (overlay) -->
+  <div class="sheet-overlay" id="installOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="installSheetTitle"></span>
+        <button class="iconbtn" id="closeInstall"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <p class="fb-sub" id="installIntro"></p>
+      <ol class="install-steps" id="installSteps"></ol>
+      <button class="btn btn-primary sheet-apply" id="installDoneBtn" type="button" data-i18n="installGotIt"></button>
+    </div>
+  </div>
+
   <div class="sheet-overlay" id="feedbackOverlay" hidden>
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
@@ -2553,7 +2613,32 @@ const STR = {
     helpLabel: "Help",
     tutDone: "Done",
     notificationsTitle: "Workout reminders",
-    notificationsSub: "A nudge on days you have a session",
+    notificationsSub: "A reminder on the days you have a workout",
+    reminderTimeLabel: "Remind me at",
+    reminderTitle: "Today: {name}",
+    reminderBodyDefault: "Tap to see today's workout",
+    remindersOnToast: "Reminders on: {time} on workout days",
+    remindersOffToast: "Reminders off",
+    remindersTimeToast: "You'll be reminded at {time}",
+    remindersNeedAccount: "Sign in to turn on reminders",
+    remindersBlocked: "Notifications are blocked for Altiro. Allow them in your browser's site settings, then try again.",
+    remindersUnsupported: "This browser can't show notifications. Try Chrome on Android, or Safari after adding Altiro to your Home Screen.",
+    remindersFailed: "Couldn't turn on reminders. Check your connection and try again.",
+    remindersIosNote: "On iPhone, reminders work once Altiro is on your Home Screen. Tap Add to Home Screen below, then open Altiro from there and turn this on.",
+    remindersDeviceNote: "Reminders are on for your account. To get them on this device too, turn them off and on again here.",
+    installLabel: "Home Screen",
+    installBtn: "Add Altiro to your Home Screen",
+    installNudgeTitle: "Put Altiro on your Home Screen",
+    installNudgeSub: "Open it in one tap, and get workout reminders.",
+    installNudgeAdd: "Add",
+    installSheetTitle: "Add to Home Screen",
+    installIntroIos: "Altiro opens like an app, full screen, from your Home Screen. On iPhone, that's also what lets it send workout reminders.",
+    installIntroOther: "Altiro opens like an app, full screen, from your Home Screen.",
+    installStepsIos: ["In Safari, tap the <b>Share</b> button {share} at the bottom of the screen.", "Scroll down and tap <b>Add to Home Screen</b>.", "Tap <b>Add</b>. Then open Altiro from your Home Screen."],
+    installStepsAndroid: ["Tap the <b>menu</b> {dots} at the top right of Chrome.", "Tap <b>Add to Home screen</b> (or <b>Install app</b>).", "Tap <b>Install</b>. Then open Altiro from your Home Screen."],
+    installStepsDesktop: ["In Chrome or Edge, click the <b>install</b> icon {install} at the right end of the address bar.", "Click <b>Install</b>."],
+    installGotIt: "Got it",
+    installedToast: "Altiro is on your Home Screen",
     signOutBtn: "Sign Out",
     signOutToast: "Signed out",
     scheduledLabel: "Scheduled",
@@ -2942,7 +3027,32 @@ const STR = {
     helpLabel: "Ayuda",
     tutDone: "Listo",
     notificationsTitle: "Recordatorios de entrenamiento",
-    notificationsSub: "Un aviso los días que tienes sesión",
+    notificationsSub: "Un recordatorio los días que tienes entrenamiento",
+    reminderTimeLabel: "Recordarme a las",
+    reminderTitle: "Hoy: {name}",
+    reminderBodyDefault: "Toca para ver el entrenamiento de hoy",
+    remindersOnToast: "Recordatorios activados: {time} los días de entrenamiento",
+    remindersOffToast: "Recordatorios desactivados",
+    remindersTimeToast: "Te lo recordaremos a las {time}",
+    remindersNeedAccount: "Inicia sesión para activar los recordatorios",
+    remindersBlocked: "Las notificaciones de Altiro están bloqueadas. Permítelas en la configuración del sitio de tu navegador y vuelve a intentarlo.",
+    remindersUnsupported: "Este navegador no puede mostrar notificaciones. Prueba Chrome en Android, o Safari después de añadir Altiro a tu pantalla de inicio.",
+    remindersFailed: "No se pudieron activar los recordatorios. Revisa tu conexión y vuelve a intentarlo.",
+    remindersIosNote: "En iPhone, los recordatorios funcionan cuando Altiro está en tu pantalla de inicio. Toca Añadir a pantalla de inicio abajo, abre Altiro desde ahí y actívalos.",
+    remindersDeviceNote: "Los recordatorios están activados en tu cuenta. Para recibirlos también en este dispositivo, desactívalos y vuelve a activarlos aquí.",
+    installLabel: "Pantalla de inicio",
+    installBtn: "Añadir Altiro a tu pantalla de inicio",
+    installNudgeTitle: "Pon Altiro en tu pantalla de inicio",
+    installNudgeSub: "Ábrelo con un toque y recibe recordatorios de entrenamiento.",
+    installNudgeAdd: "Añadir",
+    installSheetTitle: "Añadir a pantalla de inicio",
+    installIntroIos: "Altiro se abre como una app, a pantalla completa, desde tu pantalla de inicio. En iPhone, eso también le permite enviarte recordatorios.",
+    installIntroOther: "Altiro se abre como una app, a pantalla completa, desde tu pantalla de inicio.",
+    installStepsIos: ["En Safari, toca el botón <b>Compartir</b> {share} en la parte de abajo.", "Desliza hacia abajo y toca <b>Añadir a pantalla de inicio</b>.", "Toca <b>Añadir</b>. Luego abre Altiro desde tu pantalla de inicio."],
+    installStepsAndroid: ["Toca el <b>menú</b> {dots} arriba a la derecha en Chrome.", "Toca <b>Añadir a pantalla de inicio</b> (o <b>Instalar app</b>).", "Toca <b>Instalar</b>. Luego abre Altiro desde tu pantalla de inicio."],
+    installStepsDesktop: ["En Chrome o Edge, haz clic en el icono de <b>instalar</b> {install} al final de la barra de direcciones.", "Haz clic en <b>Instalar</b>."],
+    installGotIt: "Entendido",
+    installedToast: "Altiro está en tu pantalla de inicio",
     signOutBtn: "Cerrar sesión",
     signOutToast: "Sesión cerrada",
     scheduledLabel: "Programado",
@@ -4151,7 +4261,8 @@ const defaultState = () => ({
   prs:[],
   openDayKey:null,
   planWeeksLoaded:PLAN_INITIAL_WEEKS,
-  notifications:true,
+  notifications:false, // workout reminders (web push) -- on only once this device has allowed them
+  reminderTime:'07:00',
   adjustDraft:null,
   loadTimer:null,
   lang:'en',
@@ -4685,6 +4796,7 @@ function elFor(id){return document.getElementById('screen-'+id);}
 // After anything that changes what's planned or logged: redraw Day Detail if it's open, and whichever
 // screen is showing -- the rest redraw themselves when switched to (see showScreen below).
 function refreshViews(){
+  scheduleReminderSync();
   if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail();
   const active = SCREEN_IDS.find(s=>elFor(s) && !elFor(s).hidden);
   if(active==='home') renderHome();
@@ -4693,6 +4805,7 @@ function refreshViews(){
   else if(active==='progress') renderProgress();
 }
 function showScreen(id){
+  scheduleReminderSync(); // a workout just done (or anything else) can change what's coming up
   SCREEN_IDS.forEach(s=>{
     const el = elFor(s);
     if(!el) return;
@@ -4769,6 +4882,9 @@ function applyLang(){
   }
   if(state._lastSession) renderSummary();
   if(!document.getElementById('tutorialOverlay').hidden) renderTutorialSlide();
+  renderReminderSettings();
+  if(!document.getElementById('installOverlay').hidden) openInstallSheet();
+  scheduleReminderSync(); // reminders are worded in the user's language
   if(demoSession && !elFor('exercise-detail').hidden) renderExerciseDetail();
   if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail();
   if(!document.getElementById('manualEntryOverlay').hidden){
@@ -4816,6 +4932,7 @@ function closeAllOverlays(){
   if(!document.getElementById('repeatOverlay').hidden) closeRepeatWeek();
   if(!document.getElementById('adjustOverlay').hidden) closeAdjustSheet();
   if(!document.getElementById('tutorialOverlay').hidden) closeTutorial();
+  if(!document.getElementById('installOverlay').hidden) closeInstallSheet();
 }
 const pillsWrap = document.getElementById('protoPills');
 NAV_MAP.forEach(([id,label])=>{
@@ -5246,6 +5363,7 @@ function runLoading(){
 function renderHome(){
   ensureWeek();
   const L = STR[state.lang];
+  renderInstallUI();
 
   document.getElementById('homeDateLine').textContent = `${DAY_NAMES_FULL[state.lang][TODAY_IDX]}, ${MONTHS_SHORT[state.lang][WEEK_MONDAY.getMonth()]} ${DAY_DATES[TODAY_IDX]}`;
 
@@ -7893,7 +8011,8 @@ function renderSettings(){
   document.getElementById('profileAvatar').textContent = state.userName.charAt(0);
   document.getElementById('profileName').textContent = state.userName;
   document.getElementById('profileEmail').textContent = state.userEmail;
-  document.getElementById('notifToggle').classList.toggle('on', state.notifications);
+  renderReminderSettings();
+  renderInstallUI();
   document.getElementById('themeToggle').classList.toggle('on', state.theme==='light');
   renderStravaSettings();
 }
@@ -7918,10 +8037,6 @@ document.getElementById('saveEditName').addEventListener('click', ()=>{
   closeEditName();
   showToast(STR[state.lang].nameUpdatedToast);
 });
-document.getElementById('notifToggle').addEventListener('click', function(){
-  state.notifications = !state.notifications;
-  this.classList.toggle('on', state.notifications);
-});
 document.getElementById('themeToggle').addEventListener('click', function(){
   state.theme = state.theme==='light' ? 'dark' : 'light';
   try{ localStorage.setItem('altiro_theme', state.theme); }catch(e){}
@@ -7929,6 +8044,7 @@ document.getElementById('themeToggle').addEventListener('click', function(){
   this.classList.toggle('on', state.theme==='light');
 });
 document.getElementById('signOutBtn').addEventListener('click', async ()=>{
+  await forgetThisDeviceForReminders(); // the next person to sign in here shouldn't get this account's reminders
   await sb.auth.signOut();
   resetToWelcome();
   showToast(STR[state.lang].signOutToast);
@@ -9069,6 +9185,7 @@ function enterSignedIn(user){
   const promise = (async ()=>{
     await loadProfileFromCloud(); // rebuilds state.week, which the workout data below is merged into
     await Promise.all([loadWorkoutDataFromCloud(), loadPRsFromCloud()]);
+    await loadReminderSettings();
     applyLang();
     // Straight to Home, not the "Building your plan" loading screen -- that screen's animation ends
     // by regenerating state.week from scratch, which would wipe out the planned/logged workouts just
@@ -9242,6 +9359,243 @@ document.getElementById('tutorialDots').addEventListener('click', e=>{
     goTutorialSlide(tutorialSlide + (dx < 0 ? 1 : -1));
   }, {passive:true});
 })();
+
+/* ---------------- workout reminders (web push) + Add to Home Screen ---------------- */
+// Reminders are sent by the workout-reminders Edge Function, not by the app: the plan is worked out
+// here, so the app keeps reminder_settings.schedule filled with the next few weeks of workouts (worded
+// in the user's language), and each device that allowed notifications is saved in push_subscriptions.
+// sw.js shows each reminder and opens the app when it's tapped.
+const PUSH_PUBLIC_KEY = 'BJkJAEMuNRrW_XdlrdwO0NrPp-XkztJMZLQkD9ldgMniGd5boxzkhRQaoxqGkGKSBbhWxBtcwwnqp7n_9vcW4h0';
+const REMINDER_DAYS_AHEAD = 21;
+const REMINDER_TIMES = Array.from({length:34}, (_,i)=>{ const m = 5*60 + i*30; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }); // 5:00 AM - 9:30 PM
+
+function isIOS(){ return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1); }
+function isAndroid(){ return /Android/.test(navigator.userAgent); }
+function isStandalone(){
+  try{ if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true; }catch(e){}
+  return navigator.standalone===true;
+}
+function isNativeShell(){ return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+// 'ok', or why this device can't get reminders right now.
+function pushSupport(){
+  if(isNativeShell()) return 'unsupported';
+  if(isIOS() && !isStandalone()) return 'ios-install';
+  if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return 'unsupported';
+  if(Notification.permission==='denied') return 'denied';
+  return 'ok';
+}
+
+let swRegistration = null;
+function registerServiceWorker(){
+  if(swRegistration) return swRegistration;
+  if(isNativeShell() || !('serviceWorker' in navigator)) return null;
+  if(!(location.protocol==='https:' || location.hostname==='localhost')) return null;
+  swRegistration = navigator.serviceWorker.register('sw.js').catch(()=>null);
+  return swRegistration;
+}
+if('serviceWorker' in navigator && navigator.serviceWorker.addEventListener){
+  // A reminder tapped while the app is already open: bring Today up.
+  navigator.serviceWorker.addEventListener('message', e=>{
+    if(e.data && e.data.type==='altiro-open-today' && state.signedIn){ closeAllOverlays(); showScreen('home'); }
+  });
+}
+
+function fmtReminderTime(hhmm, lang){
+  const [h, m] = hhmm.split(':').map(Number);
+  if((lang||state.lang)==='es') return `${h}:${String(m).padStart(2,'0')}`;
+  return `${(h%12)||12}:${String(m).padStart(2,'0')} ${h<12 ? 'AM' : 'PM'}`;
+}
+function reminderTimeZone(){
+  try{ return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; }catch(e){ return 'UTC'; }
+}
+// {"2026-10-01": {title: "Today: Leg Day", body: "45 min"}} for each coming day with a workout still to
+// do -- rest days, and a day whose workout is already done, get no reminder.
+function buildReminderSchedule(){
+  const L = STR[state.lang];
+  const schedule = {};
+  for(let i=0; i<REMINDER_DAYS_AHEAD; i++){
+    const date = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth(), TODAY_DATE.getDate()+i);
+    const dd = getDayData(date);
+    if(dd.completed) continue;
+    const items = [];
+    if(dd.p && dd.p.t!=='rest') items.push(dd.p);
+    dd.extraWorkouts.forEach(w=>{ if(!w.completed && w.session && w.session!==dd.p && w.session.t!=='rest') items.push(w.session); });
+    if(!items.length) continue;
+    const texts = items.map(x=>ST(x));
+    schedule[dd.key] = {
+      title: L.reminderTitle.replace('{name}', texts.map(t=>t.title).join(' + ')),
+      body: texts.map(t=>t.detail).filter(Boolean).join(' · ') || L.reminderBodyDefault,
+    };
+  }
+  return schedule;
+}
+let reminderSyncTimer = null, lastReminderSave = '';
+async function saveReminderSettings(){
+  if(!state.userId) return false;
+  const row = {
+    user_id: state.userId, enabled: !!state.notifications, remind_at: state.reminderTime,
+    time_zone: reminderTimeZone(), lang: state.lang,
+    schedule: state.notifications ? buildReminderSchedule() : null,
+  };
+  const key = JSON.stringify(row);
+  if(key===lastReminderSave) return true;
+  try{
+    const { error } = await sb.from('reminder_settings').upsert({...row, updated_at: new Date().toISOString()}, {onConflict:'user_id'});
+    if(error) return false;
+    lastReminderSave = key;
+    return true;
+  }catch(e){ return false; }
+}
+// Called whenever the views refresh (plan changes, workouts logged, a new day) -- saves at most once a
+// couple of seconds, and only when something in the schedule actually changed.
+function scheduleReminderSync(){
+  if(!state.notifications || !state.userId) return;
+  clearTimeout(reminderSyncTimer);
+  reminderSyncTimer = setTimeout(()=>{ saveReminderSettings(); }, 1500);
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') scheduleReminderSync(); });
+
+function urlBase64ToBytes(b64){
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(raw, c=>c.charCodeAt(0));
+}
+async function subscribeThisDevice(){
+  const reg = await registerServiceWorker();
+  if(!reg || !reg.pushManager) return null;
+  let sub = await reg.pushManager.getSubscription();
+  if(!sub) sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: urlBase64ToBytes(PUSH_PUBLIC_KEY)});
+  const j = sub.toJSON ? sub.toJSON() : sub;
+  if(!j || !j.endpoint || !j.keys) return null;
+  const { error } = await sb.from('push_subscriptions').upsert({
+    user_id: state.userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
+    user_agent: (navigator.userAgent||'').slice(0,200),
+  }, {onConflict:'endpoint'});
+  return error ? null : j.endpoint;
+}
+async function forgetThisDeviceForReminders(){
+  try{
+    const reg = swRegistration && await swRegistration;
+    const sub = reg && reg.pushManager && await reg.pushManager.getSubscription();
+    if(sub && state.userId) await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+  }catch(e){}
+}
+async function loadReminderSettings(){
+  if(!state.userId) return;
+  try{
+    const { data } = await sb.from('reminder_settings').select('enabled, remind_at').eq('user_id', state.userId).maybeSingle();
+    state.notifications = !!(data && data.enabled);
+    if(data && REMINDER_TIMES.includes(data.remind_at)) state.reminderTime = data.remind_at;
+  }catch(e){}
+  lastReminderSave = '';
+  // Already allowed on this device: keep its subscription fresh (browsers rotate them now and then).
+  if(state.notifications && pushSupport()==='ok' && Notification.permission==='granted') subscribeThisDevice().catch(()=>{});
+  scheduleReminderSync();
+}
+
+function renderReminderSettings(){
+  const L = STR[state.lang];
+  const toggle = document.getElementById('notifToggle');
+  toggle.classList.toggle('on', !!state.notifications);
+  toggle.setAttribute('aria-checked', state.notifications ? 'true' : 'false');
+  const sel = document.getElementById('reminderTimeSelect');
+  sel.innerHTML = REMINDER_TIMES.map(t=>`<option value="${t}"${t===state.reminderTime?' selected':''}>${fmtReminderTime(t)}</option>`).join('');
+  document.getElementById('reminderTimeRow').hidden = !state.notifications;
+  const support = pushSupport();
+  let note = '';
+  if(support==='ios-install') note = L.remindersIosNote;
+  else if(support==='denied') note = L.remindersBlocked;
+  else if(support==='unsupported' && !isNativeShell()) note = L.remindersUnsupported;
+  else if(state.notifications && support==='ok' && Notification.permission!=='granted') note = L.remindersDeviceNote;
+  const noteEl = document.getElementById('reminderNote');
+  noteEl.textContent = note;
+  noteEl.hidden = !note;
+}
+let reminderBusy = false;
+async function toggleReminders(){
+  if(reminderBusy) return;
+  const L = STR[state.lang];
+  if(state.notifications){
+    state.notifications = false;
+    renderReminderSettings();
+    await saveReminderSettings();
+    showToast(L.remindersOffToast);
+    return;
+  }
+  if(!state.userId){ showToast(L.remindersNeedAccount); return; }
+  const support = pushSupport();
+  if(support==='ios-install'){ openInstallSheet(); return; }
+  if(support==='unsupported'){ showToast(L.remindersUnsupported); return; }
+  if(support==='denied'){ renderReminderSettings(); showToast(L.remindersBlocked); return; }
+  reminderBusy = true;
+  try{
+    // Asked straight from the tap -- browsers only show the permission prompt for a user's own action.
+    const permission = await Notification.requestPermission();
+    if(permission!=='granted'){ renderReminderSettings(); showToast(L.remindersBlocked); return; }
+    const endpoint = await subscribeThisDevice().catch(()=>null);
+    if(!endpoint){ showToast(L.remindersFailed); return; }
+    state.notifications = true;
+    if(!(await saveReminderSettings())){ state.notifications = false; showToast(L.remindersFailed); return; }
+    showToast(L.remindersOnToast.replace('{time}', fmtReminderTime(state.reminderTime)));
+  }finally{
+    reminderBusy = false;
+    renderReminderSettings();
+  }
+}
+document.getElementById('notifToggle').addEventListener('click', toggleReminders);
+document.getElementById('notifToggle').addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleReminders(); } });
+document.getElementById('reminderTimeSelect').addEventListener('change', async e=>{
+  state.reminderTime = e.target.value;
+  await saveReminderSettings();
+  showToast(STR[state.lang].remindersTimeToast.replace('{time}', fmtReminderTime(state.reminderTime)));
+});
+
+// ---- Add to Home Screen ----
+let installPrompt = null; // Chrome/Edge/Android: the browser's own install prompt, saved for our button
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); installPrompt = e; renderInstallUI(); });
+window.addEventListener('appinstalled', ()=>{ installPrompt = null; renderInstallUI(); showToast(STR[state.lang].installedToast); });
+const INSTALL_NUDGE_KEY = 'altiro_install_nudge_dismissed';
+function installNudgeDismissed(){ try{ return localStorage.getItem(INSTALL_NUDGE_KEY)==='1'; }catch(e){ return false; } }
+function canInstall(){ return !isStandalone() && !isNativeShell(); }
+function renderInstallUI(){
+  const show = canInstall();
+  document.getElementById('installSection').hidden = !show;
+  // The Today banner: only on phones (or wherever the browser offers to install), and once dismissed, gone.
+  document.getElementById('installNudge').hidden = !(show && !installNudgeDismissed() && (installPrompt || isIOS() || isAndroid()));
+}
+const INSTALL_ICONS = {
+  share: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12.5V2.5M6.5 6L10 2.5 13.5 6M6 9H4.5v8.5h11V9H14"/></svg>',
+  dots: '<svg viewBox="0 0 20 20" fill="currentColor"><circle cx="10" cy="4.5" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="10" cy="15.5" r="1.6"/></svg>',
+  install: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="15" height="11" rx="1.5"/><path d="M10 6v5.5M7.5 9L10 11.5 12.5 9M7 17.5h6"/></svg>',
+};
+function openInstallSheet(){
+  const L = STR[state.lang];
+  const steps = isIOS() ? L.installStepsIos : isAndroid() ? L.installStepsAndroid : L.installStepsDesktop;
+  document.getElementById('installIntro').textContent = isIOS() ? L.installIntroIos : L.installIntroOther;
+  document.getElementById('installSteps').innerHTML = steps.map(t=>`<li><span>${t.replace(/\{(share|dots|install)\}/g, (_,k)=>INSTALL_ICONS[k])}</span></li>`).join('');
+  document.getElementById('installOverlay').hidden = false;
+}
+function closeInstallSheet(){ document.getElementById('installOverlay').hidden = true; }
+async function startInstall(){
+  if(installPrompt){
+    const prompt = installPrompt;
+    installPrompt = null;
+    try{ prompt.prompt(); await prompt.userChoice; }catch(e){}
+    renderInstallUI();
+    return;
+  }
+  openInstallSheet();
+}
+document.getElementById('installBtn').addEventListener('click', startInstall);
+document.getElementById('installNudgeAdd').addEventListener('click', startInstall);
+document.getElementById('installNudgeClose').addEventListener('click', ()=>{
+  try{ localStorage.setItem(INSTALL_NUDGE_KEY, '1'); }catch(e){}
+  renderInstallUI();
+});
+document.getElementById('closeInstall').addEventListener('click', closeInstallSheet);
+document.getElementById('installDoneBtn').addEventListener('click', closeInstallSheet);
+registerServiceWorker();
+renderInstallUI();
 
 /* ---------------- init ---------------- */
 setupSliders();

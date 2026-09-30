@@ -302,3 +302,51 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- ---------------------------------------------------------------------------
+-- Workout reminders (web push). The app saves each user's reminder time, time zone and the next few
+-- weeks of workouts (already worded, e.g. {"2026-10-01": {"title": "Today: Leg Day", "body": "45 min"}});
+-- the workout-reminders Edge Function, run every 15 minutes by pg_cron, sends each one at its time.
+-- ---------------------------------------------------------------------------
+create table if not exists reminder_settings (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  enabled boolean not null default false,
+  remind_at text not null default '07:00',  -- local time, "HH:MM"
+  time_zone text,                           -- e.g. "America/New_York"
+  lang text,
+  schedule jsonb,
+  last_sent_on date,                        -- the user's local date of the last reminder sent
+  updated_at timestamptz default now()
+);
+alter table reminder_settings enable row level security;
+drop policy if exists "own reminder settings" on reminder_settings;
+create policy "own reminder settings" on reminder_settings
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- One row per device (browser) that allowed notifications.
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  user_agent text,
+  created_at timestamptz default now()
+);
+create index if not exists push_subscriptions_user_idx on push_subscriptions(user_id);
+alter table push_subscriptions enable row level security;
+drop policy if exists "own push subscriptions" on push_subscriptions;
+create policy "own push subscriptions" on push_subscriptions
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- The schedule (run once, in the SQL editor, with the real secret in place of <REMINDERS_CRON_SECRET> --
+-- the same value as the function's REMINDERS_CRON_SECRET secret; don't commit it here):
+--   create extension if not exists pg_cron;
+--   create extension if not exists pg_net;
+--   select cron.schedule('altiro-workout-reminders', '*/15 * * * *', $$
+--     select net.http_post(
+--       url := 'https://ylzyqdeciysvufpffatu.supabase.co/functions/v1/workout-reminders',
+--       headers := '{"Content-Type": "application/json", "x-cron-secret": "<REMINDERS_CRON_SECRET>"}'::jsonb,
+--       body := '{}'::jsonb
+--     );
+--   $$);

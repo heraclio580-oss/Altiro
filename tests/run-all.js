@@ -35,7 +35,7 @@ if(!hasDeno) console.log(`(Deno not installed -- skipped ${FUNCTION_TESTS.join('
 else for(const testFile of FUNCTION_TESTS){
   try{
     execFileSync('deno', ['test', '--node-modules-dir=none', '--no-config', '--allow-env', '--allow-net', testFile],
-      { cwd: path.join(dir, '..'), encoding: 'utf8', stdio: 'pipe', env: { ...process.env, ALTIRO_STRAVA_TEST: '1', ALTIRO_FEEDBACK_TEST: '1', NO_COLOR: '1' } });
+      { cwd: path.join(dir, '..'), encoding: 'utf8', stdio: 'pipe', env: { ...process.env, ALTIRO_STRAVA_TEST: '1', ALTIRO_FEEDBACK_TEST: '1', ALTIRO_REMINDERS_TEST: '1', NO_COLOR: '1' } });
     pass++;
   }catch(e){
     fail++;

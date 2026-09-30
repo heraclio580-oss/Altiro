@@ -64,7 +64,8 @@ function fillRow(doc, key, weight, reps){
 
   console.log('Log Performance sheet opened after recording pulse:', doc.getElementById('logPerfOverlay').hidden===false ? 'OK' : 'FAIL');
   console.log('The single session-level weight/reps inputs are hidden (structured exercises replace them):', doc.getElementById('logPerfWeightSection').hidden && doc.getElementById('logPerfRepsSection').hidden ? 'OK' : 'FAIL');
-  console.log('Time section hidden for strength:', doc.getElementById('logPerfTimeSection').hidden ? 'OK' : 'FAIL');
+  // Lifting has a time too now: the workout clock, counting from when it was started.
+  console.log('Strength shows its workout time (counting from the start):', !doc.getElementById('logPerfTimeSection').hidden && doc.getElementById('logPerfTimeLabelEl').textContent==='Workout time (h:m:s)' ? 'OK' : 'FAIL');
   const rows1 = exerciseRows(doc);
   console.log('One row rendered per template exercise:', rows1.length>0 ? `OK (${rows1.length})` : 'FAIL');
 

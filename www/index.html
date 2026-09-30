@@ -1069,6 +1069,25 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .bar-col.selected .col-bar{background:var(--accent);border-color:var(--accent);}
 .bar-col .col-label{font-family:var(--font-mono);font-size:8.5px;letter-spacing:0.03em;color:var(--text-3);text-transform:uppercase;text-align:center;}
 .bar-col.current .col-label{color:var(--text);font-weight:600;}
+.act-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.act-tile{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;}
+.act-tile .l{font-family:var(--font-mono);font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);}
+.act-tile .v{font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--text);margin-top:4px;white-space:nowrap;}
+.act-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:112px;margin-top:14px;padding-bottom:2px;border-bottom:1px solid var(--divider);}
+.act-day{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.act-day .min{font-family:var(--font-mono);font-size:9px;color:var(--text-3);white-space:nowrap;}
+.act-day .bar{width:100%;min-height:3px;border-radius:6px 6px 0 0;background:var(--well);border:1px solid var(--divider);}
+.act-day.has .bar{background:var(--accent-tint);border-color:var(--accent);}
+.act-day.sel .bar{background:var(--accent);border-color:var(--accent);}
+.act-day.sel .min{color:var(--text);font-weight:600;}
+.act-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:6px;}
+.act-labels span{font-family:var(--font-mono);font-size:8.5px;letter-spacing:0.03em;text-transform:uppercase;color:var(--text-3);text-align:center;}
+.act-labels span.today{color:var(--today-ring-text);font-weight:600;}
+.act-detail{margin-top:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:11px 13px;}
+.act-detail .d{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
+.act-detail .t{font-size:14px;color:var(--text);font-weight:600;margin-top:4px;}
+.act-detail .w{font-size:12px;color:var(--text-2);margin-top:3px;line-height:1.4;}
+.act-note{font-size:11px;color:var(--text-3);line-height:1.45;margin-top:10px;}
 .week-detail-card{margin-top:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:13px 14px;}
 .week-detail-card .wd-range{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
 .week-detail-card .wd-stats{display:flex;gap:24px;margin-top:9px;}
@@ -1462,6 +1481,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         </div>
         <div class="barchart" id="progBarChart"></div>
         <div class="week-detail-card" id="progWeekDetail"></div>
+      </div>
+      <div class="sheet-section" style="margin-top:26px;">
+        <div class="st-label" data-i18n="activityLabel"></div>
+        <div id="progActivity"></div>
       </div>
       <div class="sheet-section" style="margin-top:26px;">
         <div class="st-label" data-i18n="prSectionLabel"></div>
@@ -2055,7 +2078,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <div class="sheet-section" id="logPerfTimeSection">
-        <div class="st-label" data-i18n="logPerfTimeLabel"></div>
+        <div class="st-label" id="logPerfTimeLabelEl" data-i18n="logPerfTimeLabel"></div>
         <div class="hms-row">
           <input type="number" inputmode="numeric" min="0" class="text-input hms-box" id="logPerfTimeHInput" placeholder="0">
           <span class="hms-sep">:</span>
@@ -2063,6 +2086,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
           <span class="hms-sep">:</span>
           <input type="number" inputmode="numeric" min="0" max="59" class="text-input hms-box" id="logPerfTimeSInput" placeholder="00">
         </div>
+        <div class="footer-note" id="logPerfTimeNote" style="text-align:left;margin-top:6px;" hidden></div>
       </div>
 
       <div class="sheet-section">
@@ -2699,6 +2723,11 @@ const STR = {
     logPerfRepsLabel: "Reps Completed",
     logPerfDistanceLabel: "Distance (mi)",
     logPerfTimeLabel: "Total Time (h:m:s)",
+    logPerfWorkoutTimeLabel: "Workout time (h:m:s)",
+    logPerfWorkoutTimeNote: "Counting from when you started. Change it if it's off.",
+    activityLabel: "Activity", activityTime: "Active time", activitySets: "Sets", activityReps: "Reps",
+    activitySetsReps: "{sets} sets · {reps} reps", activitySetsReps1: "1 set · {reps} reps", activityNone: "Nothing logged",
+    activityNote: "Lifting time counts from when you start a workout to when you save it. Run time is what you log, or Strava's moving time.",
     workoutNotesLabel: "Notes",
     workoutNotesPlaceholder: "How did it feel? Anything to remember for next time?",
     statProgress: "Next Suggested",
@@ -3149,6 +3178,11 @@ const STR = {
     logPerfRepsLabel: "Repeticiones completadas",
     logPerfDistanceLabel: "Distancia (mi)",
     logPerfTimeLabel: "Tiempo total (h:m:s)",
+    logPerfWorkoutTimeLabel: "Tiempo del entrenamiento (h:m:s)",
+    logPerfWorkoutTimeNote: "Cuenta desde que empezaste. Cámbialo si no es correcto.",
+    activityLabel: "Actividad", activityTime: "Tiempo activo", activitySets: "Series", activityReps: "Repeticiones",
+    activitySetsReps: "{sets} series · {reps} reps", activitySetsReps1: "1 serie · {reps} reps", activityNone: "Nada registrado",
+    activityNote: "El tiempo de pesas cuenta desde que empiezas un entrenamiento hasta que lo guardas. El tiempo de carrera es el que registras, o el tiempo en movimiento de Strava.",
     workoutNotesLabel: "Notas",
     workoutNotesPlaceholder: "¿Cómo te sentiste? ¿Algo que recordar para la próxima?",
     statProgress: "Próximo objetivo",
@@ -4455,6 +4489,7 @@ const defaultState = () => ({
   calMonthOffset:0,
   progWindowEnd:0,
   progSelectedOffset:0,
+  progActivityDay:null, // the day picked in Progress -> Activity (dateKey)
   dayLog:{},
   progression:{},
   prs:[],
@@ -6252,7 +6287,24 @@ function openLogPerformanceFor(logTarget, mode){
   const jogBlock = plannedJogBlock(eff);
   document.getElementById('logPerfJogSection').hidden = jogBlock==null;
   if(jogBlock!=null) document.getElementById('logPerfJogInput').value = (perf && perf.jogMin!=null) ? perf.jogMin : jogBlock;
-  document.getElementById('logPerfTimeSection').hidden = eff.t!=='run';
+  // Every workout gets a time: a run's is what was run; a lifting (or any other) workout's counts from
+  // when it was started to when it's saved, and can be corrected.
+  document.getElementById('logPerfTimeSection').hidden = eff.t==='rest' || eff.t==='interval';
+  document.getElementById('logPerfTimeLabelEl').textContent = eff.t==='run' ? STR[state.lang].logPerfTimeLabel : STR[state.lang].logPerfWorkoutTimeLabel;
+  const timeNote = document.getElementById('logPerfTimeNote');
+  timeNote.hidden = eff.t==='run' || mode!=='record';
+  timeNote.textContent = STR[state.lang].logPerfWorkoutTimeNote;
+  stopWorkoutClock();
+  if(eff.t!=='run'){
+    const knownTime = perf && perf.time!=null ? perf.time : null;
+    if(mode==='record' && knownTime==null){
+      const startKey = logTarget.dayKey+'|'+logTarget.kind+'|'+(logTarget.id||'');
+      if(!workoutStart || workoutStart.key!==startKey || Date.now()-workoutStart.at > WORKOUT_CLOCK_MAX_MIN*60000) workoutStart = {key:startKey, at:Date.now()};
+      startWorkoutClock();
+    } else {
+      writeHmsMinutes('logPerfTime', knownTime);
+    }
+  }
   // The sheet is shared by every workout now, so every field is set explicitly on each open --
   // nothing left over from whichever workout was logged last.
   if(eff.t==='strength' && !exercises){
@@ -6295,11 +6347,34 @@ function openLogPerformanceFor(logTarget, mode){
   document.querySelector('#logPerfOverlay .sheet-panel').scrollTop = 0;
 }
 function closeLogPerformance(){
+  stopWorkoutClock(); // the start time is kept -- reopening the same workout carries on counting
   document.getElementById('logPerfOverlay').hidden = true;
   document.getElementById('recordBtn').classList.remove('recording');
   renderHome();
 }
 document.getElementById('closeLogPerf').addEventListener('click', closeLogPerformance);
+// The workout clock: from when a workout is started (its log opened to record it) to when it's saved.
+// It fills the time field as it runs; typing in the field takes over.
+const WORKOUT_CLOCK_MAX_MIN = 300;
+let workoutStart = null, workoutClockTimer = null, workoutClockTouched = false;
+function elapsedWorkoutMinutes(){
+  if(!workoutStart) return null;
+  const min = (Date.now()-workoutStart.at)/60000;
+  return min>WORKOUT_CLOCK_MAX_MIN ? null : Math.max(0, +min.toFixed(2));
+}
+function startWorkoutClock(){
+  workoutClockTouched = false;
+  const tick = ()=>{ if(!workoutClockTouched) writeHmsMinutes('logPerfTime', elapsedWorkoutMinutes() || 0); };
+  tick();
+  workoutClockTimer = setInterval(tick, 1000);
+}
+function stopWorkoutClock(){
+  if(workoutClockTimer) clearInterval(workoutClockTimer);
+  workoutClockTimer = null;
+}
+['logPerfTimeHInput','logPerfTimeMInput','logPerfTimeSInput'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=>{ workoutClockTouched = true; });
+});
 document.getElementById('saveLogPerf').addEventListener('click', function(){
   const logTarget = state._logTarget || {dayKey: dateKey(TODAY_DATE), kind: state._activeExtraId ? 'extra' : 'primary', id: state._activeExtraId || null};
   const resolved = resolveLogTarget(logTarget);
@@ -6313,7 +6388,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
       const ex = exercises.find(e=>e.key===key);
       if(ex.bodyweight){
         const actualSets = row.querySelectorAll('.set-check-dot').length;
-        return {key, name: ex.name, bodyweight:true, setCount: actualSets, prescription: fmtExercisePrescription({...ex, sets: actualSets})};
+        return {key, name: ex.name, bodyweight:true, setCount: actualSets, reps: Number(ex.reps) || null, prescription: fmtExercisePrescription({...ex, sets: actualSets})};
       }
       const t = getExerciseTarget(ex, state.intensityIdx);
       const sets = [...row.querySelectorAll('.set-log-row')].map(setRow=>({
@@ -6343,6 +6418,12 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     }
     logged.time = readHmsMinutes('logPerfTime') || plannedMinutesOf(eff) || ((target ? target.pace : 9.5)*(logged.distance || 0)) || null;
   }
+  if(eff.t!=='run'){
+    // What's in the field -- the running clock since the workout was started, or the user's own number.
+    const t = workoutClockTouched || !workoutClockTimer ? readHmsMinutes('logPerfTime') : elapsedWorkoutMinutes();
+    if(t) logged.time = t;
+  }
+  stopWorkoutClock();
   logged.notes = document.getElementById('logPerfNotesInput').value.trim();
   // Editing a run that came from Strava keeps its link back to Strava.
   const prevPerf = resolved && resolved.performance;
@@ -8119,7 +8200,94 @@ function renderProgress(){
       <div class="wd-stat"><div class="l">${L.weekDetailWorkoutsLabel}</div><div class="v">${sel.workouts}</div></div>
       <div class="wd-stat"><div class="l">${L.weekDetailDistanceLabel}</div><div class="v">${sel.distance.toFixed(1)} mi</div></div>
     </div>`;
+  renderActivity();
   renderPRs();
+}
+
+/* ---------------- activity: time, sets and reps ---------------- */
+// Sets and reps from a logged workout: every set of every lift (a bodyweight move's reps from its
+// prescription), or an older one-number strength log as one set.
+function perfVolume(perf){
+  let sets = 0, reps = 0;
+  if(perf && Array.isArray(perf.exercises)){
+    perf.exercises.forEach(e=>{
+      if(Array.isArray(e.sets) && e.sets.length){
+        sets += e.sets.length;
+        e.sets.forEach(x=>{ reps += Number(x.reps) || 0; });
+      } else if(e.setCount){
+        sets += e.setCount;
+        const r = Number(e.reps) || Number((String(e.prescription||'').match(/[x×]\s*(\d+)/) || [])[1]) || 0;
+        reps += r * e.setCount;
+      }
+    });
+  } else if(perf && perf.reps>0){ sets += 1; reps += Number(perf.reps) || 0; }
+  return {sets, reps};
+}
+// Everything really done on a day: minutes (the time logged -- a lift's from start to save, a run's as
+// entered or from Strava -- or, for one marked done without a time, its planned minutes), sets, reps,
+// and what the workouts were.
+function dayActivity(date){
+  const key = dateKey(date), dd = getDayData(date), log = state.dayLog[key];
+  let minutes = 0, sets = 0, reps = 0;
+  const names = [];
+  const add = (perf, session, name, fallbackMin)=>{
+    const t = perf && perf.time!=null ? Number(perf.time) : fallbackMin;
+    if(t>0) minutes += t;
+    const v = perfVolume(perf);
+    sets += v.sets; reps += v.reps;
+    if(name) names.push(name);
+  };
+  if(dd.p.t!=='rest' && dd.primarySource==='plan' && log && log.completedOverride!==false
+    && (log.completedOverride===true || log.performance || log.actualRunDistance!=null || (key===dateKey(TODAY_DATE) && state.todayCompleted))){
+    add(log.performance, dd.p, ST(dd.p).title, plannedMinutesOf(dd.p));
+  }
+  dd.extraWorkouts.forEach(w=>{ if(w.completed) add(w.performance, w.session, ST(w.session).title, plannedMinutesOf(w.session)); });
+  dd.manualEntries.forEach(e=>{
+    const perf = e.performance || null;
+    const fallback = e.durationMin!=null ? Number(e.durationMin) : Number((String(e.volume||'').match(/(\d+)\s*min/) || [])[1]) || null;
+    add(perf && perf.time!=null ? perf : {...(perf||{}), time: fallback}, null, e.name, null);
+  });
+  return {key, date, minutes, sets, reps, names};
+}
+function fmtActiveTime(min){
+  const m = Math.round(min||0);
+  if(m < 60) return `${m} min`;
+  const h = Math.floor(m/60), r = m%60;
+  return state.lang==='es' ? `${h} h${r ? ` ${r} min` : ''}` : `${h}h${r ? ` ${r}m` : ''}`;
+}
+function renderActivity(){
+  const L = STR[state.lang];
+  const days = weekDates(state.progSelectedOffset).map(dayActivity);
+  const total = days.reduce((a,d)=>({minutes:a.minutes+d.minutes, sets:a.sets+d.sets, reps:a.reps+d.reps}), {minutes:0, sets:0, reps:0});
+  const todayKey = dateKey(TODAY_DATE);
+  if(!days.some(d=>d.key===state.progActivityDay)){
+    const withSome = days.filter(d=>d.minutes || d.sets);
+    state.progActivityDay = days.some(d=>d.key===todayKey) ? todayKey : (withSome.length ? withSome[withSome.length-1].key : days[0].key);
+  }
+  const max = Math.max(30, ...days.map(d=>d.minutes));
+  const sel = days.find(d=>d.key===state.progActivityDay);
+  const dow = d => DAY_NAMES_SHORT[state.lang][(d.getDay()+6)%7];
+  const el = document.getElementById('progActivity');
+  el.innerHTML = `
+    <div class="act-tiles">
+      <div class="act-tile"><div class="l">${L.activityTime}</div><div class="v">${fmtActiveTime(total.minutes)}</div></div>
+      <div class="act-tile"><div class="l">${L.activitySets}</div><div class="v">${total.sets}</div></div>
+      <div class="act-tile"><div class="l">${L.activityReps}</div><div class="v">${total.reps}</div></div>
+    </div>
+    <div class="act-days">${days.map(d=>`<div class="act-day${d.minutes||d.sets ? ' has' : ''}${d.key===state.progActivityDay ? ' sel' : ''}" data-act-day="${d.key}">
+        <span class="min">${d.minutes ? Math.round(d.minutes) : ''}</span>
+        <div class="bar" style="height:${d.minutes ? Math.max(6, Math.round(d.minutes/max*84)) : 3}px;"></div>
+      </div>`).join('')}</div>
+    <div class="act-labels">${days.map(d=>`<span class="${d.key===todayKey ? 'today' : ''}">${dow(d.date)}</span>`).join('')}</div>
+    <div class="act-detail">
+      <div class="d">${DAY_NAMES_FULL[state.lang][(sel.date.getDay()+6)%7]}, ${MONTHS_SHORT[state.lang][sel.date.getMonth()]} ${sel.date.getDate()}</div>
+      ${sel.minutes || sel.sets || sel.names.length
+        ? `<div class="t">${[sel.minutes ? fmtActiveTime(sel.minutes) : '', sel.sets ? (sel.sets===1 ? L.activitySetsReps1 : L.activitySetsReps).replace('{sets}', sel.sets).replace('{reps}', sel.reps) : ''].filter(Boolean).join(' · ') || '—'}</div>
+           <div class="w">${sel.names.map(escapeHtml).join(' · ')}</div>`
+        : `<div class="t" style="color:var(--text-3);font-weight:500;">${L.activityNone}</div>`}
+    </div>
+    <div class="act-note">${L.activityNote}</div>`;
+  el.querySelectorAll('[data-act-day]').forEach(b=> b.addEventListener('click', ()=>{ state.progActivityDay = b.dataset.actDay; renderActivity(); }));
 }
 
 /* ---------------- personal records (lift PRs) ---------------- */

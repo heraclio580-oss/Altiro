@@ -15,12 +15,12 @@ function check(label, ok, detail){
 // ---- the figure itself: every frame keeps the body's proportions, and planted feet stay put ----
 const start = html.indexOf('/* ---------------- exercise demos');
 const end = html.indexOf('// The part of the picture a move uses');
-const engine = new Function(html.slice(start, end) + '\nreturn {MV, MOVES, mvSkeleton, mvPoseAt, mvShapes};')();
-const {MV, MOVES, mvSkeleton, mvPoseAt} = engine;
+const engine = new Function(html.slice(start, end) + '\nreturn {MV, MOVES, mvSkeleton, mvPoseAt, mvShapes, mvFold};')();
+const {MV, MOVES, mvSkeleton, mvPoseAt, mvFold} = engine;
 const dist = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
 const DEMO_KEYS = Object.keys(MOVES);
 let worst = 0, worstAt = '';
-const planted = [];
+const planted = [], wrongWay = [];
 DEMO_KEYS.forEach(key=>{
   const move = MOVES[key], total = move.loop.reduce((s, st)=> s + st[1], 0);
   for(let i=0; i<=60; i++){
@@ -28,13 +28,18 @@ DEMO_KEYS.forEach(key=>{
     const off = (got, want, what) => { const d = Math.abs(got - want); if(d > worst){ worst = d; worstAt = `${key} ${what}`; } };
     off(dist(s.hip, s.shoulder), MV.TORSO, 'torso');
     s.legs.forEach((l, n)=>{ off(dist(s.hip, l.knee), MV.THIGH, 'thigh'+n); off(dist(l.knee, l.ankle), MV.SHIN, 'shin'+n);
-      const spec = pose.legs[n]; if(Array.isArray(spec.at)) planted.push(dist(l.ankle, spec.at)); });
+      const spec = pose.legs[n]; if(Array.isArray(spec.at)) planted.push(dist(l.ankle, spec.at));
+      const f = mvFold(s.hip, l.knee, l.ankle); if(f > 0.5 || f < -165) wrongWay.push(`${key} knee ${f.toFixed(0)}°`); });
     s.arms.forEach((a, n)=>{ off(dist(s.shoulder, a.elbow), MV.UARM, 'upper arm'+n); off(dist(a.elbow, a.hand), MV.FARM, 'forearm'+n);
-      const spec = pose.arms[n]; if(Array.isArray(spec.at)) planted.push(dist(a.hand, spec.at)); });
+      const spec = pose.arms[n]; if(Array.isArray(spec.at)) planted.push(dist(a.hand, spec.at));
+      const f = mvFold(s.shoulder, a.elbow, a.hand); if(!spec.out && (f < -0.5 || f > 165)) wrongWay.push(`${key} elbow ${f.toFixed(0)}°`); });
   }
 });
 check('Every frame of every demo keeps the body in proportion', worst < 0.01, `${worst.toFixed(3)} at ${worstAt}`);
 check('...and a planted hand or foot stays where it is', Math.max(...planted) < 0.5, Math.max(...planted).toFixed(2));
+// Knees only bend back and elbows only bend forward (the point of the elbow faces back) -- in the
+// push-up that sends the elbows back toward the body, never out past the hands.
+check('Every joint bends the way the body does', !wrongWay.length, [...new Set(wrongWay)].slice(0, 4).join(', '));
 check('Each demo has form cues in English and Spanish', DEMO_KEYS.every(k=> MOVES[k].cues.en.length>=3 && MOVES[k].cues.en.length===MOVES[k].cues.es.length));
 
 (async () => {

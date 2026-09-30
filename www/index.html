@@ -61,8 +61,13 @@
   --font-display:'Montserrat','Arial Black',sans-serif;
   --font-body:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;
   --font-mono:'IBM Plex Mono','SF Mono',monospace;
+  /* exercise demo figure */
+  --mv-skin:#E0A882; --mv-skin-far:#A9745A; --mv-shirt:#3A7BD5; --mv-shorts:#4A5160; --mv-shorts-far:#373C47;
+  --mv-shoe:#E6E8EC; --mv-shoe-far:#9DA2AA; --mv-hair:#6B4A36; --mv-plate:#141416; --mv-plate-rim:#6E6E75; --mv-bar:#B4B7BD;
 }
 #device[data-theme="light"]{
+  --mv-shorts:#2B2F37; --mv-shorts-far:#1D2026; --mv-shoe:#3A4150; --mv-shoe-far:#262B35; --mv-hair:#3B2A20;
+  --mv-plate:#26272B; --mv-plate-rim:#26272B; --mv-bar:#8E9299;
   --card:#FFFFFF;
   --card-2:#FFFFFF;
   --well:#EFF2F5;
@@ -594,21 +599,26 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .wp-pace{margin-top:10px;font-family:var(--font-mono);font-size:12px;color:var(--text);}
 .wp-ex{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--divider-soft);}
 /* exercise demos: a looping figure for each move */
-.mv-body{stroke:var(--text);stroke-linecap:round;}
-.mv-head{fill:var(--text);}
-.mv-far{stroke:var(--text-3);stroke-linecap:round;opacity:.75;}
+.mv-skin{fill:var(--mv-skin);}
+.mv-skin-far{fill:var(--mv-skin-far);}
+.mv-shirt{fill:var(--mv-shirt);}
+.mv-shorts{fill:var(--mv-shorts);}
+.mv-shorts-far{fill:var(--mv-shorts-far);}
+.mv-shoe{fill:var(--mv-shoe);}
+.mv-shoe-far{fill:var(--mv-shoe-far);}
+.mv-hair{fill:var(--mv-hair);}
 .mv-floor{stroke:var(--border);stroke-linecap:round;}
-.mv-plate{fill:var(--accent);fill-opacity:.14;stroke:var(--accent);stroke-width:3;}
-.mv-hub,.mv-gear-fill{fill:var(--accent);}
-.mv-gear{stroke:var(--accent);stroke-linecap:round;}
-.mv-gear-ring{fill:none;stroke:var(--accent);stroke-width:2;}
+.mv-plate{fill:var(--mv-plate);stroke:var(--mv-plate-rim);stroke-width:1.6;}
+.mv-plate-hub{fill:var(--mv-bar);}
+.mv-bar{stroke:var(--mv-bar);stroke-linecap:round;}
+.mv-kb-handle{fill:none;stroke:var(--mv-plate);stroke-width:2.2;}
 .mv-prop{fill:var(--border);}
 .mv-prop-line{stroke:var(--border);}
 .wp-ex .ex-demo-btn{align-self:flex-start;}
-.ex-demo-btn{flex-shrink:0;width:60px;height:42px;padding:0;border-radius:10px;border:1px solid var(--divider-soft);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.ex-demo-btn{flex-shrink:0;width:60px;height:50px;padding:0;border-radius:10px;border:1px solid var(--divider-soft);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .ex-demo-btn:hover{border-color:var(--hover-border);}
 .ex-demo-btn svg{width:100%;height:100%;display:block;}
-.exercise-log-name .ex-demo-btn{width:42px;height:30px;border-radius:8px;margin-right:8px;}
+.exercise-log-name .ex-demo-btn{width:42px;height:35px;border-radius:8px;margin-right:8px;}
 #moveDemoOverlay{z-index:92;}
 .md-stage{margin:4px 0 12px;border-radius:18px;background:var(--card);border:1px solid var(--divider-soft);overflow:hidden;}
 .md-stage svg{width:100%;height:auto;display:block;}
@@ -9843,17 +9853,27 @@ const MV = {FLOOR:128, HEAD:7.5, NECK:4, TORSO:33, THIGH:25, SHIN:24, FOOT:9.4, 
 const mvDir = (deg, len) => { const r = deg*Math.PI/180; return [Math.sin(r)*len, Math.cos(r)*len]; };
 const mvAdd = (p, v) => [p[0]+v[0], p[1]+v[1]];
 // Two segments of lengths a and b from `from` to reach `to`; bend picks which side the joint goes.
-function mvReach(from, to, a, b, bend){
+// How far a limb folds at its middle joint, in degrees: positive when the lower part swings forward
+// of the upper (an elbow bending), negative when it swings back (a knee bending).
+const mvAngle = (p, q) => Math.atan2(q[0]-p[0], q[1]-p[1]) * 180/Math.PI;
+function mvFold(root, joint, end){ return ((mvAngle(joint, end) - mvAngle(root, joint)) % 360 + 540) % 360 - 180; }
+// Two segments of lengths a and b from `from` reaching `to`. There are two ways to bend; the body only
+// allows one: an elbow folds forward (fold +1), a knee folds back (fold -1).
+function mvReach(from, to, a, b, fold){
   const dx = to[0]-from[0], dy = to[1]-from[1];
   const d = Math.max(Math.abs(a-b)+0.01, Math.min(a+b-0.01, Math.hypot(dx, dy)));
   const base = Math.atan2(dy, dx), A = Math.acos((a*a + d*d - b*b) / (2*a*d));
-  const ang = base - bend*A;
-  const joint = [from[0] + Math.cos(ang)*a, from[1] + Math.sin(ang)*a];
-  const r = Math.atan2(to[1]-joint[1], to[0]-joint[0]);
-  return [joint, [joint[0] + Math.cos(r)*b, joint[1] + Math.sin(r)*b]];
+  const ways = [base - A, base + A].map(ang=>{
+    const joint = [from[0] + Math.cos(ang)*a, from[1] + Math.sin(ang)*a];
+    const r = Math.atan2(to[1]-joint[1], to[0]-joint[0]);
+    return [joint, [joint[0] + Math.cos(r)*b, joint[1] + Math.sin(r)*b]];
+  });
+  return ways.find(([j, e])=> mvFold(from, j, e)*fold >= -0.01) || ways[0];
 }
-function mvLimb(root, spec, a, b, defaultBend){
-  if(spec.at) return mvReach(root, spec.at, a, b, spec.bend ?? defaultBend);
+// An arm raised out to the side (hands on a bar across the back) is seen from the side foreshortened,
+// its elbow behind and below the hand -- `out` draws it that way.
+function mvLimb(root, spec, a, b, fold){
+  if(spec.at) return mvReach(root, spec.at, a, b, spec.out ? -fold : fold);
   const j = mvAdd(root, mvDir(spec.a1, a));
   return [j, mvAdd(j, mvDir(spec.a2, b))];
 }
@@ -9861,9 +9881,9 @@ function mvLimb(root, spec, a, b, defaultBend){
 function mvSkeleton(p){
   const hip = p.hip, shoulder = mvAdd(hip, mvDir(p.torso, MV.TORSO));
   const head = mvAdd(shoulder, mvDir(p.torso + (p.neck||0), MV.NECK + MV.HEAD));
-  const leg = l => { const [knee, ankle] = mvLimb(hip, l, MV.THIGH, MV.SHIN, 1); return {knee, ankle, toe: mvAdd(ankle, mvDir(l.foot ?? 65, MV.FOOT))}; };
+  const leg = l => { const [knee, ankle] = mvLimb(hip, l, MV.THIGH, MV.SHIN, -1); return {knee, ankle, toe: mvAdd(ankle, mvDir(l.foot ?? 90, MV.FOOT))}; };
   const bar = mvAdd(shoulder, mvDir(p.torso + 90, 4));  // a bar across the upper back
-  const arm = a => { const [elbow, hand] = mvLimb(shoulder, a.at==='back' ? {...a, at:bar} : a, MV.UARM, MV.FARM, -1); return {elbow, hand}; };
+  const arm = a => { const [elbow, hand] = mvLimb(shoulder, a.at==='back' ? {...a, at:bar} : a, MV.UARM, MV.FARM, 1); return {elbow, hand}; };
   return {hip, shoulder, head, bar, legs: p.legs.map(leg), arms: p.arms.map(arm)};
 }
 // A pose part way between two others (same shape: a limb aimed by angle in one is aimed by angle in both).
@@ -9885,41 +9905,77 @@ function mvPoseAt(move, sec){
   }
   return from;
 }
-// The shapes for one frame: scenery, the far arm and leg (dimmer), the body, the near arm and leg,
-// then what's being lifted. Always the same shapes in the same order, so a frame only moves them.
+// A rounded limb from a (radius ra) to b (radius rb) -- thicker at the top, like a real arm or leg.
+function mvCapsule(a, b, ra, rb){
+  const dx = b[0]-a[0], dy = b[1]-a[1], L = Math.hypot(dx, dy) || 0.001, nx = -dy/L, ny = dx/L;
+  const f = v => v.toFixed(1);
+  const P = (p, r, s) => `${f(p[0] + nx*r*s)} ${f(p[1] + ny*r*s)}`;
+  return `M${P(a, ra, 1)}L${P(b, rb, 1)}A${rb} ${rb} 0 0 0 ${P(b, rb, -1)}L${P(a, ra, -1)}A${ra} ${ra} 0 0 0 ${P(a, ra, 1)}Z`;
+}
+// The shapes for one frame, back to front: scenery, the far side of what's lifted, the far arm and leg
+// (in shade), the body and head, the near leg and arm, then the near side of what's lifted. Always the
+// same shapes in the same order, so a frame only moves them.
 function mvShapes(move, pose){
   const s = mvSkeleton(pose), out = [];
   const line = (c, a, b, w) => out.push({k:'line', c, a, b, w});
-  const anchor = at => at==='hand' ? s.arms[0].hand : at==='hands' ? mvBlend(s.arms[0].hand, s.arms[1].hand, 0.5)
+  const cap = (c, a, b, ra, rb) => out.push({k:'path', c, d: mvCapsule(a, b, ra, rb), box:[[...a, ra], [...b, rb]]});
+  const dot = (c, p, r) => out.push({k:'circle', c, x:p[0], y:p[1], r});
+  const lerp = (a, b, t) => [a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t];
+  const anchor = at => at==='hand' ? s.arms[0].hand : at==='hands' ? lerp(s.arms[0].hand, s.arms[1].hand, 0.5)
     : at==='back' ? s.bar : at==='farHand' ? s.arms[1].hand : at;
-  // What's lifted: a bar resting on the back is drawn behind the figure, anything held in front of it.
-  const gear = behind => (move.gear||[]).filter(g=> !!g.behind===behind).forEach(g=>{
-    const p = anchor(g.at);
-    if(g.type==='barbell'){ out.push({k:'circle', c:'mv-plate', x:p[0], y:p[1], r:g.r||12}); out.push({k:'circle', c:'mv-hub', x:p[0], y:p[1], r:2.5}); }
-    if(g.type==='dumbbell'){ line('mv-gear', [p[0]-7, p[1]], [p[0]+7, p[1]], 3); out.push({k:'rect', c:'mv-gear-fill', x:p[0]-10, y:p[1]-4.5, w:5, h:9}); out.push({k:'rect', c:'mv-gear-fill', x:p[0]+5, y:p[1]-4.5, w:5, h:9}); }
-    if(g.type==='kettlebell'){ out.push({k:'circle', c:'mv-gear-fill', x:p[0], y:p[1]+9, r:6.5}); out.push({k:'circle', c:'mv-gear-ring', x:p[0], y:p[1]+2, r:3.2}); }
+  // A barbell is seen a little from the side: its far plate behind the lifter, its near plate in front.
+  const gear = side => (move.gear||[]).forEach(g=>{
+    const p = anchor(g.at), r = g.r || 13;
+    if(g.type==='barbell'){
+      const far = [p[0] + 12, p[1] - 2], near = [p[0] - 14, p[1] + 2];
+      if(side==='far'){ dot('mv-plate', far, r*0.9); dot('mv-plate-hub', far, 2.2); line('mv-bar', far, p, 2.4); }
+      else { line('mv-bar', p, [near[0] - 7, near[1] + 1], 2.4); dot('mv-plate', near, r); dot('mv-plate-hub', near, 2.4); }
+    }
+    if(side==='far') return;
+    if(g.type==='dumbbell'){ line('mv-bar', [p[0]-6, p[1]], [p[0]+6, p[1]], 2.2); out.push({k:'rect', c:'mv-plate', x:p[0]-10, y:p[1]-5, w:5, h:10}); out.push({k:'rect', c:'mv-plate', x:p[0]+5, y:p[1]-5, w:5, h:10}); }
+    if(g.type==='kettlebell'){ dot('mv-plate', [p[0], p[1]+9], 6.5); dot('mv-kb-handle', [p[0], p[1]+2], 3.2); }
   });
   (move.scene||[]).forEach(sc=>{
     if(sc.bench){ const [x1, x2, y] = sc.bench; out.push({k:'rect', c:'mv-prop', x:x1, y, w:x2-x1, h:5}); line('mv-prop-line', [x1+5, y+5], [x1+5, MV.FLOOR], 3); line('mv-prop-line', [x2-5, y+5], [x2-5, MV.FLOOR], 3); }
   });
   line('mv-floor', [8, MV.FLOOR+1.5], [192, MV.FLOOR+1.5], 2);
-  gear(true);
-  const limb = (c, root, a, b, w) => { line(c, root, a, w); line(c, a, b, w); };
-  const legLine = (c, l) => { limb(c, s.hip, l.knee, l.ankle, 7); line(c, l.ankle, l.toe, 5); };
-  const armLine = (c, a) => limb(c, s.shoulder, a.elbow, a.hand, 6);
-  if(s.arms[1]) armLine('mv-far', s.arms[1]);
-  if(s.legs[1]) legLine('mv-far', s.legs[1]);
-  line('mv-body', s.hip, s.shoulder, 10);
-  out.push({k:'circle', c:'mv-head', x:s.head[0], y:s.head[1], r:MV.HEAD});
-  legLine('mv-body', s.legs[0]);
-  armLine('mv-body', s.arms[0]);
-  gear(false);
+  gear('far');
+  const leg = (l, far) => {
+    const sk = far ? 'mv-skin-far' : 'mv-skin';
+    cap(sk, l.knee, l.ankle, 4.1, 3.1);                                   // shin
+    cap(sk, s.hip, l.knee, 5.4, 4.2);                                     // thigh
+    cap(far ? 'mv-shorts-far' : 'mv-shorts', s.hip, lerp(s.hip, l.knee, 0.62), 6.2, 5.4);
+    const heel = lerp(l.ankle, l.toe, -0.25);
+    cap(far ? 'mv-shoe-far' : 'mv-shoe', heel, l.toe, 3.2, 2.6);
+  };
+  const arm = (a, far) => {
+    const sk = far ? 'mv-skin-far' : 'mv-skin';
+    cap(sk, s.shoulder, a.elbow, 3.8, 3.1);
+    cap(sk, a.elbow, a.hand, 3.1, 2.5);
+    dot(sk, a.hand, 2.9);
+  };
+  if(s.arms[1]) arm(s.arms[1], true);
+  if(s.legs[1]) leg(s.legs[1], true);
+  dot('mv-shorts', s.hip, 6.6);
+  const neck = mvAdd(s.shoulder, mvDir(pose.torso + (pose.neck||0), MV.NECK + 1));
+  cap('mv-skin', s.shoulder, neck, 3.2, 3);
+  cap('mv-shirt', s.hip, lerp(s.hip, s.shoulder, 0.93), 6.4, 7.6);         // tank top: narrow waist, broad chest
+  // Head: face forward, hair over the top and back.
+  const up = pose.torso + (pose.neck||0);
+  dot('mv-skin', s.head, MV.HEAD);
+  const hp = deg => mvAdd(s.head, mvDir(deg, MV.HEAD + 0.6));
+  const h1 = hp(up - 35), h2 = hp(up + 115);
+  out.push({k:'path', c:'mv-hair', d:`M${h1[0].toFixed(1)} ${h1[1].toFixed(1)}A${MV.HEAD+0.6} ${MV.HEAD+0.6} 0 0 0 ${h2[0].toFixed(1)} ${h2[1].toFixed(1)}Q${s.head[0].toFixed(1)} ${s.head[1].toFixed(1)} ${h1[0].toFixed(1)} ${h1[1].toFixed(1)}Z`, box:[[...s.head, MV.HEAD+0.6]]});
+  leg(s.legs[0], false);
+  arm(s.arms[0], false);
+  gear('near');
   return out;
 }
 function mvSvgInner(shapes){
   return shapes.map(sh=>{
     if(sh.k==='line') return `<line class="${sh.c}" x1="${sh.a[0].toFixed(1)}" y1="${sh.a[1].toFixed(1)}" x2="${sh.b[0].toFixed(1)}" y2="${sh.b[1].toFixed(1)}" stroke-width="${sh.w}"/>`;
     if(sh.k==='circle') return `<circle class="${sh.c}" cx="${sh.x.toFixed(1)}" cy="${sh.y.toFixed(1)}" r="${sh.r}"/>`;
+    if(sh.k==='path') return `<path class="${sh.c}" d="${sh.d}"/>`;
     return `<rect class="${sh.c}" x="${sh.x.toFixed(1)}" y="${sh.y.toFixed(1)}" width="${sh.w}" height="${sh.h}" rx="2"/>`;
   }).join('');
 }
@@ -9929,8 +9985,8 @@ const MOVES = {
     cues: {en:['Bar on your upper back, brace your core', 'Sit your hips back and down', 'Knees track over your toes', 'Drive up through your whole foot'],
            es:['Barra sobre la parte alta de la espalda, abdomen firme', 'Lleva la cadera atrás y abajo', 'Rodillas en línea con los pies', 'Sube empujando con todo el pie']},
     poses: {
-      up:   {hip:[93,76], torso:176, legs:[{at:[95,124]}, {at:[97,124]}], arms:[{at:'back', bend:1}, {at:'back', bend:1}]},
-      down: {hip:[73,100], torso:137, legs:[{at:[95,124]}, {at:[97,124]}], arms:[{at:'back', bend:1}, {at:'back', bend:1}]},
+      up:   {hip:[93,76], torso:176, legs:[{at:[95,124]}, {at:[97,124]}], arms:[{at:'back', out:true}, {at:'back', out:true}]},
+      down: {hip:[73,100], torso:137, legs:[{at:[95,124]}, {at:[97,124]}], arms:[{at:'back', out:true}, {at:'back', out:true}]},
     },
     loop: [['up',0.5],['down',1.1],['down',0.2],['up',1.0]],
     gear: [{type:'barbell', at:'back', behind:true, r:11}],
@@ -9939,8 +9995,8 @@ const MOVES = {
     cues: {en:['Hands just under your shoulders', 'Body in one straight line, head to heels', 'Lower your chest close to the floor', 'Press back up, elbows at about 45°'],
            es:['Manos justo debajo de los hombros', 'Cuerpo en línea recta, de la cabeza a los talones', 'Baja el pecho cerca del suelo', 'Empuja hacia arriba, codos a unos 45°']},
     poses: {
-      up:   {hip:[85.8,104.9], torso:109.2, legs:[{a1:-70.8, a2:-70.8, foot:-10}, {a1:-70.8, a2:-70.8, foot:-10}], arms:[{at:[118,126], bend:1}, {at:[120,126], bend:1}]},
-      down: {hip:[88.4,116.8], torso:94.9, legs:[{a1:-85.1, a2:-85.1, foot:-10}, {a1:-85.1, a2:-85.1, foot:-10}], arms:[{at:[118,126], bend:1}, {at:[120,126], bend:1}]},
+      up:   {hip:[85.8,104.9], torso:109.2, legs:[{a1:-70.8, a2:-70.8, foot:19}, {a1:-70.8, a2:-70.8, foot:19}], arms:[{at:[118,126]}, {at:[120,126]}]},
+      down: {hip:[88.4,116.8], torso:94.9, legs:[{a1:-85.1, a2:-85.1, foot:5}, {a1:-85.1, a2:-85.1, foot:5}], arms:[{at:[118,126]}, {at:[120,126]}]},
     },
     loop: [['up',0.4],['down',1.0],['down',0.15],['up',0.9]],
   },
@@ -9948,8 +10004,8 @@ const MOVES = {
     cues: {en:['Knee and hand on the bench, back flat', 'Pull your elbow up toward your hip', 'Squeeze your shoulder blade at the top', 'Lower slowly to a full stretch'],
            es:['Rodilla y mano en el banco, espalda plana', 'Lleva el codo hacia la cadera', 'Aprieta el omóplato arriba', 'Baja despacio hasta estirar el brazo']},
     poses: {
-      down: {hip:[80,79], torso:100, legs:[{at:[93,124]}, {a1:4.6, a2:-90, foot:-95}], arms:[{a1:0, a2:0}, {at:[117,103], bend:-1}]},
-      up:   {hip:[80,79], torso:100, legs:[{at:[93,124]}, {a1:4.6, a2:-90, foot:-95}], arms:[{a1:-105, a2:0}, {at:[117,103], bend:-1}]},
+      down: {hip:[80,79], torso:100, legs:[{at:[93,124]}, {a1:4.6, a2:-90, foot:-95}], arms:[{a1:0, a2:0}, {at:[117,103]}]},
+      up:   {hip:[80,79], torso:100, legs:[{at:[93,124]}, {a1:4.6, a2:-90, foot:-95}], arms:[{a1:-105, a2:0}, {at:[117,103]}]},
     },
     loop: [['down',0.4],['up',0.8],['up',0.3],['down',1.0]],
     gear: [{type:'dumbbell', at:'hand'}],
@@ -9957,29 +10013,32 @@ const MOVES = {
   },
 };
 
-// The part of the picture a move uses (sampled over its loop), padded, shaped 10:7 and centered.
+// The part of the picture a move uses (sampled over its loop), padded, centered and shaped to fit its
+// frame: 10:7 for the demo card, closer to square (and cropped tighter) for the little one in a list.
 const mvBoxes = {};
-function mvViewBox(key){
-  if(mvBoxes[key]) return mvBoxes[key];
+function mvViewBox(key, thumb){
+  const id = key + (thumb ? '|t' : '');
+  if(mvBoxes[id]) return mvBoxes[id];
   const move = MOVES[key], total = move.loop.reduce((s, st)=> s + st[1], 0);
   let x0 = 1e9, x1 = -1e9, y0 = 1e9;
   for(let i=0; i<24; i++) mvShapes(move, mvPoseAt(move, total*i/24)).forEach(sh=>{
     if(sh.c==='mv-floor') return;
-    const pts = sh.k==='line' ? [[...sh.a, sh.w/2], [...sh.b, sh.w/2]] : sh.k==='circle' ? [[sh.x, sh.y, sh.r]] : [[sh.x, sh.y, 0], [sh.x+sh.w, sh.y+sh.h, 0]];
+    const pts = sh.box || (sh.k==='line' ? [[...sh.a, sh.w/2], [...sh.b, sh.w/2]] : sh.k==='circle' ? [[sh.x, sh.y, sh.r]] : [[sh.x, sh.y, 0], [sh.x+sh.w, sh.y+sh.h, 0]]);
     pts.forEach(([x, y, r])=>{ x0 = Math.min(x0, x-r); x1 = Math.max(x1, x+r); y0 = Math.min(y0, y-r); });
   });
   const bottom = MV.FLOOR + 6;
-  let w = Math.max(150, x1 - x0 + 16), h = bottom - y0 + 8;
-  if(w/h < 10/7) w = h*10/7; else h = w*7/10;
+  const ratio = thumb ? 6/5 : 10/7;
+  let w = Math.max(thumb ? 0 : 150, x1 - x0 + 16), h = bottom - y0 + 8;
+  if(w/h < ratio) w = h*ratio; else h = w/ratio;
   const cx = (x0 + x1) / 2;
   const cy = (y0 - 8 + bottom) / 2;
-  return mvBoxes[key] = `${(cx - w/2).toFixed(1)} ${(cy - h/2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`;
+  return mvBoxes[id] = `${(cx - w/2).toFixed(1)} ${(cy - h/2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`;
 }
 // A move's figure, drawn at its first pose; mvKick() sets every one on screen moving.
 function moveDemoSvg(key, cls){
   const move = MOVES[key];
   if(!move) return '';
-  return `<svg class="${cls}" viewBox="${mvViewBox(key)}" data-move="${escapeHtml(key)}" aria-hidden="true">${mvSvgInner(mvShapes(move, mvPoseAt(move, 0)))}</svg>`;
+  return `<svg class="${cls}" viewBox="${mvViewBox(key, cls==='mv-thumb')}" data-move="${escapeHtml(key)}" aria-hidden="true">${mvSvgInner(mvShapes(move, mvPoseAt(move, 0)))}</svg>`;
 }
 const mvClock = new WeakMap();
 let mvRaf = 0;
@@ -10005,6 +10064,7 @@ function mvFrame(now){
       const el = els[i];
       if(sh.k==='line'){ el.setAttribute('x1', sh.a[0].toFixed(1)); el.setAttribute('y1', sh.a[1].toFixed(1)); el.setAttribute('x2', sh.b[0].toFixed(1)); el.setAttribute('y2', sh.b[1].toFixed(1)); }
       else if(sh.k==='circle'){ el.setAttribute('cx', sh.x.toFixed(1)); el.setAttribute('cy', sh.y.toFixed(1)); }
+      else if(sh.k==='path') el.setAttribute('d', sh.d);
       else { el.setAttribute('x', sh.x.toFixed(1)); el.setAttribute('y', sh.y.toFixed(1)); }
     });
   });

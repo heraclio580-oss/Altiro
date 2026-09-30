@@ -125,8 +125,8 @@ const text = (doc, id) => doc.getElementById(id).textContent;
   const today = Object.values(backend.db.workout_logs).find(r=>r.log_date==='2026-09-18');
   console.log("Today's planned run gets the watch's distance:", today.actual_run_distance===16.02 ? 'OK' : `FAIL (${today.actual_run_distance})`);
   console.log("...and the watch's time, as its logged performance:", today.performance && today.performance.time===140 && today.performance.source==='strava' ? 'OK' : `FAIL (${JSON.stringify(today.performance)})`);
-  // Today's run, Tuesday's run and Sunday's shakeout -- the days between are rest days, which don't break it.
-  console.log("Today's run counts toward the streak:", backend.db.profiles.u1.streak===3 ? 'OK' : `FAIL (${backend.db.profiles.u1.streak})`);
+  // Runs this week (today's, Tuesday's) and last week (Sunday's shakeout): a 2-week streak.
+  console.log("Today's run counts toward the streak:", backend.db.profiles.u1.streak===2 ? 'OK' : `FAIL (${backend.db.profiles.u1.streak})`);
   console.log('No extra Logged Workout is added for the planned run:', !Object.values(backend.db.manual_entries).some(e=>e.name==='Morning Run') ? 'OK' : 'FAIL');
 
   const tueEntries = Object.values(backend.db.manual_entries).filter(e=>e.workout_log_id===tueId);

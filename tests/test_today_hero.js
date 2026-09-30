@@ -96,7 +96,7 @@ function openSession(backend, opts = {}){
   // ---- the hero ----
   check('The big red Record circle is gone', !doc.querySelector('.record-circle') && !doc.querySelector('.record-hero'));
   check('Today opens with a welcoming card', !!doc.getElementById('todayHero') && text('thEyebrow')==='Ready when you are' && text('thTitle')==='Time to run.', `${text('thEyebrow')} | ${text('thTitle')}`);
-  check('...that cheers on the streak', text('thSub')==='Keep your 3-day streak going.', text('thSub'));
+  check('...that cheers on the streak', text('thSub')==='Keep your 2-week streak going.', text('thSub'));
   check('...shows this week\'s progress as a ring', /^\d+\/\d+this week$/.test(text('thRing')) && doc.querySelectorAll('#thRing circle').length>=2, text('thRing'));
   check('...and one clear Start button', text('recordBtn')==='Start Workout' && !doc.getElementById('recordBtn').classList.contains('disabled'), text('recordBtn'));
   doc.getElementById('recordBtn').click();
@@ -104,21 +104,21 @@ function openSession(backend, opts = {}){
   check('Start opens today\'s workout to log', !doc.getElementById('logPerfOverlay').hidden);
   doc.getElementById('saveLogPerf').click(); await wait(60);
   go('home'); await wait(30);
-  check('Done: the card says so', doc.getElementById('todayHero').classList.contains('done') && text('thTitle')==='Nice work.' && text('thSub')==="That's 4 days in a row.", `${text('thTitle')} | ${text('thSub')}`);
+  check('Done: the card says so', doc.getElementById('todayHero').classList.contains('done') && text('thTitle')==='Nice work.' && text('thSub')==="That's 2 weeks in a row.", `${text('thTitle')} | ${text('thSub')}`);
   check('...shows what\'s next', text('thNext')==='Next up: Leg Day · tomorrow', text('thNext'));
   check('...and the button is a done badge, not an action', doc.getElementById('recordBtn').classList.contains('done') && text('recordBtn')==='Completed');
 
   // ---- the streak ----
   const chip = doc.getElementById('streakChip');
-  check('Streak chip: worked out from what was really done', chip.textContent.trim()==='4 DAY STREAK', chip.textContent.trim());
-  check('...saved to the profile too', backend.db.profiles.u1.streak===4, backend.db.profiles.u1.streak);
+  check('Streak chip: weeks in a row with a workout', chip.textContent.trim()==='2 WEEK STREAK', chip.textContent.trim());
+  check('...saved to the profile too', backend.db.profiles.u1.streak===2, backend.db.profiles.u1.streak);
   chip.click(); await wait(10);
   const sk = doc.getElementById('streakOverlay');
-  check('Tapping it opens the streak', !sk.hidden && sk.querySelector('.sk-num').textContent.startsWith('4'));
+  check('Tapping it opens the streak', !sk.hidden && sk.querySelector('.sk-num').textContent.startsWith('2'));
   const stats = [...sk.querySelectorAll('.sk-stat')].map(x=>x.querySelector('b').textContent+' '+x.querySelector('span').textContent);
-  check('...with the best streak and workouts done', stats[0]==='12 Best streak' && stats[1]==='41 Workouts done', stats.join(' / '));
-  const dots = [...sk.querySelectorAll('.sk-dot')].map(d=>d.className.replace('sk-dot ','')).slice(-8);
-  check('...and the last 2 weeks: done, rest, and the skipped Saturday', dots.join(',')==='done,missed,rest,done,done,rest,done,done', dots.join(','));
+  check('...with the best streak (in weeks, from the history) and workouts done', stats[0]==='2 Best streak' && stats[1]==='41 Workouts done', stats.join(' / '));
+  const weeks = [...sk.querySelectorAll('.sk-weeks .sk-day')].map(d=>{ const dot = d.querySelector('.sk-dot'); return dot.className.replace('sk-dot ','')+':'+dot.textContent+':'+d.textContent.replace(dot.textContent,''); });
+  check('...and the last 8 weeks, with how many workouts each', weeks.length===8 && weeks.slice(-2).join(',')==='done:1:Sep 7,done:4:Sep 14' && weeks.slice(0,6).every(w=>w.startsWith('rest')), weeks.join(' | '));
   doc.getElementById('closeStreak').click();
 
   // ---- the weather ----
@@ -166,13 +166,25 @@ function openSession(backend, opts = {}){
   const d5 = dom5.window.document;
   [...d5.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click(); await wait(30);
   check('Rest day: a calm card, no Start button to press, and what\'s next', d5.getElementById('todayHero').classList.contains('rest') && d5.getElementById('thTitle').textContent==='Recover and recharge.' && d5.getElementById('recordBtn').classList.contains('disabled') && d5.getElementById('thNext').textContent==='Next up: Leg Day · tomorrow', d5.getElementById('thNext').textContent);
-  check('...and a rest day doesn\'t end the streak', d5.getElementById('streakChip').textContent.trim()==='3 DAY STREAK', d5.getElementById('streakChip').textContent.trim());
+  check('...and the streak still counts this week and last', d5.getElementById('streakChip').textContent.trim()==='2 WEEK STREAK', d5.getElementById('streakChip').textContent.trim());
 
   // Spanish
   go('settings'); await wait(10);
   [...doc.querySelectorAll('.lang-btn')].filter(b=>b.dataset.lang==='es').forEach(b=>b.click()); await wait(10);
   go('home'); await wait(30);
-  check('Spanish: the card and chips are translated', text('thTitle')==='Buen trabajo.' && doc.getElementById('weatherChip').textContent.trim()==='72°F · Despejado' && /DÍAS SEGUIDOS/.test(doc.getElementById('streakChip').textContent), `${text('thTitle')} | ${doc.getElementById('weatherChip').textContent.trim()}`);
+  check('Spanish: the card and chips are translated', text('thTitle')==='Buen trabajo.' && doc.getElementById('weatherChip').textContent.trim()==='72°F · Despejado' && /SEMANAS SEGUIDAS/.test(doc.getElementById('streakChip').textContent), `${text('thTitle')} | ${doc.getElementById('weatherChip').textContent.trim()}`);
+
+  // A week with no workout ends it: runs in the week of Aug 24, nothing the week of Aug 31.
+  const b8 = makeBackend();
+  b8.db.workout_logs.old = {id:'old', user_id:'u1', log_date:'2026-08-26', completed_override:null, planned_type:'run', planned_title:'Easy Run', planned_detail:'3 mi', actual_run_distance:3};
+  const dom8 = openSession(b8);
+  await wait(300);
+  const d8 = dom8.window.document;
+  [...d8.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click(); await wait(30);
+  check('A week with no workouts ends the streak', d8.getElementById('streakChip').textContent.trim()==='2 WEEK STREAK', d8.getElementById('streakChip').textContent.trim());
+  d8.getElementById('streakChip').click(); await wait(10);
+  const w8 = [...d8.querySelectorAll('.sk-weeks .sk-dot')].map(x=>x.className.replace('sk-dot ',''));
+  check('...shown as a missed week', w8.slice(-4).join(',')==='done,missed,done,done', w8.join(','));
 
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(0);

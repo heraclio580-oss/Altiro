@@ -354,11 +354,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .sk-stat{flex:1;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-md);padding:10px 12px;}
 .sk-stat b{display:block;font-family:var(--font-mono);font-size:18px;color:var(--text);}
 .sk-stat span{font-size:11px;color:var(--text-3);}
-.sk-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:12px;}
-.sk-day{display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--font-mono);font-size:8.5px;color:var(--text-3);text-transform:uppercase;}
+.sk-weeks{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-bottom:12px;}
+.sk-day{display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--font-mono);font-size:8px;color:var(--text-3);text-transform:uppercase;white-space:nowrap;}
 .sk-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid var(--divider);background:var(--well);}
 .sk-dot svg{width:13px;height:13px;}
-.sk-dot.done{background:var(--accent);border-color:var(--accent);color:var(--on-accent);}
+.sk-dot.done{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-family:var(--font-mono);font-size:12px;font-weight:600;}
 .sk-dot.missed{border-color:var(--alert);color:var(--alert);background:transparent;}
 .sk-dot.rest{opacity:0.45;}
 .sk-dot.today{border-color:var(--today-ring);border-width:2px;}
@@ -2641,7 +2641,7 @@ const STR = {
     workoutCompleteTitle: "Workout Complete",
     backToTodayBtn: "Back to Today",
     streakLine: "Current streak — keep it going",
-    dayStreakSuffix: "DAY STREAK",
+    dayStreakSuffix: "WEEK STREAK",
     statDistance: "Distance", statTime: "Time", statPace: "Pace", statTempoTarget: "Tempo Target",
     statTotalVolume: "Total Volume", statSetsReps: "Sets x Reps", statTopSet: "Top Set",
     statExerciseCount: "Exercises",
@@ -2651,12 +2651,12 @@ const STR = {
     greetingActive: "Today's the day, {name}.",
     weatherConditionClear: "Clear",
     heroEyebrowReady: "Ready when you are", heroTitleRun: "Time to run.", heroTitleStrength: "Time to lift.", heroTitleInterval: "Time for intervals.", heroTitleHike: "Time to get outside.", heroTitleMove: "Time to move.",
-    heroSubStreak: "Keep your {n}-day streak going.", heroSubStart: "Every streak starts with one workout.",
-    heroEyebrowDone: "Today · done", heroTitleDone: "Nice work.", heroSubDoneStreak: "That's {n} days in a row.", heroSubDone: "Today's workout is in the books.",
-    heroEyebrowRest: "Rest day", heroTitleRest: "Recover and recharge.", heroSubRest: "Rest days are part of the plan, and they don't break your streak.",
+    heroSubStreak: "Keep your {n}-week streak going.", heroSubStart: "Every streak starts with one workout.",
+    heroEyebrowDone: "Today · done", heroTitleDone: "Nice work.", heroSubDoneStreak: "That's {n} weeks in a row.", heroSubDone: "Today's workout is in the books.",
+    heroEyebrowRest: "Rest day", heroTitleRest: "Recover and recharge.", heroSubRest: "Rest days are part of the plan. Recovery is where the progress happens.",
     heroNext: "Next up: <b>{name}</b> · {day}", heroTomorrow: "tomorrow", heroRingLabel: "this week",
-    streakSheetTitle: "Your streak", streakDaysLabel: "days in a row", streakBest: "Best streak", streakTotal: "Workouts done", streakRecent: "Last 2 weeks",
-    streakExplain: "Each workout day you finish adds one. Rest days don't break it, but a planned workout you skip does.",
+    streakSheetTitle: "Your streak", streakDaysLabel: "weeks in a row", streakBest: "Best streak", streakTotal: "Workouts done", streakRecent: "Last 8 weeks",
+    streakExplain: "Every week with at least one workout adds a week. This week counts as soon as you do one, and it can't break your streak until it's over.",
     weatherSheetTitle: "Weather", weatherAdd: "Add weather", weatherLoadingChip: "Weather…", weatherOffChip: "Weather",
     weatherIntro: "See the weather where you are, so you can plan your workout. Altiro uses your location only to look up the forecast, and doesn't save it.",
     weatherAllowBtn: "Show local weather", weatherRetry: "Try again",
@@ -3085,7 +3085,7 @@ const STR = {
     workoutCompleteTitle: "Entrenamiento completado",
     backToTodayBtn: "Volver a hoy",
     streakLine: "Días activos actuales — sigue así",
-    dayStreakSuffix: "DÍAS SEGUIDOS",
+    dayStreakSuffix: "SEMANAS SEGUIDAS",
     statDistance: "Distancia", statTime: "Tiempo", statPace: "Ritmo", statTempoTarget: "Objetivo de ritmo",
     statTotalVolume: "Volumen total", statSetsReps: "Series x Reps", statTopSet: "Serie máxima",
     statExerciseCount: "Ejercicios",
@@ -3095,12 +3095,12 @@ const STR = {
     greetingActive: "Hoy es el día, {name}.",
     weatherConditionClear: "Despejado",
     heroEyebrowReady: "Cuando estés listo", heroTitleRun: "Hora de correr.", heroTitleStrength: "Hora de levantar.", heroTitleInterval: "Hora de intervalos.", heroTitleHike: "Hora de salir.", heroTitleMove: "Hora de moverse.",
-    heroSubStreak: "Mantén tu racha de {n} días.", heroSubStart: "Toda racha empieza con un entrenamiento.",
-    heroEyebrowDone: "Hoy · listo", heroTitleDone: "Buen trabajo.", heroSubDoneStreak: "Llevas {n} días seguidos.", heroSubDone: "El entrenamiento de hoy está hecho.",
-    heroEyebrowRest: "Día de descanso", heroTitleRest: "Recupérate y recarga.", heroSubRest: "El descanso es parte del plan, y no rompe tu racha.",
+    heroSubStreak: "Mantén tu racha de {n} semanas.", heroSubStart: "Toda racha empieza con un entrenamiento.",
+    heroEyebrowDone: "Hoy · listo", heroTitleDone: "Buen trabajo.", heroSubDoneStreak: "Llevas {n} semanas seguidas.", heroSubDone: "El entrenamiento de hoy está hecho.",
+    heroEyebrowRest: "Día de descanso", heroTitleRest: "Recupérate y recarga.", heroSubRest: "El descanso es parte del plan. Ahí es donde se nota el progreso.",
     heroNext: "Lo siguiente: <b>{name}</b> · {day}", heroTomorrow: "mañana", heroRingLabel: "esta semana",
-    streakSheetTitle: "Tu racha", streakDaysLabel: "días seguidos", streakBest: "Mejor racha", streakTotal: "Entrenamientos hechos", streakRecent: "Últimas 2 semanas",
-    streakExplain: "Cada día de entrenamiento que completas suma uno. Los días de descanso no la rompen, pero un entrenamiento planeado que te saltas sí.",
+    streakSheetTitle: "Tu racha", streakDaysLabel: "semanas seguidas", streakBest: "Mejor racha", streakTotal: "Entrenamientos hechos", streakRecent: "Últimas 8 semanas",
+    streakExplain: "Cada semana con al menos un entrenamiento suma una semana. Esta semana cuenta en cuanto haces uno, y no puede romper tu racha hasta que termine.",
     weatherSheetTitle: "Clima", weatherAdd: "Ver clima", weatherLoadingChip: "Clima…", weatherOffChip: "Clima",
     weatherIntro: "Mira el clima donde estás para planear tu entrenamiento. Altiro usa tu ubicación solo para buscar el pronóstico, y no la guarda.",
     weatherAllowBtn: "Mostrar clima local", weatherRetry: "Reintentar",
@@ -9673,45 +9673,63 @@ function workoutDoneOn(key){
   return log.completedOverride===true || !!log.performance || log.actualRunDistance!=null
     || (log.manualEntries||[]).length>0 || (log.extraWorkouts||[]).some(w=>w.completed);
 }
-// Workout days finished in a row, counting back from today: each one done adds a day, rest days are
-// skipped over, and a planned workout that wasn't done ends it. Today doesn't end it while it's still
-// ahead of you.
-function computeStreak(){
+// The streak counts weeks (Monday to Sunday) with at least one workout, back from this week. This week
+// counts as soon as a workout is done in it, and doesn't break the streak while it's still going; a whole
+// week with none ends it.
+function mondayOf(date){ return new Date(date.getFullYear(), date.getMonth(), date.getDate() - (date.getDay()+6)%7); }
+function workoutsInWeek(monday){
+  let n = 0;
+  for(let d=0; d<7; d++){
+    const date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+d);
+    if(date > TODAY_DATE) break;
+    if(workoutDoneOn(dateKey(date))) n++;
+  }
+  return n;
+}
+function earliestLogMonday(){
   const keys = Object.keys(state.dayLog);
-  const earliest = keys.length ? keys.reduce((a,b)=> a<b ? a : b) : dateKey(TODAY_DATE);
+  return mondayOf(keys.length ? parseDateKey(keys.reduce((a,b)=> a<b ? a : b)) : TODAY_DATE);
+}
+function computeStreak(){
+  const thisMonday = mondayOf(TODAY_DATE), earliest = earliestLogMonday();
   let streak = 0;
-  for(let i=0; i<1000; i++){
-    const date = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth(), TODAY_DATE.getDate()-i);
-    const key = dateKey(date);
-    if(key < earliest) break;
-    if(workoutDoneOn(key)){ streak++; continue; }
-    if(i===0) continue;
-    if(getDayData(date).p.t!=='rest') break;
+  for(let i=0; i<520; i++){
+    const monday = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate()-7*i);
+    if(monday < earliest) break;
+    if(workoutsInWeek(monday)>0){ streak++; continue; }
+    if(i===0) continue; // this week isn't over yet
+    break;
   }
   return streak;
 }
+// The longest run of active weeks in the whole history (this week included once it's active).
+function longestWeekStreak(){
+  const thisMonday = mondayOf(TODAY_DATE);
+  let best = 0, run = 0;
+  for(let m = earliestLogMonday(); m <= thisMonday; m = new Date(m.getFullYear(), m.getMonth(), m.getDate()+7)){
+    if(workoutsInWeek(m)>0){ run++; if(run>best) best = run; }
+    else if(m.getTime()!==thisMonday.getTime()) run = 0;
+  }
+  return best;
+}
 function refreshStreak(){
   state.streak = computeStreak();
-  if(state.streak > state.bestStreak) state.bestStreak = state.streak;
+  state.bestStreak = Math.max(state.streak, longestWeekStreak());
 }
-// Each of the last 14 days: done, missed (a planned workout not done), rest, or today still to come.
-function recentStreakDays(){
-  const out = [];
-  for(let i=13; i>=0; i--){
-    const date = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth(), TODAY_DATE.getDate()-i);
-    const key = dateKey(date);
-    const planned = getDayData(date).p.t!=='rest';
-    const status = workoutDoneOn(key) ? 'done' : i===0 ? (planned ? 'today' : 'rest') : planned && !beforePlanStart(date) ? 'missed' : 'rest';
-    out.push({date, status});
-  }
-  return out;
+// The last 8 weeks, oldest first: how many workouts each had.
+function recentStreakWeeks(){
+  const thisMonday = mondayOf(TODAY_DATE);
+  return Array.from({length:8}, (_,k)=>{
+    const monday = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate()-7*(7-k));
+    const count = workoutsInWeek(monday);
+    return {monday, count, status: count>0 ? 'done' : k===7 ? 'today' : monday < earliestLogMonday() ? 'rest' : 'missed'};
+  });
 }
 function openStreakSheet(){
   refreshStreak();
   const L = STR[state.lang];
-  const days = recentStreakDays();
-  const dow = d => DAY_NAMES_SHORT[state.lang][(d.getDay()+6)%7].slice(0,2);
-  const mark = {done: ICONS.checkSm, missed: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l8 8M14 6l-8 8"/></svg>', rest: '', today: ''};
+  const weeks = recentStreakWeeks();
+  const label = m => `${MONTHS_SHORT[state.lang][m.getMonth()]} ${m.getDate()}`;
   document.getElementById('streakBody').innerHTML = `
     <div class="sk-hero"><div class="sk-flame">${ICONS.flame}</div><div class="sk-num">${state.streak}<small>${L.streakDaysLabel}</small></div></div>
     <div class="sk-stats">
@@ -9719,7 +9737,7 @@ function openStreakSheet(){
       <div class="sk-stat"><b>${state.totalWorkouts}</b><span>${L.streakTotal}</span></div>
     </div>
     <div class="st-label">${L.streakRecent}</div>
-    <div class="sk-days">${days.map(d=>`<div class="sk-day"><span class="sk-dot ${d.status}">${mark[d.status]}</span>${dow(d.date)} ${d.date.getDate()}</div>`).join('')}</div>
+    <div class="sk-weeks">${weeks.map(w=>`<div class="sk-day"><span class="sk-dot ${w.status}">${w.count>0 ? w.count : ''}</span>${label(w.monday)}</div>`).join('')}</div>
     <p class="fb-sub" style="margin:4px 0 8px;">${L.streakExplain}</p>`;
   document.getElementById('streakOverlay').hidden = false;
 }

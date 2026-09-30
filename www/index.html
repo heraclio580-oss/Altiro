@@ -661,47 +661,171 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .tutorial-overlay{position:absolute;inset:0;background:var(--tutorial-bg);z-index:90;display:flex;flex-direction:column;}
 .tutorial-overlay[hidden]{display:none;}
 .tutorial-top{display:flex;justify-content:flex-end;padding:calc(14px + env(safe-area-inset-top,0px)) 16px 0;}
-.tutorial-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 30px;text-align:center;gap:20px;}
+.tutorial-body{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;padding:10px 24px;text-align:center;overflow-x:hidden;overflow-y:auto;touch-action:pan-y;}
 .tut-slide[hidden]{display:none;}
-.tut-slide{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;}
+.tut-slide{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%;}
+.tut-slide:not([hidden]){margin:auto 0;} /* centered when it fits, scrolls from the top when it doesn't */
+@media (max-height: 700px){ .tm-phone,.tut-nav-full{zoom:0.82;} .tut-slide{gap:12px;} }
+.tut-slide.in-next{animation:tutInNext .3s ease-out;}
+.tut-slide.in-prev{animation:tutInPrev .3s ease-out;}
+@keyframes tutInNext{from{opacity:0;transform:translateX(44px);}to{opacity:1;transform:none;}}
+@keyframes tutInPrev{from{opacity:0;transform:translateX(-44px);}to{opacity:1;transform:none;}}
 .tut-illus{width:100%;min-height:100px;display:flex;align-items:center;justify-content:center;}
 .tut-headline{font-family:var(--font-display);font-weight:600;font-size:19px;color:var(--text);}
-.tut-body{font-size:13px;line-height:1.55;color:var(--text-2);max-width:270px;}
-.tutorial-dots{display:flex;justify-content:center;gap:7px;padding:4px 0 6px;}
-.tut-dot{width:6px;height:6px;border-radius:50%;background:var(--well);border:1px solid var(--border);}
-.tut-dot.on{background:var(--accent);border-color:var(--accent);}
+.tut-body{font-size:13px;line-height:1.55;color:var(--text-2);max-width:300px;}
+.tutorial-dots{display:flex;justify-content:center;gap:4px;padding:0 0 2px;}
+.tut-dot{width:18px;height:18px;padding:0;border:none;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.tut-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--well);border:1px solid var(--border);transition:width .2s;}
+.tut-dot.on::before{width:16px;border-radius:4px;background:var(--accent);border-color:var(--accent);}
 .tutorial-nav{display:flex;align-items:center;gap:10px;padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--nav-divider);}
 .tutorial-nav .btn-text{flex-shrink:0;padding:6px 4px;}
 .tutorial-nav .btn-primary{flex:1;}
 
-/* slide 1: focus slider mock */
-.tut-slider-track{position:relative;width:220px;height:4px;background:var(--well);border-radius:2px;}
-.tut-slider-thumb{position:absolute;top:50%;left:0%;width:20px;height:20px;background:var(--accent);border:3px solid var(--ring);border-radius:50%;transform:translate(-50%,-50%);animation:tutSlide 2.6s ease-in-out infinite;}
-@keyframes tutSlide{0%,100%{left:0%;}50%{left:100%;}}
+/* the little phone screens the tour animates (each loops every 6s) */
+.tm-phone{position:relative;width:250px;height:226px;flex-shrink:0;background:var(--screen-bg);border:1px solid var(--border);border-radius:18px;padding:13px 12px;text-align:left;overflow:hidden;box-shadow:0 10px 28px rgba(0,0,0,0.22);}
+.tm-phone.tm-center{display:flex;align-items:center;justify-content:center;}
+.tm-label{font-family:var(--font-mono);font-size:8.5px;letter-spacing:0.05em;overflow:hidden;text-transform:uppercase;color:var(--text-3);margin:0 0 6px;display:flex;justify-content:space-between;gap:8px;white-space:nowrap;}
+.tm-label-mid{align-items:center;}
+.tm-chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;}
+.tm-chip{font-size:9.5px;padding:4px 8px;border-radius:var(--r-pill);border:1px solid var(--border);color:var(--text-2);background:var(--well);white-space:nowrap;}
+.tm-chip.dow{font-family:var(--font-mono);font-size:7.5px;padding:4px 0;flex:1;text-align:center;}
+.tm-on{animation:tmChipOn 6s ease-in-out infinite both;}
+.tm-on-late{animation:tmChipOnLate 6s ease-in-out infinite both;}
+@keyframes tmChipOn{0%,28%,95%,100%{background:var(--well);border-color:var(--border);color:var(--text-2);}33%,90%{background:var(--accent-tint);border-color:var(--accent);color:var(--text);}}
+@keyframes tmChipOnLate{0%,58%,95%,100%{background:var(--well);border-color:var(--border);color:var(--text-2);}63%,90%{background:var(--accent-tint);border-color:var(--accent);color:var(--text);}}
+.tm-slider{position:relative;height:4px;background:var(--well);border-radius:2px;margin:12px 8px 18px;}
+.tm-slider-fill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:2px;animation:tmFill 6s ease-in-out infinite;}
+.tm-slider-thumb{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:var(--accent);border:3px solid var(--ring);transform:translate(-50%,-50%);animation:tmThumb 6s ease-in-out infinite;}
+@keyframes tmThumb{0%,6%{left:22%;}24%,92%{left:64%;}100%{left:22%;}}
+@keyframes tmFill{0%,6%{width:22%;}24%,92%{width:64%;}100%{width:22%;}}
 
-/* slide 2: week picker mock */
-.tut-week{display:flex;gap:6px;}
-.tut-day{width:26px;height:36px;border-radius:var(--r-sm);background:var(--well);border:1px solid var(--border);animation:tutWave 2.8s ease-in-out infinite;}
-.tut-day:nth-child(1){animation-delay:0s;}
-.tut-day:nth-child(2){animation-delay:.12s;}
-.tut-day:nth-child(3){animation-delay:.24s;}
-.tut-day:nth-child(4){animation-delay:.36s;}
-.tut-day:nth-child(5){animation-delay:.48s;}
-.tut-day:nth-child(6){animation-delay:.6s;}
-.tut-day:nth-child(7){animation-delay:.72s;}
-@keyframes tutWave{0%,100%{background:var(--well);border-color:var(--border);}20%{background:var(--accent);border-color:var(--accent);}}
+.tm-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.tm-dow{font-family:var(--font-mono);font-size:7.5px;color:var(--text-3);width:22px;flex-shrink:0;text-align:center;}
+.tm-pill{flex:1;min-width:0;background:var(--well);border-left:3px solid var(--accent);border-radius:8px;padding:4px 8px;display:flex;align-items:center;min-height:24px;}
+.tm-pill.rest{border-left-color:var(--border);}
+.tm-pill-main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.tm-title{font-size:9.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tm-pill.rest .tm-title{color:var(--text-3);font-weight:500;}
+.tm-detail{font-family:var(--font-mono);font-size:7.5px;color:var(--text-3);}
+.tm-add{font-family:var(--font-mono);font-size:8.5px;color:var(--text-3);padding:3px 5px;border-radius:6px;flex-shrink:0;}
+.tm-in{animation:tmIn 6s ease-out infinite both;}
+@keyframes tmIn{0%{opacity:0;transform:translateY(6px);}7%,90%{opacity:1;transform:none;}97%,100%{opacity:0;}}
 
-/* slide 3: drag-to-reorder mock */
-.tut-drag-mock{display:flex;flex-direction:column;gap:6px;width:210px;}
+.tm-sheet{position:absolute;left:0;right:0;bottom:0;top:44px;background:var(--sheet-bg);border:1px solid var(--border);border-bottom:none;border-radius:14px 14px 0 0;padding:6px 12px 10px;box-shadow:0 -8px 20px rgba(0,0,0,0.25);animation:tmSheet 6s ease-out infinite both;}
+@keyframes tmSheet{0%,13%{transform:translateY(105%);}21%,92%{transform:none;}100%{transform:translateY(105%);}}
+.tm-sheet-grab{width:28px;height:3px;border-radius:2px;background:var(--border);margin:0 auto 7px;}
+.tm-sheet-title{font-family:var(--font-display);font-weight:700;font-size:12px;color:var(--text);margin-bottom:6px;}
+.tm-ex{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
+.tm-ex-main{display:flex;flex-direction:column;min-width:0;}
+.tm-ex-name{font-size:9.5px;font-weight:600;color:var(--text);white-space:nowrap;}
+.tm-ex-rx{font-family:var(--font-mono);font-size:7.5px;color:var(--text-3);white-space:nowrap;}
+.tm-btn{display:inline-flex;align-items:center;gap:3px;font-family:var(--font-body);font-size:8px;letter-spacing:0;text-transform:none;padding:3px 8px;border:1px solid var(--border);border-radius:var(--r-pill);color:var(--text-2);flex-shrink:0;}
+.tm-swap{display:grid;}
+.tm-swap > *{grid-area:1/1;display:flex;flex-direction:column;}
+.tm-swap-a{animation:tmSwapA 6s ease-in-out infinite;}
+.tm-swap-b{animation:tmSwapB 6s ease-in-out infinite;}
+@keyframes tmSwapA{0%,50%{opacity:1;}55%,95%{opacity:0;}100%{opacity:1;}}
+@keyframes tmSwapB{0%,50%{opacity:0;}55%,95%{opacity:1;}100%{opacity:0;}}
+
+/* taps and presses, at a set point in the 6s loop */
+.tm-tap{position:absolute;width:22px;height:22px;border-radius:50%;background:var(--text);opacity:0;transform:translate(-50%,-50%);pointer-events:none;}
+.tm-tap-8{animation:tmTap8 6s ease-out infinite;}
+.tm-tap-16{animation:tmTap16 6s ease-out infinite;}
+.tm-tap-44{animation:tmTap44 6s ease-out infinite;}
+@keyframes tmTap8{0%,3%{opacity:0;transform:translate(-50%,-50%) scale(1.5);}6%,9%{opacity:.3;transform:translate(-50%,-50%) scale(1);}13%,100%{opacity:0;transform:translate(-50%,-50%) scale(.8);}}
+@keyframes tmTap16{0%,11%{opacity:0;transform:translate(-50%,-50%) scale(1.5);}14%,17%{opacity:.3;transform:translate(-50%,-50%) scale(1);}21%,100%{opacity:0;transform:translate(-50%,-50%) scale(.8);}}
+@keyframes tmTap44{0%,39%{opacity:0;transform:translate(-50%,-50%) scale(1.5);}42%,45%{opacity:.3;transform:translate(-50%,-50%) scale(1);}49%,100%{opacity:0;transform:translate(-50%,-50%) scale(.8);}}
+.tm-press-8{animation:tmPress8 6s ease-out infinite;}
+.tm-press-16{animation:tmPress16 6s ease-out infinite;}
+.tm-press-44{animation:tmPress44 6s ease-out infinite;}
+.tm-press-80{animation:tmPress80 6s ease-out infinite;}
+@keyframes tmPress8{0%,5%,14%,100%{background:transparent;color:var(--text-3);}7%,11%{background:var(--accent-tint);color:var(--accent-bright);}}
+@keyframes tmPress16{0%,13%,22%,100%{background:transparent;border-color:var(--border);color:var(--text-2);}15%,19%{background:var(--accent-tint);border-color:var(--accent);color:var(--text);}}
+@keyframes tmPress44{0%,41%,50%,100%{background:transparent;border-color:var(--border);color:var(--text-2);}43%,47%{background:var(--accent-tint);border-color:var(--accent);color:var(--text);}}
+@keyframes tmPress80{0%,78%,88%,100%{transform:none;filter:none;}82%,85%{transform:scale(.96);filter:brightness(1.15);}}
+/* things that appear at a set point and stay until the loop restarts */
+.tm-show-30{animation:tmShow30 6s ease-out infinite both;}
+.tm-show-42{animation:tmShow42 6s ease-out infinite both;}
+.tm-show-50{animation:tmShow50 6s ease-out infinite both;}
+.tm-show-54{animation:tmShow54 6s ease-out infinite both;}
+.tm-show-58{animation:tmShow58 6s ease-out infinite both;}
+.tm-show-66{animation:tmShow66 6s ease-out infinite both;}
+.tm-show-68{animation:tmShow68 6s ease-out infinite both;}
+@keyframes tmShow30{0%,28%{opacity:0;transform:translateY(5px);}33%,93%{opacity:1;transform:none;}100%{opacity:0;}}
+@keyframes tmShow42{0%,40%{opacity:0;transform:translateY(5px);}45%,93%{opacity:1;transform:none;}100%{opacity:0;}}
+@keyframes tmShow50{0%,48%{opacity:0;transform:translateY(5px);}53%,93%{opacity:1;transform:none;}100%{opacity:0;}}
+@keyframes tmShow54{0%,52%{opacity:0;transform:translateY(5px);}57%,93%{opacity:1;transform:none;}100%{opacity:0;}}
+@keyframes tmShow58{0%,56%{opacity:0;transform:translateY(5px);}61%,93%{opacity:1;transform:none;}100%{opacity:0;}}
+@keyframes tmShow66{0%,64%{opacity:0;transform:translateY(5px);}69%,93%{opacity:1;transform:none;}100%{opacity:0;}}
+@keyframes tmShow68{0%,66%{opacity:0;transform:translateY(8px);}71%,93%{opacity:1;transform:none;}100%{opacity:0;}}
+
+/* create workout */
+.tm-field{display:flex;align-items:center;height:24px;padding:0 8px;background:var(--well);border:1px solid var(--border);border-radius:8px;font-size:10px;font-weight:600;color:var(--text);margin-bottom:5px;}
+.tm-type{display:inline-block;overflow:hidden;white-space:nowrap;max-width:0;animation:tmType 6s steps(8,end) infinite;}
+@keyframes tmType{0%,24%{max-width:0;}38%,100%{max-width:120px;}}
+.tm-caret{width:1px;height:12px;background:var(--accent);margin-left:1px;animation:tmCaret 1s steps(1) infinite;}
+@keyframes tmCaret{50%{opacity:0;}}
+.tm-desc{font-size:8.5px;color:var(--text-3);margin-bottom:2px;}
+.tm-save{position:absolute;left:12px;right:12px;bottom:8px;height:20px;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;}
+
+/* repeat week */
+.tm-cells{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:9px;}
+.tm-cells span{height:14px;border-radius:4px;background:var(--well);border:1px solid var(--border);}
+.tm-cells span.on{background:var(--accent);border-color:var(--accent);}
+.tm-cells.tm-copy{position:relative;}
+.tm-repeat-ic{width:10px;height:10px;}
+.tm-toast{position:absolute;left:14px;right:14px;bottom:10px;height:26px;border-radius:8px;background:var(--toast-bg);color:var(--toast-text);font-size:9px;display:flex;align-items:center;gap:6px;padding:0 10px;}
+.tm-check-ic{width:8px;height:4px;border-left:1.5px solid var(--ok-icon);border-bottom:1.5px solid var(--ok-icon);transform:rotate(-45deg) translate(1px,-1px);}
+
+/* log sets */
+.tm-set{display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--border);}
+.tm-set-n{font-family:var(--font-mono);font-size:8px;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);width:40px;}
+.tm-set-rx{flex:1;font-family:var(--font-mono);font-size:10px;color:var(--text);}
+.tm-box{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--border);position:relative;}
+.tm-box::after{content:'';position:absolute;left:3.5px;top:1.5px;width:4px;height:7px;border-right:2px solid var(--on-accent);border-bottom:2px solid var(--on-accent);transform:rotate(45deg);opacity:0;}
+.tm-check-15{animation:tmCheck15 6s ease-out infinite;} .tm-check-15::after{animation:tmTick15 6s ease-out infinite;}
+.tm-check-28{animation:tmCheck28 6s ease-out infinite;} .tm-check-28::after{animation:tmTick28 6s ease-out infinite;}
+.tm-check-41{animation:tmCheck41 6s ease-out infinite;} .tm-check-41::after{animation:tmTick41 6s ease-out infinite;}
+.tm-check-54{animation:tmCheck54 6s ease-out infinite;} .tm-check-54::after{animation:tmTick54 6s ease-out infinite;}
+@keyframes tmCheck15{0%,14%,97%,100%{background:transparent;border-color:var(--border);}17%,94%{background:var(--accent);border-color:var(--accent);}}
+@keyframes tmTick15{0%,14%,97%,100%{opacity:0;}17%,94%{opacity:1;}}
+@keyframes tmCheck28{0%,27%,97%,100%{background:transparent;border-color:var(--border);}30%,94%{background:var(--accent);border-color:var(--accent);}}
+@keyframes tmTick28{0%,27%,97%,100%{opacity:0;}30%,94%{opacity:1;}}
+@keyframes tmCheck41{0%,40%,97%,100%{background:transparent;border-color:var(--border);}43%,94%{background:var(--accent);border-color:var(--accent);}}
+@keyframes tmTick41{0%,40%,97%,100%{opacity:0;}43%,94%{opacity:1;}}
+@keyframes tmCheck54{0%,53%,97%,100%{background:transparent;border-color:var(--border);}56%,94%{background:var(--accent);border-color:var(--accent);}}
+@keyframes tmTick54{0%,53%,97%,100%{opacity:0;}56%,94%{opacity:1;}}
+.tm-badge{display:flex;align-items:center;gap:6px;margin-top:12px;padding:7px 10px;border-radius:8px;background:var(--ok-bg);border:1px solid var(--ok-border);color:var(--text);font-size:9.5px;font-weight:600;}
+.tm-up{color:var(--ok-icon);font-size:12px;line-height:1;}
+
+/* progress bars + a calendar that swipes to the next month */
+.tut-bars{display:flex;align-items:flex-end;justify-content:center;gap:14px;height:78px;margin-bottom:12px;}
+.tut-bar{width:22px;border-radius:2px 2px 0 0;background:var(--accent);animation:tutGrow 6s ease-in-out infinite;}
+.tut-bar:nth-child(1){--h:38%;animation-delay:0s;}
+.tut-bar:nth-child(2){--h:58%;animation-delay:.15s;}
+.tut-bar:nth-child(3){--h:46%;animation-delay:.3s;}
+.tut-bar:nth-child(4){--h:88%;animation-delay:.45s;}
+@keyframes tutGrow{0%{height:4px;}20%,92%{height:var(--h);}100%{height:4px;}}
+.tm-month{display:grid;justify-content:center;}
+.tm-cal{overflow:hidden;}
+.tm-cal-strip{display:flex;width:200%;animation:tmCalSwipe 6s ease-in-out infinite;}
+@keyframes tmCalSwipe{0%,44%{transform:none;}54%,93%{transform:translateX(-50%);}100%{transform:none;}}
+.tm-cal-grid{width:50%;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:0 1px;}
+.tm-cal-grid span{height:22px;border-radius:5px;background:var(--well);border:1px solid var(--border);position:relative;}
+.tm-cal-grid span.d::after{content:'';position:absolute;left:50%;bottom:3px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--warn);}
+.tm-swipe{animation:tmSwipe 6s ease-in-out infinite;}
+@keyframes tmSwipe{0%,36%{left:78%;opacity:0;}40%{left:78%;opacity:.3;}52%{left:22%;opacity:.3;}56%,100%{left:22%;opacity:0;}}
+
+/* drag a workout to another day */
+.tut-drag-mock{display:flex;flex-direction:column;gap:6px;width:214px;}
 .tut-drag-row{height:30px;display:flex;align-items:center;gap:8px;padding:0 10px;background:var(--well);border:1px solid var(--border);border-radius:var(--r-sm);}
 .tut-drag-grip{width:12px;height:12px;color:var(--text-3);display:flex;flex-shrink:0;}
 .tut-drag-grip svg{width:12px;height:12px;}
-.tut-drag-day{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.05em;color:var(--text-3);width:26px;flex-shrink:0;}
-.tut-drag-line{flex:1;height:6px;border-radius:3px;background:var(--border);}
-.tut-drag-line.rest{background:var(--divider);}
+.tut-drag-day{font-family:var(--font-mono);font-size:8.5px;letter-spacing:0.05em;color:var(--text-3);width:26px;flex-shrink:0;}
+.tut-drag-name{flex:1;font-size:10px;font-weight:600;color:var(--text);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tut-drag-name.rest{color:var(--text-3);font-weight:500;}
 .tut-drag-row.dragged{position:relative;z-index:5;border-color:var(--accent);animation:tutDragMove 3.6s ease-in-out infinite;}
 .tut-drag-row.dragged .tut-drag-day{color:var(--text);}
-.tut-drag-row.dragged .tut-drag-line{background:var(--accent);}
 .tut-drag-row.shift{animation:tutDragShiftUp 3.6s ease-in-out infinite;}
 @keyframes tutDragMove{
   0%,100%{transform:translateY(0) scale(1);box-shadow:none;}
@@ -713,46 +837,41 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   42%,58%{transform:translateY(-36px);}
 }
 
-/* slide 4: progress mock */
-.tut-bars{display:flex;align-items:flex-end;gap:12px;height:80px;}
-.tut-bar{width:20px;border-radius:2px 2px 0 0;background:var(--accent);animation:tutGrow 2.4s ease-in-out infinite;}
-.tut-bar:nth-child(1){--h:38%;animation-delay:0s;}
-.tut-bar:nth-child(2){--h:58%;animation-delay:.15s;}
-.tut-bar:nth-child(3){--h:46%;animation-delay:.3s;}
-.tut-bar:nth-child(4){--h:88%;animation-delay:.45s;}
-@keyframes tutGrow{0%{height:4px;}55%,100%{height:var(--h);}}
-
-/* slide 5: navigation mock */
-.tut-nav-full{display:flex;flex-direction:column;align-items:center;gap:16px;}
-.tut-nav-mock{display:flex;gap:16px;}
-.tut-navitem{display:flex;flex-direction:column;align-items:center;gap:7px;}
-.tut-navitem .ic{width:34px;height:34px;border-radius:50%;background:var(--well);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-3);animation:tutNavHighlight 3.2s ease-in-out infinite;}
+/* navigation mock */
+.tut-nav-full{display:flex;flex-direction:column;align-items:center;gap:22px;}
+.tut-nav-mock{display:flex;gap:12px;}
+.tut-navitem{display:flex;flex-direction:column;align-items:center;gap:7px;width:46px;}
+.tut-navitem .ic{width:34px;height:34px;border-radius:50%;background:var(--well);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-3);animation:tutNavHighlight 4s ease-in-out infinite;}
 .tut-navitem .ic svg{width:16px;height:16px;}
-.tut-navitem .lbl{font-family:var(--font-mono);font-size:8px;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);}
+.tut-navitem .lbl{font-family:var(--font-mono);font-size:7.5px;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-3);white-space:nowrap;}
 .tut-navitem:nth-child(1) .ic{animation-delay:0s;}
 .tut-navitem:nth-child(2) .ic{animation-delay:.8s;}
 .tut-navitem:nth-child(3) .ic{animation-delay:1.6s;}
 .tut-navitem:nth-child(4) .ic{animation-delay:2.4s;}
+.tut-navitem:nth-child(5) .ic{animation-delay:3.2s;}
 @keyframes tutNavHighlight{0%,18%,100%{background:var(--well);border-color:var(--border);color:var(--text-3);}5%{background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}}
 
 .tut-pencil-mock{display:flex;flex-direction:column;align-items:center;gap:6px;}
-.tut-pencil-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;width:190px;padding:8px 10px;background:var(--well);border:1px solid var(--border);border-radius:var(--r-md);}
+.tut-pencil-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;width:210px;padding:8px 10px;background:var(--well);border:1px solid var(--border);border-radius:var(--r-md);}
 .tut-pencil-label{font-family:var(--font-display);font-weight:600;font-size:10px;color:var(--text-2);}
-.tut-pencil-btn{width:20px;height:20px;flex-shrink:0;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-2);animation:tutPencilPulse 2.4s ease-in-out infinite;}
-.tut-pencil-btn svg{width:11px;height:11px;}
+.tut-pencil-btn{width:22px;height:22px;flex-shrink:0;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-2);animation:tutPencilPulse 2.4s ease-in-out infinite;}
+.tut-pencil-btn svg{width:12px;height:12px;}
 .tut-pencil-caption{font-family:var(--font-mono);font-size:8.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--accent-hover);}
 @keyframes tutPencilPulse{0%,40%,100%{background:var(--card);border-color:var(--border);color:var(--text-2);box-shadow:none;}70%{background:var(--accent-tint);border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 4px var(--accent-tint);}}
 
+/* reduced motion: every screen holds its finished state */
 @media (prefers-reduced-motion: reduce){
-  .tut-slider-thumb{animation:none;left:50%;}
-  .tut-day{animation:none;}
-  .tut-day:nth-child(3){background:var(--accent);border-color:var(--accent);}
-  .tut-drag-row.dragged{animation:none;transform:translateY(72px);box-shadow:none;}
-  .tut-drag-row.shift{animation:none;transform:translateY(-36px);}
-  .tut-bar{animation:none;height:var(--h);}
-  .tut-navitem .ic{animation:none;}
-  .tut-navitem:nth-child(1) .ic{background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}
-  .tut-pencil-btn{animation:none;background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}
+  .tut-slide.in-next,.tut-slide.in-prev{animation:none;}
+  .tutorial-overlay *,.tutorial-overlay *::after{animation:none !important;}
+  .tm-slider-thumb{left:64%;} .tm-slider-fill{width:64%;}
+  .tm-on,.tm-on-late{background:var(--accent-tint);border-color:var(--accent);color:var(--text);}
+  .tm-swap-a{opacity:0;} .tm-type{max-width:120px;}
+  .tm-check-15,.tm-check-28,.tm-check-41,.tm-check-54{background:var(--accent);border-color:var(--accent);}
+  .tm-box::after{opacity:1;}
+  .tut-bar{height:var(--h);}
+  .tut-drag-row.dragged{transform:translateY(72px);box-shadow:none;}
+  .tut-drag-row.shift{transform:translateY(-36px);}
+  .tut-navitem:nth-child(1) .ic,.tut-pencil-btn{background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}
 }
 
 /* ---------- watch-demo entry points ---------- */
@@ -1808,69 +1927,168 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
   <div class="toast" id="toast" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 10l4 4 8-9"/></svg><span id="toastMsg"></span></div>
 
-  <!-- HOW IT WORKS TUTORIAL -->
+  <!-- HOW IT WORKS TUTORIAL: a swipeable tour of the app -->
   <div class="tutorial-overlay" id="tutorialOverlay" hidden>
     <div class="tutorial-top">
       <button class="btn-text" id="tutorialSkip" data-i18n="tutSkip"></button>
     </div>
-    <div class="tutorial-body">
+    <div class="tutorial-body" id="tutorialBody">
+      <!-- 1. build your plan -->
       <div class="tut-slide" data-slide="0">
-        <div class="tut-illus">
-          <div class="tut-slider-track"><div class="tut-slider-thumb"></div></div>
-        </div>
-        <div class="tut-headline" data-i18n="tut1Headline"></div>
-        <div class="tut-body" data-i18n="tut1Body"></div>
+        <div class="tut-illus"><div class="tm-phone">
+          <div class="tm-label"><span data-i18n="tourMockRunning"></span><span data-i18n="tourMockStrength"></span></div>
+          <div class="tm-slider"><div class="tm-slider-fill"></div><div class="tm-slider-thumb"></div></div>
+          <div class="tm-label" data-i18n="tourMockDays"></div>
+          <div class="tm-chips">
+            <span class="tm-chip dow tm-on" data-tour-dow="0"></span><span class="tm-chip dow" data-tour-dow="1"></span><span class="tm-chip dow tm-on" style="animation-delay:.24s" data-tour-dow="2"></span><span class="tm-chip dow" data-tour-dow="3"></span><span class="tm-chip dow tm-on" style="animation-delay:.48s" data-tour-dow="4"></span><span class="tm-chip dow tm-on" style="animation-delay:.72s" data-tour-dow="5"></span><span class="tm-chip dow" data-tour-dow="6"></span>
+          </div>
+          <div class="tm-label" data-i18n="tourMockSplit"></div>
+          <div class="tm-chips">
+            <span class="tm-chip" data-i18n="tourMockFull"></span><span class="tm-chip tm-on-late" data-i18n="tourMockPpl"></span><span class="tm-chip" data-i18n="tourMockOne"></span>
+          </div>
+        </div></div>
+        <div class="tut-headline" data-i18n="tourBuildH"></div>
+        <div class="tut-body" data-i18n="tourBuildB"></div>
       </div>
+
+      <!-- 2. the week it builds -->
       <div class="tut-slide" data-slide="1" hidden>
-        <div class="tut-illus">
-          <div class="tut-week">
-            <div class="tut-day"></div><div class="tut-day"></div><div class="tut-day"></div><div class="tut-day"></div><div class="tut-day"></div><div class="tut-day"></div><div class="tut-day"></div>
-          </div>
-        </div>
-        <div class="tut-headline" data-i18n="tut2Headline"></div>
-        <div class="tut-body" data-i18n="tut2Body"></div>
+        <div class="tut-illus"><div class="tm-phone">
+          <div class="tm-label"><span data-i18n="tourMockThisWeek"></span><span><span data-i18n="planWeekBuild"></span> · 14 mi</span></div>
+          <div class="tm-row tm-in"><span class="tm-dow" data-tour-dow="0"></span><span class="tm-pill"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockEasyRun"></span><span class="tm-detail">3 mi</span></span></span></div>
+          <div class="tm-row tm-in" style="animation-delay:.15s"><span class="tm-dow" data-tour-dow="1"></span><span class="tm-pill"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockPush"></span><span class="tm-detail">40 min</span></span></span></div>
+          <div class="tm-row tm-in" style="animation-delay:.3s"><span class="tm-dow" data-tour-dow="2"></span><span class="tm-pill rest"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockRest"></span></span></span></div>
+          <div class="tm-row tm-in" style="animation-delay:.45s"><span class="tm-dow" data-tour-dow="3"></span><span class="tm-pill"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockTempoRun"></span><span class="tm-detail">4 mi</span></span></span></div>
+          <div class="tm-row tm-in" style="animation-delay:.6s"><span class="tm-dow" data-tour-dow="4"></span><span class="tm-pill"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockLegs"></span><span class="tm-detail">45 min</span></span></span></div>
+          <div class="tm-row tm-in" style="animation-delay:.75s"><span class="tm-dow" data-tour-dow="5"></span><span class="tm-pill"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockLongRun"></span><span class="tm-detail">7 mi</span></span></span></div>
+        </div></div>
+        <div class="tut-headline" data-i18n="tourWeekH"></div>
+        <div class="tut-body" data-i18n="tourWeekB"></div>
       </div>
+
+      <!-- 3. tap a workout, change an exercise -->
       <div class="tut-slide" data-slide="2" hidden>
-        <div class="tut-illus">
-          <div class="tut-drag-mock">
-            <div class="tut-drag-row dragged"><span class="tut-drag-grip"><svg viewBox="0 0 20 20" fill="currentColor"><circle cx="7" cy="5" r="1.3"/><circle cx="13" cy="5" r="1.3"/><circle cx="7" cy="10" r="1.3"/><circle cx="13" cy="10" r="1.3"/><circle cx="7" cy="15" r="1.3"/><circle cx="13" cy="15" r="1.3"/></svg></span><span class="tut-drag-day">MON</span><span class="tut-drag-line"></span></div>
-            <div class="tut-drag-row shift"><span class="tut-drag-day">TUE</span><span class="tut-drag-line rest"></span></div>
-            <div class="tut-drag-row shift"><span class="tut-drag-day">WED</span><span class="tut-drag-line rest"></span></div>
-            <div class="tut-drag-row"><span class="tut-drag-day">THU</span><span class="tut-drag-line"></span></div>
+        <div class="tut-illus"><div class="tm-phone">
+          <div class="tm-row"><span class="tm-dow" data-tour-dow="1"></span><span class="tm-pill"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockPush"></span><span class="tm-detail">40 min</span></span></span></div>
+          <div class="tm-sheet">
+            <div class="tm-sheet-grab"></div>
+            <div class="tm-sheet-title" data-i18n="tourMockPush"></div>
+            <div class="tm-ex"><span class="tm-ex-main"><span class="tm-ex-name" data-tour-ex="Bench Press"></span><span class="tm-ex-rx">4 × 8 · 135 lb</span></span><span class="tm-btn" data-i18n="wpChangeBtn"></span></div>
+            <div class="tm-ex"><span class="tm-ex-main"><span class="tm-ex-name" data-tour-ex="Lateral Raise"></span><span class="tm-ex-rx">3 × 15 · 15 lb</span></span><span class="tm-btn" data-i18n="wpChangeBtn"></span></div>
+            <div class="tm-ex"><span class="tm-ex-main tm-swap"><span class="tm-swap-a"><span class="tm-ex-name" data-tour-ex="Triceps Pushdown"></span><span class="tm-ex-rx">3 × 12 · 50 lb</span></span><span class="tm-swap-b"><span class="tm-ex-name" data-tour-ex="Skull Crusher"></span><span class="tm-ex-rx">3 × 12 · 40 lb</span></span></span><span class="tm-btn tm-press-44" data-i18n="wpChangeBtn"></span></div>
           </div>
-        </div>
-        <div class="tut-headline" data-i18n="tut3Headline"></div>
-        <div class="tut-body" data-i18n="tut3Body"></div>
+          <span class="tm-tap tm-tap-8" style="left:50%;top:30px;"></span>
+          <span class="tm-tap tm-tap-44" style="left:214px;top:170px;"></span>
+        </div></div>
+        <div class="tut-headline" data-i18n="tourPreviewH"></div>
+        <div class="tut-body" data-i18n="tourPreviewB"></div>
       </div>
+
+      <!-- 4. drag to another day -->
       <div class="tut-slide" data-slide="3" hidden>
-        <div class="tut-illus">
+        <div class="tut-illus"><div class="tm-phone tm-center">
+          <div class="tut-drag-mock">
+            <div class="tut-drag-row dragged"><span class="tut-drag-day" data-tour-dow="0"></span><span class="tut-drag-name" data-i18n="tourMockLegs"></span><span class="tut-drag-grip"><svg viewBox="0 0 20 20" fill="currentColor"><circle cx="7" cy="5" r="1.3"/><circle cx="13" cy="5" r="1.3"/><circle cx="7" cy="10" r="1.3"/><circle cx="13" cy="10" r="1.3"/><circle cx="7" cy="15" r="1.3"/><circle cx="13" cy="15" r="1.3"/></svg></span></div>
+            <div class="tut-drag-row shift"><span class="tut-drag-day" data-tour-dow="1"></span><span class="tut-drag-name rest" data-i18n="tourMockRest"></span></div>
+            <div class="tut-drag-row shift"><span class="tut-drag-day" data-tour-dow="2"></span><span class="tut-drag-name rest" data-i18n="tourMockRest"></span></div>
+            <div class="tut-drag-row"><span class="tut-drag-day" data-tour-dow="3"></span><span class="tut-drag-name" data-i18n="tourMockEasyRun"></span></div>
+          </div>
+        </div></div>
+        <div class="tut-headline" data-i18n="tourMoveH"></div>
+        <div class="tut-body" data-i18n="tourMoveB"></div>
+      </div>
+
+      <!-- 5. create your own workout -->
+      <div class="tut-slide" data-slide="4" hidden>
+        <div class="tut-illus"><div class="tm-phone">
+          <div class="tm-row"><span class="tm-dow" data-tour-dow="3"></span><span class="tm-pill rest"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockRest"></span></span></span><span class="tm-add tm-press-8">+ <span data-i18n="planAddWorkoutLabel"></span></span></div>
+          <div class="tm-sheet">
+            <div class="tm-sheet-grab"></div>
+            <div class="tm-label" data-i18n="manualEntryTitle"></div>
+            <div class="tm-field"><span class="tm-type" data-i18n="tourMockArm"></span><span class="tm-caret"></span></div>
+            <div class="tm-desc tm-show-42" data-i18n="tourMockDesc"></div>
+            <div class="tm-ex tm-show-50"><span class="tm-ex-name" data-tour-ex="Hammer Curl"></span><span class="tm-ex-rx">3 × 12 · 25 lb</span></div>
+            <div class="tm-ex tm-show-58"><span class="tm-ex-name" data-tour-ex="Skull Crusher"></span><span class="tm-ex-rx">3 × 12 · 40 lb</span></div>
+            <div class="tm-ex tm-show-66"><span class="tm-ex-name" data-tour-ex="Preacher Curl"></span><span class="tm-ex-rx">3 × 10 · 45 lb</span></div>
+            <div class="tm-save tm-press-80" data-i18n="saveWorkoutBtn"></div>
+          </div>
+          <span class="tm-tap tm-tap-8" style="left:222px;top:30px;"></span>
+        </div></div>
+        <div class="tut-headline" data-i18n="tourCreateH"></div>
+        <div class="tut-body" data-i18n="tourCreateB"></div>
+      </div>
+
+      <!-- 6. repeat your week -->
+      <div class="tut-slide" data-slide="5" hidden>
+        <div class="tut-illus"><div class="tm-phone">
+          <div class="tm-label tm-label-mid"><span data-tour-week="1"></span><span class="tm-btn tm-press-16"><svg class="tm-repeat-ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a6 6 0 0 1 10.5-3.5L16 6M16 2.5V6h-3.5M16 12a6 6 0 0 1-10.5 3.5L4 14M4 17.5V14h3.5"/></svg><span data-i18n="repeatWeekBtn"></span></span></div>
+          <div class="tm-cells"><span class="on"></span><span></span><span class="on"></span><span></span><span class="on"></span><span class="on"></span><span></span></div>
+          <div class="tm-label" data-tour-week="2"></div>
+          <div class="tm-cells tm-copy tm-show-30"><span class="on"></span><span></span><span class="on"></span><span></span><span class="on"></span><span class="on"></span><span></span></div>
+          <div class="tm-label" data-tour-week="3"></div>
+          <div class="tm-cells tm-copy tm-show-42"><span class="on"></span><span></span><span class="on"></span><span></span><span class="on"></span><span class="on"></span><span></span></div>
+          <div class="tm-label" data-tour-week="4"></div>
+          <div class="tm-cells tm-copy tm-show-54"><span class="on"></span><span></span><span class="on"></span><span></span><span class="on"></span><span class="on"></span><span></span></div>
+          <div class="tm-toast tm-show-66"><span class="tm-check-ic"></span><span data-tour-copied></span></div>
+          <span class="tm-tap tm-tap-16" style="left:208px;top:22px;"></span>
+        </div></div>
+        <div class="tut-headline" data-i18n="tourRepeatH"></div>
+        <div class="tut-body" data-i18n="tourRepeatB"></div>
+      </div>
+
+      <!-- 7. log it, get stronger -->
+      <div class="tut-slide" data-slide="6" hidden>
+        <div class="tut-illus"><div class="tm-phone">
+          <div class="tm-sheet-title" data-tour-ex="Bench Press"></div>
+          <div class="tm-set"><span class="tm-set-n"><span data-i18n="tourMockSet"></span> 1</span><span class="tm-set-rx">135 lb × 8</span><span class="tm-box tm-check-15"></span></div>
+          <div class="tm-set"><span class="tm-set-n"><span data-i18n="tourMockSet"></span> 2</span><span class="tm-set-rx">135 lb × 8</span><span class="tm-box tm-check-28"></span></div>
+          <div class="tm-set"><span class="tm-set-n"><span data-i18n="tourMockSet"></span> 3</span><span class="tm-set-rx">135 lb × 8</span><span class="tm-box tm-check-41"></span></div>
+          <div class="tm-set"><span class="tm-set-n"><span data-i18n="tourMockSet"></span> 4</span><span class="tm-set-rx">135 lb × 8</span><span class="tm-box tm-check-54"></span></div>
+          <div class="tm-badge tm-show-68"><span class="tm-up">↑</span><span data-i18n="tourMockNextTime"></span></div>
+        </div></div>
+        <div class="tut-headline" data-i18n="tourLogH"></div>
+        <div class="tut-body" data-i18n="tourLogB"></div>
+      </div>
+
+      <!-- 8. progress + calendar swipe -->
+      <div class="tut-slide" data-slide="7" hidden>
+        <div class="tut-illus"><div class="tm-phone">
           <div class="tut-bars">
             <div class="tut-bar"></div><div class="tut-bar"></div><div class="tut-bar"></div><div class="tut-bar"></div>
           </div>
-        </div>
-        <div class="tut-headline" data-i18n="tut4Headline"></div>
-        <div class="tut-body" data-i18n="tut4Body"></div>
+          <div class="tm-label tm-month tm-swap"><span class="tm-swap-a" data-tour-month="0"></span><span class="tm-swap-b" data-tour-month="1"></span></div>
+          <div class="tm-cal"><div class="tm-cal-strip">
+            <div class="tm-cal-grid"><span class="d"></span><span></span><span class="d"></span><span></span><span class="d"></span><span class="d"></span><span></span><span class="d"></span><span></span><span class="d"></span><span></span><span class="d"></span><span class="d"></span><span></span></div>
+            <div class="tm-cal-grid"><span class="d"></span><span></span><span></span><span class="d"></span><span class="d"></span><span></span><span class="d"></span><span></span><span class="d"></span><span></span><span class="d"></span><span class="d"></span><span></span><span></span></div>
+          </div></div>
+          <span class="tm-tap tm-swipe" style="top:176px;"></span>
+        </div></div>
+        <div class="tut-headline" data-i18n="tourProgressH"></div>
+        <div class="tut-body" data-i18n="tourProgressB"></div>
       </div>
-      <div class="tut-slide" data-slide="4" hidden>
+
+      <!-- 9. finding your way around -->
+      <div class="tut-slide" data-slide="8" hidden>
         <div class="tut-illus">
           <div class="tut-nav-full">
+            <div class="tut-pencil-mock">
+              <div class="tut-pencil-bar">
+                <span class="tut-pencil-label" data-i18n="tourMockToday"></span>
+                <span class="tut-pencil-btn"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13.5 3a3.5 3.5 0 0 0-4.6 4.2L3 13.1V17h3.9l5.9-5.9A3.5 3.5 0 0 0 17 6.5l-2.6 2.6-2-2L15 4.4"/></svg></span>
+              </div>
+              <span class="tut-pencil-caption" data-i18n="tourMockAdjust"></span>
+            </div>
             <div class="tut-nav-mock">
               <div class="tut-navitem"><span class="ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 9.5l7-6 7 6M5 8.5V17h10V8.5"/></svg></span><span class="lbl" data-i18n="navToday"></span></div>
               <div class="tut-navitem"><span class="ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="2.5" width="6" height="6"/><rect x="11.5" y="2.5" width="6" height="6"/><rect x="2.5" y="11.5" width="6" height="6"/><rect x="11.5" y="11.5" width="6" height="6"/></svg></span><span class="lbl" data-i18n="navPlan"></span></div>
+              <div class="tut-navitem"><span class="ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15.5V9M10 15.5V4M16 15.5v-6"/></svg></span><span class="lbl" data-i18n="navProgress"></span></div>
               <div class="tut-navitem"><span class="ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="14" height="13" rx="0.5"/><path d="M3 8h14M7 2v4M13 2v4"/></svg></span><span class="lbl" data-i18n="navCalendar"></span></div>
               <div class="tut-navitem"><span class="ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 2.5v2.4M10 15.1v2.4M17.5 10h-2.4M4.9 10H2.5M15.3 4.7l-1.7 1.7M6.4 13.6l-1.7 1.7M15.3 15.3l-1.7-1.7M6.4 6.4L4.7 4.7"/></svg></span><span class="lbl" data-i18n="navSettings"></span></div>
             </div>
-            <div class="tut-pencil-mock">
-              <div class="tut-pencil-bar">
-                <span class="tut-pencil-label" data-i18n="tut5PencilBarLabel"></span>
-                <span class="tut-pencil-btn"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13.5 3a3.5 3.5 0 0 0-4.6 4.2L3 13.1V17h3.9l5.9-5.9A3.5 3.5 0 0 0 17 6.5l-2.6 2.6-2-2L15 4.4"/></svg></span>
-              </div>
-              <span class="tut-pencil-caption" data-i18n="tut5PencilCaption"></span>
-            </div>
           </div>
         </div>
-        <div class="tut-headline" data-i18n="tut5Headline"></div>
-        <div class="tut-body" data-i18n="tut5Body"></div>
+        <div class="tut-headline" data-i18n="tourNavH"></div>
+        <div class="tut-body" data-i18n="tourNavB"></div>
       </div>
     </div>
     <div class="tutorial-dots" id="tutorialDots"></div>
@@ -2001,18 +2219,30 @@ const STR = {
     tutBack: "Back",
     tutNext: "Next",
     tutGetStarted: "Get Started",
-    tut1Headline: "Build your plan",
-    tut1Body: "Tell us your goal and slide between running and strength — anywhere in between. Change it whenever you want.",
-    tut2Headline: "Train on your days",
-    tut2Body: "Pick exactly which days work for you, and lock in the ones you can't miss.",
-    tut3Headline: "Life happens",
-    tut3Body: "Missed a session or need a change? Just drag it to another day — the rest of the week reshuffles automatically.",
-    tut4Headline: "See it add up",
-    tut4Body: "Streaks, distance, history — all tracked automatically, right from your home screen.",
-    tut5Headline: "Everything's a tap away",
-    tut5Body: "Today for your next session, Plan to reorder your week, Calendar for history and progress, Settings for your profile and theme. Tap the pencil at the top of Today anytime to adjust your plan.",
-    tut5PencilBarLabel: "TODAY'S THE DAY",
-    tut5PencilCaption: "Adjust plan",
+    tourBuildH: "Build your plan",
+    tourBuildB: "Tell Altiro your goal, where you're starting, how much running vs. lifting, which days you train and how you like to split your lifting. It builds your weeks from there.",
+    tourWeekH: "Your week, ready to go",
+    tourWeekB: "The Plan tab lays out every day: runs, lifts and rest days. It builds a little each week, and every 4th week is a lighter deload week so you recover.",
+    tourPreviewH: "Tap any workout",
+    tourPreviewB: "See every exercise with its sets, reps and weight, or a run's distance and pace. No equipment for a move, or just don't like it? Tap Change to swap it.",
+    tourMoveH: "Life happens",
+    tourMoveB: "Missed a session or need a change? Hold a workout by its handle and drag it to another day.",
+    tourCreateH: "Make your own workouts",
+    tourCreateB: "Tap + Add on any day in Plan, or tap a day on the Calendar. Name it, describe it and fill in your exercises. Workouts you create are only changed or deleted by you.",
+    tourRepeatH: "Repeat your week",
+    tourRepeatB: "Planned your own week? Tap Repeat next to it to copy it into the weeks ahead. Your weights and reps carry over and go up as you log.",
+    tourLogH: "Log it, get stronger",
+    tourLogB: "Tap Start Workout and check off each set as you go. Altiro remembers what you lifted and suggests the next step up. Set your own numbers anytime in Settings → My Lifts.",
+    tourProgressH: "Watch it add up",
+    tourProgressB: "Progress shows your weeks, miles and PRs. On the Calendar, swipe left or right to change months, and tap any day to see or log a workout.",
+    tourNavH: "Everything's a tap away",
+    tourNavB: "Tap the wrench at the top of Today or Plan anytime to change your days, intensity, lifting split, mile time or start date. Connect Strava in Settings to bring in runs from your watch.",
+    tourMockRunning: "Running", tourMockStrength: "Strength", tourMockDays: "Your days", tourMockSplit: "Lifting split",
+    tourMockFull: "Full body", tourMockPpl: "Push / Pull / Legs", tourMockOne: "One muscle group",
+    tourMockThisWeek: "This week", tourMockEasyRun: "Easy Run", tourMockTempoRun: "Tempo Run", tourMockLongRun: "Long Run",
+    tourMockRest: "Rest Day", tourMockPush: "Push Day", tourMockLegs: "Leg Day", tourMockArm: "Arm Day",
+    tourMockDesc: "Curls and triceps · 45 min", tourMockWeek: "Week {n}", tourMockSet: "Set", tourMockNextTime: "Next time: 140 lb",
+    tourMockToday: "TODAY'S THE DAY", tourMockAdjust: "Adjust plan",
     watchDemoBtn: "Watch Demo",
     loopBadge: "Loop",
     focusPointsLabel: "Focus On",
@@ -2375,18 +2605,30 @@ const STR = {
     tutBack: "Atrás",
     tutNext: "Siguiente",
     tutGetStarted: "Comenzar",
-    tut1Headline: "Crea tu plan",
-    tut1Body: "Cuéntanos tu objetivo y desliza entre correr y fuerza — en cualquier punto intermedio. Cámbialo cuando quieras.",
-    tut2Headline: "Entrena en tus días",
-    tut2Body: "Elige exactamente qué días te funcionan, y fija los que no te puedes perder.",
-    tut3Headline: "La vida pasa",
-    tut3Body: "¿Te perdiste una sesión o necesitas un cambio? Solo arrástrala a otro día — el resto de la semana se reorganiza automáticamente.",
-    tut4Headline: "Mira tu progreso",
-    tut4Body: "Días activos, distancia, historial — todo se registra automáticamente desde tu pantalla principal.",
-    tut5Headline: "Todo a un toque de distancia",
-    tut5Body: "Hoy para tu próxima sesión, Plan para reordenar tu semana, Calendario para historial y progreso, Ajustes para tu perfil y tema. Toca el lápiz en la parte superior de Hoy cuando quieras para ajustar tu plan.",
-    tut5PencilBarLabel: "HOY ES EL DÍA",
-    tut5PencilCaption: "Ajustar plan",
+    tourBuildH: "Crea tu plan",
+    tourBuildB: "Dile a Altiro tu objetivo, desde dónde empiezas, cuánto quieres correr y levantar, qué días entrenas y cómo quieres dividir tus pesas. Con eso arma tus semanas.",
+    tourWeekH: "Tu semana, lista",
+    tourWeekB: "La pestaña Plan muestra cada día: carreras, pesas y descansos. Sube un poco cada semana, y cada 4.ª semana es una semana de descarga más ligera para que te recuperes.",
+    tourPreviewH: "Toca cualquier entrenamiento",
+    tourPreviewB: "Ve cada ejercicio con sus series, repeticiones y peso, o la distancia y el ritmo de una carrera. ¿No tienes el equipo o no te gusta un ejercicio? Toca Cambiar para reemplazarlo.",
+    tourMoveH: "La vida pasa",
+    tourMoveB: "¿Te perdiste una sesión o necesitas un cambio? Mantén presionado el asa de un entrenamiento y arrástralo a otro día.",
+    tourCreateH: "Crea tus propios entrenamientos",
+    tourCreateB: "Toca + Añadir en cualquier día del Plan, o toca un día en el Calendario. Ponle nombre, descríbelo y completa tus ejercicios. Solo tú cambias o borras los entrenamientos que creas.",
+    tourRepeatH: "Repite tu semana",
+    tourRepeatB: "¿Planeaste tu propia semana? Toca Repetir junto a ella para copiarla a las semanas siguientes. Tus pesos y repeticiones se mantienen y suben a medida que registras.",
+    tourLogH: "Regístralo, hazte más fuerte",
+    tourLogB: "Toca Comenzar entrenamiento y marca cada serie al terminarla. Altiro recuerda lo que levantaste y te sugiere el siguiente paso. Pon tus propios números cuando quieras en Ajustes → Mis levantamientos.",
+    tourProgressH: "Mira tu progreso",
+    tourProgressB: "Progreso muestra tus semanas, millas y récords. En el Calendario, desliza a la izquierda o derecha para cambiar de mes, y toca cualquier día para ver o registrar un entrenamiento.",
+    tourNavH: "Todo a un toque de distancia",
+    tourNavB: "Toca la llave arriba en Hoy o Plan cuando quieras para cambiar tus días, intensidad, división de pesas, tiempo de milla o fecha de inicio. Conecta Strava en Ajustes para traer las carreras de tu reloj.",
+    tourMockRunning: "Correr", tourMockStrength: "Fuerza", tourMockDays: "Tus días", tourMockSplit: "División de pesas",
+    tourMockFull: "Cuerpo completo", tourMockPpl: "Empuje / Tracción / Piernas", tourMockOne: "Un grupo muscular",
+    tourMockThisWeek: "Esta semana", tourMockEasyRun: "Carrera suave", tourMockTempoRun: "Carrera de tempo", tourMockLongRun: "Carrera larga",
+    tourMockRest: "Día de descanso", tourMockPush: "Día de empuje", tourMockLegs: "Día de piernas", tourMockArm: "Día de brazos",
+    tourMockDesc: "Curls y tríceps · 45 min", tourMockWeek: "Semana {n}", tourMockSet: "Serie", tourMockNextTime: "Próxima vez: 140 lb",
+    tourMockToday: "HOY ES EL DÍA", tourMockAdjust: "Ajustar plan",
     watchDemoBtn: "Ver demostración",
     loopBadge: "Bucle",
     focusPointsLabel: "Enfócate en",
@@ -8820,20 +9062,43 @@ document.getElementById('demoPlayBtn').addEventListener('click', ()=>{ demoPlayi
 document.getElementById('demoMuteBtn').addEventListener('click', ()=>{ demoMuted = !demoMuted; renderExerciseDetail(); });
 
 /* ---------------- how-it-works tutorial ---------------- */
-const TUTORIAL_SLIDE_COUNT = 5;
+// A swipeable tour of the app: swipe or use Back/Next, or tap a dot to jump.
+const TUTORIAL_SLIDE_COUNT = document.querySelectorAll('.tut-slide').length;
 let tutorialSlide = 0;
 let tutorialOrigin = 'welcome';
-function renderTutorialSlide(){
-  document.querySelectorAll('.tut-slide').forEach(s=>{
-    s.hidden = parseInt(s.getAttribute('data-slide'),10) !== tutorialSlide;
+function fillTutorialMocks(){
+  const L = STR[state.lang];
+  const ov = document.getElementById('tutorialOverlay');
+  ov.querySelectorAll('[data-tour-dow]').forEach(el=>{ el.textContent = DAY_NAMES_SHORT[state.lang][+el.dataset.tourDow]; });
+  ov.querySelectorAll('[data-tour-ex]').forEach(el=>{ const ex = EXERCISES[el.dataset.tourEx]; el.textContent = ex ? ex[state.lang] : el.dataset.tourEx; });
+  ov.querySelectorAll('[data-tour-week]').forEach(el=>{ el.textContent = L.tourMockWeek.replace('{n}', el.dataset.tourWeek); });
+  ov.querySelectorAll('[data-tour-month]').forEach(el=>{
+    const d = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth() + +el.dataset.tourMonth, 1);
+    el.textContent = d.toLocaleDateString(state.lang==='es' ? 'es-ES' : 'en-US', {month:'long', year:'numeric'});
   });
+  ov.querySelectorAll('[data-tour-copied]').forEach(el=>{ el.textContent = L.repeatDoneToast.replace('{weeks}', L.repeatNoteWeeks.replace('{n}', 3)); });
+}
+function renderTutorialSlide(dir){
+  document.querySelectorAll('.tut-slide').forEach(s=>{
+    const on = parseInt(s.getAttribute('data-slide'),10) === tutorialSlide;
+    s.hidden = !on;
+    s.classList.remove('in-next','in-prev');
+    if(on && dir){ void s.offsetWidth; s.classList.add(dir > 0 ? 'in-next' : 'in-prev'); }
+  });
+  fillTutorialMocks();
   const dotsEl = document.getElementById('tutorialDots');
-  dotsEl.innerHTML = Array.from({length:TUTORIAL_SLIDE_COUNT}).map((_,i)=>`<span class="tut-dot ${i===tutorialSlide?'on':''}"></span>`).join('');
+  dotsEl.innerHTML = Array.from({length:TUTORIAL_SLIDE_COUNT}).map((_,i)=>`<button type="button" class="tut-dot ${i===tutorialSlide?'on':''}" data-dot="${i}" aria-label="${i+1} / ${TUTORIAL_SLIDE_COUNT}"></button>`).join('');
   document.getElementById('tutorialBack').style.visibility = tutorialSlide===0 ? 'hidden' : 'visible';
   const L = STR[state.lang];
   document.getElementById('tutorialNext').textContent = tutorialSlide === TUTORIAL_SLIDE_COUNT-1
     ? (tutorialOrigin==='settings' ? L.tutDone : L.tutGetStarted)
     : L.tutNext;
+}
+function goTutorialSlide(i){
+  if(i < 0 || i >= TUTORIAL_SLIDE_COUNT || i === tutorialSlide) return;
+  const dir = i > tutorialSlide ? 1 : -1;
+  tutorialSlide = i;
+  renderTutorialSlide(dir);
 }
 function openTutorial(origin){
   tutorialOrigin = origin || 'welcome';
@@ -8847,16 +9112,32 @@ function closeTutorial(){
 document.getElementById('openTutorialBtn').addEventListener('click', ()=> openTutorial('welcome'));
 document.getElementById('settingsTutorialBtn').addEventListener('click', ()=> openTutorial('settings'));
 document.getElementById('tutorialSkip').addEventListener('click', closeTutorial);
-document.getElementById('tutorialBack').addEventListener('click', ()=>{
-  if(tutorialSlide>0){ tutorialSlide--; renderTutorialSlide(); }
-});
+document.getElementById('tutorialBack').addEventListener('click', ()=> goTutorialSlide(tutorialSlide-1));
 document.getElementById('tutorialNext').addEventListener('click', ()=>{
-  if(tutorialSlide < TUTORIAL_SLIDE_COUNT-1){ tutorialSlide++; renderTutorialSlide(); }
+  if(tutorialSlide < TUTORIAL_SLIDE_COUNT-1) goTutorialSlide(tutorialSlide+1);
   else {
     closeTutorial();
     if(tutorialOrigin==='welcome') showScreen('onb-goal');
   }
 });
+document.getElementById('tutorialDots').addEventListener('click', e=>{
+  const dot = e.target.closest('[data-dot]');
+  if(dot) goTutorialSlide(+dot.dataset.dot);
+});
+(function tutorialSwipe(){
+  // A left/right swipe moves one screen; a short or mostly up/down drag is left for scrolling.
+  const body = document.getElementById('tutorialBody');
+  let sx = null, sy = 0;
+  body.addEventListener('touchstart', e=>{ if(e.touches.length===1){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; } else sx = null; }, {passive:true});
+  body.addEventListener('touchend', e=>{
+    if(sx===null) return;
+    const t = e.changedTouches && e.changedTouches[0];
+    const dx = (t ? t.clientX : sx) - sx, dy = (t ? t.clientY : sy) - sy;
+    sx = null;
+    if(Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy)*1.3) return;
+    goTutorialSlide(tutorialSlide + (dx < 0 ? 1 : -1));
+  }, {passive:true});
+})();
 
 /* ---------------- init ---------------- */
 setupSliders();

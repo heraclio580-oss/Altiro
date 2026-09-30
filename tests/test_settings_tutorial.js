@@ -26,7 +26,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('Tutorial overlay opens from Settings:', doc.getElementById('tutorialOverlay').hidden===false ? 'OK' : 'FAIL');
 
   const nextBtn = doc.getElementById('tutorialNext');
-  for(let i=0;i<4;i++){ nextBtn.click(); await wait(10); }
+  for(let i=0;i<8;i++){ nextBtn.click(); await wait(10); }
   console.log('On the last slide, button reads "Done" (not "Get Started") when opened from Settings:', nextBtn.textContent==='Done' ? 'OK' : `FAIL (${nextBtn.textContent})`);
 
   nextBtn.click();
@@ -40,7 +40,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   doc.getElementById('openTutorialBtn').click();
   await wait(10);
-  for(let i=0;i<4;i++){ doc.getElementById('tutorialNext').click(); await wait(10); }
+  for(let i=0;i<8;i++){ doc.getElementById('tutorialNext').click(); await wait(10); }
   console.log('From Welcome, last-slide button still reads "Get Started":', doc.getElementById('tutorialNext').textContent==='Get Started' ? 'OK' : `FAIL (${doc.getElementById('tutorialNext').textContent})`);
   doc.getElementById('tutorialNext').click();
   await wait(10);
@@ -51,7 +51,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   doc.getElementById('settingsTutorialBtn').click();
   await wait(10);
-  for(let i=0;i<4;i++){ doc.getElementById('tutorialNext').click(); await wait(10); }
+  for(let i=0;i<8;i++){ doc.getElementById('tutorialNext').click(); await wait(10); }
   console.log('Re-opening from Settings again after a Welcome-origin open still reads "Done" (origin tracked per-open, not stale):', doc.getElementById('tutorialNext').textContent==='Done' ? 'OK' : `FAIL (${doc.getElementById('tutorialNext').textContent})`);
 
   console.log('ALL DONE');

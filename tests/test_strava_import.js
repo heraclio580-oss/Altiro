@@ -26,7 +26,7 @@ function makeBackend(opts){
   };
   function from(table){
     let filters = [], op = 'select', payload = null, wantRows = false;
-    const matches = row => filters.every(([c,v,kind]) => kind==='is' ? row[c]==null : row[c]===v);
+    const matches = row => filters.every(([c,v,kind]) => kind==='is' ? row[c]==null : kind==='notnull' ? row[c]!=null : kind==='gte' ? row[c]>=v : row[c]===v);
     async function run(single){
       const rows = db[table];
       if(!rows) return {data: [], error:null}; // planned_workouts, progression_targets, personal_records, ...
@@ -50,6 +50,8 @@ function makeBackend(opts){
       select(){ wantRows = true; return api; },
       eq(c,v){ filters.push([c,v,'eq']); return api; },
       is(c){ filters.push([c,null,'is']); return api; },
+      not(c){ filters.push([c,null,'notnull']); return api; },
+      gte(c,v){ filters.push([c,v,'gte']); return api; },
       order(){ return api; },
       insert(p){ op='insert'; payload=p; return api; },
       update(p){ op='update'; payload=p; wantRows=false; return api; },

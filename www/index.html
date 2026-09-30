@@ -5965,7 +5965,7 @@ function openLogPerformanceFor(logTarget, mode){
   // A run that came in from Strava links back to it there.
   const stravaLink = document.getElementById('logPerfStravaLink');
   stravaLink.hidden = !(perf && perf.source==='strava' && perf.stravaId);
-  if(!stravaLink.hidden) stravaLink.href = `https://www.strava.com/activities/${encodeURIComponent(perf.stravaId)}`;
+  if(!stravaLink.hidden) stravaLink.href = stravaActivityUrl(perf.stravaId);
   const notesInput = document.getElementById('logPerfNotesInput');
   notesInput.value = (perf && perf.notes) || (mode==='revisit' && logTarget.kind==='entry' ? (resolved.record.notes || '') : '');
   notesInput.placeholder = STR[state.lang].workoutNotesPlaceholder;
@@ -6024,6 +6024,9 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     logged.time = readHmsMinutes('logPerfTime') || plannedMinutesOf(eff) || ((target ? target.pace : 9.5)*(logged.distance || 0)) || null;
   }
   logged.notes = document.getElementById('logPerfNotesInput').value.trim();
+  // Editing a run that came from Strava keeps its link back to Strava.
+  const prevPerf = resolved && resolved.performance;
+  if(prevPerf && prevPerf.source==='strava' && prevPerf.stravaId){ logged.source = 'strava'; logged.stravaId = prevPerf.stravaId; }
   document.getElementById('logPerfOverlay').hidden = true;
   if(!resolved){ startWorkout(logged); return; }
   storeLoggedPerformance(logTarget, resolved, logged);
@@ -7157,6 +7160,11 @@ function renderDayDetail(){
   }
   if(dd.p.t!=='rest'){
     actionsHtml += `<button class="watch-demo-btn" id="ddWatchDemoBtn" type="button" style="margin-top:12px;">${ICONS.play}${L.watchDemoBtn}</button>`;
+  }
+  // A run that came in from Strava (or was matched to one) links back to it right here too.
+  const ddStravaId = dd.p.t!=='rest' ? stravaIdFor(primaryLogTarget(dd)) : null;
+  if(ddStravaId){
+    actionsHtml += `<div><a class="strava-view-link" id="ddStravaLink" href="${escapeHtml(stravaActivityUrl(ddStravaId))}" target="_blank" rel="noopener">${L.viewOnStrava}</a></div>`;
   }
   if(dd.isCustom && (dd.isToday || dd.isFuture)){
     actionsHtml += `<button class="btn-text" id="ddResetPlanBtn" type="button" style="width:100%;margin-top:12px;">${L.resetPlanBtn}</button>`;
@@ -8771,6 +8779,35 @@ function renderStravaSettings(){
   document.getElementById('stravaDisconnectBtn').hidden = !strava.connected;
 }
 
+// The run already logged on that day that an imported Strava run is the same run as, if any -- the
+// watch's distance rarely matches to the hundredth, so anything within 5% (or a quarter mile) counts.
+function stravaMatchTarget(dd, miles){
+  const sameRun = d => d!=null && Math.abs(d-miles) <= Math.max(0.25, miles*0.05);
+  if(dd.p.t==='run' && sameRun(dd.actualRunDistance)) return primaryLogTarget(dd);
+  const w = dd.extraWorkouts.find(x=>x.completed && sameRun(x.actualDistance));
+  if(w) return {dayKey: dd.key, kind:'extra', id: w.id};
+  const e = dd.manualEntries.find(x=>x.type==='run' && sameRun(x.distance));
+  if(e) return {dayKey: dd.key, kind:'entry', id: e.id};
+  return null;
+}
+// Ties an already-logged run to its Strava activity without touching what was logged. Returns true
+// when it added a link.
+function linkStravaId(target, stravaId){
+  const resolved = resolveLogTarget(target);
+  if(!resolved) return false;
+  const perf = resolved.performance || (resolved.record && resolved.record.performance) || null;
+  if(perf && perf.stravaId) return false;
+  storeLoggedPerformance(target, resolved, {...(perf || {}), source: 'strava', stravaId});
+  return true;
+}
+// The Strava activity a workout came from (or was matched to), if any.
+function stravaIdFor(target){
+  const resolved = target && resolveLogTarget(target);
+  const perf = resolved && (resolved.performance || (resolved.record && resolved.record.performance));
+  return perf && perf.source==='strava' && perf.stravaId ? perf.stravaId : null;
+}
+const stravaActivityUrl = id => `https://www.strava.com/activities/${encodeURIComponent(id)}`;
+
 // Files one imported run onto its day. Returns false when the run was already logged by hand -- the
 // watch's distance rarely matches to the hundredth, so anything within 5% (or a quarter mile) of a run
 // already logged that day counts as the same run.
@@ -8779,10 +8816,10 @@ function fileStravaRun(row){
   const miles = +(Number(row.distance_m||0)/1609.344).toFixed(2);
   const minutes = row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null;
   const dd = getDayData(parseDateKey(key));
-  const sameRun = d => d!=null && Math.abs(d-miles) <= Math.max(0.25, miles*0.05);
-  if(sameRun(dd.actualRunDistance)
-    || dd.extraWorkouts.some(w=>w.completed && sameRun(w.actualDistance))
-    || dd.manualEntries.some(e=>e.type==='run' && sameRun(e.distance))) return false;
+  // Already logged (by hand, or the day was just marked done)? Keep what's there, but tie it to its
+  // Strava activity so it still links back to Strava.
+  const match = stravaMatchTarget(dd, miles);
+  if(match){ linkStravaId(match, row.id); return false; }
 
   const logged = {distance: miles, time: minutes, notes: '', source: 'strava', stravaId: row.id};
   // The day's planned run, or else its first Additional Workout run, if no distance is logged on it
@@ -8811,11 +8848,28 @@ function fileStravaRun(row){
   }
   return true;
 }
+const STRAVA_LINK_BACKFILL_DAYS = 30;
 async function importStravaActivities(){
   if(!state.userId) return 0;
   const { data: rows, error } = await sb.from('strava_activities')
     .select('id, name, local_date, distance_m, moving_time_s')
     .eq('user_id', state.userId).is('applied_at', null).order('start_date', {ascending: true});
+  // Runs that were skipped earlier because they'd already been logged by hand get tied to their
+  // Strava activity now, so they link back to it too (only fills in a link that's missing).
+  const since = dateKey(new Date(TODAY_DATE.getTime() - STRAVA_LINK_BACKFILL_DAYS*86400000));
+  try{
+    const { data: done } = await sb.from('strava_activities')
+      .select('id, local_date, distance_m').eq('user_id', state.userId).not('applied_at', 'is', null).gte('local_date', since);
+    let linked = 0;
+    (done || []).forEach(row=>{
+      const key = String(row.local_date).slice(0,10);
+      if(!state.dayLog[key]) return;
+      const miles = +(Number(row.distance_m||0)/1609.344).toFixed(2);
+      const match = stravaMatchTarget(getDayData(parseDateKey(key)), miles);
+      if(match && linkStravaId(match, row.id)) linked++;
+    });
+    if(linked && (!rows || !rows.length)) refreshViews();
+  }catch(e){ /* best-effort */ }
   if(error || !rows || !rows.length) return 0;
   const imported = [];
   for(const row of rows){

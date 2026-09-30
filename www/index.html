@@ -298,25 +298,79 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .home-greeting{font-family:var(--font-display);font-weight:600;font-size:20px;color:var(--text);}
 .home-date{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;color:var(--text-3);text-transform:uppercase;margin-top:3px;}
 .chip-strip{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
-.weather-chip,.streak-chip{display:flex;align-items:center;gap:6px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-pill);padding:6px 10px;font-family:var(--font-mono);font-size:11px;color:var(--text-2);}
+.weather-chip,.streak-chip{display:flex;align-items:center;gap:6px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-pill);padding:6px 10px;font-family:var(--font-mono);font-size:11px;color:var(--text-2);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.weather-chip:hover,.streak-chip:hover{border-color:var(--hover-border);color:var(--text);}
+.streak-chip.hot{border-color:var(--accent);color:var(--text);}
 .weather-chip svg{width:13px;height:13px;color:var(--weather-icon);}
 .streak-chip svg{width:13px;height:13px;color:var(--accent);}
 
 /* ---------- record button ---------- */
-.record-hero{display:flex;flex-direction:column;align-items:center;gap:9px;padding:20px 20px 4px;}
-.record-circle{width:92px;height:92px;border-radius:50%;background:linear-gradient(135deg,var(--accent-hover),var(--accent));border:4px solid var(--ring);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px var(--accent-shadow);flex-shrink:0;}
-.record-circle:hover{background:linear-gradient(135deg,var(--accent-bright),var(--accent-hover));}
-.record-circle svg{width:32px;height:32px;color:var(--on-accent);}
-.record-circle.disabled{background:var(--well);border-color:var(--border);box-shadow:none;cursor:default;}
-.record-circle.disabled svg{color:var(--text-3);}
-.record-circle.disabled:hover{background:var(--well);}
-.record-circle.done{background:var(--ok-bg);border-color:var(--ok-border);box-shadow:none;cursor:default;}
-.record-circle.done svg{color:var(--ok-icon);}
-.record-circle.done:hover{background:var(--ok-bg);}
-.record-circle.recording{animation:recPulse 1s ease-in-out infinite;cursor:default;}
+/* Today: the day's hero -- a nudge, this week's progress ring, and one clear Start button */
+.today-hero{position:relative;overflow:hidden;flex-shrink:0;margin:16px 20px 4px;padding:16px 16px 14px;border-radius:var(--r-lg);border:1px solid var(--border);
+  background:radial-gradient(120% 140% at 100% 0%, var(--accent-tint) 0%, transparent 55%), var(--card);}
+.today-hero.done{background:radial-gradient(120% 140% at 100% 0%, var(--ok-bg) 0%, transparent 60%), var(--card);}
+.today-hero.rest{background:radial-gradient(120% 140% at 100% 0%, var(--today-ring-tint) 0%, transparent 60%), var(--card);}
+.th-art{position:absolute;right:-18px;bottom:-26px;width:120px;height:120px;color:var(--text);opacity:0.05;pointer-events:none;}
+.th-art svg{width:100%;height:100%;}
+.th-top{position:relative;display:flex;align-items:center;gap:14px;}
+.th-text{flex:1;min-width:0;}
+.th-eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent-bright);}
+.today-hero.done .th-eyebrow{color:var(--ok-icon);}
+.today-hero.rest .th-eyebrow{color:var(--today-ring-text);}
+.th-title{font-family:var(--font-display);font-weight:800;font-size:24px;line-height:1.15;color:var(--text);margin-top:5px;}
+.th-sub{font-size:13px;line-height:1.45;color:var(--text-2);margin-top:5px;}
+.th-ring{position:relative;width:72px;height:72px;flex-shrink:0;}
+.th-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.th-ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;}
+.th-ring-label b{font-family:var(--font-mono);font-size:17px;font-weight:600;color:var(--text);}
+.th-ring-label span{font-family:var(--font-mono);font-size:7.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);margin-top:2px;}
+.th-start{position:relative;display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:50px;margin-top:14px;border:none;border-radius:var(--r-pill);
+  background:linear-gradient(135deg,var(--accent-hover),var(--accent));color:var(--on-accent);font-family:var(--font-display);font-weight:700;font-size:14px;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 18px var(--accent-shadow);-webkit-tap-highlight-color:transparent;}
+.th-start:hover{background:linear-gradient(135deg,var(--accent-bright),var(--accent-hover));}
+.th-start-ic{display:flex;width:18px;height:18px;}
+.th-start-ic svg{width:18px;height:18px;}
+.th-start.recording{animation:recPulse 1s ease-in-out infinite;cursor:default;}
+.th-start.done,.th-start.disabled{background:var(--well);color:var(--text-2);box-shadow:none;cursor:default;border:1px solid var(--border);height:42px;font-size:12px;}
+.th-start.done{color:var(--ok-icon);border-color:var(--ok-border);background:var(--ok-bg);}
+.th-start.done:hover,.th-start.disabled:hover{background:var(--well);}
+.th-start.done:hover{background:var(--ok-bg);}
+.th-start.disabled{display:none;} /* a rest day: nothing to start -- the card says what's next instead */
+.th-next{position:relative;font-size:12px;color:var(--text-3);margin-top:10px;text-align:center;}
+.th-next:empty{display:none;}
+.th-next b{color:var(--text-2);font-weight:600;}
 @keyframes recPulse{0%,100%{box-shadow:0 6px 18px rgba(218,20,25,0.35);}50%{box-shadow:0 6px 26px rgba(218,20,25,0.65);}}
-@media (prefers-reduced-motion: reduce){.record-circle.recording{animation:none;}}
-.record-label{font-family:var(--font-display);font-weight:600;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-2);}
+@media (prefers-reduced-motion: reduce){.th-start.recording{animation:none;}}
+
+/* streak + weather sheets */
+.sk-hero{display:flex;align-items:center;gap:14px;margin:4px 0 14px;}
+.sk-flame{width:58px;height:58px;border-radius:50%;background:var(--accent-tint);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sk-flame svg{width:30px;height:30px;}
+.sk-num{font-family:var(--font-display);font-weight:800;font-size:40px;line-height:1;color:var(--text);}
+.sk-num small{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);margin-left:6px;}
+.sk-stats{display:flex;gap:10px;margin-bottom:16px;}
+.sk-stat{flex:1;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-md);padding:10px 12px;}
+.sk-stat b{display:block;font-family:var(--font-mono);font-size:18px;color:var(--text);}
+.sk-stat span{font-size:11px;color:var(--text-3);}
+.sk-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:12px;}
+.sk-day{display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--font-mono);font-size:8.5px;color:var(--text-3);text-transform:uppercase;}
+.sk-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid var(--divider);background:var(--well);}
+.sk-dot svg{width:13px;height:13px;}
+.sk-dot.done{background:var(--accent);border-color:var(--accent);color:var(--on-accent);}
+.sk-dot.missed{border-color:var(--alert);color:var(--alert);background:transparent;}
+.sk-dot.rest{opacity:0.45;}
+.sk-dot.today{border-color:var(--today-ring);border-width:2px;}
+.wx-now{display:flex;align-items:center;gap:14px;margin:2px 0 14px;}
+.wx-now-ic{width:56px;height:56px;color:var(--weather-icon);flex-shrink:0;}
+.wx-now-ic svg{width:100%;height:100%;}
+.wx-temp{font-family:var(--font-display);font-weight:800;font-size:40px;line-height:1;color:var(--text);}
+.wx-cond{font-size:14px;color:var(--text-2);margin-top:4px;}
+.wx-hours{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:4px 0 14px;}
+.wx-hour{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-md);font-family:var(--font-mono);font-size:10px;color:var(--text-3);}
+.wx-hour svg{width:18px;height:18px;color:var(--weather-icon);}
+.wx-hour b{font-size:13px;color:var(--text);font-weight:600;}
+.wx-hour .rain{color:var(--today-ring-text);}
+.wx-tip{font-size:13px;line-height:1.5;color:var(--text-2);background:var(--well);border:1px solid var(--divider);border-radius:var(--r-md);padding:10px 12px;}
+.wx-note{font-size:11px;color:var(--text-3);margin-top:10px;}
 
 /* ---------- weekly overview ---------- */
 .overview-card{margin:14px 20px 0;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px 16px;}
@@ -1314,8 +1368,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="iconbtn" data-open-adjust title="Adjust plan"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13.5 3a3.5 3.5 0 0 0-4.6 4.2L3 13.1V17h3.9l5.9-5.9A3.5 3.5 0 0 0 17 6.5l-2.6 2.6-2-2L15 4.4"/></svg></button>
       </div>
       <div class="chip-strip">
-        <div class="weather-chip" id="weatherChip"></div>
-        <div class="streak-chip" id="streakChip"></div>
+        <button class="weather-chip" id="weatherChip" type="button"></button>
+        <button class="streak-chip" id="streakChip" type="button"></button>
       </div>
     </div>
 
@@ -1326,9 +1380,18 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <button class="iconbtn install-nudge-x" id="installNudgeClose" type="button" aria-label="Close"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M6 6l8 8M14 6l-8 8"/></svg></button>
     </div>
 
-    <div class="record-hero">
-      <button class="record-circle" id="recordBtn" type="button"><span id="recordIcon"></span></button>
-      <div class="record-label" id="recordLabel"></div>
+    <div class="today-hero" id="todayHero">
+      <div class="th-art" id="thArt" aria-hidden="true"></div>
+      <div class="th-top">
+        <div class="th-text">
+          <div class="th-eyebrow" id="thEyebrow"></div>
+          <div class="th-title" id="thTitle"></div>
+          <div class="th-sub" id="thSub"></div>
+        </div>
+        <div class="th-ring" id="thRing"></div>
+      </div>
+      <button class="th-start" id="recordBtn" type="button"><span class="th-start-ic" id="recordIcon"></span><span id="recordLabel"></span></button>
+      <div class="th-next" id="thNext"></div>
     </div>
 
     <div class="overview-card">
@@ -1595,6 +1658,28 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   </div>
 
   <!-- FEEDBACK SHEET (overlay) -->
+  <div class="sheet-overlay" id="streakOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="streakSheetTitle"></span>
+        <button class="iconbtn" id="closeStreak"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <div id="streakBody"></div>
+    </div>
+  </div>
+
+  <div class="sheet-overlay" id="weatherOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="weatherSheetTitle"></span>
+        <button class="iconbtn" id="closeWeather"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <div id="weatherBody"></div>
+    </div>
+  </div>
+
   <div class="sheet-overlay" id="installOverlay" hidden>
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
@@ -2511,8 +2596,24 @@ const STR = {
     greetingRest: "Rest up, {name}.",
     greetingActive: "Today's the day, {name}.",
     weatherConditionClear: "Clear",
+    heroEyebrowReady: "Ready when you are", heroTitleRun: "Time to run.", heroTitleStrength: "Time to lift.", heroTitleInterval: "Time for intervals.", heroTitleHike: "Time to get outside.", heroTitleMove: "Time to move.",
+    heroSubStreak: "Keep your {n}-day streak going.", heroSubStart: "Every streak starts with one workout.",
+    heroEyebrowDone: "Today · done", heroTitleDone: "Nice work.", heroSubDoneStreak: "That's {n} days in a row.", heroSubDone: "Today's workout is in the books.",
+    heroEyebrowRest: "Rest day", heroTitleRest: "Recover and recharge.", heroSubRest: "Rest days are part of the plan, and they don't break your streak.",
+    heroNext: "Next up: <b>{name}</b> · {day}", heroTomorrow: "tomorrow", heroRingLabel: "this week",
+    streakSheetTitle: "Your streak", streakDaysLabel: "days in a row", streakBest: "Best streak", streakTotal: "Workouts done", streakRecent: "Last 2 weeks",
+    streakExplain: "Each workout day you finish adds one. Rest days don't break it, but a planned workout you skip does.",
+    weatherSheetTitle: "Weather", weatherAdd: "Add weather", weatherLoadingChip: "Weather…", weatherOffChip: "Weather",
+    weatherIntro: "See the weather where you are, so you can plan your workout. Altiro uses your location only to look up the forecast, and doesn't save it.",
+    weatherAllowBtn: "Show local weather", weatherRetry: "Try again",
+    weatherDenied: "Location is off for Altiro. To see local weather, allow location for this site in your browser settings, then tap Try again.",
+    weatherError: "Couldn't load the weather right now.", weatherUnsupported: "This browser can't share your location.",
+    weatherFeels: "Feels like {t}", weatherHiLo: "High {hi} · Low {lo}", weatherRain: "Rain {p}%", weatherWind: "Wind {w}", weatherNow: "Now", weatherSource: "Forecast by Open-Meteo.com",
+    wxClear: "Clear", wxMostlyClear: "Mostly clear", wxPartlyCloudy: "Partly cloudy", wxCloudy: "Cloudy", wxFog: "Fog", wxDrizzle: "Drizzle", wxRain: "Rain", wxSnow: "Snow", wxShowers: "Showers", wxStorm: "Thunderstorms",
+    wxTipHot: "Hot out: go early or late, ease your pace, and bring water.", wxTipCold: "Cold out: layer up, cover your hands and ears, and warm up inside first.",
+    wxTipRain: "Rain is likely: a light jacket helps, or swap in an indoor workout.", wxTipWind: "Windy: head out into the wind so it's at your back on the way home.", wxTipStorm: "Storms around: take it indoors today.", wxTipNice: "Good conditions to train outside.",
     workoutsLabel: "Workouts",
-    recordActionLabel: "Record Workout",
+    recordActionLabel: "Start Workout",
     startTimerLabel: "Start Timer",
     timerWorkShort: "Work",
     timerRestShort: "Rest",
@@ -2530,7 +2631,7 @@ const STR = {
     recordRestLabel: "Rest Day",
     recordDoneLabel: "Completed",
     markDoneLabel: "Mark Done",
-    recordingLabel: "Recording…",
+    recordingLabel: "Starting…",
     logPerfTitle: "Log Your Performance",
     logPerfWeightLabel: "Top Set Weight (lb)",
     logPerfRepsLabel: "Reps Completed",
@@ -2916,7 +3017,7 @@ const STR = {
     workoutCompleteTitle: "Entrenamiento completado",
     backToTodayBtn: "Volver a hoy",
     streakLine: "Días activos actuales — sigue así",
-    dayStreakSuffix: "DÍAS ACTIVOS",
+    dayStreakSuffix: "DÍAS SEGUIDOS",
     statDistance: "Distancia", statTime: "Tiempo", statPace: "Ritmo", statTempoTarget: "Objetivo de ritmo",
     statTotalVolume: "Volumen total", statSetsReps: "Series x Reps", statTopSet: "Serie máxima",
     statExerciseCount: "Ejercicios",
@@ -2925,8 +3026,24 @@ const STR = {
     greetingRest: "Descansa, {name}.",
     greetingActive: "Hoy es el día, {name}.",
     weatherConditionClear: "Despejado",
+    heroEyebrowReady: "Cuando estés listo", heroTitleRun: "Hora de correr.", heroTitleStrength: "Hora de levantar.", heroTitleInterval: "Hora de intervalos.", heroTitleHike: "Hora de salir.", heroTitleMove: "Hora de moverse.",
+    heroSubStreak: "Mantén tu racha de {n} días.", heroSubStart: "Toda racha empieza con un entrenamiento.",
+    heroEyebrowDone: "Hoy · listo", heroTitleDone: "Buen trabajo.", heroSubDoneStreak: "Llevas {n} días seguidos.", heroSubDone: "El entrenamiento de hoy está hecho.",
+    heroEyebrowRest: "Día de descanso", heroTitleRest: "Recupérate y recarga.", heroSubRest: "El descanso es parte del plan, y no rompe tu racha.",
+    heroNext: "Lo siguiente: <b>{name}</b> · {day}", heroTomorrow: "mañana", heroRingLabel: "esta semana",
+    streakSheetTitle: "Tu racha", streakDaysLabel: "días seguidos", streakBest: "Mejor racha", streakTotal: "Entrenamientos hechos", streakRecent: "Últimas 2 semanas",
+    streakExplain: "Cada día de entrenamiento que completas suma uno. Los días de descanso no la rompen, pero un entrenamiento planeado que te saltas sí.",
+    weatherSheetTitle: "Clima", weatherAdd: "Ver clima", weatherLoadingChip: "Clima…", weatherOffChip: "Clima",
+    weatherIntro: "Mira el clima donde estás para planear tu entrenamiento. Altiro usa tu ubicación solo para buscar el pronóstico, y no la guarda.",
+    weatherAllowBtn: "Mostrar clima local", weatherRetry: "Reintentar",
+    weatherDenied: "La ubicación está desactivada para Altiro. Para ver el clima local, permite la ubicación para este sitio en la configuración de tu navegador y toca Reintentar.",
+    weatherError: "No se pudo cargar el clima ahora.", weatherUnsupported: "Este navegador no puede compartir tu ubicación.",
+    weatherFeels: "Sensación {t}", weatherHiLo: "Máx {hi} · Mín {lo}", weatherRain: "Lluvia {p}%", weatherWind: "Viento {w}", weatherNow: "Ahora", weatherSource: "Pronóstico de Open-Meteo.com",
+    wxClear: "Despejado", wxMostlyClear: "Mayormente despejado", wxPartlyCloudy: "Parcialmente nublado", wxCloudy: "Nublado", wxFog: "Niebla", wxDrizzle: "Llovizna", wxRain: "Lluvia", wxSnow: "Nieve", wxShowers: "Chubascos", wxStorm: "Tormentas",
+    wxTipHot: "Hace calor: sal temprano o tarde, baja el ritmo y lleva agua.", wxTipCold: "Hace frío: abrígate en capas, cubre manos y orejas, y calienta adentro primero.",
+    wxTipRain: "Es probable que llueva: una chaqueta ligera ayuda, o cámbialo por un entrenamiento bajo techo.", wxTipWind: "Hay viento: sal en contra del viento para tenerlo a favor al volver.", wxTipStorm: "Hay tormentas: entrena bajo techo hoy.", wxTipNice: "Buenas condiciones para entrenar afuera.",
     workoutsLabel: "Entrenamientos",
-    recordActionLabel: "Registrar entrenamiento",
+    recordActionLabel: "Empezar entrenamiento",
     startTimerLabel: "Iniciar cronómetro",
     timerWorkShort: "Trabajo",
     timerRestShort: "Descanso",
@@ -2944,7 +3061,7 @@ const STR = {
     recordRestLabel: "Día de descanso",
     recordDoneLabel: "Completado",
     markDoneLabel: "Marcar hecho",
-    recordingLabel: "Grabando…",
+    recordingLabel: "Empezando…",
     logPerfTitle: "Registra tu rendimiento",
     logPerfWeightLabel: "Peso de la serie máxima (lb)",
     logPerfRepsLabel: "Repeticiones completadas",
@@ -4933,6 +5050,8 @@ function closeAllOverlays(){
   if(!document.getElementById('adjustOverlay').hidden) closeAdjustSheet();
   if(!document.getElementById('tutorialOverlay').hidden) closeTutorial();
   if(!document.getElementById('installOverlay').hidden) closeInstallSheet();
+  if(!document.getElementById('streakOverlay').hidden) closeStreakSheet();
+  if(!document.getElementById('weatherOverlay').hidden) closeWeatherSheet();
 }
 const pillsWrap = document.getElementById('protoPills');
 NAV_MAP.forEach(([id,label])=>{
@@ -5398,8 +5517,11 @@ function renderHome(){
   const suggestedTargetStr = suggestedTarget ? (eff.t==='strength' ? `${suggestedTarget.weight} lb x ${suggestedTarget.reps}` : `${fmtPace(suggestedTarget.pace)}/mi`) : null;
 
   document.getElementById('homeGreeting').textContent = (eff.t==='rest' ? L.greetingRest : L.greetingActive).replace('{name}', state.userName.split(' ')[0]);
-  document.getElementById('weatherChip').innerHTML = `${ICONS.sun}<span>72°F · ${L.weatherConditionClear}</span>`;
-  document.getElementById('streakChip').innerHTML = `${ICONS.flame}<span>${state.streak} ${L.dayStreakSuffix}</span>`;
+  renderWeatherChip();
+  refreshStreak();
+  const streakChip = document.getElementById('streakChip');
+  streakChip.innerHTML = `${ICONS.flame}<span>${state.streak} ${L.dayStreakSuffix}</span>`;
+  streakChip.classList.toggle('hot', state.streak>0);
 
   // Distance reads through weekStats() (the same override-aware source Progress's week-detail card
   // uses) rather than the old state.mileage accumulator, which only a handful of call sites ever
@@ -5514,22 +5636,7 @@ function renderHome(){
       });
     });
   }
-  const recBtn = document.getElementById('recordBtn');
-  const recIcon = document.getElementById('recordIcon');
-  const recLabel = document.getElementById('recordLabel');
-  recBtn.classList.remove('disabled','done','recording');
-  if(eff.t==='rest'){
-    recBtn.classList.add('disabled');
-    recIcon.innerHTML = ICONS.rest;
-    recLabel.textContent = L.recordRestLabel;
-  } else if(isTodayDone()){
-    recBtn.classList.add('done');
-    recIcon.innerHTML = ICONS.checkSm;
-    recLabel.textContent = L.recordDoneLabel;
-  } else {
-    recIcon.innerHTML = TYPE_ICON[eff.t];
-    recLabel.textContent = eff.t==='interval' ? L.startTimerLabel : L.recordActionLabel;
-  }
+  renderTodayHero(eff, effL, workoutGoal);
 }
 
 /* ---------------- paces from a mile time ---------------- */
@@ -6180,7 +6287,7 @@ document.getElementById('recordBtn').addEventListener('click', function(){
   if(todaySession().t==='interval'){ openIntervalTimer(); return; }
   this.classList.add('recording');
   document.getElementById('recordLabel').textContent = STR[state.lang].recordingLabel;
-  setTimeout(openLogPerformance, 900);
+  setTimeout(openLogPerformance, 350);
 });
 
 // Today's own planned workout was just done: it's completed, the first recording of the day counts
@@ -6203,11 +6310,10 @@ function recordTodayPrimary(eff, logged){
   cloudSetCompletedOverride(todayKeyStr, null);
   state.doneCount = computeDoneCount();
   if(!alreadyCountedToday){
-    state.streak += 1;
-    if(state.streak > state.bestStreak) state.bestStreak = state.streak;
     state.totalWorkouts += 1;
     state.lastCountedDate = todayKeyStr;
   }
+  refreshStreak();
   if(eff.t==='run'){
     // The distance actually run (from the Log Performance sheet) is what should count toward
     // mileage totals -- falling back to the plan's prescribed distance only if none was entered.
@@ -8389,6 +8495,7 @@ function renderSummary(){
   if(exResults) exercisesEl.innerHTML = exResults.map(r=>`<div class="se-row"><span class="se-name">${escapeHtml(r.name)}</span><span class="se-result">${escapeHtml(r.result)}</span></div>`).join('');
   const noteObj = SUMMARY_NOTE[session.t] || SUMMARY_NOTE.run;
   document.getElementById('summaryNote').textContent = noteObj[state.lang];
+  refreshStreak();
   document.getElementById('summaryStreakVal').textContent = `${state.streak} ${L.dayStreakSuffix}`;
   const progNoteEl = document.getElementById('summaryProgressNote');
   const reviewCardEl = document.getElementById('summaryReviewCard');
@@ -9359,6 +9466,286 @@ document.getElementById('tutorialDots').addEventListener('click', e=>{
     goTutorialSlide(tutorialSlide + (dx < 0 ? 1 : -1));
   }, {passive:true});
 })();
+
+/* ---------------- Today's hero, streak and weather ---------------- */
+// A day counts toward the streak only when something was really done on it: a recorded workout, a run
+// logged or imported, a logged entry, a completed extra workout, or the day marked done by hand.
+function workoutDoneOn(key){
+  if(key===dateKey(TODAY_DATE) && isTodayDone()) return true;
+  const log = state.dayLog[key];
+  if(!log || log.completedOverride===false) return false;
+  return log.completedOverride===true || !!log.performance || log.actualRunDistance!=null
+    || (log.manualEntries||[]).length>0 || (log.extraWorkouts||[]).some(w=>w.completed);
+}
+// Workout days finished in a row, counting back from today: each one done adds a day, rest days are
+// skipped over, and a planned workout that wasn't done ends it. Today doesn't end it while it's still
+// ahead of you.
+function computeStreak(){
+  const keys = Object.keys(state.dayLog);
+  const earliest = keys.length ? keys.reduce((a,b)=> a<b ? a : b) : dateKey(TODAY_DATE);
+  let streak = 0;
+  for(let i=0; i<1000; i++){
+    const date = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth(), TODAY_DATE.getDate()-i);
+    const key = dateKey(date);
+    if(key < earliest) break;
+    if(workoutDoneOn(key)){ streak++; continue; }
+    if(i===0) continue;
+    if(getDayData(date).p.t!=='rest') break;
+  }
+  return streak;
+}
+function refreshStreak(){
+  state.streak = computeStreak();
+  if(state.streak > state.bestStreak) state.bestStreak = state.streak;
+}
+// Each of the last 14 days: done, missed (a planned workout not done), rest, or today still to come.
+function recentStreakDays(){
+  const out = [];
+  for(let i=13; i>=0; i--){
+    const date = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth(), TODAY_DATE.getDate()-i);
+    const key = dateKey(date);
+    const planned = getDayData(date).p.t!=='rest';
+    const status = workoutDoneOn(key) ? 'done' : i===0 ? (planned ? 'today' : 'rest') : planned && !beforePlanStart(date) ? 'missed' : 'rest';
+    out.push({date, status});
+  }
+  return out;
+}
+function openStreakSheet(){
+  refreshStreak();
+  const L = STR[state.lang];
+  const days = recentStreakDays();
+  const dow = d => DAY_NAMES_SHORT[state.lang][(d.getDay()+6)%7].slice(0,2);
+  const mark = {done: ICONS.checkSm, missed: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l8 8M14 6l-8 8"/></svg>', rest: '', today: ''};
+  document.getElementById('streakBody').innerHTML = `
+    <div class="sk-hero"><div class="sk-flame">${ICONS.flame}</div><div class="sk-num">${state.streak}<small>${L.streakDaysLabel}</small></div></div>
+    <div class="sk-stats">
+      <div class="sk-stat"><b>${state.bestStreak}</b><span>${L.streakBest}</span></div>
+      <div class="sk-stat"><b>${state.totalWorkouts}</b><span>${L.streakTotal}</span></div>
+    </div>
+    <div class="st-label">${L.streakRecent}</div>
+    <div class="sk-days">${days.map(d=>`<div class="sk-day"><span class="sk-dot ${d.status}">${mark[d.status]}</span>${dow(d.date)} ${d.date.getDate()}</div>`).join('')}</div>
+    <p class="fb-sub" style="margin:4px 0 8px;">${L.streakExplain}</p>`;
+  document.getElementById('streakOverlay').hidden = false;
+}
+function closeStreakSheet(){ document.getElementById('streakOverlay').hidden = true; }
+document.getElementById('streakChip').addEventListener('click', openStreakSheet);
+document.getElementById('closeStreak').addEventListener('click', closeStreakSheet);
+
+// The next planned workout after today, for "Next up: Leg Day · Thursday".
+function nextPlannedWorkout(){
+  for(let i=1; i<=14; i++){
+    const date = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth(), TODAY_DATE.getDate()+i);
+    const dd = getDayData(date);
+    if(dd.p.t!=='rest') return {session: dd.p, date, inDays: i};
+  }
+  return null;
+}
+const HERO_TITLE_KEY = {run:'heroTitleRun', strength:'heroTitleStrength', interval:'heroTitleInterval', hike:'heroTitleHike'};
+function weekRingSvg(done, goal){
+  const n = Math.max(1, goal), r = 30, c = 2*Math.PI*r, gap = n>1 ? 4 : 0, seg = c/n - gap;
+  const arcs = Array.from({length:n}, (_,i)=>`<circle cx="36" cy="36" r="${r}" fill="none" stroke="${i<done ? 'var(--accent)' : 'var(--divider)'}" stroke-width="6" stroke-linecap="butt" stroke-dasharray="${seg} ${c-seg}" stroke-dashoffset="${-i*(seg+gap)}"/>`).join('');
+  return `<svg viewBox="0 0 72 72">${arcs}</svg>`;
+}
+function renderTodayHero(eff, effL, workoutGoal){
+  const L = STR[state.lang];
+  const hero = document.getElementById('todayHero');
+  const btn = document.getElementById('recordBtn'), icon = document.getElementById('recordIcon'), label = document.getElementById('recordLabel');
+  const done = eff.t!=='rest' && isTodayDone(), rest = eff.t==='rest';
+  hero.classList.toggle('done', done);
+  hero.classList.toggle('rest', rest);
+  btn.classList.remove('disabled','done','recording');
+  document.getElementById('thArt').innerHTML = done ? ICONS.checkSm : (TYPE_ICON[eff.t] || ICONS.flame);
+  let eyebrow, title, sub;
+  if(rest){
+    eyebrow = L.heroEyebrowRest; title = L.heroTitleRest; sub = L.heroSubRest;
+    btn.classList.add('disabled'); icon.innerHTML = ICONS.rest; label.textContent = L.recordRestLabel;
+  } else if(done){
+    eyebrow = L.heroEyebrowDone; title = L.heroTitleDone;
+    sub = state.streak>1 ? L.heroSubDoneStreak.replace('{n}', state.streak) : L.heroSubDone;
+    btn.classList.add('done'); icon.innerHTML = ICONS.checkSm; label.textContent = L.recordDoneLabel;
+  } else {
+    eyebrow = L.heroEyebrowReady; title = L[HERO_TITLE_KEY[eff.t]] || L.heroTitleMove;
+    sub = state.streak>0 ? L.heroSubStreak.replace('{n}', state.streak) : L.heroSubStart;
+    icon.innerHTML = eff.t==='interval' ? ICONS.play : (TYPE_ICON[eff.t] || ICONS.play);
+    label.textContent = eff.t==='interval' ? L.startTimerLabel : L.recordActionLabel;
+  }
+  document.getElementById('thEyebrow').textContent = eyebrow;
+  document.getElementById('thTitle').textContent = title;
+  document.getElementById('thSub').textContent = sub;
+  const goal = Math.max(1, workoutGoal||0);
+  document.getElementById('thRing').innerHTML = `${weekRingSvg(Math.min(state.doneCount, goal), goal)}<div class="th-ring-label"><b>${state.doneCount}/${goal}</b><span>${L.heroRingLabel}</span></div>`;
+  // Done or resting: what's next. Still to do: nothing extra -- the button says it.
+  const next = (done || rest) ? nextPlannedWorkout() : null;
+  document.getElementById('thNext').innerHTML = next
+    ? L.heroNext.replace('{name}', escapeHtml(ST(next.session).title)).replace('{day}', next.inDays===1 ? L.heroTomorrow : DAY_NAMES_FULL[state.lang][(next.date.getDay()+6)%7])
+    : '';
+}
+
+// ---- Weather: the real forecast where the user is, from Open-Meteo (free, no key). Location is asked
+// for only when they tap the chip, used only for the lookup, and kept (rounded) on this device.
+const WEATHER_CACHE_KEY = 'altiro_weather', WEATHER_OK_KEY = 'altiro_weather_ok', WEATHER_MAX_AGE = 30*60*1000;
+let weather = {status:'idle', data:null};
+const WX_ICONS = {
+  sun: ICONS.sun,
+  moon: ICONS.rest,
+  partly: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3v1.2M3.2 7.5H2M4.4 4.4l.9.9M10.6 4.4l-.9.9"/><path d="M5.2 9.2a2.6 2.6 0 0 1 4.9-1.9"/><path d="M6.5 16.5h8a3 3 0 0 0 0-6 4 4 0 0 0-7.6 1.2A2.4 2.4 0 0 0 6.5 16.5z"/></svg>',
+  cloud: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M5.5 15.5h9a3.2 3.2 0 0 0 0-6.4 4.5 4.5 0 0 0-8.6 1.3A2.6 2.6 0 0 0 5.5 15.5z"/></svg>',
+  fog: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 7.5h14M5 11h12M3 14.5h11"/></svg>',
+  rain: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 12h9a3 3 0 0 0 0-6 4.3 4.3 0 0 0-8.2 1.2A2.4 2.4 0 0 0 5.5 12z"/><path d="M7 14.5l-1 2.5M10.5 14.5l-1 2.5M14 14.5l-1 2.5"/></svg>',
+  snow: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 11.5h9a3 3 0 0 0 0-6 4.3 4.3 0 0 0-8.2 1.2A2.4 2.4 0 0 0 5.5 11.5z"/><path d="M7 14.5v.01M10 16v.01M13 14.5v.01M8.5 17.5v.01M11.5 17.5v.01"/></svg>',
+  storm: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 11.5h9a3 3 0 0 0 0-6 4.3 4.3 0 0 0-8.2 1.2A2.4 2.4 0 0 0 5.5 11.5z"/><path d="M10.5 12.5L8.5 15.5h3l-2 3"/></svg>',
+};
+// WMO weather code -> label key and icon.
+function weatherKind(code, isDay){
+  if(code===0) return {key:'wxClear', icon: isDay===0 ? 'moon' : 'sun'};
+  if(code===1) return {key:'wxMostlyClear', icon: isDay===0 ? 'moon' : 'sun'};
+  if(code===2) return {key:'wxPartlyCloudy', icon:'partly'};
+  if(code===3) return {key:'wxCloudy', icon:'cloud'};
+  if(code===45 || code===48) return {key:'wxFog', icon:'fog'};
+  if(code>=51 && code<=57) return {key:'wxDrizzle', icon:'rain'};
+  if(code>=61 && code<=67) return {key:'wxRain', icon:'rain'};
+  if(code>=71 && code<=77) return {key:'wxSnow', icon:'snow'};
+  if(code>=80 && code<=82) return {key:'wxShowers', icon:'rain'};
+  if(code===85 || code===86) return {key:'wxSnow', icon:'snow'};
+  if(code>=95) return {key:'wxStorm', icon:'storm'};
+  return {key:'wxCloudy', icon:'cloud'};
+}
+function weatherMetric(){ return state.weightUnit==='kg'; }
+function readWeatherCache(){
+  try{
+    const c = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY) || 'null');
+    if(c && c.data && Date.now()-c.at < WEATHER_MAX_AGE && c.metric===weatherMetric()) return c.data;
+  }catch(e){}
+  return null;
+}
+function getPosition(){
+  return new Promise((resolve, reject)=>{
+    if(!navigator.geolocation) return reject({code:'unsupported'});
+    navigator.geolocation.getCurrentPosition(p=>resolve(p.coords), err=>reject(err), {enableHighAccuracy:false, maximumAge:60*60*1000, timeout:15000});
+  });
+}
+async function loadWeather(){
+  if(weather.status==='loading') return;
+  weather = {status:'loading', data:weather.data};
+  renderWeatherChip();
+  let coords;
+  try{ coords = await getPosition(); }
+  catch(err){
+    weather = {status: err && (err.code===1 || err.code==='unsupported') ? (err.code===1 ? 'denied' : 'unsupported') : 'error', data:null};
+    try{ if(err && err.code===1) localStorage.removeItem(WEATHER_OK_KEY); }catch(e){}
+    renderWeatherChip(); renderWeatherSheetIfOpen();
+    return;
+  }
+  const metric = weatherMetric();
+  const lat = coords.latitude.toFixed(2), lon = coords.longitude.toFixed(2);
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+    + '&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day'
+    + '&hourly=temperature_2m,precipitation_probability,weather_code,is_day'
+    + '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max'
+    + `&temperature_unit=${metric ? 'celsius' : 'fahrenheit'}&wind_speed_unit=${metric ? 'kmh' : 'mph'}&timezone=auto&forecast_days=2`;
+  try{
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    if(!data || !data.current) throw new Error('no data');
+    weather = {status:'ok', data};
+    try{
+      localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({at: Date.now(), metric, data}));
+      localStorage.setItem(WEATHER_OK_KEY, '1');
+    }catch(e){}
+  }catch(e){
+    weather = {status:'error', data:null};
+  }
+  renderWeatherChip(); renderWeatherSheetIfOpen();
+}
+// On opening the app: a recent forecast is shown straight away; otherwise, if location was allowed
+// before, a fresh one is fetched quietly. Nobody is asked for their location until they tap.
+function initWeather(){
+  const cached = readWeatherCache();
+  if(cached){ weather = {status:'ok', data:cached}; return; }
+  let allowed = false;
+  try{ allowed = localStorage.getItem(WEATHER_OK_KEY)==='1'; }catch(e){}
+  if(allowed) loadWeather();
+  else if(navigator.permissions && navigator.permissions.query){
+    navigator.permissions.query({name:'geolocation'}).then(p=>{ if(p && p.state==='granted') loadWeather(); }).catch(()=>{});
+  }
+}
+const fmtTemp = t => `${Math.round(t)}°${weatherMetric() ? 'C' : 'F'}`;
+function renderWeatherChip(){
+  const L = STR[state.lang];
+  const chip = document.getElementById('weatherChip');
+  if(weather.status==='ok' && weather.data){
+    const cur = weather.data.current, kind = weatherKind(cur.weather_code, cur.is_day);
+    chip.innerHTML = `${WX_ICONS[kind.icon]}<span>${fmtTemp(cur.temperature_2m)} · ${L[kind.key]}</span>`;
+  } else if(weather.status==='loading'){
+    chip.innerHTML = `${ICONS.sun}<span>${L.weatherLoadingChip}</span>`;
+  } else {
+    chip.innerHTML = `${ICONS.sun}<span>${weather.status==='idle' ? L.weatherAdd : L.weatherOffChip}</span>`;
+  }
+}
+// The next five hours, starting with the current one.
+function upcomingHours(data){
+  const h = data.hourly; if(!h || !h.time) return [];
+  const nowHour = String(data.current.time).slice(0,13);
+  let i = h.time.findIndex(t=> String(t).slice(0,13) >= nowHour);
+  if(i<0) i = 0;
+  return h.time.slice(i, i+5).map((t, k)=>({t, temp:h.temperature_2m[i+k], rain:h.precipitation_probability ? h.precipitation_probability[i+k] : null, code:h.weather_code[i+k], isDay: h.is_day ? h.is_day[i+k] : 1}));
+}
+function weatherTip(data){
+  const L = STR[state.lang], metric = weatherMetric();
+  const cur = data.current, hours = upcomingHours(data);
+  const feels = cur.apparent_temperature ?? cur.temperature_2m;
+  const rainSoon = Math.max(0, ...hours.map(x=>x.rain||0));
+  if(cur.weather_code>=95) return L.wxTipStorm;
+  if(feels >= (metric ? 29 : 85)) return L.wxTipHot;
+  if(feels <= (metric ? 2 : 35)) return L.wxTipCold;
+  if(rainSoon>=50 || (cur.weather_code>=51 && cur.weather_code<=82)) return L.wxTipRain;
+  if(cur.wind_speed_10m >= (metric ? 29 : 18)) return L.wxTipWind;
+  return L.wxTipNice;
+}
+function hourLabel(t){
+  const h = Number(String(t).slice(11,13));
+  if(state.lang==='es') return `${h}:00`;
+  return `${(h%12)||12}${h<12 ? 'am' : 'pm'}`;
+}
+function renderWeatherSheet(){
+  const L = STR[state.lang];
+  const body = document.getElementById('weatherBody');
+  if(weather.status==='ok' && weather.data){
+    const d = weather.data, cur = d.current, kind = weatherKind(cur.weather_code, cur.is_day);
+    const hi = d.daily && d.daily.temperature_2m_max ? d.daily.temperature_2m_max[0] : null;
+    const lo = d.daily && d.daily.temperature_2m_min ? d.daily.temperature_2m_min[0] : null;
+    const rain = d.daily && d.daily.precipitation_probability_max ? d.daily.precipitation_probability_max[0] : null;
+    const wind = `${Math.round(cur.wind_speed_10m)} ${weatherMetric() ? 'km/h' : 'mph'}`;
+    const facts = [L.weatherFeels.replace('{t}', fmtTemp(cur.apparent_temperature ?? cur.temperature_2m)),
+      hi!=null && lo!=null ? L.weatherHiLo.replace('{hi}', fmtTemp(hi)).replace('{lo}', fmtTemp(lo)) : '',
+      rain!=null ? L.weatherRain.replace('{p}', rain) : '', L.weatherWind.replace('{w}', wind)].filter(Boolean).join(' · ');
+    body.innerHTML = `
+      <div class="wx-now"><div class="wx-now-ic">${WX_ICONS[kind.icon]}</div><div><div class="wx-temp">${fmtTemp(cur.temperature_2m)}</div><div class="wx-cond">${L[kind.key]}</div></div></div>
+      <p class="fb-sub" style="margin:0 0 12px;">${facts}</p>
+      <div class="wx-hours">${upcomingHours(d).map((x,k)=>{ const kk = weatherKind(x.code, x.isDay); return `<div class="wx-hour">${k===0 ? L.weatherNow : hourLabel(x.t)}${WX_ICONS[kk.icon]}<b>${Math.round(x.temp)}°</b>${x.rain!=null ? `<span class="rain">${x.rain}%</span>` : ''}</div>`; }).join('')}</div>
+      <div class="wx-tip">${weatherTip(d)}</div>
+      <div class="wx-note">${L.weatherSource}</div>`;
+    return;
+  }
+  const msg = weather.status==='denied' ? L.weatherDenied : weather.status==='error' ? L.weatherError : weather.status==='unsupported' ? L.weatherUnsupported : L.weatherIntro;
+  const again = weather.status==='denied' || weather.status==='error';
+  body.innerHTML = `<p class="fb-sub" style="margin:4px 0 14px;">${msg}</p>
+    ${weather.status==='unsupported' ? '' : `<button class="btn btn-primary sheet-apply" id="weatherAllowBtn" type="button"${weather.status==='loading' ? ' disabled' : ''}>${weather.status==='loading' ? L.weatherLoadingChip : again ? L.weatherRetry : L.weatherAllowBtn}</button>`}`;
+  const allow = document.getElementById('weatherAllowBtn');
+  if(allow) allow.addEventListener('click', ()=>{ loadWeather(); renderWeatherSheet(); });
+}
+function renderWeatherSheetIfOpen(){ if(!document.getElementById('weatherOverlay').hidden) renderWeatherSheet(); }
+function openWeatherSheet(){
+  // A forecast older than half an hour is refreshed while the sheet is open.
+  if(weather.status==='ok' && !readWeatherCache()) loadWeather();
+  renderWeatherSheet();
+  document.getElementById('weatherOverlay').hidden = false;
+}
+function closeWeatherSheet(){ document.getElementById('weatherOverlay').hidden = true; }
+document.getElementById('weatherChip').addEventListener('click', openWeatherSheet);
+document.getElementById('closeWeather').addEventListener('click', closeWeatherSheet);
+initWeather();
 
 /* ---------------- workout reminders (web push) + Add to Home Screen ---------------- */
 // Reminders are sent by the workout-reminders Edge Function, not by the app: the plan is worked out

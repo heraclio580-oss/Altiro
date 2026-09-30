@@ -59,6 +59,9 @@ a{color:var(--text);text-underline-offset:3px;}
     <li><b>Workout reminders, if you turn them on:</b> your reminder time and time zone, the names of your
       next few weeks of workouts (so a reminder can say what's planned), and a push address for each device
       you allowed notifications on. Turning reminders off stops them; signing out removes that device.</li>
+    <li><b>Your location, for the weather, only if you allow it:</b> when you tap the weather on Today,
+      your approximate location (rounded to about a kilometer) is sent to Open-Meteo to get the forecast. Altiro
+      doesn't save your location on its servers; the last forecast is kept on your device for half an hour.</li>
     <li><b>On your device:</b> small preferences like language and light/dark theme, stored in your browser.</li>
   </ul>
 
@@ -109,6 +112,8 @@ a{color:var(--text);text-underline-offset:3px;}
     <li><b>Supabase</b> hosts Altiro's database, sign-in and server functions.</li>
     <li><b>Strava</b>, only if you connect it, as described above.</li>
     <li><b>Resend</b> delivers the email that lets the Altiro team know you sent feedback.</li>
+    <li><b>Open-Meteo</b> provides the weather forecast, only if you allow location for it. It receives your
+      rounded location and returns the forecast.</li>
     <li><b>Your browser's push service</b> (Google for Chrome, Apple for Safari, Mozilla for Firefox), only if
       you turn on workout reminders. It delivers each reminder to your device; the message is encrypted so
       only your device can read it.</li>

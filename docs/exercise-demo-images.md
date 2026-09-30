@@ -1,6 +1,6 @@
 # Altiro exercise demo images: spec & checklist
 
-Altiro shows a short looping demo beside every exercise in a generated workout. If you make these images, the app will show yours instead of the drawn figure. Any exercise without an image keeps the drawn figure, so you can add them a few at a time.
+Altiro shows a short looping demo beside every exercise in a generated workout. If you make these photos, the app will show yours instead of the drawn figure. Any exercise without photos keeps the drawn figure, so you can add them a few at a time. **Back Squat is already done** (`www/demos/back-squat-start.webp` / `-end.webp`) and is the example to match.
 
 There are **131 moves** in total: **105 lifting exercises** (Part A) and **26 core, mobility and stretching moves** (Part B), which are also used in generated workouts. Two breathing exercises in Part B are optional.
 
@@ -8,47 +8,44 @@ A spreadsheet version for tracking progress is in `docs/exercise-demo-checklist.
 
 ---
 
-## 1. File format (pick one, and use it for all of them)
+## 1. What to make: two photos per exercise
 
-| Option | What to send | Notes |
-|---|---|---|
-| **A. Animated WebP** (best) | `back-squat.webp` | Looks like a GIF, but 5–10× smaller. Supports a transparent background. |
-| **B. Animated GIF** | `back-squat.gif` | Works everywhere, just heavier. Keep each under ~300 KB. |
-| **C. MP4 video** | `back-squat.mp4` | H.264, no sound. Can't be transparent, so use a plain white background. |
-| **D. Two stills** | `back-squat-start.png` + `back-squat-end.png` | Easiest from an image generator. The app animates smoothly back and forth between them. Both frames need the **identical** character, framing and scale; only the body position changes. |
+For each exercise, make **two separate images**: the **start** position and the **end** (or middle) position. The app fades between them in a loop, so it looks like the rep being done. See the Back Squat that's already in the app.
 
-## 2. Size & framing
+- **Same camera in both.** Same distance, angle, framing and background; only the body moves. This matters most: if the camera shifts, the fade looks jumpy.
+- **Moves that finish where they start** (squats, push-ups, curls, rows): start = top position, end = bottom position. Two images are enough.
+- **Holds** (plank, wall sit, stretches): one image is fine. Save it as both `-start` and `-end`.
 
-- **Canvas:** 600 × 600 px, square.
-- **The figure** fills about 80% of the height, with feet near the bottom edge and a little space all around.
-- **The same scale for every exercise.** A standing person should be about the same height in every image, so the set looks consistent side by side.
-- **Floor exercises** (push-up, plank, bridge) are shown lower in the frame, at the same body scale. Don't zoom in to fill the square.
+## 2. Size & format
+
+- **Portrait, about 9:16 or 3:5.** For example 600 × 1000 px, or square 1024 × 1024 split into two halves as in the Back Squat example.
+- **JPG, PNG or WebP.** Any is fine; the app converts them to small WebP files (about 20–30 KB each).
+- **The whole body in frame** with a little space around it, at the same scale for every exercise.
+- **Floor exercises** (push-up, plank, bridge) can be landscape.
 
 ## 3. Background
 
-- **Transparent is best** (WebP, PNG or GIF). The app puts it on its own card, so it looks right in both dark and light mode.
-- **If transparent isn't possible,** use **plain white (#FFFFFF)**, with no floor texture, shadow gradient or scenery. The app will show it on a white rounded card in both themes.
-- A simple thin floor line or a soft shadow under the feet is fine.
+- **A plain, dark gym** like the Back Squat example: dark walls, black rubber floor, maybe a rack in the background.
+- **Keep it the same for every exercise.** No other people, no mirrors with reflections, no busy scenery.
 
 ## 4. Style (must match across all of them)
 
-- **Flat illustration,** like the squat example you sent: clean shapes and no photo realism.
-- **The same person in every image:** same body type, skin tone, hair and outfit. For example, blue tank top, dark shorts, light shoes.
-- **The same equipment look everywhere:** black plates with a silver bar, dark dumbbells and kettlebells, a gray bench.
-- **Side views face right.** "View" in the tables says which angle shows the move best.
-- **One-sided moves** (single-arm row, split squat, and so on): show the working arm or leg on the side nearest the camera.
-- **No text, labels, arrows, logos or watermarks** inside the image.
+- **Photo-realistic, as in the Back Squat example.**
+- **The same person in every image:** same face, body, hair and outfit. Use the tool's character-reference / "same person" feature, or keep generating in one conversation.
+- **Plain, unbranded clothing and shoes.** No brand logos anywhere (no Rogue, Under Armour, Nike and so on), because they're trademarks.
+- **Plain equipment:** black plates with no lettering, plain dumbbells and kettlebells.
+- **No text, titles, numbers, arrows or watermarks** in the image. The app adds its own labels in English and Spanish.
+- **Correct form, checked by eye:** flat back, knees over toes, full range of motion. Also watch for AI mistakes: extra fingers, a bar passing through the body, mirrored lettering.
+- **View:** use the one in the table. "Side" can be a three-quarter side view, as long as the hips and back angle are clear.
 
-## 5. Motion (for animated formats)
+## 5. Checking a pair before sending
 
-- **One clean rep per loop,** 1.5–3 seconds long, at a steady controlled tempo, looping seamlessly (the last frame matches the first).
-- **12–20 frames per second** is plenty.
-- **Holds** (plank, wall sit, stretches) can be a single still image with the same file name, for example `plank.webp`.
+Flip between the two images quickly on your phone. If the person looks like they're doing the move and nothing else jumps around, the pair is good.
 
 ## 6. File names
 
-- Use exactly the name in the **File name** column, plus the extension: `back-squat.webp`, `worlds-greatest-stretch.webp`.
-- Lowercase, with hyphens and no spaces. For two-stills format, add `-start` and `-end`.
+- Use the name in the **File name** column plus `-start` or `-end`: `bulgarian-split-squat-start.jpg` and `bulgarian-split-squat-end.jpg`.
+- If you forget, that's fine: just tell me which exercise each image is.
 
 ## 7. Rights (important)
 
@@ -59,18 +56,18 @@ A spreadsheet version for tracking progress is in `docs/exercise-demo-checklist.
 
 ## 8. Sending them to me
 
-- **A few at a time:** attach them in the chat.
-- **The full set:** on GitHub, open the Altiro repo, go to **Add file → Upload files**, drop them into a folder named `www/demos/`, and commit. Then tell me, and I'll hook them up and check each one in the app.
+- **A few at a time:** attach them in the chat, as you did with the Back Squat.
+- **The full set:** on GitHub, open the Altiro repo, go to **Add file → Upload files**, drop them into a folder named `demo-photos/`, and commit. Then tell me: I'll crop, resize and convert them into `www/demos/`, hook them up, and check each one in the app.
 - **Partial sets are fine.** Missing ones keep the drawn figure.
 
-## 9. A prompt you can reuse (for AI image tools)
+## 9. A prompt you can reuse (Gemini, ChatGPT and similar)
 
-Keep everything except the last line the same for every exercise, so the character and style stay consistent:
+Keep everything except the position the same for every image:
 
-> Flat vector illustration of a fit adult athlete, short brown hair, blue tank top, dark gray shorts, light gray sneakers, simple clean shapes, no outlines, no text, no watermark, plain white background, full body, centered, square 1:1. Side view, facing right.
-> **Exercise:** *[paste "What to show" from the table, e.g. "Standing tall, bar on upper back → hips back and down until thighs are about parallel, knees over toes, chest up"]*, holding *[Equipment]*.
+> Photo-realistic image of the same athletic man with short dark hair and a trimmed beard, plain black t-shirt, plain black shorts, black crew socks, plain black sneakers with white soles, **no logos or brand names anywhere**. Dark gym with gray walls, black rubber floor, a black power rack behind him. **No text, no labels, no watermark.** Full body in frame, camera at hip height, *[View from the table, e.g. three-quarter side view, facing right]*, portrait 9:16.
+> **Position:** *[the START half of "What to show", e.g. "standing tall, barbell resting on his upper back, hands just outside shoulders"]*, using *[Equipment]*.
 
-For the two-stills format, generate the **start** and **end** positions as two images with the same prompt and the same seed or character reference. Change only the position description.
+Then ask for the **same image with only his position changed** to the END half ("squatting down until thighs are about parallel, chest up, heels down"). Asking for an edit of the first image keeps the camera, gym and person identical.
 
 ---
 

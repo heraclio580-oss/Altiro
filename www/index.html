@@ -620,6 +620,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .ex-demo-btn svg{width:100%;height:100%;display:block;}
 .exercise-log-name .ex-demo-btn{width:42px;height:35px;border-radius:8px;margin-right:8px;}
 #moveDemoOverlay{z-index:92;}
+.mv-photo{position:relative;display:block;width:100%;height:100%;background:#26272A;}
+.mv-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;}
+.mv-photo.mv-thumb img{object-fit:cover;object-position:50% 38%;}
+.mv-photo-end{opacity:0;animation:mvPhotoSwap 3s ease-in-out infinite;}
+.mv-photo[data-speed="0.5"] .mv-photo-end{animation-duration:6s;}
+.mv-photo[data-speed="0"] .mv-photo-end{animation-play-state:paused;}
+@keyframes mvPhotoSwap{0%,30%{opacity:0}45%,80%{opacity:1}95%,100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){ .mv-photo:not([data-speed]) .mv-photo-end{animation:none;} }
+.md-stage .mv-photo{height:min(52vh,420px);}
 .md-stage{margin:4px 0 12px;border-radius:18px;background:var(--card);border:1px solid var(--divider-soft);overflow:hidden;}
 .md-stage svg{width:100%;height:auto;display:block;}
 .md-controls{display:flex;gap:8px;margin-bottom:14px;}
@@ -1764,7 +1773,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="btn btn-ghost" type="button" id="mdPlayBtn"></button>
         <button class="btn btn-ghost" type="button" id="mdSlowBtn"></button>
       </div>
-      <div class="sheet-section" style="margin-top:0;">
+      <div class="sheet-section" id="mdCuesSection" style="margin-top:0;">
         <div class="st-label" data-i18n="mdCuesLabel"></div>
         <ul class="md-cues" id="mdCues"></ul>
       </div>
@@ -10035,7 +10044,17 @@ function mvViewBox(key, thumb){
   return mvBoxes[id] = `${(cx - w/2).toFixed(1)} ${(cy - h/2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`;
 }
 // A move's figure, drawn at its first pose; mvKick() sets every one on screen moving.
+// Photo demos: two pictures of a move (start and end position, same camera), in www/demos/ named after
+// the exercise -- "Back Squat" -> back-squat-start.webp / back-squat-end.webp. The app fades between
+// them in a loop. An exercise with photos shows them; one without keeps its drawn figure.
+const DEMO_PHOTOS = new Set(['Back Squat']);
+const demoSlug = key => key.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const hasDemo = key => DEMO_PHOTOS.has(key) || !!MOVES[key];
 function moveDemoSvg(key, cls){
+  if(DEMO_PHOTOS.has(key)){
+    const src = `demos/${demoSlug(key)}`;
+    return `<span class="mv-photo ${cls}" data-move="${escapeHtml(key)}" aria-hidden="true"><img src="${src}-start.webp" alt="" loading="lazy" decoding="async"><img class="mv-photo-end" src="${src}-end.webp" alt="" loading="lazy" decoding="async"></span>`;
+  }
   const move = MOVES[key];
   if(!move) return '';
   return `<svg class="${cls}" viewBox="${mvViewBox(key, cls==='mv-thumb')}" data-move="${escapeHtml(key)}" aria-hidden="true">${mvSvgInner(mvShapes(move, mvPoseAt(move, 0)))}</svg>`;
@@ -10076,10 +10095,10 @@ document.addEventListener('visibilitychange', mvKick);
 // Tap a move's figure: a bigger one, with pause, slow motion and what to focus on.
 let mdKey = null, mdSpeed = 1;
 function exerciseDemoBtn(key, name){
-  return MOVES[key] ? `<button class="ex-demo-btn" type="button" data-demo="${escapeHtml(key)}" aria-label="${escapeHtml(STR[state.lang].mdShowHow.replace('{name}', name))}">${moveDemoSvg(key, 'mv-thumb')}</button>` : '';
+  return hasDemo(key) ? `<button class="ex-demo-btn" type="button" data-demo="${escapeHtml(key)}" aria-label="${escapeHtml(STR[state.lang].mdShowHow.replace('{name}', name))}">${moveDemoSvg(key, 'mv-thumb')}</button>` : '';
 }
 function openMoveDemo(key){
-  if(!MOVES[key]) return;
+  if(!hasDemo(key)) return;
   mdKey = key; mdSpeed = mvStill() ? 0 : 1;
   document.getElementById('mdStage').innerHTML = moveDemoSvg(key, 'mv-big');
   renderMoveDemo();
@@ -10090,9 +10109,11 @@ function renderMoveDemo(){
   if(!mdKey) return;
   const L = STR[state.lang];
   document.getElementById('mdTitle').textContent = exerciseDisplayName(mdKey);
-  document.getElementById('mdCues').innerHTML = MOVES[mdKey].cues[state.lang].map(c=>`<li>${escapeHtml(c)}</li>`).join('');
-  const svg = document.querySelector('#mdStage svg');
-  if(svg) svg.dataset.speed = String(mdSpeed);
+  const cues = MOVES[mdKey] ? MOVES[mdKey].cues[state.lang] : [];
+  document.getElementById('mdCues').innerHTML = cues.map(c=>`<li>${escapeHtml(c)}</li>`).join('');
+  document.getElementById('mdCuesSection').hidden = !cues.length;
+  const shown = document.querySelector('#mdStage [data-move]');
+  if(shown) shown.dataset.speed = String(mdSpeed);
   const play = document.getElementById('mdPlayBtn');
   play.innerHTML = (mdSpeed ? ICONS.pause : ICONS.play) + (mdSpeed ? L.mdPause : L.mdPlay);
   const slow = document.getElementById('mdSlowBtn');

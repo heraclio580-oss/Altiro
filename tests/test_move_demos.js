@@ -40,6 +40,11 @@ check('...and a planted hand or foot stays where it is', Math.max(...planted) < 
 // Knees only bend back and elbows only bend forward (the point of the elbow faces back) -- in the
 // push-up that sends the elbows back toward the body, never out past the hands.
 check('Every joint bends the way the body does', !wrongWay.length, [...new Set(wrongWay)].slice(0, 4).join(', '));
+// Photo demos: two pictures per move in www/demos/, named after the exercise.
+const PHOTOS = JSON.parse('[' + (html.match(/const DEMO_PHOTOS = new Set\(\[([^\]]*)\]\)/)[1]).replace(/'/g, '"') + ']');
+const slug = k => k.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const missing = PHOTOS.flatMap(k=> ['start', 'end'].map(e=> `${slug(k)}-${e}.webp`)).filter(f=> !fs.existsSync(path.join(__dirname, '..', 'www', 'demos', f)));
+check(`Every photo demo has both of its pictures (${PHOTOS.length} with photos)`, PHOTOS.length && !missing.length, missing.join(', '));
 check('Each demo has form cues in English and Spanish', DEMO_KEYS.every(k=> MOVES[k].cues.en.length>=3 && MOVES[k].cues.en.length===MOVES[k].cues.es.length));
 
 (async () => {
@@ -67,21 +72,25 @@ check('Each demo has form cues in English and Spanish', DEMO_KEYS.every(k=> MOVE
   check('(set-up) a move with a demo is in the workout (planned or swapped in)', !!swapped);
   const withThumb = rows().filter(r=> r.querySelector('.ex-demo-btn')).map(r=> r.querySelector('.wp-ex-name').textContent);
   const without = rows().filter(r=> !r.querySelector('.ex-demo-btn')).map(r=> r.querySelector('.wp-ex-name').textContent);
-  check('The workout shows a little figure beside the move with a demo', withThumb.includes(swapped) && doc.querySelector(`#wpExerciseList [data-demo="${swapped}"] svg[data-move] line`), withThumb.join(', '));
+  const thumb = doc.querySelector(`#wpExerciseList [data-demo="${swapped}"] [data-move]`);
+  const shows = !thumb ? null : PHOTOS.includes(swapped)
+    ? [...thumb.querySelectorAll('img')].map(i=>i.getAttribute('src')).join(' ')===`demos/${slug(swapped)}-start.webp demos/${slug(swapped)}-end.webp`
+    : !!thumb.querySelector('line, path');
+  check(`The workout shows a little demo beside the move that has one (${PHOTOS.includes(swapped) ? 'photos' : 'drawn figure'})`, withThumb.includes(swapped) && shows, withThumb.join(', '));
   check('...and none beside moves without one', without.length>0 && without.every(n=> !DEMO_KEYS.includes(n)), without.join(', '));
 
   await click(`#wpExerciseList [data-demo="${swapped}"]`);
   const ov = doc.getElementById('moveDemoOverlay');
   check('Tapping it opens the demo over the workout', !ov.hidden && !doc.getElementById('workoutPreviewOverlay').hidden && doc.getElementById('mdTitle').textContent===swapped);
-  check('...with the bigger figure moving', doc.querySelector('#mdStage svg').getAttribute('data-move')===swapped && doc.querySelector('#mdStage svg').dataset.speed==='1');
+  check('...with the bigger figure moving', doc.querySelector('#mdStage [data-move]').getAttribute('data-move')===swapped && doc.querySelector('#mdStage [data-move]').dataset.speed==='1');
   check('...and its form cues', [...doc.querySelectorAll('#mdCues li')].map(li=>li.textContent).join('|')===MOVES[swapped].cues.en.join('|'));
   check('...without opening the exercise\'s own options', !doc.querySelector('.wp-chooser'));
   await click('#mdPlayBtn');
-  check('Pause stops it', doc.querySelector('#mdStage svg').dataset.speed==='0' && /Play/.test(doc.getElementById('mdPlayBtn').textContent));
+  check('Pause stops it', doc.querySelector('#mdStage [data-move]').dataset.speed==='0' && /Play/.test(doc.getElementById('mdPlayBtn').textContent));
   await click('#mdSlowBtn');
-  check('Slow motion plays it at half speed', doc.querySelector('#mdStage svg').dataset.speed==='0.5' && doc.getElementById('mdSlowBtn').classList.contains('on') && /Pause/.test(doc.getElementById('mdPlayBtn').textContent));
+  check('Slow motion plays it at half speed', doc.querySelector('#mdStage [data-move]').dataset.speed==='0.5' && doc.getElementById('mdSlowBtn').classList.contains('on') && /Pause/.test(doc.getElementById('mdPlayBtn').textContent));
   await click('#mdSlowBtn');
-  check('...and tapping it again goes back to normal', doc.querySelector('#mdStage svg').dataset.speed==='1');
+  check('...and tapping it again goes back to normal', doc.querySelector('#mdStage [data-move]').dataset.speed==='1');
   await click('#closeMoveDemo');
   check('Closing it goes back to the workout', ov.hidden && !doc.getElementById('workoutPreviewOverlay').hidden);
   await click('#closeWorkoutPreview');

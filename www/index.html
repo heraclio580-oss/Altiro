@@ -360,6 +360,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .sk-dot svg{width:13px;height:13px;}
 .sk-dot.done{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-family:var(--font-mono);font-size:12px;font-weight:600;}
 .sk-dot.missed{border-color:var(--alert);color:var(--alert);background:transparent;}
+.sk-dot.partial{border:2px solid var(--accent);color:var(--accent);background:transparent;font-family:var(--font-mono);font-size:12px;font-weight:600;}
+.sk-this-week{font-size:13px;color:var(--text-2);margin:-4px 0 14px;}
 .sk-dot.rest{opacity:0.45;}
 .sk-dot.today{border-color:var(--today-ring);border-width:2px;}
 .wx-now{display:flex;align-items:center;gap:14px;margin:2px 0 14px;}
@@ -2652,11 +2654,17 @@ const STR = {
     weatherConditionClear: "Clear",
     heroEyebrowReady: "Ready when you are", heroTitleRun: "Time to run.", heroTitleStrength: "Time to lift.", heroTitleInterval: "Time for intervals.", heroTitleHike: "Time to get outside.", heroTitleMove: "Time to move.",
     heroSubStreak: "Keep your {n}-week streak going.", heroSubStart: "Every streak starts with one workout.",
+    heroSubWeekCounts: "This week counts. Keep your {n}-week streak going.",
+    heroSubMoreOne: "1 more workout this week makes it {n} weeks in a row.", heroSubMoreMany: "{r} more workouts this week make it {n} weeks in a row.",
+    heroSubStartOne: "1 more workout this week starts your streak.", heroSubStartMany: "{r} workouts this week start your streak.",
+    heroSubDoneFirst: "This week counts toward your streak.",
+    streakThisWeek: "This week: {c} of {n} workouts",
+    streakExplainOne: "Every week with a workout adds a week. This week can't break your streak until it's over; a week with none ends it.",
     heroEyebrowDone: "Today · done", heroTitleDone: "Nice work.", heroSubDoneStreak: "That's {n} weeks in a row.", heroSubDone: "Today's workout is in the books.",
     heroEyebrowRest: "Rest day", heroTitleRest: "Recover and recharge.", heroSubRest: "Rest days are part of the plan. Recovery is where the progress happens.",
     heroNext: "Next up: <b>{name}</b> · {day}", heroTomorrow: "tomorrow", heroRingLabel: "this week",
     streakSheetTitle: "Your streak", streakDaysLabel: "weeks in a row", streakBest: "Best streak", streakTotal: "Workouts done", streakRecent: "Last 8 weeks",
-    streakExplain: "Every week with at least one workout adds a week. This week counts as soon as you do one, and it can't break your streak until it's over.",
+    streakExplain: "A week counts once you finish 2 workouts in it, so the second one is what keeps your streak going. This week can't break it until the week is over; a week that ends with fewer than 2 does.",
     weatherSheetTitle: "Weather", weatherAdd: "Add weather", weatherLoadingChip: "Weather…", weatherOffChip: "Weather",
     weatherIntro: "See the weather where you are, so you can plan your workout. Altiro uses your location only to look up the forecast, and doesn't save it.",
     weatherAllowBtn: "Show local weather", weatherRetry: "Try again",
@@ -3096,11 +3104,17 @@ const STR = {
     weatherConditionClear: "Despejado",
     heroEyebrowReady: "Cuando estés listo", heroTitleRun: "Hora de correr.", heroTitleStrength: "Hora de levantar.", heroTitleInterval: "Hora de intervalos.", heroTitleHike: "Hora de salir.", heroTitleMove: "Hora de moverse.",
     heroSubStreak: "Mantén tu racha de {n} semanas.", heroSubStart: "Toda racha empieza con un entrenamiento.",
+    heroSubWeekCounts: "Esta semana ya cuenta. Mantén tu racha de {n} semanas.",
+    heroSubMoreOne: "1 entrenamiento más esta semana y serán {n} semanas seguidas.", heroSubMoreMany: "{r} entrenamientos más esta semana y serán {n} semanas seguidas.",
+    heroSubStartOne: "1 entrenamiento más esta semana y empieza tu racha.", heroSubStartMany: "{r} entrenamientos esta semana y empieza tu racha.",
+    heroSubDoneFirst: "Esta semana ya cuenta para tu racha.",
+    streakThisWeek: "Esta semana: {c} de {n} entrenamientos",
+    streakExplainOne: "Cada semana con un entrenamiento suma una semana. Esta semana no puede romper tu racha hasta que termine; una semana sin ninguno la termina.",
     heroEyebrowDone: "Hoy · listo", heroTitleDone: "Buen trabajo.", heroSubDoneStreak: "Llevas {n} semanas seguidas.", heroSubDone: "El entrenamiento de hoy está hecho.",
     heroEyebrowRest: "Día de descanso", heroTitleRest: "Recupérate y recarga.", heroSubRest: "El descanso es parte del plan. Ahí es donde se nota el progreso.",
     heroNext: "Lo siguiente: <b>{name}</b> · {day}", heroTomorrow: "mañana", heroRingLabel: "esta semana",
     streakSheetTitle: "Tu racha", streakDaysLabel: "semanas seguidas", streakBest: "Mejor racha", streakTotal: "Entrenamientos hechos", streakRecent: "Últimas 8 semanas",
-    streakExplain: "Cada semana con al menos un entrenamiento suma una semana. Esta semana cuenta en cuanto haces uno, y no puede romper tu racha hasta que termine.",
+    streakExplain: "Una semana cuenta cuando completas 2 entrenamientos, así que el segundo es el que mantiene tu racha. Esta semana no puede romperla hasta que termine; una semana que termina con menos de 2 sí.",
     weatherSheetTitle: "Clima", weatherAdd: "Ver clima", weatherLoadingChip: "Clima…", weatherOffChip: "Clima",
     weatherIntro: "Mira el clima donde estás para planear tu entrenamiento. Altiro usa tu ubicación solo para buscar el pronóstico, y no la guarda.",
     weatherAllowBtn: "Mostrar clima local", weatherRetry: "Reintentar",
@@ -9673,9 +9687,11 @@ function workoutDoneOn(key){
   return log.completedOverride===true || !!log.performance || log.actualRunDistance!=null
     || (log.manualEntries||[]).length>0 || (log.extraWorkouts||[]).some(w=>w.completed);
 }
-// The streak counts weeks (Monday to Sunday) with at least one workout, back from this week. This week
-// counts as soon as a workout is done in it, and doesn't break the streak while it's still going; a whole
-// week with none ends it.
+// The streak counts weeks (Monday to Sunday) with at least 2 workouts, back from this week -- the second
+// workout is the one that keeps it going, so there's a reason to finish the week. (A plan with a single
+// training day needs just that one.) This week counts once it gets there, and can't break the streak while
+// it's still going; a week that ends short ends it.
+function streakWeekNeed(){ return (state.trainingDays||[]).length===1 ? 1 : 2; }
 function mondayOf(date){ return new Date(date.getFullYear(), date.getMonth(), date.getDate() - (date.getDay()+6)%7); }
 function workoutsInWeek(monday){
   let n = 0;
@@ -9696,7 +9712,7 @@ function computeStreak(){
   for(let i=0; i<520; i++){
     const monday = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate()-7*i);
     if(monday < earliest) break;
-    if(workoutsInWeek(monday)>0){ streak++; continue; }
+    if(workoutsInWeek(monday)>=streakWeekNeed()){ streak++; continue; }
     if(i===0) continue; // this week isn't over yet
     break;
   }
@@ -9707,14 +9723,17 @@ function longestWeekStreak(){
   const thisMonday = mondayOf(TODAY_DATE);
   let best = 0, run = 0;
   for(let m = earliestLogMonday(); m <= thisMonday; m = new Date(m.getFullYear(), m.getMonth(), m.getDate()+7)){
-    if(workoutsInWeek(m)>0){ run++; if(run>best) best = run; }
+    if(workoutsInWeek(m)>=streakWeekNeed()){ run++; if(run>best) best = run; }
     else if(m.getTime()!==thisMonday.getTime()) run = 0;
   }
   return best;
 }
 function refreshStreak(){
+  const before = state.streak+'/'+state.bestStreak;
   state.streak = computeStreak();
   state.bestStreak = Math.max(state.streak, longestWeekStreak());
+  // Keep the account's copy current (it's what another device shows before it has loaded the history).
+  if(state.signedIn && state.userId && before!==state.streak+'/'+state.bestStreak) saveProfileToCloud();
 }
 // The last 8 weeks, oldest first: how many workouts each had.
 function recentStreakWeeks(){
@@ -9722,7 +9741,9 @@ function recentStreakWeeks(){
   return Array.from({length:8}, (_,k)=>{
     const monday = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate()-7*(7-k));
     const count = workoutsInWeek(monday);
-    return {monday, count, status: count>0 ? 'done' : k===7 ? 'today' : monday < earliestLogMonday() ? 'rest' : 'missed'};
+    const need = streakWeekNeed();
+    const status = count>=need ? 'done' : k===7 ? (count>0 ? 'partial today' : 'today') : count>0 ? 'partial' : monday < earliestLogMonday() ? 'rest' : 'missed';
+    return {monday, count, status};
   });
 }
 function openStreakSheet(){
@@ -9736,15 +9757,28 @@ function openStreakSheet(){
       <div class="sk-stat"><b>${state.bestStreak}</b><span>${L.streakBest}</span></div>
       <div class="sk-stat"><b>${state.totalWorkouts}</b><span>${L.streakTotal}</span></div>
     </div>
+    <div class="sk-this-week">${L.streakThisWeek.replace('{c}', Math.min(workoutsInWeek(mondayOf(TODAY_DATE)), streakWeekNeed())).replace('{n}', streakWeekNeed())}</div>
     <div class="st-label">${L.streakRecent}</div>
     <div class="sk-weeks">${weeks.map(w=>`<div class="sk-day"><span class="sk-dot ${w.status}">${w.count>0 ? w.count : ''}</span>${label(w.monday)}</div>`).join('')}</div>
-    <p class="fb-sub" style="margin:4px 0 8px;">${L.streakExplain}</p>`;
+    <p class="fb-sub" style="margin:4px 0 8px;">${streakWeekNeed()===1 ? L.streakExplainOne : L.streakExplain}</p>`;
   document.getElementById('streakOverlay').hidden = false;
 }
 function closeStreakSheet(){ document.getElementById('streakOverlay').hidden = true; }
 document.getElementById('streakChip').addEventListener('click', openStreakSheet);
 document.getElementById('closeStreak').addEventListener('click', closeStreakSheet);
 
+// Today's line about the streak: how many more workouts this week keep it going, or that this week counts.
+function streakNudge(doneToday){
+  const L = STR[state.lang];
+  const need = streakWeekNeed(), have = workoutsInWeek(mondayOf(TODAY_DATE)), s = state.streak;
+  if(have >= need){
+    if(doneToday) return s>1 ? L.heroSubDoneStreak.replace('{n}', s) : L.heroSubDoneFirst;
+    return L.heroSubWeekCounts.replace('{n}', s);
+  }
+  const r = need - have;
+  if(s>0) return (r===1 ? L.heroSubMoreOne : L.heroSubMoreMany).replace('{r}', r).replace('{n}', s+1);
+  return (r===1 ? L.heroSubStartOne : L.heroSubStartMany).replace('{r}', r);
+}
 // The next planned workout after today, for "Next up: Leg Day · Thursday".
 function nextPlannedWorkout(){
   for(let i=1; i<=14; i++){
@@ -9775,11 +9809,11 @@ function renderTodayHero(eff, effL, workoutGoal){
     btn.classList.add('disabled'); icon.innerHTML = ICONS.rest; label.textContent = L.recordRestLabel;
   } else if(done){
     eyebrow = L.heroEyebrowDone; title = L.heroTitleDone;
-    sub = state.streak>1 ? L.heroSubDoneStreak.replace('{n}', state.streak) : L.heroSubDone;
+    sub = streakNudge(true);
     btn.classList.add('done'); icon.innerHTML = ICONS.checkSm; label.textContent = L.recordDoneLabel;
   } else {
     eyebrow = L.heroEyebrowReady; title = L[HERO_TITLE_KEY[eff.t]] || L.heroTitleMove;
-    sub = state.streak>0 ? L.heroSubStreak.replace('{n}', state.streak) : L.heroSubStart;
+    sub = streakNudge(false);
     icon.innerHTML = eff.t==='interval' ? ICONS.play : (TYPE_ICON[eff.t] || ICONS.play);
     label.textContent = eff.t==='interval' ? L.startTimerLabel : L.recordActionLabel;
   }

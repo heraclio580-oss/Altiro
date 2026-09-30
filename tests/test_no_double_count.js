@@ -72,7 +72,8 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('First record: Total Workouts +1:', afterFirst.workouts===workoutsBefore+1 ? 'OK' : `FAIL (${afterFirst.workouts})`);
   console.log('First record: Total Distance +4.0:', +(afterFirst.distance-distBefore).toFixed(1)===4.0 ? 'OK' : `FAIL (${afterFirst.distance})`);
   const streakAfterFirst = readStreak();
-  console.log('First record: Streak +1:', streakAfterFirst===streakBefore+1 ? 'OK' : `FAIL (${streakAfterFirst})`);
+  // A week needs 2 workouts to count toward the (weekly) streak, so one alone doesn't move it yet.
+  console.log('First record: one workout alone doesn\'t count the week yet:', streakAfterFirst===streakBefore ? 'OK' : `FAIL (${streakAfterFirst})`);
 
   // Toggle "not done" then re-record the SAME day with a corrected (different) distance -- a real,
   // common flow (fixing a typo'd distance), not a contrived edge case.
@@ -93,8 +94,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('Re-recording the same day does NOT bump Total Workouts a second time:',
     afterSecond.workouts===workoutsBefore+1 ? 'OK' : `FAIL (${afterSecond.workouts}, expected still ${workoutsBefore+1})`);
   const streakAfterSecond = readStreak();
-  console.log('Re-recording does NOT bump the streak a second time:',
-    streakAfterSecond===streakBefore+1 ? 'OK' : `FAIL (${streakAfterSecond}, expected still ${streakBefore+1})`);
+  // ...and re-recording the same day isn't a second workout, so it doesn't count the week either.
+  console.log('Re-recording does NOT count as a second workout for the streak:',
+    streakAfterSecond===streakBefore ? 'OK' : `FAIL (${streakAfterSecond}, expected still ${streakBefore})`);
   console.log('Total Distance reflects the CORRECTED distance (6.0), not both stacked (4.0+6.0=10.0):',
     +(afterSecond.distance-distBefore).toFixed(1)===6.0 ? 'OK' : `FAIL (${afterSecond.distance}, expected +6.0)`);
 

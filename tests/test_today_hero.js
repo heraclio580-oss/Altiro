@@ -22,13 +22,14 @@ function makeBackend(opts = {}){
   const logs = {};
   let n = 1;
   const addLog = (log_date, f) => { const id = 'l'+(n++); logs[id] = {id, user_id:'u1', log_date, completed_override:null, ...f}; };
+  addLog('2026-09-10', {planned_type:'strength', planned_title:'Push Day', planned_detail:'40 min', completed_override:true});
   addLog('2026-09-11', {planned_type:'run', planned_title:'Easy Run', planned_detail:'3 mi', actual_run_distance:3});
   addLog('2026-09-12', {planned_type:'run', planned_title:'Long Run', planned_detail:'6 mi'});
   addLog('2026-09-13', {planned_type:'rest', planned_title:'Rest Day', planned_detail:''});
   addLog('2026-09-14', {planned_type:'run', planned_title:'Easy Run', planned_detail:'3 mi', performance:{distance:3, time:30}});
-  addLog('2026-09-15', {planned_type:'strength', planned_title:'Push Day', planned_detail:'40 min', completed_override:true});
+  addLog('2026-09-15', {planned_type:'strength', planned_title:'Push Day', planned_detail:'40 min', completed_override: opts.oneThisWeek ? null : true});
   addLog('2026-09-16', {planned_type:'rest', planned_title:'Rest Day', planned_detail:''});
-  addLog('2026-09-17', {planned_type:'run', planned_title:'Tempo Run', planned_detail:'4 mi', actual_run_distance:4});
+  addLog('2026-09-17', {planned_type:'run', planned_title:'Tempo Run', planned_detail:'4 mi', actual_run_distance: opts.oneThisWeek ? null : 4});
   addLog('2026-09-18', opts.todayRest ? {planned_type:'rest', planned_title:'Rest Day', planned_detail:''} : {planned_type:'run', planned_title:'Easy Run', planned_detail:'3 mi'});
   addLog('2026-09-19', {planned_type:'strength', planned_title:'Leg Day', planned_detail:'45 min'});
   const db = { profiles: {u1: {id:'u1', full_name:'Sam', goal:'general', level:'intermediate', training_days:[0,1,3,4,5], focus_ratio:2, intensity_idx:1, plan_start:'2026-09-07', weight_unit: opts.kg ? 'kg' : 'lb', streak: 9, best_streak: 12, total_workouts: 40}}, workout_logs: logs };
@@ -96,7 +97,7 @@ function openSession(backend, opts = {}){
   // ---- the hero ----
   check('The big red Record circle is gone', !doc.querySelector('.record-circle') && !doc.querySelector('.record-hero'));
   check('Today opens with a welcoming card', !!doc.getElementById('todayHero') && text('thEyebrow')==='Ready when you are' && text('thTitle')==='Time to run.', `${text('thEyebrow')} | ${text('thTitle')}`);
-  check('...that cheers on the streak', text('thSub')==='Keep your 2-week streak going.', text('thSub'));
+  check('...that cheers on the streak (this week already has its 2)', text('thSub')==='This week counts. Keep your 2-week streak going.', text('thSub'));
   check('...shows this week\'s progress as a ring', /^\d+\/\d+this week$/.test(text('thRing')) && doc.querySelectorAll('#thRing circle').length>=2, text('thRing'));
   check('...and one clear Start button', text('recordBtn')==='Start Workout' && !doc.getElementById('recordBtn').classList.contains('disabled'), text('recordBtn'));
   doc.getElementById('recordBtn').click();
@@ -118,7 +119,7 @@ function openSession(backend, opts = {}){
   const stats = [...sk.querySelectorAll('.sk-stat')].map(x=>x.querySelector('b').textContent+' '+x.querySelector('span').textContent);
   check('...with the best streak (in weeks, from the history) and workouts done', stats[0]==='2 Best streak' && stats[1]==='41 Workouts done', stats.join(' / '));
   const weeks = [...sk.querySelectorAll('.sk-weeks .sk-day')].map(d=>{ const dot = d.querySelector('.sk-dot'); return dot.className.replace('sk-dot ','')+':'+dot.textContent+':'+d.textContent.replace(dot.textContent,''); });
-  check('...and the last 8 weeks, with how many workouts each', weeks.length===8 && weeks.slice(-2).join(',')==='done:1:Sep 7,done:4:Sep 14' && weeks.slice(0,6).every(w=>w.startsWith('rest')), weeks.join(' | '));
+  check('...and the last 8 weeks, with how many workouts each', weeks.length===8 && weeks.slice(-2).join(',')==='done:2:Sep 7,done:4:Sep 14' && weeks.slice(0,6).every(w=>w.startsWith('rest')), weeks.join(' | '));
   doc.getElementById('closeStreak').click();
 
   // ---- the weather ----
@@ -184,7 +185,20 @@ function openSession(backend, opts = {}){
   check('A week with no workouts ends the streak', d8.getElementById('streakChip').textContent.trim()==='2 WEEK STREAK', d8.getElementById('streakChip').textContent.trim());
   d8.getElementById('streakChip').click(); await wait(10);
   const w8 = [...d8.querySelectorAll('.sk-weeks .sk-dot')].map(x=>x.className.replace('sk-dot ',''));
-  check('...shown as a missed week', w8.slice(-4).join(',')==='done,missed,done,done', w8.join(','));
+  check('...shown as a missed week (and one workout alone doesn\'t count a week)', w8.slice(-4).join(',')==='partial,missed,done,done', w8.join(','));
+  check('...with "this week" progress', /This week: 2 of 2 workouts/.test(d8.getElementById('streakBody').textContent), d8.getElementById('streakBody').textContent);
+
+  // One workout so far this week: the second keeps the streak going.
+  const b9 = makeBackend({oneThisWeek:true});
+  const dom9 = openSession(b9);
+  await wait(300);
+  const d9 = dom9.window.document;
+  [...d9.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click(); await wait(30);
+  check('One workout this week: the week doesn\'t count yet, and the card says what will', d9.getElementById('streakChip').textContent.trim()==='1 WEEK STREAK' && d9.getElementById('thSub').textContent==='1 more workout this week makes it 2 weeks in a row.', d9.getElementById('streakChip').textContent.trim()+' | '+d9.getElementById('thSub').textContent);
+  d9.getElementById('recordBtn').click(); await wait(450);
+  d9.getElementById('saveLogPerf').click(); await wait(60);
+  [...d9.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click(); await wait(30);
+  check('...the second workout counts the week', d9.getElementById('streakChip').textContent.trim()==='2 WEEK STREAK' && d9.getElementById('thSub').textContent==="That's 2 weeks in a row.", d9.getElementById('streakChip').textContent.trim()+' | '+d9.getElementById('thSub').textContent);
 
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(0);

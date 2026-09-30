@@ -93,6 +93,10 @@ function openSession(backend, callbackSearch){
     beforeParse(window){
       window.supabase = { createClient: () => backend.createClient() };
       window.__ALTIRO_TEST_TODAY__ = '2026-09-18';
+      // The app's "while open" Strava check runs every 2 minutes -- kept here to be run by hand.
+      window.__stravaChecks = [];
+      const realSetInterval = window.setInterval.bind(window);
+      window.setInterval = (fn, ms, ...a) => { if(ms===120000){ window.__stravaChecks.push(fn); return 0; } return realSetInterval(fn, ms, ...a); };
       if(callbackSearch!=null) window.localStorage.setItem('altiro_strava_callback', JSON.stringify({search: callbackSearch, at: Date.now()}));
     },
   });
@@ -205,6 +209,16 @@ const text = (doc, id) => doc.getElementById(id).textContent;
   await wait(80);
   console.log('Syncing again imports nothing twice:', text(doc,'toastMsg')==='Already up to date' && Object.values(backend.db.manual_entries).filter(e=>e.name==='Evening Run').length===1 ? 'OK' : `FAIL (${text(doc,'toastMsg')})`);
 
+  // ---- While the app is open, a run Strava sends (its webhook stores it) is filed within 2 minutes ----
+  go('home'); await wait(20);
+  backend.addStrava(106, '2026-09-17', 'Thursday Jog', 6437, 2100); // 4.0 mi, stored by the webhook
+  const checks = dom.window.__stravaChecks;
+  console.log('The app checks for new runs every 2 minutes while it\'s open:', checks.length===1 ? 'OK' : `FAIL (${checks.length})`);
+  const invokesBefore = backend.invokes.length;
+  checks[0](); await wait(80);
+  console.log('...and files a run Strava already sent, without asking Strava again:', text(doc,'toastMsg')==='From Strava: Thursday Jog · 4.0 mi' && backend.invokes.length===invokesBefore ? 'OK' : `FAIL (${text(doc,'toastMsg')}, ${backend.invokes.length-invokesBefore} calls)`);
+
+  go('settings'); await wait(20);
   doc.getElementById('stravaDisconnectBtn').click();
   await wait(40);
   console.log('Disconnect goes back to the Connect with Strava button:', !doc.getElementById('stravaConnectBtn').hidden && /Connect with Strava/.test(doc.getElementById('stravaConnectBtn').textContent + (doc.querySelector('#stravaConnectBtn img')||{}).alt) && doc.getElementById('stravaSyncBtn').hidden && doc.getElementById('stravaDisconnectBtn').hidden ? 'OK' : 'FAIL');

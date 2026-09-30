@@ -17,7 +17,7 @@ function setup(opts: { tokenStatus?: number; activitiesStatus?: number } = {}) {
   ];
   const deps: Deps = {
     now: () => NOW,
-    env: (n) => ({ STRAVA_CLIENT_ID: "123", STRAVA_CLIENT_SECRET: "shh" } as Record<string, string>)[n],
+    env: (n) => ({ STRAVA_CLIENT_ID: "123", STRAVA_CLIENT_SECRET: "shh", STRAVA_WEBHOOK_TOKEN: "hook-token", SUPABASE_URL: "https://proj.supabase.co" } as Record<string, string>)[n],
     fetch: async (input, init) => {
       const url = String(input);
       calls.push(`${init?.method || "GET"} ${url}`);
@@ -32,6 +32,15 @@ function setup(opts: { tokenStatus?: number; activitiesStatus?: number } = {}) {
           athlete: body.grant_type === "authorization_code" ? { id: 99, firstname: "Sam", lastname: "Runner" } : undefined,
         });
       }
+      const one = url.match(/\/api\/v3\/activities\/(\d+)$/);
+      if (one) {
+        const a = stravaActivities.find((x) => String(x.id) === one[1]);
+        return a ? Response.json(a) : new Response("{}", { status: 404 });
+      }
+      if (url.endsWith("/api/v3/push_subscriptions") && init?.method === "POST") {
+        calls.push(`BODY ${String(init.body)}`);
+        return Response.json({ id: 321 });
+      }
       if (url.includes("/api/v3/athlete/activities")) {
         if (opts.activitiesStatus) return new Response("{}", { status: opts.activitiesStatus });
         return Response.json(stravaActivities);
@@ -41,12 +50,14 @@ function setup(opts: { tokenStatus?: number; activitiesStatus?: number } = {}) {
     db: {
       userIdFromJwt: async (jwt) => (jwt === "good-jwt" ? "user-1" : null),
       getConnection: async (u) => connections[u] ?? null,
+      getConnectionByAthlete: async (id) => Object.values(connections).find((c) => c.athlete_id === id) ?? null,
       saveConnection: async (row) => { connections[row.user_id] = { ...connections[row.user_id], ...row }; },
       deleteConnection: async (u) => { delete connections[u]; },
       insertNewActivities: async (rows) => { rows.forEach((r) => { if (!activities[r.id as number]) activities[r.id as number] = r; }); },
       deleteUnappliedActivities: async (u) => {
         Object.keys(activities).forEach((k) => { if (activities[k].user_id === u && !activities[k].applied_at) delete activities[k]; });
       },
+      deleteUnappliedActivity: async (id) => { if (activities[id] && !activities[id].applied_at) delete activities[id]; },
     },
   };
   const call = async (body: unknown, jwt = "good-jwt", headers?: Record<string, string>) => {
@@ -55,7 +66,8 @@ function setup(opts: { tokenStatus?: number; activitiesStatus?: number } = {}) {
     }));
     return { status: res.status, body: await res.json() };
   };
-  return { call, connections, activities, calls };
+  const raw = (req: Request) => makeHandler(deps)(req);
+  return { call, raw, connections, activities, calls };
 }
 
 Deno.test("reads the user's token from x-altiro-user (the anon key in Authorization gets past the gateway)", async () => {
@@ -163,4 +175,64 @@ Deno.test("disconnect revokes on Strava and forgets runs not yet filed", async (
   assertEquals(connections["user-1"], undefined);
   assertEquals(Object.keys(activities), ["1"]);
   assertEquals(calls.includes("POST https://www.strava.com/oauth/deauthorize"), true);
+});
+
+// ---------------- Strava's webhook ----------------
+async function connected() {
+  const t = setup();
+  await t.call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
+  Object.keys(t.activities).forEach((k) => delete t.activities[k]); // start empty: only the webhook fills it
+  return t;
+}
+const event = (e: Record<string, unknown>) => new Request("https://proj.supabase.co/functions/v1/strava", {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ subscription_id: 321, event_time: 1, updates: {}, ...e }),
+});
+
+Deno.test("webhook: Strava's address check is answered only with the right token", async () => {
+  const { raw } = setup();
+  const ok = await raw(new Request("https://proj.supabase.co/functions/v1/strava?hub.mode=subscribe&hub.verify_token=hook-token&hub.challenge=xyz"));
+  assertEquals(await ok.json(), { "hub.challenge": "xyz" });
+  const bad = await raw(new Request("https://proj.supabase.co/functions/v1/strava?hub.mode=subscribe&hub.verify_token=nope&hub.challenge=xyz"));
+  assertEquals(bad.status, 403);
+});
+
+Deno.test("webhook: a new run on Strava is stored right away, before the app is opened", async () => {
+  const { raw, activities } = await connected();
+  const res = await raw(event({ object_type: "activity", aspect_type: "create", object_id: 1, owner_id: 99 }));
+  assertEquals(res.status, 200);
+  assertEquals(activities[1]?.name, "Long Run");
+  assertEquals(activities[1]?.user_id, "user-1");
+  assertEquals(activities[1]?.local_date, "2026-09-27");
+});
+
+Deno.test("webhook: other activities, unknown athletes and deletions", async () => {
+  const { raw, activities } = await connected();
+  await raw(event({ object_type: "activity", aspect_type: "create", object_id: 2, owner_id: 99 })); // Leg Day (lifting)
+  assertEquals(activities[2], undefined);
+  await raw(event({ object_type: "activity", aspect_type: "create", object_id: 1, owner_id: 12345 })); // not an Altiro user
+  assertEquals(activities[1], undefined);
+  await raw(event({ object_type: "activity", aspect_type: "create", object_id: 3, owner_id: 99 }));
+  assertEquals(activities[3]?.name, "Treadmill");
+  await raw(event({ object_type: "activity", aspect_type: "delete", object_id: 3, owner_id: 99 }));
+  assertEquals(activities[3], undefined);
+});
+
+Deno.test("webhook: removing Altiro on Strava disconnects", async () => {
+  const { raw, connections } = await connected();
+  await raw(event({ object_type: "athlete", aspect_type: "update", object_id: 99, owner_id: 99, updates: { authorized: "false" } }));
+  assertEquals(connections["user-1"], undefined);
+});
+
+Deno.test("webhook setup: subscribes this function's address, only with the key", async () => {
+  const { raw, calls } = setup();
+  assertEquals((await raw(new Request("https://proj.supabase.co/functions/v1/strava?setup=webhook&key=wrong"))).status, 403);
+  const res = await raw(new Request("https://proj.supabase.co/functions/v1/strava?setup=webhook&key=hook-token"));
+  const body = await res.json();
+  assertEquals(body.subscribed, true);
+  assertEquals(body.callback, "https://proj.supabase.co/functions/v1/strava");
+  const sent = new URLSearchParams(calls.find((c) => c.startsWith("BODY "))!.slice(5));
+  assertEquals(sent.get("callback_url"), "https://proj.supabase.co/functions/v1/strava");
+  assertEquals(sent.get("verify_token"), "hook-token");
+  assertEquals(sent.get("client_id"), "123");
 });

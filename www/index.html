@@ -9535,6 +9535,15 @@ async function syncStrava(opts){
   renderStravaSettings();
   return strava.connected ? await importStravaActivities() : null;
 }
+// While Altiro is open, runs keep coming in on their own: every 2 minutes it files any that Strava has
+// already sent (its webhook puts them straight into strava_activities), and every 5 it also asks Strava
+// itself -- a watch can take a few minutes to pass a run on to Strava.
+const STRAVA_OPEN_CHECK_MS = 2*60*1000, STRAVA_OPEN_SYNC_MS = 5*60*1000;
+setInterval(()=>{
+  if(document.visibilityState!=='visible' || !state.userId || !strava.connected || strava.status==='syncing') return;
+  if(Date.now()-strava.lastSyncAt >= STRAVA_OPEN_SYNC_MS) syncStrava();
+  else importStravaActivities();
+}, STRAVA_OPEN_CHECK_MS);
 function stravaRedirectUri(){
   return new URL('strava-callback.html', window.location.href).href;
 }

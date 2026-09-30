@@ -21,7 +21,15 @@
 // JWT signing keys (a 401 before the function even runs) but accepts the anon key. The function checks
 // the user's token itself, through Supabase Auth, which understands every key.
 //
-// Secrets (Supabase dashboard -> Edge Functions -> Secrets): STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET.
+// Strava also tells Altiro about new runs as they arrive (its webhook), so they're waiting in
+// strava_activities before the app is even opened -- see handleWebhook() below:
+//   GET  ?hub.mode=subscribe&hub.verify_token=...&hub.challenge=...  Strava checking this URL
+//   POST {object_type, aspect_type, object_id, owner_id, ...}         an activity was created/changed/deleted
+//   GET  ?setup=webhook&key=<STRAVA_WEBHOOK_TOKEN>                    one-time: subscribe Altiro to the webhook
+// For those, "Verify JWT" must be OFF for this function (Strava sends no Supabase token).
+//
+// Secrets (Supabase dashboard -> Edge Functions -> Secrets): STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, and
+// STRAVA_WEBHOOK_TOKEN (any long random string; it proves a webhook request came from our own setup).
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -32,7 +40,7 @@ const DAY_SEC = 24 * 60 * 60;
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-altiro-user",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 type Connection = {
@@ -49,12 +57,14 @@ type Connection = {
 export type Db = {
   userIdFromJwt(jwt: string): Promise<string | null>;
   getConnection(userId: string): Promise<Connection | null>;
+  getConnectionByAthlete(athleteId: number): Promise<Connection | null>;
   saveConnection(row: Partial<Connection> & { user_id: string }): Promise<void>;
   deleteConnection(userId: string): Promise<void>;
   // Inserts only activities not already stored, so a run the app has already filed (applied_at set)
   // is never reset to "new" and imported twice.
   insertNewActivities(rows: Record<string, unknown>[]): Promise<void>;
   deleteUnappliedActivities(userId: string): Promise<void>;
+  deleteUnappliedActivity(activityId: number): Promise<void>;
 };
 
 export type Deps = {
@@ -62,6 +72,8 @@ export type Deps = {
   env: (name: string) => string | undefined;
   fetch: typeof fetch;
   now: () => number; // ms
+  // Runs work after the response has been sent (Strava wants its webhook answered within 2 seconds).
+  waitUntil?: (p: Promise<unknown>) => void;
 };
 
 function json(body: unknown, status = 200) {
@@ -98,6 +110,78 @@ async function freshConnection(deps: Deps, conn: Connection): Promise<Connection
   return updated;
 }
 
+// deno-lint-ignore no-explicit-any
+const isRun = (a: any) => RUN_TYPES.includes(a.sport_type || a.type);
+// deno-lint-ignore no-explicit-any
+function runRow(a: any, userId: string) {
+  return {
+    id: a.id,
+    user_id: userId,
+    name: a.name,
+    sport_type: a.sport_type || a.type,
+    start_date: a.start_date,
+    // Strava's start_date_local is the wall-clock time where the run happened (it's labelled "Z"
+    // but isn't UTC) -- its date part is the calendar day the run belongs on.
+    local_date: String(a.start_date_local).slice(0, 10),
+    distance_m: a.distance,
+    moving_time_s: a.moving_time,
+    elapsed_time_s: a.elapsed_time,
+  };
+}
+
+// ---------------- Strava's webhook: new runs arrive on their own ----------------
+// deno-lint-ignore no-explicit-any
+async function handleWebhookEvent(deps: Deps, ev: any) {
+  const conn0 = ev.owner_id ? await deps.db.getConnectionByAthlete(Number(ev.owner_id)) : null;
+  if (!conn0) return { handled: false, reason: "unknown_athlete" };
+  // The athlete removed Altiro from their Strava settings.
+  if (ev.object_type === "athlete") {
+    if (ev.updates && String(ev.updates.authorized) === "false") {
+      await deps.db.deleteConnection(conn0.user_id);
+      await deps.db.deleteUnappliedActivities(conn0.user_id);
+      return { handled: true, deauthorized: true };
+    }
+    return { handled: false };
+  }
+  if (ev.object_type !== "activity") return { handled: false };
+  if (ev.aspect_type === "delete") {
+    await deps.db.deleteUnappliedActivity(Number(ev.object_id));
+    return { handled: true, deleted: ev.object_id };
+  }
+  // create, or an update (a run's type or privacy can change after upload): fetch it and keep it if it's a run.
+  let conn: Connection;
+  try { conn = await freshConnection(deps, conn0); } catch { return { handled: false, reason: "token" }; }
+  const res = await deps.fetch(`${STRAVA}/api/v3/activities/${encodeURIComponent(String(ev.object_id))}`, {
+    headers: { Authorization: `Bearer ${conn.access_token}` },
+  });
+  if (!res.ok) return { handled: false, reason: `strava_activity_${res.status}` };
+  const a = await res.json();
+  if (!isRun(a)) return { handled: true, run: false };
+  await deps.db.insertNewActivities([runRow(a, conn.user_id)]);
+  return { handled: true, run: true, id: a.id };
+}
+// One-time setup, from a browser: subscribes Altiro to Strava's webhook with this function as the address.
+async function subscribeWebhook(deps: Deps) {
+  const callback = `${String(deps.env("SUPABASE_URL") || "").replace(/\/$/, "")}/functions/v1/strava`;
+  const form = new URLSearchParams({
+    client_id: deps.env("STRAVA_CLIENT_ID")!,
+    client_secret: deps.env("STRAVA_CLIENT_SECRET")!,
+    callback_url: callback,
+    verify_token: deps.env("STRAVA_WEBHOOK_TOKEN")!,
+  });
+  const res = await deps.fetch(`${STRAVA}/api/v3/push_subscriptions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: form.toString(),
+  });
+  const text = await res.text();
+  if (res.ok) return json({ subscribed: true, callback, strava: JSON.parse(text || "{}") });
+  // Only one subscription per Strava app: if there already is one, show it.
+  const list = await deps.fetch(`${STRAVA}/api/v3/push_subscriptions?client_id=${encodeURIComponent(deps.env("STRAVA_CLIENT_ID")!)}&client_secret=${encodeURIComponent(deps.env("STRAVA_CLIENT_SECRET")!)}`);
+  const existing = list.ok ? await list.json() : null;
+  return json({ subscribed: Array.isArray(existing) && existing.length > 0, callback, existing, strava_error: text.slice(0, 300) }, Array.isArray(existing) && existing.length ? 200 : 502);
+}
+
 // Pulls recent runs into strava_activities. Looks back a week on every sync (a run can reach Strava
 // hours after it happened, once the watch syncs), or further if the app hasn't synced in longer than
 // that -- capped at 60 days.
@@ -129,20 +213,8 @@ async function syncRuns(deps: Deps, userId: string) {
   if (!res.ok) throw new Error(`strava_activities_${res.status}`);
   const activities = await res.json();
   const runs = (Array.isArray(activities) ? activities : [])
-    .filter((a) => RUN_TYPES.includes(a.sport_type || a.type))
-    .map((a) => ({
-      id: a.id,
-      user_id: userId,
-      name: a.name,
-      sport_type: a.sport_type || a.type,
-      start_date: a.start_date,
-      // Strava's start_date_local is the wall-clock time where the run happened (it's labelled "Z"
-      // but isn't UTC) -- its date part is the calendar day the run belongs on.
-      local_date: String(a.start_date_local).slice(0, 10),
-      distance_m: a.distance,
-      moving_time_s: a.moving_time,
-      elapsed_time_s: a.elapsed_time,
-    }));
+    .filter(isRun)
+    .map((a) => runRow(a, userId));
   if (runs.length) await deps.db.insertNewActivities(runs);
   await deps.db.saveConnection({ ...conn, last_synced_at: new Date(deps.now()).toISOString() });
   return { connected: true, athlete_name: conn.athlete_name, fetched: runs.length };
@@ -151,9 +223,35 @@ async function syncRuns(deps: Deps, userId: string) {
 export function makeHandler(deps: Deps) {
   return async (req: Request): Promise<Response> => {
     if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-    if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
     if (!deps.env("STRAVA_CLIENT_ID") || !deps.env("STRAVA_CLIENT_SECRET")) {
       return json({ error: "not_configured" }, 500);
+    }
+    const url = new URL(req.url);
+    const hookToken = deps.env("STRAVA_WEBHOOK_TOKEN");
+    if (req.method === "GET") {
+      // Strava checking the webhook address when it's subscribed.
+      if (url.searchParams.get("hub.mode") === "subscribe") {
+        if (!hookToken || url.searchParams.get("hub.verify_token") !== hookToken) return json({ error: "forbidden" }, 403);
+        return new Response(JSON.stringify({ "hub.challenge": url.searchParams.get("hub.challenge") }), { headers: { "Content-Type": "application/json" } });
+      }
+      if (url.searchParams.get("setup") === "webhook") {
+        if (!hookToken || url.searchParams.get("key") !== hookToken) return json({ error: "forbidden" }, 403);
+        return await subscribeWebhook(deps);
+      }
+      return json({ error: "method_not_allowed" }, 405);
+    }
+    if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+    // A webhook event from Strava: answered right away, handled after.
+    if (!req.headers.get("x-altiro-user")) {
+      let peek: Record<string, unknown> | null = null;
+      try { peek = await req.clone().json(); } catch { /* not JSON */ }
+      if (peek && "object_type" in peek && "owner_id" in peek && "aspect_type" in peek) {
+        const work = handleWebhookEvent(deps, peek)
+          .then((r) => console.log(JSON.stringify({ webhook: peek, ...r })))
+          .catch((e) => console.log(JSON.stringify({ webhook_error: String((e as Error).message || e) })));
+        if (deps.waitUntil) deps.waitUntil(work); else await work;
+        return json({ received: true });
+      }
     }
     // The app sends the user's token in x-altiro-user (Authorization then carries the anon key, which gets
     // past Supabase's "Verify JWT" gateway whether it's on or off); plain Authorization also works.
@@ -235,6 +333,11 @@ function supabaseDb(): Db {
       if (error) console.log(JSON.stringify({ auth_error: error.message }));
       return data?.user?.id ?? null;
     },
+    async getConnectionByAthlete(athleteId) {
+      const { data, error } = await admin.from("strava_connections").select("*").eq("athlete_id", athleteId).limit(1).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
     async getConnection(userId) {
       const { data, error } = await admin.from("strava_connections").select("*").eq("user_id", userId).maybeSingle();
       if (error) throw error;
@@ -252,6 +355,9 @@ function supabaseDb(): Db {
     async deleteUnappliedActivities(userId) {
       check(await admin.from("strava_activities").delete().eq("user_id", userId).is("applied_at", null));
     },
+    async deleteUnappliedActivity(activityId) {
+      check(await admin.from("strava_activities").delete().eq("id", activityId).is("applied_at", null));
+    },
   };
 }
 
@@ -261,5 +367,7 @@ if (!Deno.env.get("ALTIRO_STRAVA_TEST")) {
     env: (name) => Deno.env.get(name),
     fetch: (input, init) => fetch(input, init),
     now: () => Date.now(),
+    // deno-lint-ignore no-explicit-any
+    waitUntil: (p) => { const rt = (globalThis as any).EdgeRuntime; if (rt && rt.waitUntil) rt.waitUntil(p); },
   }));
 }

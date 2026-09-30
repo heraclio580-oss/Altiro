@@ -197,6 +197,7 @@ p.sub{font-family:var(--font-body);font-size:13.5px;line-height:1.55;color:var(-
 
 /* ---------- progress bar (onboarding) ---------- */
 .progress{display:flex;gap:5px;padding:0 20px;margin-top:14px;}
+.progress[hidden],.step-tag[hidden]{display:none;}
 .progress i{flex:1;height:3px;background:var(--well);border-radius:2px;}
 .progress i.on{background:var(--accent);}
 
@@ -1044,6 +1045,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     </div>
     <div class="footer-cta">
       <button class="btn btn-primary" data-i18n="startBtn" data-go="onb-goal"></button>
+      <button class="btn btn-ghost" id="welcomeSignInBtn" type="button" data-i18n="welcomeSignInBtn"></button>
       <div class="footer-note" data-i18n="footNote"></div>
     </div>
   </section>
@@ -1222,14 +1224,14 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   <!-- 7. ACCOUNT -->
   <section class="screen" id="screen-onb-account" data-title="Onboarding · Account" hidden>
     <div class="topbar">
-      <button class="iconbtn" data-go="onb-info"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 4l-6 6 6 6"/></svg></button>
-      <span class="step-tag" data-i18n="stepTag7"></span>
+      <button class="iconbtn" id="accountBackBtn" data-go="onb-info"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 4l-6 6 6 6"/></svg></button>
+      <span class="step-tag" id="accountStepTag" data-i18n="stepTag7"></span>
     </div>
-    <div class="progress"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+    <div class="progress" id="accountProgress"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
     <div class="pad grow">
       <span class="eyebrow" data-i18n="eyebrowAccount"></span>
-      <h2 class="hl" data-i18n="accountHeadline"></h2>
-      <p class="sub" data-i18n="accountSub"></p>
+      <h2 class="hl" id="accountHeadline" data-i18n="accountHeadline"></h2>
+      <p class="sub" id="accountSub" data-i18n="accountSub"></p>
       <div style="margin-top:28px;">
         <button class="google-btn" id="googleSignInBtn">
           <span class="gicon"><svg viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg></span>
@@ -2266,6 +2268,9 @@ const STR = {
     noTrainingDaysNote: "No fixed days — plan each day yourself from Add Workout.",
     eyebrowAccount: "Account",
     accountHeadline: "Save your plan",
+    welcomeSignInBtn: "I have an account · Sign in",
+    welcomeBackHeadline: "Welcome back",
+    welcomeBackSub: "Sign in to pick up right where you left off.",
     accountSub: "Sign in with Google in one tap, or create an account with your email.",
     googleSignInBtn: "Sign in with Google",
     signingInMsg: "Signing in…",
@@ -2652,6 +2657,9 @@ const STR = {
     noTrainingDaysNote: "Sin días fijos — planifica cada día tú mismo desde Añadir entrenamiento.",
     eyebrowAccount: "Cuenta",
     accountHeadline: "Guarda tu plan",
+    welcomeSignInBtn: "Ya tengo cuenta · Iniciar sesión",
+    welcomeBackHeadline: "Bienvenido de nuevo",
+    welcomeBackSub: "Inicia sesión para seguir justo donde te quedaste.",
     accountSub: "Inicia sesión con Google en un toque, o crea una cuenta con tu correo.",
     googleSignInBtn: "Continuar con Google",
     signingInMsg: "Iniciando sesión…",
@@ -4707,6 +4715,11 @@ function showScreen(id){
   if(id==='summary') renderSummary();
   if(id==='onb-focus'){ onbSlider.paint(); updateOnbSliderLabels(state.focusRatio); }
   if(id==='onb-intensity') renderOnbBaseline();
+  if((id==='welcome' || id==='onb-goal') && accountReturning){
+    accountReturning = false;
+    authMode = 'signup';
+    updateAuthModeUI();
+  }
 }
 
 document.addEventListener('click', (e)=>{
@@ -8299,12 +8312,38 @@ function renderSummary(){
 
 /* ---------------- account / sign-in (real Supabase Auth) ---------------- */
 let authMode = 'signup';
+// true when the account screen was opened from Welcome's "Sign in" button -- a returning user who
+// skips onboarding entirely. Back goes to Welcome, and there's no step counter or progress bar.
+var accountReturning = false;
 function updateAuthModeUI(){
   const L = STR[state.lang];
   document.getElementById('emailSignupBtn').textContent = authMode==='signup' ? L.createAccountBtn : L.signInBtn;
   document.getElementById('toggleAuthMode').textContent = authMode==='signup' ? L.alreadyHaveAccount : L.needAccount;
+  document.getElementById('accountBackBtn').setAttribute('data-go', accountReturning ? 'welcome' : 'onb-info');
+  document.getElementById('accountStepTag').hidden = accountReturning;
+  document.getElementById('accountProgress').hidden = accountReturning;
+  document.getElementById('accountHeadline').textContent = accountReturning ? L.welcomeBackHeadline : L.accountHeadline;
+  document.getElementById('accountSub').textContent = accountReturning ? L.welcomeBackSub : L.accountSub;
+  document.getElementById('passwordInput').setAttribute('autocomplete', authMode==='signin' ? 'current-password' : 'new-password');
 }
+function openReturningSignIn(){
+  accountReturning = true;
+  authMode = 'signin';
+  document.getElementById('authError').textContent = '';
+  updateAuthModeUI();
+  showScreen('onb-account');
+}
+document.getElementById('welcomeSignInBtn').addEventListener('click', openReturningSignIn);
 document.getElementById('toggleAuthMode').addEventListener('click', ()=>{
+  // A new user who came in through Welcome's Sign in button still needs to set up their plan first.
+  if(accountReturning && authMode==='signin'){
+    accountReturning = false;
+    authMode = 'signup';
+    document.getElementById('authError').textContent = '';
+    updateAuthModeUI();
+    showScreen('onb-goal');
+    return;
+  }
   authMode = authMode==='signup' ? 'signin' : 'signup';
   document.getElementById('authError').textContent = '';
   updateAuthModeUI();

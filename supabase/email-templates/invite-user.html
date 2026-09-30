@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<title>You're invited to Altiro</title>
+</head>
+<body style="margin:0;padding:0;background:#f2f2f0;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your training plan is waiting. / Tu plan de entrenamiento te espera.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f2f0;">
+    <tr><td align="center" style="padding:28px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;">
+        <tr><td align="center" style="background:#0B0B0C;padding:26px 24px 20px;">
+          <img src="https://heraclio580-oss.github.io/Altiro/icons/icon-192.png" width="64" height="64" alt="Altiro" style="display:block;border:0;border-radius:14px;">
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;letter-spacing:4px;color:#ffffff;margin-top:12px;">ALTIRO</div>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:2px;color:#DA1419;margin-top:4px;">YOUR PACE, YOUR PLAN.</div>
+        </td></tr>
+        <tr><td style="padding:30px 30px 8px;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;">
+            <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;color:#0B0B0C;">You're invited to Altiro</h1>
+            <p style="margin:0;font-size:15px;line-height:1.55;color:#3d3d42;">You've been invited to Altiro, the app that builds your running and strength training plan around your week. Tap the button to accept and set up your account.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 8px;">
+              <tr><td align="center" bgcolor="#DA1419" style="border-radius:999px;">
+                <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 30px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;letter-spacing:0.5px;color:#ffffff;text-decoration:none;border-radius:999px;">ACCEPT INVITE</a>
+              </td></tr>
+            </table>
+            <p style="margin:12px 0 0;font-size:13px;line-height:1.5;color:#6e6e73;">Not expecting this? You can ignore this email.</p>
+        </td></tr>
+        <tr><td style="padding:22px 30px 8px;font-family:Arial,Helvetica,sans-serif;">
+            <div style="border-top:1px solid #e6e6e3;padding-top:20px;">
+              <div style="font-size:11px;letter-spacing:2px;color:#9a9a9e;margin-bottom:8px;">EN ESPAÑOL</div>
+              <h2 style="margin:0 0 10px;font-size:18px;line-height:1.3;color:#0B0B0C;">Te invitaron a Altiro</h2>
+              <p style="margin:0;font-size:14px;line-height:1.55;color:#3d3d42;">Te invitaron a Altiro, la app que arma tu plan de carrera y fuerza según tu semana. Toca el botón para aceptar y crear tu cuenta.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 8px;">
+              <tr><td align="center" bgcolor="#DA1419" style="border-radius:999px;">
+                <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 30px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;letter-spacing:0.5px;color:#ffffff;text-decoration:none;border-radius:999px;">ACEPTAR INVITACIÓN</a>
+              </td></tr>
+            </table>
+              <p style="margin:12px 0 0;font-size:12px;line-height:1.5;color:#6e6e73;">¿No lo esperabas? Puedes ignorar este correo.</p>
+            </div>
+        </td></tr>
+        <tr><td style="padding:22px 30px 26px;font-family:Arial,Helvetica,sans-serif;">
+            <p style="margin:0 0 6px;font-size:12px;line-height:1.5;color:#9a9a9e;">Button not working? Copy this link into your browser: / ¿El botón no funciona? Copia este enlace en tu navegador:</p>
+            <p style="margin:0;font-size:12px;line-height:1.5;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#DA1419;">{{ .ConfirmationURL }}</a></p>
+        </td></tr>
+        <tr><td align="center" style="background:#f7f7f5;padding:16px 24px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#9a9a9e;">
+          Sent to {{ .Email }} by <a href="https://heraclio580-oss.github.io/Altiro/" style="color:#6e6e73;">Altiro</a> · Questions? Reply to this email.<br>
+          Enviado a {{ .Email }} por Altiro · ¿Preguntas? Responde a este correo.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

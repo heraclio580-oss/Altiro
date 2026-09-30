@@ -14,7 +14,7 @@ function check(label, ok, detail){
   console.log(label+':', ok ? 'OK' : `FAIL${detail!==undefined ? ' ('+detail+')' : ''}`);
 }
 
-function makeBackend(){
+function makeBackend(opts = {}){
   const db = {
     profiles: {u1: {id:'u1', full_name:'Sam', goal:'general', level:'intermediate', training_days:[0,2,4], focus_ratio:2, intensity_idx:1, plan_start:'2026-09-14'}},
     workout_logs: {}, manual_entries: {}, reminder_settings: {}, push_subscriptions: {},
@@ -26,6 +26,7 @@ function makeBackend(){
     async function run(single){
       const rows = db[table];
       if(!rows) return {data: single ? null : [], error:null};
+      if(op==='upsert' && opts.missingTable===table) return {data:null, error:{code:'42P01', message:'relation does not exist'}};
       if(op==='upsert'){
         const key = conflict || 'id';
         const existing = Object.values(rows).find(r => r[key]===payload[key]);
@@ -80,9 +81,13 @@ function openSession(backend, opts = {}){
       w.registered = [];
       w.permissionAsks = 0;
       let current = null;
+      // Like Chrome: the service worker is still installing when the page first registers it, and
+      // subscribing through one that isn't active yet fails.
+      const reg = { active: null };
       const pushManager = {
         async getSubscription(){ return current; },
         async subscribe(o){
+          if(!reg.active) throw new w.DOMException('Subscription failed - no active Service Worker', 'AbortError');
           w.subscribeKey = o.applicationServerKey;
           current = { endpoint: 'https://fcm.googleapis.com/fcm/send/device-1', toJSON(){ return {endpoint: this.endpoint, keys:{p256dh:'BPUBKEY', auth:'AUTHSECRET'}}; } };
           return current;
@@ -91,8 +96,10 @@ function openSession(backend, opts = {}){
       if(!opts.noPush){
         w.PushManager = function(){};
         w.Notification = { permission: opts.permission || 'default', async requestPermission(){ w.permissionAsks++; this.permission = opts.answer || 'granted'; return this.permission; } };
+        reg.pushManager = pushManager;
         Object.defineProperty(w.navigator, 'serviceWorker', { value: {
-          register(url){ w.registered.push(url); return Promise.resolve({pushManager}); },
+          register(url){ w.registered.push(url); return Promise.resolve(reg); },
+          get ready(){ return new Promise(r => setTimeout(() => { reg.active = {state:'activated'}; r(reg); }, 20)); },
           addEventListener(){},
         }});
       }
@@ -224,6 +231,15 @@ function openSession(backend, opts = {}){
   check('Opened from the iPhone Home Screen: no install prompt, reminders can be turned on', doc5.getElementById('installSection').hidden && doc5.getElementById('reminderNote').hidden);
   doc5.getElementById('notifToggle').click(); await wait(50);
   check('...and they turn on', doc5.getElementById('notifToggle').classList.contains('on'));
+
+  // A setup problem says which step failed, e.g. the table was never created.
+  const b6 = makeBackend({missingTable:'push_subscriptions'});
+  const dom6 = openSession(b6);
+  await wait(250);
+  const doc6 = dom6.window.document;
+  [...doc6.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'settings').click(); await wait(20);
+  doc6.getElementById('notifToggle').click(); await wait(80);
+  check('If saving the device fails, the message says so', doc6.getElementById('toastMsg').textContent==="Couldn't turn on reminders. Check your connection and try again. (device: 42P01)" && !doc6.getElementById('notifToggle').classList.contains('on'), doc6.getElementById('toastMsg').textContent);
 
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(0);

@@ -9438,13 +9438,13 @@ async function saveReminderSettings(){
     schedule: state.notifications ? buildReminderSchedule() : null,
   };
   const key = JSON.stringify(row);
-  if(key===lastReminderSave) return true;
+  if(key===lastReminderSave) return {ok:true};
   try{
     const { error } = await sb.from('reminder_settings').upsert({...row, updated_at: new Date().toISOString()}, {onConflict:'user_id'});
-    if(error) return false;
+    if(error) return {ok:false, why:'save: '+(error.code || error.message || 'error')};
     lastReminderSave = key;
-    return true;
-  }catch(e){ return false; }
+    return {ok:true};
+  }catch(e){ return {ok:false, why:'save: '+((e && e.message) || e)}; }
 }
 // Called whenever the views refresh (plan changes, workouts logged, a new day) -- saves at most once a
 // couple of seconds, and only when something in the schedule actually changed.
@@ -9460,18 +9460,41 @@ function urlBase64ToBytes(b64){
   const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
   return Uint8Array.from(raw, c=>c.charCodeAt(0));
 }
-async function subscribeThisDevice(){
+// The service worker, once it's active -- a browser won't subscribe to push through one that's still
+// installing (right after the first visit, or right after an update).
+async function activeServiceWorker(){
   const reg = await registerServiceWorker();
-  if(!reg || !reg.pushManager) return null;
-  let sub = await reg.pushManager.getSubscription();
-  if(!sub) sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: urlBase64ToBytes(PUSH_PUBLIC_KEY)});
-  const j = sub.toJSON ? sub.toJSON() : sub;
-  if(!j || !j.endpoint || !j.keys) return null;
-  const { error } = await sb.from('push_subscriptions').upsert({
-    user_id: state.userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
-    user_agent: (navigator.userAgent||'').slice(0,200),
-  }, {onConflict:'endpoint'});
-  return error ? null : j.endpoint;
+  if(!reg) return null;
+  if(reg.active) return reg;
+  return Promise.race([navigator.serviceWorker.ready, new Promise(r=>setTimeout(()=>r(null), 10000))]);
+}
+// {endpoint} when this device is subscribed and saved, or {why} -- which step failed, for the message.
+async function subscribeThisDevice(){
+  const reg = await activeServiceWorker();
+  if(!reg || !reg.pushManager) return {why:'service worker'};
+  const options = {userVisibleOnly: true, applicationServerKey: urlBase64ToBytes(PUSH_PUBLIC_KEY)};
+  let sub;
+  try{
+    sub = await reg.pushManager.getSubscription();
+    if(!sub) sub = await reg.pushManager.subscribe(options);
+  }catch(e){
+    // A subscription left from an earlier attempt can get in the way: drop it and try once more.
+    try{
+      const old = await reg.pushManager.getSubscription();
+      if(old) await old.unsubscribe();
+      sub = await reg.pushManager.subscribe(options);
+    }catch(e2){ return {why:'push: '+((e2 && (e2.message || e2.name)) || e2)}; }
+  }
+  const j = sub && sub.toJSON ? sub.toJSON() : sub;
+  if(!j || !j.endpoint || !j.keys) return {why:'push: no subscription'};
+  try{
+    const { error } = await sb.from('push_subscriptions').upsert({
+      user_id: state.userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
+      user_agent: (navigator.userAgent||'').slice(0,200),
+    }, {onConflict:'endpoint'});
+    if(error) return {why:'device: '+(error.code || error.message || 'error')};
+  }catch(e){ return {why:'device: '+((e && e.message) || e)}; }
+  return {endpoint: j.endpoint};
 }
 async function forgetThisDeviceForReminders(){
   try{
@@ -9532,10 +9555,13 @@ async function toggleReminders(){
     // Asked straight from the tap -- browsers only show the permission prompt for a user's own action.
     const permission = await Notification.requestPermission();
     if(permission!=='granted'){ renderReminderSettings(); showToast(L.remindersBlocked); return; }
-    const endpoint = await subscribeThisDevice().catch(()=>null);
-    if(!endpoint){ showToast(L.remindersFailed); return; }
+    // "Couldn't turn on reminders (push: ...)" -- which step failed, so a setup problem can be told apart.
+    const failed = why => showToast(`${L.remindersFailed} (${why})`);
+    const device = await subscribeThisDevice().catch(e=>({why: String((e && e.message) || e)}));
+    if(!device.endpoint){ failed(device.why); return; }
     state.notifications = true;
-    if(!(await saveReminderSettings())){ state.notifications = false; showToast(L.remindersFailed); return; }
+    const saved = await saveReminderSettings();
+    if(!saved.ok){ state.notifications = false; failed(saved.why); return; }
     showToast(L.remindersOnToast.replace('{time}', fmtReminderTime(state.reminderTime)));
   }finally{
     reminderBusy = false;

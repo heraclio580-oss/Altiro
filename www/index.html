@@ -2472,6 +2472,7 @@ const STR = {
     emailConfirmedToast: "Email confirmed. Welcome to Altiro!",
     confirmLinkExpired: "That email link has expired or was already used. Sign in below, or get a new link.",
     forgotPasswordBtn: "Forgot password?",
+    emailRateLimitMsg: "Too many emails have been sent in the last hour. Please wait a little while and try again.",
     forgotNeedEmail: "Type your email above, then tap Forgot password.",
     resetSentMsg: "Check your email for a link to set a new password.",
     newPasswordTitle: "Set a new password",
@@ -2915,6 +2916,7 @@ const STR = {
     emailConfirmedToast: "Correo confirmado. ¡Bienvenido a Altiro!",
     confirmLinkExpired: "Ese enlace expiró o ya se usó. Inicia sesión abajo, o pide un enlace nuevo.",
     forgotPasswordBtn: "¿Olvidaste tu contraseña?",
+    emailRateLimitMsg: "Se enviaron demasiados correos en la última hora. Espera un poco y vuelve a intentarlo.",
     forgotNeedEmail: "Escribe tu correo arriba y toca ¿Olvidaste tu contraseña?",
     resetSentMsg: "Revisa tu correo: te enviamos un enlace para crear una nueva contraseña.",
     newPasswordTitle: "Crea una nueva contraseña",
@@ -8649,10 +8651,16 @@ document.getElementById('resendConfirmBtn').addEventListener('click', async func
     errEl.textContent = L.resendSentMsg;
   }catch(err){
     errEl.style.color = 'var(--accent)';
-    errEl.textContent = err.message || 'Something went wrong.';
+    errEl.textContent = authErrorText(err);
   }finally{ this.disabled = false; }
 });
 
+// Supabase's own wording, except when it's about the email limit -- say what that means in plain words.
+function authErrorText(err){
+  const msg = (err && err.message) || '';
+  if((err && (err.status===429 || err.code==='over_email_send_rate_limit')) || /rate limit/i.test(msg)) return STR[state.lang].emailRateLimitMsg;
+  return msg || 'Something went wrong.';
+}
 /* ---------------- forgot password ---------------- */
 // "Forgot password?" emails a reset link back to this site; the link signs the user in, and the app
 // then asks for a new password.
@@ -8675,7 +8683,7 @@ document.getElementById('forgotPasswordBtn').addEventListener('click', async fun
     errEl.textContent = L.resetSentMsg;
   }catch(err){
     errEl.style.color = 'var(--accent)';
-    errEl.textContent = err.message || 'Something went wrong.';
+    errEl.textContent = authErrorText(err);
   }finally{ this.disabled = false; }
 });
 function openNewPasswordSheet(){
@@ -8700,7 +8708,7 @@ document.getElementById('saveNewPassword').addEventListener('click', async funct
     closeNewPasswordSheet();
     showToast(L.newPasswordSavedToast);
   }catch(err){
-    errEl.textContent = err.message || 'Something went wrong.';
+    errEl.textContent = authErrorText(err);
   }finally{ this.disabled = false; }
 });
 
@@ -9521,7 +9529,7 @@ document.getElementById('emailSignupBtn').addEventListener('click', async functi
       showResendConfirm(email);
       return;
     }
-    errEl.textContent = err.message || 'Something went wrong.';
+    errEl.textContent = authErrorText(err);
   }finally{
     btn.disabled = false;
     updateAuthModeUI();

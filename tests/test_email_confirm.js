@@ -40,7 +40,7 @@ function makeBackend(opts = {}){
       auth: {
         async getSession(){ return {data:{session: opts.sessionUser ? {user: opts.sessionUser} : null}}; },
         onAuthStateChange(){ return {data:{subscription:{unsubscribe(){}}}}; },
-        async signUp(args){ db.calls.push(['signUp', args]); return {data:{user:{id:'u9', email:args.email}, session:null}, error:null}; },
+        async signUp(args){ db.calls.push(['signUp', args]); if(opts.rateLimited) return {data:{user:null, session:null}, error:{message:'email rate limit exceeded', status:429, code:'over_email_send_rate_limit'}}; return {data:{user:{id:'u9', email:args.email}, session:null}, error:null}; },
         async signInWithPassword(args){ db.calls.push(['signIn', args]); return {data:null, error: opts.unconfirmed ? {message:'Email not confirmed', code:'email_not_confirmed'} : {message:'Invalid login credentials'}}; },
         async resend(args){ db.calls.push(['resend', args]); return {error:null}; },
         async resetPasswordForEmail(email, o){ db.calls.push(['reset', {email, ...o}]); return {error:null}; },
@@ -151,6 +151,17 @@ const PENDING = {email:'new@example.com', at: Date.now()-5*60*1000, fields:{goal
   d6.getElementById('saveNewPassword').click(); await wait(40);
   const upd = b6.db.calls.find(c=>c[0]==='updateUser');
   check('...saves the new password', upd && upd[1].password==='newsecret1' && d6.getElementById('newPasswordOverlay').hidden && d6.getElementById('toastMsg').textContent==='Password updated');
+
+  // ---- Supabase's email limit ----
+  const b7 = makeBackend({rateLimited:true});
+  const dom7 = open(b7, 'https://example.com/Altiro/');
+  await wait(250);
+  const d7 = dom7.window.document;
+  [...d7.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'onb-account').click(); await wait(20);
+  const t7 = (id, v) => { const el = d7.getElementById(id); el.value = v; el.dispatchEvent(new dom7.window.Event('input', {bubbles:true})); };
+  t7('emailInput', 'busy@example.com'); t7('passwordInput', 'secret123');
+  d7.getElementById('emailSignupBtn').click(); await wait(50);
+  check('Email limit reached: explained in plain words', d7.getElementById('authError').textContent==='Too many emails have been sent in the last hour. Please wait a little while and try again.', d7.getElementById('authError').textContent);
 
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(0);

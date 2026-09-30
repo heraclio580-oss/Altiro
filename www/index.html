@@ -1319,7 +1319,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
   <!-- 11. CALENDAR -->
   <section class="screen tab-screen" id="screen-calendar" data-title="Calendar" hidden>
-    <div class="topbar"><span class="label" data-i18n="navCalendar"></span></div>
+    <div class="topbar" style="justify-content:space-between;padding-right:20px;">
+      <span class="label" data-i18n="navCalendar"></span>
+      <button class="iconbtn" data-open-adjust title="Adjust plan"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13.5 3a3.5 3.5 0 0 0-4.6 4.2L3 13.1V17h3.9l5.9-5.9A3.5 3.5 0 0 0 17 6.5l-2.6 2.6-2-2L15 4.4"/></svg></button>
+    </div>
     <div id="calendarViewPane">
       <div class="cal-switcher">
         <button class="iconbtn" id="calPrev" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 4l-6 6 6 6"/></svg></button>
@@ -1333,7 +1336,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
   <!-- 13. PROGRESS -->
   <section class="screen tab-screen" id="screen-progress" data-title="Progress" hidden>
-    <div class="topbar"><span class="label" data-i18n="navProgress"></span></div>
+    <div class="topbar" style="justify-content:space-between;padding-right:20px;">
+      <span class="label" data-i18n="navProgress"></span>
+      <button class="iconbtn" data-open-adjust title="Adjust plan"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13.5 3a3.5 3.5 0 0 0-4.6 4.2L3 13.1V17h3.9l5.9-5.9A3.5 3.5 0 0 0 17 6.5l-2.6 2.6-2-2L15 4.4"/></svg></button>
+    </div>
     <div class="pad" style="padding-top:18px;">
       <div class="sheet-section">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -2236,7 +2242,7 @@ const STR = {
     tourProgressH: "Watch it add up",
     tourProgressB: "Progress shows your weeks, miles and PRs. On the Calendar, swipe left or right to change months, and tap any day to see or log a workout.",
     tourNavH: "Everything's a tap away",
-    tourNavB: "Tap the wrench at the top of Today or Plan anytime to change your days, intensity, lifting split, mile time or start date. Connect Strava in Settings to bring in runs from your watch.",
+    tourNavB: "Tap the wrench at the top of Today, Plan, Progress or Calendar anytime to change your days, intensity, lifting split, mile time or start date. Connect Strava in Settings to bring in runs from your watch.",
     tourMockRunning: "Running", tourMockStrength: "Strength", tourMockDays: "Your days", tourMockSplit: "Lifting split",
     tourMockFull: "Full body", tourMockPpl: "Push / Pull / Legs", tourMockOne: "One muscle group",
     tourMockThisWeek: "This week", tourMockEasyRun: "Easy Run", tourMockTempoRun: "Tempo Run", tourMockLongRun: "Long Run",
@@ -2622,7 +2628,7 @@ const STR = {
     tourProgressH: "Mira tu progreso",
     tourProgressB: "Progreso muestra tus semanas, millas y récords. En el Calendario, desliza a la izquierda o derecha para cambiar de mes, y toca cualquier día para ver o registrar un entrenamiento.",
     tourNavH: "Todo a un toque de distancia",
-    tourNavB: "Toca la llave arriba en Hoy o Plan cuando quieras para cambiar tus días, intensidad, división de pesas, tiempo de milla o fecha de inicio. Conecta Strava en Ajustes para traer las carreras de tu reloj.",
+    tourNavB: "Toca la llave arriba en Hoy, Plan, Progreso o Calendario cuando quieras para cambiar tus días, intensidad, división de pesas, tiempo de milla o fecha de inicio. Conecta Strava en Ajustes para traer las carreras de tu reloj.",
     tourMockRunning: "Correr", tourMockStrength: "Fuerza", tourMockDays: "Tus días", tourMockSplit: "División de pesas",
     tourMockFull: "Cuerpo completo", tourMockPpl: "Empuje / Tracción / Piernas", tourMockOne: "Un grupo muscular",
     tourMockThisWeek: "Esta semana", tourMockEasyRun: "Carrera suave", tourMockTempoRun: "Carrera de tempo", tourMockLongRun: "Carrera larga",

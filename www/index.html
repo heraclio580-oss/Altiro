@@ -1430,13 +1430,6 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <a class="settings-link" href="privacy.html#strava" target="_blank" rel="noopener" data-i18n="stravaPrivacyLink"></a>
       </div>
 
-      <div class="sheet-section">
-        <div class="st-label" data-i18n="myLiftsLabel"></div>
-        <button class="how-it-works-btn" id="openLiftsBtn" type="button">
-          <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="3" height="6" rx="0.5"/><rect x="15" y="7" width="3" height="6" rx="0.5"/><rect x="6" y="9" width="8" height="2" rx="0.3"/></svg></span>
-          <span data-i18n="myLiftsBtn"></span>
-        </button>
-      </div>
 
       <div class="sheet-section">
         <div class="st-label" data-i18n="feedbackLabel"></div>
@@ -1522,18 +1515,6 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   </div>
 
   <!-- MY LIFTS SHEET (overlay) -->
-  <div class="sheet-overlay" id="liftsOverlay" hidden>
-    <div class="sheet-panel">
-      <div class="sheet-handle"></div>
-      <div class="sheet-head">
-        <span class="label" data-i18n="myLiftsTitle"></span>
-        <button class="iconbtn" id="closeLifts"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
-      </div>
-      <p class="fb-sub" data-i18n="myLiftsSub"></p>
-      <div id="liftsList"></div>
-      <button class="btn btn-primary sheet-apply" id="saveLiftsBtn" type="button" data-i18n="liftSaveAllBtn"></button>
-    </div>
-  </div>
 
   <!-- REPEAT WEEK SHEET (overlay) -->
   <div class="sheet-overlay" id="repeatOverlay" hidden>
@@ -1654,6 +1635,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="st-label" style="margin-top:14px;" data-i18n="liftSplitLabel"></div>
         <div class="chip-row" id="adjLiftSplitChips"></div>
         <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjLiftSplitNote"></div>
+        <div class="st-label" style="margin-top:14px;" data-i18n="myLiftsLabel"></div>
+        <button class="how-it-works-btn" id="openLiftsBtn" type="button">
+          <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="3" height="6" rx="0.5"/><rect x="15" y="7" width="3" height="6" rx="0.5"/><rect x="6" y="9" width="8" height="2" rx="0.3"/></svg></span>
+          <span data-i18n="myLiftsBtn"></span>
+        </button>
       </div>
 
       <div class="sheet-section">
@@ -1673,6 +1659,19 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <button class="btn btn-primary sheet-apply" id="applyAdjust" data-i18n="applyBtn"></button>
+    </div>
+  </div>
+
+  <div class="sheet-overlay" id="liftsOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="myLiftsTitle"></span>
+        <button class="iconbtn" id="closeLifts"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <p class="fb-sub" data-i18n="myLiftsSub"></p>
+      <div id="liftsList"></div>
+      <button class="btn btn-primary sheet-apply" id="saveLiftsBtn" type="button" data-i18n="liftSaveAllBtn"></button>
     </div>
   </div>
 
@@ -2238,7 +2237,7 @@ const STR = {
     tourRepeatH: "Repeat your week",
     tourRepeatB: "Planned your own week? Tap Repeat next to it to copy it into the weeks ahead. Your weights and reps carry over and go up as you log.",
     tourLogH: "Log it, get stronger",
-    tourLogB: "Tap Start Workout and check off each set as you go. Altiro remembers what you lifted and suggests the next step up. Set your own numbers anytime in Settings → My Lifts.",
+    tourLogB: "Tap Start Workout and check off each set as you go. Altiro remembers what you lifted and suggests the next step up. Set your own numbers anytime under the wrench → My Lifts.",
     tourProgressH: "Watch it add up",
     tourProgressB: "Progress shows your weeks, miles and PRs. On the Calendar, swipe left or right to change months, and tap any day to see or log a workout.",
     tourNavH: "Everything's a tap away",
@@ -2624,7 +2623,7 @@ const STR = {
     tourRepeatH: "Repite tu semana",
     tourRepeatB: "¿Planeaste tu propia semana? Toca Repetir junto a ella para copiarla a las semanas siguientes. Tus pesos y repeticiones se mantienen y suben a medida que registras.",
     tourLogH: "Regístralo, hazte más fuerte",
-    tourLogB: "Toca Comenzar entrenamiento y marca cada serie al terminarla. Altiro recuerda lo que levantaste y te sugiere el siguiente paso. Pon tus propios números cuando quieras en Ajustes → Mis levantamientos.",
+    tourLogB: "Toca Comenzar entrenamiento y marca cada serie al terminarla. Altiro recuerda lo que levantaste y te sugiere el siguiente paso. Pon tus propios números cuando quieras con la llave → Mis levantamientos.",
     tourProgressH: "Mira tu progreso",
     tourProgressB: "Progreso muestra tus semanas, millas y récords. En el Calendario, desliza a la izquierda o derecha para cambiar de mes, y toca cualquier día para ver o registrar un entrenamiento.",
     tourNavH: "Todo a un toque de distancia",

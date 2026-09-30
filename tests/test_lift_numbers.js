@@ -105,7 +105,14 @@ function open(backend){
   // ---- My Lifts: everything at once ----
   go('settings');
   await wait(10);
+  console.log('Settings no longer has the My Lifts button:', !doc.querySelector('#screen-settings #openLiftsBtn') ? 'OK' : 'FAIL');
+  go('home');
+  await wait(10);
+  await click('#screen-home [data-open-adjust]');
+  console.log('It lives in Adjust, under the lifting split:', doc.querySelector('#adjEquipSection #openLiftsBtn') && !doc.getElementById('adjEquipSection').hidden ? 'OK' : 'FAIL');
   await click('#openLiftsBtn');
+  const zOrder = [...doc.querySelectorAll('.sheet-overlay')].map(o=>o.id);
+  console.log('My Lifts opens on top of Adjust:', !doc.getElementById('liftsOverlay').hidden && zOrder.indexOf('liftsOverlay') > zOrder.indexOf('adjustOverlay') ? 'OK' : 'FAIL');
   const rows = [...doc.querySelectorAll('#liftsList .lift-row')];
   console.log('My Lifts lists the plan\'s lifts:', rows.length>=5 ? `OK (${rows.length} lifts)` : `FAIL (${rows.length})`);
   const firstRow = rows.find(r=>r.getAttribute('data-lift-key')===first.key);
@@ -116,6 +123,8 @@ function open(backend){
   setVal(other.querySelector('[data-lift-field="weight"]'), 80);
   if(bw) setVal(bw.querySelector('[data-lift-field="reps"]'), 20);
   await click('#saveLiftsBtn');
+  console.log('Saving goes back to Adjust:', doc.getElementById('liftsOverlay').hidden && !doc.getElementById('adjustOverlay').hidden ? 'OK' : 'FAIL');
+  await click('#closeAdjust');
   const otherKey = other.getAttribute('data-lift-key');
   console.log('Saving updates each changed lift:', backend.targets['strength:'+otherKey] && backend.targets['strength:'+otherKey].weight===80 ? 'OK' : `FAIL (${JSON.stringify(backend.targets['strength:'+otherKey])})`);
   if(bw) console.log('...including a bodyweight move\'s reps:', backend.targets['strength:'+bw.getAttribute('data-lift-key')].reps===20 ? 'OK' : 'FAIL');

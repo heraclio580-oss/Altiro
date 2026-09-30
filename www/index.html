@@ -639,6 +639,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .start-cal-grid button:disabled{color:var(--text-3);opacity:0.35;cursor:default;}
 .settings-link{display:inline-block;margin-top:10px;font-size:12px;color:var(--text-3);text-decoration:underline;text-underline-offset:3px;}
 .strava-view-link{display:inline-block;margin-top:10px;font-size:13px;font-weight:700;color:#FC5200;text-decoration:underline;text-underline-offset:3px;}
+.strava-view-link[hidden]{display:none;}
 #stravaDisconnectBtn{margin-top:6px;}
 #stravaDisconnectBtn[hidden]{display:none;}
 .toggle{width:38px;height:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-pill);position:relative;cursor:pointer;flex-shrink:0;}
@@ -8434,10 +8435,10 @@ async function cloudInsertManualEntry(dateStr, entry){
     await sb.from('workout_logs').update({ completed_override: null }).eq('id', row.id);
     let res = await sb.from('manual_entries').insert({
       workout_log_id: row.id, name: entry.name, type: entry.type, volume: entry.volume, notes: entry.notes,
-      distance: entry.distance ?? null, duration_min: entry.durationMin ?? null,
+      distance: entry.distance ?? null, duration_min: entry.durationMin ?? null, performance: entry.performance ?? null,
     }).select('id').maybeSingle();
     if(res.error){
-      // distance/duration_min may not exist yet if this migration hasn't been applied to this
+      // distance/duration_min/performance may not exist yet if this migration hasn't been applied to this
       // project's live database -- retry without them rather than losing the whole entry.
       res = await sb.from('manual_entries').insert({
         workout_log_id: row.id, name: entry.name, type: entry.type, volume: entry.volume, notes: entry.notes,
@@ -8805,7 +8806,8 @@ function fileStravaRun(row){
     }
   } else {
     const volume = [`${miles} mi`, minutes!=null ? fmtDurationClock(minutes) : ''].filter(Boolean).join(' · ');
-    logCompletedEntry(key, {name: row.name || 'Run', type:'run', volume, notes:'', distance: miles, durationMin: minutes});
+    // Keeps the Strava id with it, so this run links back to Strava too.
+    logCompletedEntry(key, {name: row.name || 'Run', type:'run', volume, notes:'', distance: miles, durationMin: minutes, performance: logged});
   }
   return true;
 }

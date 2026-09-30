@@ -105,6 +105,8 @@ const text = (doc, id) => doc.getElementById(id).textContent;
   // Today (Fri 18th): a planned 16 mile long run. Tuesday: 4.5 miles already logged by hand.
   backend.addLog('2026-09-18', {planned_type:'run', planned_title:'16 mile long run', planned_detail:'16 mi'});
   const tueId = backend.addLog('2026-09-15', {planned_type:'run', planned_title:'Tempo 4.5 miles', planned_detail:'4.5 mi', actual_run_distance:4.5});
+  // Last Thursday: 2 miles logged by hand, with no Strava run that day.
+  backend.addLog('2026-09-10', {planned_type:'run', planned_title:'Easy 2 miles', planned_detail:'2 mi', actual_run_distance:2});
   backend.db.manual_entries.e1 = {id:'e1', workout_log_id: tueId, name:'Tempo 4.5 miles', type:'run', volume:'4.5 mi', notes:'', distance:4.5, duration_min:36};
   backend.addStrava(101, '2026-09-18', 'Morning Run', 25782, 8400);    // 16.02 mi -> today's planned run
   backend.addStrava(102, '2026-09-15', 'Tempo', 7274, 2150);           // 4.52 mi -> same as Tuesday's hand-logged run
@@ -158,13 +160,14 @@ const text = (doc, id) => doc.getElementById(id).textContent;
   await wait(10);
   doc.getElementById('closeDayDetail').click();
   await wait(10);
-  // A run logged by hand has no "View on Strava" -- the link is really hidden, not just marked hidden.
-  doc.querySelector('.mo-cell[data-date="2026-09-15"]').click();
+  // A run logged by hand, with no Strava run to match, has no "View on Strava" -- the link is really
+  // hidden, not just marked hidden.
+  doc.querySelector('.mo-cell[data-date="2026-09-10"]').click();
   await wait(20);
   doc.getElementById('dayDetailPlanRow').click();
   await wait(20);
   const handLink = doc.getElementById('logPerfStravaLink');
-  console.log('A hand-logged run shows no "View on Strava":', !doc.getElementById('logPerfOverlay').hidden && handLink.hidden && dom.window.getComputedStyle(handLink).display==='none' ? 'OK' : `FAIL (${handLink.hidden} ${dom.window.getComputedStyle(handLink).display})`);
+  console.log('A hand-logged run with no Strava match shows no "View on Strava":', !doc.getElementById('logPerfOverlay').hidden && handLink.hidden && dom.window.getComputedStyle(handLink).display==='none' ? 'OK' : `FAIL (${handLink.hidden} ${dom.window.getComputedStyle(handLink).display})`);
   doc.getElementById('closeLogPerf').click();
   await wait(10);
   doc.getElementById('closeDayDetail').click();

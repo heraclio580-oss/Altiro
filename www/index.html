@@ -335,6 +335,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .th-start.done:hover,.th-start.disabled:hover{background:var(--well);}
 .th-start.done:hover{background:var(--ok-bg);}
 #resendConfirmBtn[hidden]{display:none;}
+.forgot-link{display:block;margin:8px 0 0 auto;padding:4px 0;font-size:12px;}
+.forgot-link[hidden]{display:none;}
 .th-start.disabled{display:none;} /* a rest day: nothing to start -- the card says what's next instead */
 .th-next{position:relative;font-size:12px;color:var(--text-3);margin-top:10px;text-align:center;}
 .th-next:empty{display:none;}
@@ -1332,6 +1334,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div style="margin-top:14px;">
         <div class="label" data-i18n="passwordLabel"></div>
         <input type="password" id="passwordInput" class="text-input" style="margin-top:9px;" placeholder="••••••••" autocomplete="new-password">
+        <button class="btn-text forgot-link" id="forgotPasswordBtn" type="button" data-i18n="forgotPasswordBtn" hidden></button>
       </div>
       <button class="btn btn-primary" id="emailSignupBtn" data-i18n="createAccountBtn" style="margin-top:16px;" disabled></button>
       <button class="btn-text" id="toggleAuthMode" type="button" style="margin-top:12px;width:100%;text-align:center;" data-i18n="alreadyHaveAccount"></button>
@@ -1618,6 +1621,25 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   </section>
 
   <!-- EDIT NAME SHEET (overlay) -->
+  <div class="sheet-overlay" id="newPasswordOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="newPasswordTitle"></span>
+        <button class="iconbtn" id="closeNewPassword"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <p class="fb-sub" data-i18n="newPasswordSub"></p>
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="newPasswordLabel"></div>
+        <input type="password" class="text-input" id="newPasswordInput" autocomplete="new-password" placeholder="••••••••">
+        <div class="st-label" style="margin-top:12px;" data-i18n="newPasswordConfirmLabel"></div>
+        <input type="password" class="text-input" id="newPasswordConfirm" autocomplete="new-password" placeholder="••••••••">
+        <div class="footer-note" id="newPasswordError" style="text-align:left;margin-top:8px;color:var(--accent);"></div>
+      </div>
+      <button class="btn btn-primary sheet-apply" id="saveNewPassword" data-i18n="newPasswordSaveBtn"></button>
+    </div>
+  </div>
+
   <div class="sheet-overlay" id="editNameOverlay" hidden>
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
@@ -2305,6 +2327,8 @@ function makeOfflineSupabaseStub(){
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } }),
       signUp: () => Promise.resolve({ data: null, error: offlineError }),
       resend: () => Promise.resolve({ error: offlineError }),
+      resetPasswordForEmail: () => Promise.resolve({ error: offlineError }),
+      updateUser: () => Promise.resolve({ data: null, error: offlineError }),
       signInWithPassword: () => Promise.resolve({ data: null, error: offlineError }),
       signInWithOAuth: () => Promise.resolve({ error: offlineError }),
       signOut: () => Promise.resolve({ error: null }),
@@ -2446,7 +2470,15 @@ const STR = {
     signInBtn: "Sign In",
     confirmEmailMsg: "Check your email and tap the link to confirm. It brings you right back here, signed in, with your plan ready.",
     emailConfirmedToast: "Email confirmed. Welcome to Altiro!",
-    confirmLinkExpired: "That confirmation link has expired or was already used. Sign in below, or send yourself a new link.",
+    confirmLinkExpired: "That email link has expired or was already used. Sign in below, or get a new link.",
+    forgotPasswordBtn: "Forgot password?",
+    forgotNeedEmail: "Type your email above, then tap Forgot password.",
+    resetSentMsg: "Check your email for a link to set a new password.",
+    newPasswordTitle: "Set a new password",
+    newPasswordSub: "You're signed in from the reset link. Choose a new password to use next time.",
+    newPasswordLabel: "New password", newPasswordConfirmLabel: "Type it again", newPasswordSaveBtn: "Save new password",
+    newPasswordTooShort: "Use at least 6 characters.", newPasswordMismatch: "The two passwords don't match.",
+    newPasswordSavedToast: "Password updated",
     emailNotConfirmedMsg: "Confirm your email first: tap the link we sent you.",
     resendConfirmBtn: "Send a new confirmation link",
     resendSentMsg: "Sent. Check your email for the new link.",
@@ -2881,7 +2913,15 @@ const STR = {
     signInBtn: "Iniciar sesión",
     confirmEmailMsg: "Revisa tu correo y toca el enlace para confirmar. Te trae de vuelta aquí, con la sesión iniciada y tu plan listo.",
     emailConfirmedToast: "Correo confirmado. ¡Bienvenido a Altiro!",
-    confirmLinkExpired: "Ese enlace de confirmación expiró o ya se usó. Inicia sesión abajo, o envíate un enlace nuevo.",
+    confirmLinkExpired: "Ese enlace expiró o ya se usó. Inicia sesión abajo, o pide un enlace nuevo.",
+    forgotPasswordBtn: "¿Olvidaste tu contraseña?",
+    forgotNeedEmail: "Escribe tu correo arriba y toca ¿Olvidaste tu contraseña?",
+    resetSentMsg: "Revisa tu correo: te enviamos un enlace para crear una nueva contraseña.",
+    newPasswordTitle: "Crea una nueva contraseña",
+    newPasswordSub: "Iniciaste sesión con el enlace. Elige una nueva contraseña para la próxima vez.",
+    newPasswordLabel: "Nueva contraseña", newPasswordConfirmLabel: "Escríbela otra vez", newPasswordSaveBtn: "Guardar contraseña",
+    newPasswordTooShort: "Usa al menos 6 caracteres.", newPasswordMismatch: "Las contraseñas no coinciden.",
+    newPasswordSavedToast: "Contraseña actualizada",
     emailNotConfirmedMsg: "Primero confirma tu correo: toca el enlace que te enviamos.",
     resendConfirmBtn: "Enviar un nuevo enlace de confirmación",
     resendSentMsg: "Enviado. Revisa tu correo para ver el nuevo enlace.",
@@ -8613,6 +8653,57 @@ document.getElementById('resendConfirmBtn').addEventListener('click', async func
   }finally{ this.disabled = false; }
 });
 
+/* ---------------- forgot password ---------------- */
+// "Forgot password?" emails a reset link back to this site; the link signs the user in, and the app
+// then asks for a new password.
+document.getElementById('forgotPasswordBtn').addEventListener('click', async function(){
+  const L = STR[state.lang];
+  const email = document.getElementById('emailInput').value.trim();
+  const errEl = document.getElementById('authError');
+  document.getElementById('resendConfirmBtn').hidden = true;
+  if(!email){
+    errEl.style.color = 'var(--accent)';
+    errEl.textContent = L.forgotNeedEmail;
+    document.getElementById('emailInput').focus();
+    return;
+  }
+  this.disabled = true;
+  try{
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
+    if(error) throw error;
+    errEl.style.color = 'var(--ok-icon)';
+    errEl.textContent = L.resetSentMsg;
+  }catch(err){
+    errEl.style.color = 'var(--accent)';
+    errEl.textContent = err.message || 'Something went wrong.';
+  }finally{ this.disabled = false; }
+});
+function openNewPasswordSheet(){
+  if(!document.getElementById('newPasswordOverlay').hidden) return;
+  document.getElementById('newPasswordInput').value = '';
+  document.getElementById('newPasswordConfirm').value = '';
+  document.getElementById('newPasswordError').textContent = '';
+  document.getElementById('newPasswordOverlay').hidden = false;
+}
+function closeNewPasswordSheet(){ document.getElementById('newPasswordOverlay').hidden = true; }
+document.getElementById('closeNewPassword').addEventListener('click', closeNewPasswordSheet);
+document.getElementById('saveNewPassword').addEventListener('click', async function(){
+  const L = STR[state.lang];
+  const pw = document.getElementById('newPasswordInput').value, pw2 = document.getElementById('newPasswordConfirm').value;
+  const errEl = document.getElementById('newPasswordError');
+  if(pw.length < 6){ errEl.textContent = L.newPasswordTooShort; return; }
+  if(pw !== pw2){ errEl.textContent = L.newPasswordMismatch; return; }
+  this.disabled = true;
+  try{
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if(error) throw error;
+    closeNewPasswordSheet();
+    showToast(L.newPasswordSavedToast);
+  }catch(err){
+    errEl.textContent = err.message || 'Something went wrong.';
+  }finally{ this.disabled = false; }
+});
+
 /* ---------------- account / sign-in (real Supabase Auth) ---------------- */
 let authMode = 'signup';
 // true when the account screen was opened from Welcome's "Sign in" button -- a returning user who
@@ -8628,6 +8719,7 @@ function updateAuthModeUI(){
   document.getElementById('accountHeadline').textContent = accountReturning ? L.welcomeBackHeadline : L.accountHeadline;
   document.getElementById('accountSub').textContent = accountReturning ? L.welcomeBackSub : L.accountSub;
   document.getElementById('passwordInput').setAttribute('autocomplete', authMode==='signin' ? 'current-password' : 'new-password');
+  document.getElementById('forgotPasswordBtn').hidden = authMode!=='signin';
 }
 function openReturningSignIn(){
   accountReturning = true;
@@ -9439,6 +9531,10 @@ document.getElementById('emailSignupBtn').addEventListener('click', async functi
 sb.auth.onAuthStateChange((event, session)=>{
   // A brand-new account goes to the "Building your plan" screen instead (see the signup branch above).
   if(event==='SIGNED_IN' && session && !state.signedIn && !signingUp) enterSignedIn(session.user);
+  // A password reset link (in case it's handled after the first session check).
+  if(event==='PASSWORD_RECOVERY' && session){
+    Promise.resolve(enterSignedIn(session.user)).then(openNewPasswordSheet);
+  }
   if(event==='SIGNED_OUT'){
     state.signedIn = false;
     state.userId = null;
@@ -10116,6 +10212,7 @@ showScreen('welcome');
     if(session){
       await enterSignedIn(session.user);
       if(AUTH_RETURN.type==='signup') showToast(STR[state.lang].emailConfirmedToast);
+      if(AUTH_RETURN.type==='recovery') openNewPasswordSheet();
     } else if(AUTH_RETURN.error){
       // An expired or already-used link: to sign in, with a way to get a new one.
       openReturningSignIn();

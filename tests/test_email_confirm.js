@@ -43,6 +43,8 @@ function makeBackend(opts = {}){
         async signUp(args){ db.calls.push(['signUp', args]); return {data:{user:{id:'u9', email:args.email}, session:null}, error:null}; },
         async signInWithPassword(args){ db.calls.push(['signIn', args]); return {data:null, error: opts.unconfirmed ? {message:'Email not confirmed', code:'email_not_confirmed'} : {message:'Invalid login credentials'}}; },
         async resend(args){ db.calls.push(['resend', args]); return {error:null}; },
+        async resetPasswordForEmail(email, o){ db.calls.push(['reset', {email, ...o}]); return {error:null}; },
+        async updateUser(args){ db.calls.push(['updateUser', args]); return {data:{user:{}}, error:null}; },
         async signOut(){ return {}; },
       },
       from, functions: { async invoke(){ return {data:{connected:false}, error:null}; } },
@@ -118,6 +120,37 @@ const PENDING = {email:'new@example.com', at: Date.now()-5*60*1000, fields:{goal
   t5('emailInput', 'late@example.com'); t5('passwordInput', 'secret123');
   d5.getElementById('emailSignupBtn').click(); await wait(50);
   check('Signing in before confirming: says to tap the link, and offers a new one', d5.getElementById('authError').textContent==='Confirm your email first: tap the link we sent you.' && !d5.getElementById('resendConfirmBtn').hidden, d5.getElementById('authError').textContent);
+
+  // ---- forgot password ----
+  const fp = d5.getElementById('forgotPasswordBtn');
+  check('Sign-in offers "Forgot password?"', !fp.hidden && fp.textContent==='Forgot password?');
+  t5('emailInput', '');
+  fp.click(); await wait(20);
+  check('...asks for the email first', d5.getElementById('authError').textContent==='Type your email above, then tap Forgot password.' && !b5.db.calls.some(c=>c[0]==='reset'));
+  t5('emailInput', 'late@example.com');
+  fp.click(); await wait(40);
+  const reset = b5.db.calls.find(c=>c[0]==='reset');
+  check('...then emails a reset link that comes back to this site', reset && reset[1].email==='late@example.com' && reset[1].redirectTo==='https://example.com/Altiro/' && d5.getElementById('authError').textContent==='Check your email for a link to set a new password.', reset && JSON.stringify(reset[1]));
+  d5.getElementById('toggleAuthMode').click(); await wait(5);
+  check('...and isn\'t shown when creating an account', fp.hidden);
+
+  // ---- tapping the reset link ----
+  const b6 = makeBackend({profiles:{u6:{id:'u6', goal:'cardio', training_days:[0,2,4], plan_start:'2026-09-07'}}, sessionUser:{id:'u6', email:'late@example.com'}});
+  const dom6 = open(b6, 'https://example.com/Altiro/#access_token=abc&refresh_token=def&type=recovery');
+  await wait(400);
+  const d6 = dom6.window.document;
+  check('The reset link opens the app signed in, asking for a new password', !d6.getElementById('screen-home').hidden && !d6.getElementById('newPasswordOverlay').hidden);
+  const t6 = (id, v) => { d6.getElementById(id).value = v; };
+  t6('newPasswordInput', 'abc'); t6('newPasswordConfirm', 'abc');
+  d6.getElementById('saveNewPassword').click(); await wait(20);
+  check('...too short: says so', d6.getElementById('newPasswordError').textContent==='Use at least 6 characters.');
+  t6('newPasswordInput', 'newsecret1'); t6('newPasswordConfirm', 'newsecret2');
+  d6.getElementById('saveNewPassword').click(); await wait(20);
+  check('...not matching: says so', d6.getElementById('newPasswordError').textContent==="The two passwords don't match.");
+  t6('newPasswordConfirm', 'newsecret1');
+  d6.getElementById('saveNewPassword').click(); await wait(40);
+  const upd = b6.db.calls.find(c=>c[0]==='updateUser');
+  check('...saves the new password', upd && upd[1].password==='newsecret1' && d6.getElementById('newPasswordOverlay').hidden && d6.getElementById('toastMsg').textContent==='Password updated');
 
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(0);

@@ -406,6 +406,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .day-cell.done .dd{color:var(--text-2);}
 .day-cell.missed .dot{width:7px;height:7px;background:var(--alert);box-shadow:0 0 0 3px var(--alert-halo);}
 .day-cell.missed .dd{color:var(--alert);}
+.day-cell.excused .dot,.mo-cell.excused .mo-dot{width:7px;height:7px;background:var(--text-3);box-shadow:0 0 0 3px var(--well);}
+.mo-cell.excused .mo-num,.plan-row.excused .prow-num{color:var(--text-3);}
+.stpill.excused,.prow-status.excused{color:var(--text-2);background:var(--well);}
+.sk-dot.paused{border-style:dashed;border-color:var(--text-3);color:var(--text-3);background:transparent;}
 
 .view-week-link{padding:10px 20px 0;text-align:right;}
 
@@ -553,6 +557,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .type-btn svg{width:16px;height:16px;flex-shrink:0;}
 .type-btn span{font-size:10.5px;line-height:1.1;text-align:center;}
 .type-btn.sel{border-color:var(--accent);background:var(--accent-tint);color:var(--text);}
+.prow-class{display:flex;align-items:center;gap:6px;margin:5px 0 0 4px;font-size:11.5px;color:var(--text-2);}
+.prow-class svg{width:13px;height:13px;flex-shrink:0;}
+.prow-class-t{font-family:var(--font-mono);font-size:10.5px;color:var(--text-3);}
+.prow-class.done{color:var(--ok-icon);}
+.class-when{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap;}
+.class-when > div{flex:1;min-width:130px;}
+#classKindSelect{appearance:auto;}
 .manual-entry{display:flex;align-items:center;gap:10px;background:var(--well);border:1px solid var(--border);border-radius:var(--r-md);padding:9px 10px;margin-top:8px;}
 .manual-entry.editable{cursor:pointer;}
 .manual-entry.editable:hover{border-color:var(--hover-border);}
@@ -1586,6 +1597,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="footer-note reminder-note" id="reminderNote" hidden></div>
       </div>
 
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="myClassesLabel"></div>
+        <div id="myClassesList"></div>
+      </div>
+
       <div class="sheet-section" id="installSection" hidden>
         <div class="st-label" data-i18n="installLabel"></div>
         <button class="how-it-works-btn" id="installBtn" type="button">
@@ -1993,6 +2009,18 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div id="dayDetailExtraWorkouts"></div>
       </div>
 
+      <div class="sheet-section" id="dayDetailClassSection" hidden>
+        <div class="st-label" data-i18n="classesLabel"></div>
+        <div id="dayDetailClasses"></div>
+      </div>
+
+      <div class="sheet-section" id="dayDetailMissedSection" hidden>
+        <div class="st-label" id="missedWhyLabel"></div>
+        <div class="chip-row" id="missedReasonRow"></div>
+        <input type="text" class="text-input" id="missedNoteInput" style="margin-top:10px;">
+        <div class="footer-note" id="missedPauseNote" style="text-align:left;margin-top:8px;" hidden></div>
+      </div>
+
       <div class="sheet-section" id="dayDetailCompleteSection">
         <div class="toggle-row">
           <div>
@@ -2030,6 +2058,23 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="type-select-row" id="manualTypeRow"></div>
       </div>
 
+      <div class="sheet-section" id="createClassSection" hidden>
+        <div class="st-label" data-i18n="classPickLabel"></div>
+        <select class="text-input" id="classKindSelect"></select>
+        <div class="st-label" style="margin-top:14px;" data-i18n="classDaysLabel"></div>
+        <div class="chip-row" id="classDaysRow"></div>
+        <div class="class-when">
+          <div><div class="st-label" data-i18n="classTimeLabel"></div><input type="time" class="text-input" id="classTimeInput" value="18:00"></div>
+          <div><div class="st-label" data-i18n="classLengthLabel"></div>
+            <div class="hms-row"><input type="number" inputmode="numeric" min="0" max="9" class="text-input hms-box" id="classLenHInput" value="1"><span class="hms-sep">h</span><input type="number" inputmode="numeric" min="0" max="59" step="5" class="text-input hms-box" id="classLenMInput" value="0"><span class="hms-sep">m</span></div>
+          </div>
+        </div>
+        <div class="toggle-row" style="margin-top:14px;">
+          <div><div class="tt" data-i18n="classRepeatTitle"></div><div class="ts" data-i18n="classRepeatSub"></div></div>
+          <div class="toggle on" id="classRepeatToggle"><div class="knob"></div></div>
+        </div>
+      </div>
+
       <div class="sheet-section" id="manualVolumeSection">
         <div class="st-label" id="manualVolumeLabel" data-i18n="manualVolumeLabel"></div>
         <input type="text" class="text-input" id="manualVolumeInput">
@@ -2065,7 +2110,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         </div>
       </div>
 
-      <div class="sheet-section">
+      <div class="sheet-section" id="manualNotesSection">
         <div class="st-label" data-i18n="manualNotesLabel"></div>
         <input type="text" class="text-input" id="manualNotesInput">
       </div>
@@ -2463,6 +2508,7 @@ const ICONS = {
   run: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 15l3.5-4 2.5 2 3-5.5M13 4l2 2-2 2M15.5 9l1.5 1.5-2 2"/><circle cx="14" cy="4" r="1.4" fill="currentColor" stroke="none"/></svg>',
   strength: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="3" height="6" rx="0.5"/><rect x="15" y="7" width="3" height="6" rx="0.5"/><rect x="6" y="9" width="8" height="2" rx="0.3"/></svg>',
   hike: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2 15l5-9 3 5 1.5-2.5L16 15z"/><circle cx="6" cy="4" r="1.3" fill="currentColor" stroke="none"/></svg>',
+  class: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 2.5v3M13 2.5v3"/><path d="M10 10.5v2.5l1.6 1"/></svg>',
   rest: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12.5 3.5A6 6 0 1 0 16.5 12 5 5 0 0 1 12.5 3.5z"/></svg>',
   checkSm: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 10l4 4 8-9"/></svg>',
   flame: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 2c1 3-3 4-3 7a3 3 0 0 0 6 0c0-1-1-1.5-1-2.5 1.5 1 2 2.8 2 4.5a4 4 0 1 1-8 0C6 7 9 6 10 2z"/></svg>',
@@ -2484,8 +2530,8 @@ const ICONS = {
   swap: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11l-3-3M16 13H5l3 3"/></svg>',
   gauge: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14a7 7 0 0 1 14 0"/><path d="M10 14l3-4"/><circle cx="10" cy="14" r="1" fill="currentColor" stroke="none"/></svg>'
 };
-const TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, interval: ICONS.interval, rest: ICONS.rest};
-const MANUAL_TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, other: ICONS.flame, interval: ICONS.interval};
+const TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, interval: ICONS.interval, rest: ICONS.rest, class: ICONS.class};
+const MANUAL_TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, other: ICONS.flame, interval: ICONS.interval, class: ICONS.class};
 
 /* ---------------- translations ---------------- */
 const STR = {
@@ -2529,6 +2575,33 @@ const STR = {
     tourMockDesc: "Curls and triceps · 45 min", tourMockWeek: "Week {n}", tourMockSet: "Set", tourMockNextTime: "Next time: 140 lb",
     tourMockToday: "TODAY'S THE DAY", tourMockAdjust: "Adjust plan",
     watchDemoBtn: "Watch Demo",
+    typeClass: "Class",
+    missedWhyLabel: "Why did you miss it?",
+    missedTodayLabel: "Can't make it today?",
+    missedNotePlaceholder: "Add a note (optional)",
+    missedPauseNote: "Sick, injured and vacation weeks pause your streak instead of breaking it.",
+    missedReason_sick: "Sick",
+    missedReason_injured: "Injured",
+    missedReason_vacation: "Vacation",
+    missedReason_busy: "Work / Busy",
+    missedReason_rest: "Needed rest",
+    missedReason_other: "Other",
+    classPickLabel: "Class",
+    classChoose: "Choose a class",
+    classDaysLabel: "Days",
+    classTimeLabel: "Starts at",
+    classLengthLabel: "Length",
+    classRepeatTitle: "Repeats every week",
+    classRepeatSub: "Shows on these days every week, next to your plan.",
+    classesLabel: "Classes",
+    classStartBtn: "Start class",
+    classAddedToast: "Class added to your schedule",
+    classSkippedToast: "Skipped this one",
+    classRemovedToast: "Class removed",
+    myClassesLabel: "My classes",
+    myClassesEmpty: "No classes yet — add one with + Add a workout → Class.",
+    classEvery: "Every {days}",
+    classDoneMin: "Done · {min}",
     mdCuesLabel: "Form cues",
     mdPause: "Pause",
     mdPlay: "Play",
@@ -2989,6 +3062,33 @@ const STR = {
     tourMockDesc: "Curls y tríceps · 45 min", tourMockWeek: "Semana {n}", tourMockSet: "Serie", tourMockNextTime: "Próxima vez: 140 lb",
     tourMockToday: "HOY ES EL DÍA", tourMockAdjust: "Ajustar plan",
     watchDemoBtn: "Ver demostración",
+    typeClass: "Clase",
+    missedWhyLabel: "¿Por qué no lo hiciste?",
+    missedTodayLabel: "¿No puedes hoy?",
+    missedNotePlaceholder: "Añade una nota (opcional)",
+    missedPauseNote: "Las semanas de enfermedad, lesión o vacaciones pausan tu racha en lugar de romperla.",
+    missedReason_sick: "Enfermedad",
+    missedReason_injured: "Lesión",
+    missedReason_vacation: "Vacaciones",
+    missedReason_busy: "Trabajo / Sin tiempo",
+    missedReason_rest: "Descanso",
+    missedReason_other: "Otro motivo",
+    classPickLabel: "Clase",
+    classChoose: "Elige una clase",
+    classDaysLabel: "Días",
+    classTimeLabel: "Empieza a las",
+    classLengthLabel: "Duración",
+    classRepeatTitle: "Se repite cada semana",
+    classRepeatSub: "Aparece estos días cada semana, junto a tu plan.",
+    classesLabel: "Clases",
+    classStartBtn: "Empezar clase",
+    classAddedToast: "Clase añadida a tu horario",
+    classSkippedToast: "Omitida esta vez",
+    classRemovedToast: "Clase eliminada",
+    myClassesLabel: "Mis clases",
+    myClassesEmpty: "Aún no hay clases: añade una con + Añadir entrenamiento → Clase.",
+    classEvery: "Cada {days}",
+    classDoneMin: "Hecha · {min}",
     mdCuesLabel: "Claves de técnica",
     mdPause: "Pausa",
     mdPlay: "Reproducir",
@@ -3509,6 +3609,7 @@ const SESSION_TIP = {
   hike: {en:"Bring water and take the hills at your own pace.", es:"Lleva agua y toma las subidas a tu propio ritmo."},
   interval: {en:"Push the work, breathe through the rest — the bell has you covered.", es:"Da todo en el trabajo, respira en el descanso — la campana te avisa."},
   rest: {en:"Recovery is part of the plan — take the day.", es:"La recuperación es parte del plan. Tómate el día."},
+  class: {en:"Start it when class starts — the clock keeps your time.", es:"Empiézala cuando empiece la clase: el reloj lleva tu tiempo."},
 };
 const FOCUS_POINTS = {
   run: {en:['Posture','Breathing rhythm','Pace control'], es:['Postura','Ritmo de respiración','Control del ritmo']},
@@ -3521,6 +3622,7 @@ const SUMMARY_NOTE = {
   strength: {en:"Solid session. That's strength you get to keep.", es:"Buena sesión. Esa fuerza es tuya para quedártela."},
   hike: {en:"Time outside counts too. Well done.", es:"El tiempo al aire libre también cuenta. Bien hecho."},
   interval: {en:"Rounds done. That's real work.", es:"Rondas completas. Eso es trabajo real."},
+  class: {en:"Class done. Showing up is the hard part.", es:"Clase hecha. Presentarse es lo difícil."},
 };
 const REVIEW_RATING_LABELS = {
   en: ['😩 Rough', '😕 Tough', '🙂 OK', '💪 Good', '🔥 Great'],
@@ -4583,6 +4685,7 @@ const defaultState = () => ({
   planStartDate:null, // dateKey of the day the plan begins -- nothing is planned before it (see beforePlanStart)
   mileTime:null, // seconds -- a recent mile time the run paces are based on (see mileTimePaces)
   jogBaseline:null, // a new runner's latest longest steady jog {min, week, held} -- see recordJogBaseline()
+  classes:[], // recurring classes {id, kind, name, days (0 = Mon), time 'HH:MM', minutes, from, skips} -- see classItemsFor()
   exerciseSwaps:{}, // "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'} -- see applyStandingSwaps()
   week:null,
   todayCompleted:false,
@@ -4626,7 +4729,14 @@ function restSlot(){ return {p:ses('rest','Rest Day','','Día de descanso',''), 
 // completed_override wherever one exists. Rest days never carry a "completed" flag (a cascade drag
 // persists a raw slot's "completed" as an explicit override -- see writeDaySlot()).
 function buildWeek(){
-  return weekDates(0).map((date, i)=> i<TODAY_IDX ? restSlot() : {...plannedSessionFor(date), completed:false});
+  return weekDates(0).map((date, i)=> i<TODAY_IDX && !planWasRunning(date) ? restSlot() : {...plannedSessionFor(date), completed:false});
+}
+// Whether the plan was already running on a past date (signed in, on or after the day it started): its
+// workout that day was really scheduled, so one not done shows as missed -- and can be excused (sick,
+// vacation...) -- rather than vanishing into a blank rest day.
+function planWasRunning(date){
+  if(!state.signedIn || !state.planStart) return false;
+  return dateKey(date) >= (state.planStartDate || state.planStart);
 }
 // Changing the plan's settings mid-week (via the Adjust Plan sheet) must not rewrite history: days
 // already completed or missed keep their real content and status untouched. Only days not yet locked
@@ -4704,7 +4814,7 @@ function ensureWeek(){
 
 /* ---------------- calendar day lookups (any date, past or future) ---------------- */
 function sessionForDate(date){
-  if(date.getTime() < TODAY_DATE.getTime()){
+  if(date.getTime() < TODAY_DATE.getTime() && !planWasRunning(date)){
     // No real record for a past date with no explicit log -- see buildWeek() for the same rule
     // applied to the current week.
     return {p: ses('rest','Rest Day','','Día de descanso',''), c: null};
@@ -4729,7 +4839,9 @@ function getDayData(date){
       ? {p:{...overrideLog.session.p}, c: overrideLog.session.c ? {...overrideLog.session.c} : null}
       : sessionForDate(date);
     p = gen.p; c = gen.c;
-    planCompleted = p.t==='rest' ? false : date.getTime() < TODAY_DATE.getTime();
+    // A past day's own planned workout (from the plan, not a saved one) counts as done only on real
+    // evidence -- marked done, recorded, logged -- see below.
+    planCompleted = p.t==='rest' ? false : (overrideLog && overrideLog.session) ? date.getTime() < TODAY_DATE.getTime() : false;
     isCustom = !!(overrideLog && overrideLog.session && overrideLog.session.isCustom);
   }
   const log = state.dayLog[key];
@@ -4747,13 +4859,14 @@ function getDayData(date){
     p = ses(first.type, first.name, first.volume||'', first.name, first.volume||'');
     isCustom = true;
     primarySource = 'entry';
-  } else if(p.t==='rest' && extraWorkouts.length>0){
+  } else if(p.t==='rest' && extraWorkouts.some(w=> !(w.session && w.session.t==='class'))){
     // Same idea, for a day whose only real content is an "Additional Workout" -- Plan/Home/Day
     // Detail's Scheduled row would otherwise keep showing the day as a plain "Rest Day" right next
     // to that workout's own bubble in "Additional Workouts", which reads as if nothing happened here
     // at all. Shown regardless of whether it's completed yet, same as a planned custom primary would
     // describe itself before being marked done.
-    p = extraWorkouts[0].session;
+    // (A class keeps to its own Classes section rather than standing in for the day's workout.)
+    p = extraWorkouts.find(w=> !(w.session && w.session.t==='class')).session;
     isCustom = true;
     primarySource = 'extra';
   }
@@ -4770,6 +4883,8 @@ function getDayData(date){
   // distance (see weekStats()) since what actually happened rarely matches the plan exactly.
   const actualRunDistance = (log && log.actualRunDistance!=null) ? log.actualRunDistance : null;
   return {
+    missed: (log && log.missed) || null, // why the day's workout was missed, if the user said (see setMissedReason)
+    markedNotDone: !!(log && log.completedOverride===false),
     key, date, p, c, completed, active, manualEntries, isCustom, extraWorkouts, actualRunDistance, primarySource,
     isToday: key===dateKey(TODAY_DATE),
     isPast: date.getTime() < TODAY_DATE.getTime(),
@@ -4787,9 +4902,32 @@ function dayDataStatus(dd){
     if(dd.manualEntries.length>0 || dd.extraWorkouts.some(w=>w.completed)) return 'done';
     return 'rest';
   }
-  if(dd.isToday) return dd.completed ? 'done' : 'today';
+  // A missed workout the user gave a reason for (sick, vacation...) is excused rather than missed.
+  if(dd.isToday) return dd.completed ? 'done' : dd.missed ? 'excused' : 'today';
   if(dd.completed) return 'done';
-  return dd.isFuture ? 'upcoming' : 'missed';
+  // A past day with a workout logged on it reads done even if that wasn't the planned one (a lift
+  // logged on a run day) -- unless the user switched the day off. Today keeps its planned workout
+  // open to do, and an Additional Workout added alongside doesn't count.
+  if(!dd.isFuture && dd.manualEntries.length>0 && !dd.markedNotDone) return 'done';
+  return dd.isFuture ? 'upcoming' : dd.missed ? 'excused' : 'missed';
+}
+/* ---------------- missed workouts: why ---------------- */
+const MISSED_REASONS = ['sick','injured','vacation','busy','rest','other'];
+// These pause the streak: a week that falls short because of them doesn't break it (see computeStreak).
+const STREAK_PAUSE_REASONS = ['sick','injured','vacation'];
+function missedReasonLabel(m){ return m ? STR[state.lang]['missedReason_'+m.reason] || '' : ''; }
+function setMissedReason(key, missed){
+  ensureDayLog(key).missed = missed;
+  cloudSetMissed(key, missed);
+  refreshStreak();
+}
+// Whether a week had a missed workout the user marked sick, injured or on vacation.
+function weekPaused(monday){
+  for(let i=0; i<7; i++){
+    const log = state.dayLog[dateKey(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+i))];
+    if(log && log.missed && STREAK_PAUSE_REASONS.includes(log.missed.reason)) return true;
+  }
+  return false;
 }
 // dayDataStatus()/dayStatus() collapse to a single status string, so a completed today loses its
 // "today" class entirely once done -- this keeps "today" as a class on its own so the blue ring
@@ -4818,7 +4956,8 @@ function addExtraWorkout(key, session){
   const isPastDay = parseDateKey(key).getTime() < TODAY_DATE.getTime();
   const entry = {id:'w'+Date.now()+Math.random().toString(36).slice(2,7), session, completed:isPastDay, notes:''};
   log.extraWorkouts.push(entry);
-  cloudInsertExtraWorkout(key, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
+  // (Kept so a follow-up save -- a class's time, logged right after -- can wait for the row to exist.)
+  Object.defineProperty(entry, 'saved', {value: cloudInsertExtraWorkout(key, entry).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; }), enumerable:false});
   return entry;
 }
 function deleteExtraWorkout(key, id){
@@ -4828,6 +4967,142 @@ function deleteExtraWorkout(key, id){
   log.extraWorkouts = (log.extraWorkouts||[]).filter(w=>w.id!==id);
   if(entry && entry.supabaseId) cloudDeleteExtraWorkout(entry.supabaseId);
 }
+/* ---------------- classes ---------------- */
+// Classes the user goes to -- jiu-jitsu Fridays at 3, spin on Tuesdays -- set up once from Create Workout
+// and shown on those days every week next to the plan's workout (state.classes). Doing one is recorded
+// like any Additional Workout: starting it makes a real extraWorkouts entry of type 'class' for that day,
+// timed by the workout clock, which then counts toward activity time, the streak and the week's workouts.
+const CLASS_OPTIONS = [
+  {key:'spin', en:'Spin Class', es:'Clase de spinning'},
+  {key:'pilates', en:'Pilates', es:'Pilates'},
+  {key:'yoga', en:'Yoga', es:'Yoga'},
+  {key:'barre', en:'Barre', es:'Barre'},
+  {key:'hiit', en:'HIIT / Bootcamp', es:'HIIT / Bootcamp'},
+  {key:'crossfit', en:'CrossFit', es:'CrossFit'},
+  {key:'jiujitsu', en:'Jiu-Jitsu', es:'Jiu-Jitsu'},
+  {key:'wrestling', en:'Wrestling', es:'Lucha'},
+  {key:'boxing', en:'Boxing', es:'Boxeo'},
+  {key:'kickboxing', en:'Kickboxing', es:'Kickboxing'},
+  {key:'muaythai', en:'Muay Thai', es:'Muay Thai'},
+  {key:'mma', en:'MMA', es:'MMA'},
+  {key:'climbing', en:'Rock Climbing', es:'Escalada'},
+  {key:'dance', en:'Dance / Zumba', es:'Baile / Zumba'},
+  {key:'swim', en:'Swim Class', es:'Clase de natación'},
+  {key:'other', en:'Other', es:'Otra'},
+];
+// A class's name: its own (for "Other", or one the user renamed), else the option's in that language.
+function classLabel(c, lang){
+  const opt = CLASS_OPTIONS.find(o=>o.key===c.kind);
+  return opt && opt.key!=='other' && (!c.name || c.name===opt.en || c.name===opt.es) ? opt[lang] : (c.name || (opt ? opt[lang] : ''));
+}
+// "15:00" -> "3:00 PM" (English) / "15:00" (Spanish); 90 -> "1h 30m".
+function fmtClassTime(t, lang){
+  const m = String(t||'').match(/^(\d{1,2}):(\d{2})/);
+  if(!m) return '';
+  const h = +m[1];
+  return lang==='es' ? `${h}:${m[2]}` : `${(h%12)||12}:${m[2]} ${h<12 ? 'AM' : 'PM'}`;
+}
+function fmtClassLength(min){
+  const h = Math.floor(min/60), m = Math.round(min%60);
+  return h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m}m`;
+}
+function classSessionFor(c){
+  const detail = lang => [fmtClassTime(c.time, lang), c.minutes ? fmtClassLength(c.minutes) : ''].filter(Boolean).join(' · ');
+  return ses('class', classLabel(c,'en'), detail('en'), classLabel(c,'es'), detail('es'));
+}
+// A recorded class (an extraWorkouts entry) is that class when it has its name, in either language.
+function isThatClass(w, c){
+  return !!w && !!w.session && w.session.t==='class' && [classLabel(c,'en'), classLabel(c,'es'), c.name].includes(w.session.en.title);
+}
+// The classes on a day, in time order: each weekly class on that weekday (from the week it was added,
+// minus any the user skipped) with its recording if there is one, then any one-off class added to that
+// day alone. {id, cls, extra, session, time, minutes, done}
+function classItemsFor(key){
+  const date = parseDateKey(key), dow = (date.getDay()+6)%7;
+  const extras = ((state.dayLog[key]||{}).extraWorkouts||[]).filter(w=>w.session && w.session.t==='class');
+  const used = new Set();
+  const items = (state.classes||[]).filter(c=> (c.days||[]).includes(dow) && key >= (c.from||'') && !(c.skips||[]).includes(key)).map(c=>{
+    const w = extras.find(x=> !used.has(x) && isThatClass(x, c));
+    if(w) used.add(w);
+    return {id:'c:'+c.id, cls:c, extra:w||null, session: w ? w.session : classSessionFor(c), time:c.time||'', minutes:c.minutes, done: !!(w && w.completed)};
+  });
+  // (A one-off class's start time is read back from its "3:00 PM · 1h" description.)
+  const timeOf = w => { const m = String(w.session.en.detail||'').match(/^(\d{1,2}):(\d{2}) (AM|PM)/); return m ? String((+m[1])%12 + (m[3]==='PM' ? 12 : 0)).padStart(2,'0')+':'+m[2] : ''; };
+  extras.filter(w=>!used.has(w)).forEach(w=> items.push({id:'w:'+w.id, cls:null, extra:w, session:w.session, time:timeOf(w), minutes:null, done:!!w.completed}));
+  return items.sort((a,b)=> (a.time||'99').localeCompare(b.time||'99'));
+}
+// A day's class rows (Home, Day Detail): Start (today) / Mark done (a past day) / skip.
+function classRowsHtml(key){
+  const L = STR[state.lang];
+  const today = dateKey(TODAY_DATE);
+  return classItemsFor(key).map(it=>{
+    const sL = ST(it.session);
+    const time = it.extra && it.extra.performance && it.extra.performance.time ? Math.round(it.extra.performance.time) : null;
+    const action = it.done
+      ? `<span class="r-inline-btn" style="display:flex;align-items:center;gap:4px;color:var(--ok-icon);font-size:11px;white-space:nowrap;">${ICONS.checkSm}${time ? L.classDoneMin.replace('{min}', fmtClassLength(time)) : L.recordDoneLabel}</span>`
+      : key===today ? `<button class="btn-text" data-class-start="${it.id}" type="button" style="white-space:nowrap;">${L.classStartBtn}</button>`
+      : key<today ? `<button class="btn-text" data-class-done="${it.id}" type="button" style="white-space:nowrap;">${L.markDoneLabel}</button>`
+      : '';
+    return `<div class="manual-entry class-entry" data-class-id="${it.id}">
+      <span class="ic">${ICONS.class}</span>
+      <div class="body"><div class="n">${escapeHtml(sL.title)}</div><div class="v">${escapeHtml(sL.detail||'')}</div></div>
+      ${action}
+      ${it.done ? '' : `<button class="del" data-class-skip="${it.id}" type="button" aria-label="Skip">${ICONS.trash}</button>`}
+    </div>`;
+  }).join('');
+}
+function bindClassRows(container, key, after){
+  if(!container) return;
+  const item = id => classItemsFor(key).find(it=>it.id===id);
+  // The class's own recording for the day, made the first time it's needed.
+  const recordingFor = it => it.extra || addExtraWorkout(key, it.session);
+  container.querySelectorAll('[data-class-start]').forEach(btn=> btn.addEventListener('click', ()=>{
+    const it = item(btn.getAttribute('data-class-start'));
+    if(!it) return;
+    const w = recordingFor(it);
+    if(!document.getElementById('dayDetailOverlay').hidden) closeDayDetail();
+    openLogPerformance(w.id);
+  }));
+  container.querySelectorAll('[data-class-done]').forEach(btn=> btn.addEventListener('click', ()=>{
+    const it = item(btn.getAttribute('data-class-done'));
+    if(!it) return;
+    const w = recordingFor(it);
+    w.completed = true;
+    // Marked done after the fact: it counts its scheduled length.
+    if(it.minutes && !(w.performance && w.performance.time)) w.performance = {...(w.performance||{}), time: it.minutes};
+    Promise.resolve(w.saved).then(()=>{ if(!w.supabaseId) return; cloudSetExtraWorkoutCompleted(w.supabaseId, true); if(w.performance) cloudSetExtraWorkoutPerformance(w.supabaseId, w.performance); });
+    after();
+  }));
+  container.querySelectorAll('[data-class-skip]').forEach(btn=> btn.addEventListener('click', ()=>{
+    const it = item(btn.getAttribute('data-class-skip'));
+    if(!it) return;
+    if(it.extra) deleteExtraWorkout(key, it.extra.id);
+    if(it.cls){ it.cls.skips = [...(it.cls.skips||[]), key]; saveProfileToCloud(); }
+    after();
+    showToast(STR[state.lang].classSkippedToast);
+  }));
+}
+// Settings -> My classes: each weekly class, removable.
+function renderMyClasses(){
+  const el = document.getElementById('myClassesList');
+  if(!el) return;
+  const L = STR[state.lang];
+  const list = state.classes||[];
+  el.innerHTML = list.length ? list.map(c=>{
+    const days = (c.days||[]).slice().sort((a,b)=>a-b).map(d=>{ const n = DAY_NAMES_SHORT[state.lang][d]; return n.charAt(0)+n.slice(1).toLowerCase(); }).join(', ');
+    return `<div class="manual-entry"><span class="ic">${ICONS.class}</span>
+      <div class="body"><div class="n">${escapeHtml(classLabel(c, state.lang))}</div><div class="v">${escapeHtml(L.classEvery.replace('{days}', days))} · ${escapeHtml(ST(classSessionFor(c)).detail)}</div></div>
+      <button class="del" data-remove-class="${escapeHtml(c.id)}" type="button" aria-label="Remove">${ICONS.trash}</button></div>`;
+  }).join('') : `<div class="footer-note" style="text-align:left;padding:2px 0;">${escapeHtml(L.myClassesEmpty)}</div>`;
+  el.querySelectorAll('[data-remove-class]').forEach(btn=> btn.addEventListener('click', ()=>{
+    state.classes = (state.classes||[]).filter(c=>c.id!==btn.getAttribute('data-remove-class'));
+    saveProfileToCloud();
+    refreshViews();
+    renderMyClasses();
+    showToast(STR[state.lang].classRemovedToast);
+  }));
+}
+
 // The "Mark Done" button a past day's incomplete extra workout gets instead of today's live
 // Start-Workout/Log-Performance flow -- there's no timer or set-checkoff to run for a day that's
 // already over, just a plain on/off flip of whether it actually happened.
@@ -5791,7 +6066,9 @@ function renderHome(){
 
   const todayKey = dateKey(TODAY_DATE);
   const todayEntries = (state.dayLog[todayKey] && state.dayLog[todayKey].manualEntries) || [];
-  const todayExtras = (state.dayLog[todayKey] && state.dayLog[todayKey].extraWorkouts) || [];
+  // (Classes have their own section below.)
+  const todayExtras = ((state.dayLog[todayKey] && state.dayLog[todayKey].extraWorkouts) || []).filter(w=> !(w.session && w.session.t==='class'));
+  const todayClasses = classRowsHtml(todayKey);
   document.getElementById('sessionCard').innerHTML = `
     <div class="session-desc-tap" id="sessionDescTap">
       <div class="top-row">
@@ -5843,6 +6120,7 @@ function renderHome(){
         <button class="del" data-del-extra="${w.id}" type="button">${ICONS.trash}</button>
       </div>`;
     }).join('')}</div>` : ''}
+    ${todayClasses ? `<div class="st-label" style="margin-top:14px;">${L.classesLabel}</div><div id="homeClassesWrap">${todayClasses}</div>` : ''}
   `;
   // Tapping the workout description opens the same Day Detail sheet as tapping today's cell in the
   // week strip above -- one consistent way to see the full schedule/actions for today.
@@ -5881,6 +6159,7 @@ function renderHome(){
       });
     });
   }
+  bindClassRows(document.getElementById('homeClassesWrap'), todayKey, ()=> refreshViews());
   renderTodayHero(eff, effL, workoutGoal);
 }
 
@@ -6428,7 +6707,10 @@ function openLogPerformanceFor(logTarget, mode){
     const knownTime = perf && perf.time!=null ? perf.time : null;
     if(mode==='record' && knownTime==null){
       const startKey = logTarget.dayKey+'|'+logTarget.kind+'|'+(logTarget.id||'');
-      if(!workoutStart || workoutStart.key!==startKey || Date.now()-workoutStart.at > WORKOUT_CLOCK_MAX_MIN*60000) workoutStart = {key:startKey, at:Date.now()};
+      if(!workoutStart || workoutStart.key!==startKey || Date.now()-workoutStart.at > WORKOUT_CLOCK_MAX_MIN*60000){
+        workoutStart = {key:startKey, at:Date.now()};
+        try{ localStorage.setItem('altiro_workout_start', JSON.stringify(workoutStart)); }catch(e){}
+      }
       startWorkoutClock();
     } else {
       writeHmsMinutes('logPerfTime', knownTime);
@@ -6485,7 +6767,10 @@ document.getElementById('closeLogPerf').addEventListener('click', closeLogPerfor
 // The workout clock: from when a workout is started (its log opened to record it) to when it's saved.
 // It fills the time field as it runs; typing in the field takes over.
 const WORKOUT_CLOCK_MAX_MIN = 300;
+// When the workout being recorded was started. Kept in the browser too, so the clock keeps counting
+// through a 90-minute class even if the phone locks or the app is closed and reopened.
 let workoutStart = null, workoutClockTimer = null, workoutClockTouched = false;
+try{ const saved = JSON.parse(localStorage.getItem('altiro_workout_start')||'null'); if(saved && saved.key && saved.at) workoutStart = saved; }catch(e){}
 function elapsedWorkoutMinutes(){
   if(!workoutStart) return null;
   const min = (Date.now()-workoutStart.at)/60000;
@@ -6969,6 +7254,7 @@ function planListRowHtml(weekIdx, i, date){
   // slot (or today's rest slid back to replace it) instead of being stuck behind an isPast check.
   const draggable = !dd.completed;
   const flatIdx = weekIdx*7+i;
+  const classes = classItemsFor(dd.key); // shown under the day's workout, with their times
 
   // "Done" is a plain green dot now, matching the same minimal dot language Home's week strip and
   // the Calendar month grid already use -- it used to be a separate checkmark badge sitting right
@@ -6976,6 +7262,7 @@ function planListRowHtml(weekIdx, i, date){
   // itself into the row's own title/detail (see promotePrimaryFromLog).
   const statusBit = status==='done' ? `<span class="prow-status-dot" title="${L.statusDone}"></span>`
     : status==='missed' ? `<span class="prow-status missed">${L.statusMissed}</span>`
+    : status==='excused' ? `<span class="prow-status excused">${escapeHtml(missedReasonLabel(dd.missed))}</span>`
     : status==='today' ? `<span class="prow-status today">${L.statusToday}</span>`
     : '';
 
@@ -6995,6 +7282,7 @@ function planListRowHtml(weekIdx, i, date){
           ${draggable ? `<span class="drag-handle" title="${L.dragHandleHint}">${ICONS.grip}</span>` : ''}
         </div>
       </div>
+      ${classes.map(it=>{ const cL = ST(it.session); return `<div class="prow-class ${it.done?'done':''}">${ICONS.class}<span>${escapeHtml(cL.title)}</span><span class="prow-class-t">${escapeHtml((cL.detail||'').split(' · ')[0])}</span></div>`; }).join('')}
     </div>
     <button type="button" class="prow-add" title="${L.planAddWorkoutLabel}">${ICONS.plus}<span>${L.planAddWorkoutLabel}</span></button>
   </div>`;
@@ -7201,7 +7489,13 @@ const CAL_SHORT_NAMES = {
   'Rest Day':{en:'', es:''},
 };
 function calendarDescHtml(dd){
-  if(dd.p.t==='rest') return '<span class="mo-desc"></span>';
+  // Classes count as the day's "+N" (a recorded one already sits in extraWorkouts); on a rest day the
+  // first class is the day's headline.
+  const classes = classItemsFor(dd.key), unrecorded = classes.filter(it=>!it.extra).length;
+  if(dd.p.t==='rest'){
+    if(!classes.length) return '<span class="mo-desc"></span>';
+    return `<span class="mo-desc"><span class="mo-desc-t">${escapeHtml(ST(classes[0].session).title)}</span>${classes.length>1 ? `<span class="mo-desc-a">+${classes.length-1}</span>` : ''}</span>`;
+  }
   const baseTitle = dd.p.en.title.replace(/ B$/, '');
   const short = CAL_SHORT_NAMES[baseTitle];
   const title = short ? short[state.lang] : ST(dd.p).title;
@@ -7209,7 +7503,7 @@ function calendarDescHtml(dd){
   // Everything else that day, not counting whichever record the headline itself is (see primaryLogTarget).
   const head = primaryLogTarget(dd);
   const more = dd.extraWorkouts.filter(w=> !(head.kind==='extra' && head.id===w.id)).length
-    + dd.manualEntries.filter(e=> !(head.kind==='entry' && head.id===e.id)).length;
+    + dd.manualEntries.filter(e=> !(head.kind==='entry' && head.id===e.id)).length + unrecorded;
   return `<span class="mo-desc">
       <span class="mo-desc-t">${escapeHtml(title)}</span>
       ${amount || more ? `<span class="mo-desc-a">${escapeHtml(amount)}${more ? `${amount?' ':''}+${more}` : ''}</span>` : ''}
@@ -7320,7 +7614,7 @@ function planRowHtml(dd, status){
   const L = STR[state.lang];
   const effL = ST(dd.p);
   const pillIcon = status==='done'?ICONS.checkSm:'';
-  const pillText = status==='done'?L.statusDone:status==='today'?L.statusToday:status==='missed'?L.statusMissed:status==='rest'?L.statusRest:L.statusUpcoming;
+  const pillText = status==='done'?L.statusDone:status==='today'?L.statusToday:status==='missed'?L.statusMissed:status==='excused'?escapeHtml(missedReasonLabel(dd.missed)):status==='rest'?L.statusRest:L.statusUpcoming;
   const dow = (dd.date.getDay()+6)%7;
   return `<div class="r-top">
       <span class="r-day">${DAY_NAMES_SHORT[state.lang][dow]} <span class="num">${dd.date.getDate()}</span></span>
@@ -7701,7 +7995,7 @@ function renderDayDetail(){
     actionsHtml += `<button class="btn-text" id="ddResetPlanBtn" type="button" style="width:100%;margin-top:12px;">${L.resetPlanBtn}</button>`;
   }
   let rescheduleIdx = -1;
-  if(status==='missed'){
+  if(status==='missed' || status==='excused' && !dd.isToday){
     rescheduleIdx = currentWeekIdxFor(state.openDayKey);
     const laterRestDays = [];
     for(let j=Math.max(rescheduleIdx+1, TODAY_IDX);j<=6;j++){ if(state.week[j].p.t==='rest') laterRestDays.push(j); }
@@ -7759,10 +8053,38 @@ function renderDayDetail(){
   completeSection.hidden = dd.isFuture || dd.p.t==='rest';
   document.getElementById('dayCompleteToggle').classList.toggle('on', dd.completed);
 
+  // A workout not done (a past day's, or today's) can say why: sick, injured, vacation...
+  const missedSection = document.getElementById('dayDetailMissedSection');
+  missedSection.hidden = dd.p.t==='rest' || dayDataStatus(dd)==='done' || dd.isFuture;
+  if(!missedSection.hidden){
+    document.getElementById('missedWhyLabel').textContent = dd.isToday ? L.missedTodayLabel : L.missedWhyLabel;
+    const reasonRow = document.getElementById('missedReasonRow');
+    reasonRow.innerHTML = MISSED_REASONS.map(r=>`<div class="chip ${dd.missed && dd.missed.reason===r ? 'sel' : ''}" data-missed-reason="${r}">${escapeHtml(L['missedReason_'+r])}</div>`).join('');
+    const note = document.getElementById('missedNoteInput');
+    note.placeholder = L.missedNotePlaceholder;
+    if(document.activeElement!==note) note.value = dd.missed ? dd.missed.note || '' : '';
+    const pauseNote = document.getElementById('missedPauseNote');
+    pauseNote.textContent = L.missedPauseNote;
+    pauseNote.hidden = !(dd.missed && STREAK_PAUSE_REASONS.includes(dd.missed.reason));
+    reasonRow.querySelectorAll('[data-missed-reason]').forEach(ch=> ch.addEventListener('click', ()=>{
+      const r = ch.getAttribute('data-missed-reason');
+      // Tapping the chosen reason again clears it.
+      setMissedReason(state.openDayKey, dd.missed && dd.missed.reason===r ? null : {reason:r, note: note.value.trim()});
+      refreshViews();
+      renderDayDetail();
+    }));
+  }
+
   const extraSection = document.getElementById('dayDetailExtraSection');
   const extraWrap = document.getElementById('dayDetailExtraWorkouts');
-  extraSection.hidden = dd.extraWorkouts.length===0;
-  extraWrap.innerHTML = dd.extraWorkouts.map(w=>{
+  // (Classes have their own section.)
+  const ddExtras = dd.extraWorkouts.filter(w=> !(w.session && w.session.t==='class'));
+  extraSection.hidden = ddExtras.length===0;
+  const classesHtml = classRowsHtml(state.openDayKey);
+  document.getElementById('dayDetailClassSection').hidden = !classesHtml;
+  document.getElementById('dayDetailClasses').innerHTML = classesHtml;
+  bindClassRows(document.getElementById('dayDetailClasses'), state.openDayKey, ()=>{ refreshViews(); if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail(); });
+  extraWrap.innerHTML = ddExtras.map(w=>{
     const effL = ST(w.session);
     // Today's extras go through the live Record flow (Start Workout -> Log Performance), same as
     // the primary session, and its own "Completed" badge is just a static label once done (the live
@@ -7888,7 +8210,7 @@ let manualExercises = []; // {key, name, sets, reps} -- optional, user-built set
 function renderManualTypeRow(){
   const L = STR[state.lang];
   const row = document.getElementById('manualTypeRow');
-  const types = [['run', L.typeCardio], ['strength', L.typeWeightTraining], ['interval', L.typeInterval]];
+  const types = [['run', L.typeCardio], ['strength', L.typeWeightTraining], ['interval', L.typeInterval], ['class', L.typeClass]];
   row.innerHTML = types.map(([t,label])=>`<button type="button" class="type-btn ${t===manualEntryType?'sel':''}" data-type="${t}">${MANUAL_TYPE_ICON[t]}<span>${label}</span></button>`).join('');
   row.querySelectorAll('.type-btn').forEach(b=>{
     b.addEventListener('click', ()=>{ manualEntryType = b.getAttribute('data-type'); renderManualTypeRow(); updateCreateTargetSections(); });
@@ -7897,7 +8219,44 @@ function renderManualTypeRow(){
 function updateCreateNameLabel(){
   document.getElementById('createNameLabel').textContent = createMarkCompleted ? STR[state.lang].manualNameLabel : STR[state.lang].planNameLabel;
 }
+// The Class form: which class, which days, when, how long, every week or just this once.
+let classDays = [], classRepeat = true, classAutoName = '';
+function renderClassForm(){
+  const L = STR[state.lang];
+  const sel = document.getElementById('classKindSelect');
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${escapeHtml(L.classChoose)}</option>` + CLASS_OPTIONS.map(o=>`<option value="${o.key}">${escapeHtml(o[state.lang])}</option>`).join('');
+  sel.value = cur;
+  const row = document.getElementById('classDaysRow');
+  row.innerHTML = DAY_NAMES_SHORT[state.lang].map((d,i)=>`<div class="chip ${classDays.includes(i)?'sel':''}" data-class-day="${i}">${d}</div>`).join('');
+  row.querySelectorAll('[data-class-day]').forEach(ch=> ch.addEventListener('click', ()=>{
+    const i = +ch.getAttribute('data-class-day');
+    classDays = classDays.includes(i) ? classDays.filter(x=>x!==i) : [...classDays, i];
+    renderClassForm();
+  }));
+  document.getElementById('classRepeatToggle').classList.toggle('on', classRepeat);
+}
+document.getElementById('classKindSelect').addEventListener('change', e=>{
+  // Picking a class names the workout (unless the user already typed their own name).
+  const opt = CLASS_OPTIONS.find(o=>o.key===e.target.value);
+  const nameInput = document.getElementById('manualNameInput');
+  if(opt && opt.key!=='other' && (!nameInput.value.trim() || nameInput.value===classAutoName)){
+    nameInput.value = classAutoName = opt[state.lang];
+    nameInput.style.borderColor = '';
+  }
+  if(opt && opt.key==='other' && nameInput.value===classAutoName){ nameInput.value = classAutoName = ''; nameInput.focus(); }
+});
+document.getElementById('classRepeatToggle').addEventListener('click', ()=>{ classRepeat = !classRepeat; renderClassForm(); });
 function updateCreateTargetSections(){
+  // A class has its own form; the rest (description, notes, done/planned, targets) doesn't apply to it.
+  const isClass = manualEntryType==='class';
+  document.getElementById('createClassSection').hidden = !isClass;
+  document.getElementById('manualNotesSection').hidden = isClass;
+  if(isClass){
+    ['manualVolumeSection','cardioLogSection','createCompletedSection','createPaceSection','createIntervalSection','createExercisesSection'].forEach(id=>{ document.getElementById(id).hidden = true; });
+    renderClassForm();
+    return;
+  }
   const showTargets = !createMarkCompleted && (manualEntryType==='strength' || manualEntryType==='run');
   // Once a real exercise breakdown is being built, the single session-level weight x reps target
   // is redundant (and its progression data would go unused, since a structured session progresses
@@ -8001,6 +8360,13 @@ let manualEntryAlongside = false;
 function openManualEntry(){
   manualEntryAlongside = false;
   manualEntryType = 'strength';
+  // A class starts on the day it was opened for, at 6 PM, for an hour, every week.
+  classDays = state.openDayKey ? [(parseDateKey(state.openDayKey).getDay()+6)%7] : [];
+  classRepeat = true; classAutoName = '';
+  document.getElementById('classKindSelect').value = '';
+  document.getElementById('classTimeInput').value = '18:00';
+  document.getElementById('classLenHInput').value = '1';
+  document.getElementById('classLenMInput').value = '0';
   createMarkCompleted = true;
   const L = STR[state.lang];
   document.getElementById('manualNameInput').value = '';
@@ -8030,6 +8396,16 @@ function closeManualEntry(){
   document.getElementById('manualEntryOverlay').hidden = true;
 }
 document.getElementById('addWorkoutBtn').addEventListener('click', openManualEntry);
+document.getElementById('missedNoteInput').addEventListener('change', e=>{
+  const key = state.openDayKey;
+  if(!key) return;
+  const cur = (state.dayLog[key]||{}).missed;
+  const note = e.target.value.trim();
+  if(!cur && !note) return;
+  setMissedReason(key, {reason: cur ? cur.reason : 'other', note});
+  refreshViews();
+  renderDayDetail();
+});
 document.getElementById('closeManualEntry').addEventListener('click', closeManualEntry);
 function readCreateTarget(){
   if(manualEntryType==='run'){
@@ -8053,11 +8429,12 @@ function readIntervalConfig(){
 function logCompletedEntry(targetDayKey, fields){
   const entry = {id:'m'+Date.now()+Math.random().toString(36).slice(2,7), ...fields};
   // On a plain Rest Day, let this genuinely-logged workout take over as the day's workout too, instead
-  // of leaving a stale "Rest Day" sitting above the very thing that actually happened -- and a run
-  // logged on a planned run day IS that day's run. Anything else keeps the day's planned workout: 50
-  // push-ups logged at work sit alongside today's run, they don't replace it or finish it.
+  // of leaving a stale "Rest Day" sitting above the very thing that actually happened -- and a workout
+  // of the planned kind (a run logged on a run day, lifting on a lifting day) IS that day's workout.
+  // Anything else keeps the day's planned workout: 50 push-ups logged at work sit alongside today's
+  // run, they don't replace it or finish it.
   const slot = getRawDaySlot(parseDateKey(targetDayKey));
-  const takesOver = !slot.isCustom && (slot.p.t==='rest' || slot.p.t==='run' && fields.type==='run');
+  const takesOver = !slot.isCustom && (slot.p.t==='rest' || slot.p.t===fields.type);
   ensureDayLog(targetDayKey).manualEntries.push(entry);
   const insertPromise = cloudInsertManualEntry(targetDayKey, entry, takesOver).then(supabaseId=>{ if(supabaseId) entry.supabaseId = supabaseId; });
   if(takesOver){
@@ -8095,6 +8472,27 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     // Derives the same free-text display shown everywhere else (bubbles, Home, Plan rows) from the
     // structured Distance/Duration fields, so nothing else in the app needs to change to show it.
     volume = [cardioDistance!=null ? `${cardioDistance} mi` : '', cardioDuration!=null ? fmtDurationClock(cardioDuration) : ''].filter(Boolean).join(' · ');
+  }
+
+  if(manualEntryType==='class'){
+    const kind = document.getElementById('classKindSelect').value || 'other';
+    const minutes = (parseInt(document.getElementById('classLenHInput').value,10)||0)*60 + (parseInt(document.getElementById('classLenMInput').value,10)||0);
+    const cls = {id:'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), kind, name,
+      days: classDays.length ? classDays.slice().sort((a,b)=>a-b) : [(parseDateKey(state.openDayKey).getDay()+6)%7],
+      time: document.getElementById('classTimeInput').value || '18:00', minutes: minutes || 60, from: state.openDayKey, skips: []};
+    if(classRepeat){
+      state.classes = [...(state.classes||[]), cls];
+      saveProfileToCloud();
+    } else {
+      // Just this once: it's that day's class alone (already done, with its length, on a past day).
+      const w = addExtraWorkout(state.openDayKey, classSessionFor(cls));
+      if(w.completed){ w.performance = {time: cls.minutes}; Promise.resolve(w.saved).then(()=>{ if(w.supabaseId) cloudSetExtraWorkoutPerformance(w.supabaseId, w.performance); }); }
+    }
+    closeManualEntry();
+    refreshViews();
+    if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail();
+    showToast(STR[state.lang].classAddedToast);
+    return;
   }
 
   if(manualEntryType==='interval'){
@@ -8508,6 +8906,7 @@ function renderSettings(){
   document.getElementById('profileEmail').textContent = state.userEmail;
   renderReminderSettings();
   renderInstallUI();
+  renderMyClasses();
   document.getElementById('themeToggle').classList.toggle('on', state.theme==='light');
   renderStravaSettings();
 }
@@ -9103,6 +9502,7 @@ async function loadProfileFromCloud(){
   if(data.mile_time_sec) state.mileTime = Number(data.mile_time_sec);
   if(data.jog_baseline && typeof data.jog_baseline==='object') state.jogBaseline = data.jog_baseline;
   if(data.exercise_swaps && typeof data.exercise_swaps==='object') state.exerciseSwaps = data.exercise_swaps;
+  if(Array.isArray(data.classes)) state.classes = data.classes;
   if(data.plan_start) state.planStart = data.plan_start;
   if(data.plan_start_date) state.planStartDate = String(data.plan_start_date).slice(0,10);
   else if(!state.planStart){
@@ -9141,6 +9541,7 @@ async function saveProfileToCloud(){
       lift_split: state.liftSplit,
       jog_baseline: state.jogBaseline,
       mile_time_sec: state.mileTime,
+      classes: state.classes,
       updated_at: new Date().toISOString(),
     };
     const { error } = await sb.from('profiles').update(payload).eq('id', state.userId);
@@ -9148,7 +9549,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }
@@ -9161,6 +9562,15 @@ async function saveProfileToCloud(){
 const workoutLogRows = new Map(); // 'userId|YYYY-MM-DD' -> Promise<{id} | null>
 function rememberWorkoutLogRow(dateStr, id){
   workoutLogRows.set(state.userId+'|'+dateStr, Promise.resolve({id}));
+}
+// Why a day's workout was missed. Best-effort: on a database without these columns yet it just isn't saved.
+async function cloudSetMissed(dateStr, missed){
+  if(!state.userId) return;
+  try{
+    const row = await cloudGetOrCreateWorkoutLog(dateStr);
+    if(!row) return;
+    await sb.from('workout_logs').update({ missed_reason: missed ? missed.reason : null, missed_note: missed && missed.note ? missed.note : null }).eq('id', row.id);
+  }catch(e){ /* best-effort */ }
 }
 function cloudGetOrCreateWorkoutLog(dateStr){
   if(!state.userId) return Promise.resolve(null);
@@ -9395,6 +9805,7 @@ async function loadWorkoutDataFromCloud(){
     const EXTRA_COLS = 'id, log_date, session_type, title, detail, exercises, interval_rounds, interval_work_sec, interval_rest_sec, completed';
     const [logsRes, extrasRes, targetsRes] = await Promise.all([
       selectOwnRows('workout_logs', [
+        `${LOG_COLS}, actual_run_distance, performance, planned_exercises, missed_reason, missed_note, manual_entries(id, name, type, volume, notes, distance, duration_min, performance)`,
         `${LOG_COLS}, actual_run_distance, performance, planned_exercises, manual_entries(id, name, type, volume, notes, distance, duration_min, performance)`,
         `${LOG_COLS}, actual_run_distance, performance, manual_entries(id, name, type, volume, notes, distance, duration_min, performance)`,
         `${LOG_COLS}, actual_run_distance, manual_entries(id, name, type, volume, notes, distance, duration_min)`,
@@ -9423,6 +9834,7 @@ async function loadWorkoutDataFromCloud(){
           session: customSession ? {p: customSession, c: null, isCustom: true} : null,
           actualRunDistance: row.actual_run_distance ?? null,
           performance: row.performance ?? null,
+          missed: row.missed_reason ? {reason: row.missed_reason, note: row.missed_note || ''} : null,
         };
         // The current week's non-today slots track completion (and, for a custom plan, the session
         // itself) on state.week[i] directly rather than through dayLog -- mirror both there too so
@@ -10341,6 +10753,7 @@ function computeStreak(){
     if(monday < earliest) break;
     if(workoutsInWeek(monday)>=streakWeekNeed()){ streak++; continue; }
     if(i===0) continue; // this week isn't over yet
+    if(weekPaused(monday)) continue; // sick, injured or on vacation: paused, not broken
     break;
   }
   return streak;
@@ -10351,7 +10764,7 @@ function longestWeekStreak(){
   let best = 0, run = 0;
   for(let m = earliestLogMonday(); m <= thisMonday; m = new Date(m.getFullYear(), m.getMonth(), m.getDate()+7)){
     if(workoutsInWeek(m)>=streakWeekNeed()){ run++; if(run>best) best = run; }
-    else if(m.getTime()!==thisMonday.getTime()) run = 0;
+    else if(m.getTime()!==thisMonday.getTime() && !weekPaused(m)) run = 0;
   }
   return best;
 }
@@ -10369,7 +10782,7 @@ function recentStreakWeeks(){
     const monday = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate()-7*(7-k));
     const count = workoutsInWeek(monday);
     const need = streakWeekNeed();
-    const status = count>=need ? 'done' : k===7 ? (count>0 ? 'partial today' : 'today') : count>0 ? 'partial' : monday < earliestLogMonday() ? 'rest' : 'missed';
+    const status = count>=need ? 'done' : k===7 ? (count>0 ? 'partial today' : 'today') : weekPaused(monday) ? 'paused' : count>0 ? 'partial' : monday < earliestLogMonday() ? 'rest' : 'missed';
     return {monday, count, status};
   });
 }
@@ -10678,10 +11091,13 @@ function buildReminderSchedule(){
   for(let i=0; i<REMINDER_DAYS_AHEAD; i++){
     const date = new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth(), TODAY_DATE.getDate()+i);
     const dd = getDayData(date);
-    if(dd.completed) continue;
     const items = [];
-    if(dd.p && dd.p.t!=='rest') items.push(dd.p);
-    dd.extraWorkouts.forEach(w=>{ if(!w.completed && w.session && w.session!==dd.p && w.session.t!=='rest') items.push(w.session); });
+    if(!dd.completed){
+      if(dd.p && dd.p.t!=='rest') items.push(dd.p);
+      dd.extraWorkouts.forEach(w=>{ if(!w.completed && w.session && w.session!==dd.p && w.session.t!=='rest' && w.session.t!=='class') items.push(w.session); });
+    }
+    // The day's classes still to go, with their times ("Jiu-Jitsu · 3:00 PM · 1h 30m").
+    classItemsFor(dd.key).forEach(it=>{ if(!it.done) items.push(it.session); });
     if(!items.length) continue;
     const texts = items.map(x=>ST(x));
     schedule[dd.key] = {

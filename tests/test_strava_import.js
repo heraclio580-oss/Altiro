@@ -180,7 +180,8 @@ const text = (doc, id) => doc.getElementById(id).textContent;
 
   go('home');
   await wait(20);
-  console.log("Home's distance card includes the imported run:", text(doc,'ovDistanceVal')==='20.5/20.5 mi' ? 'OK' : `FAIL (${text(doc,'ovDistanceVal')})`);
+  // The week's planned miles include its earlier runs, done or not (one of them wasn't).
+  console.log("Home's distance card includes the imported run:", text(doc,'ovDistanceVal')==='20.5/23.5 mi' ? 'OK' : `FAIL (${text(doc,'ovDistanceVal')})`);
   console.log("Today's Record button shows done:", doc.getElementById('recordBtn').classList.contains('done') ? 'OK' : `FAIL (${doc.getElementById('recordBtn').className})`);
 
   go('settings');
@@ -199,7 +200,7 @@ const text = (doc, id) => doc.getElementById(id).textContent;
   console.log('...as its own Logged Workout today:', eveningRuns.length===1 && eveningRuns[0].distance===3 ? 'OK' : `FAIL (${JSON.stringify(eveningRuns)})`);
   go('home');
   await wait(20);
-  console.log("...counted on Home's distance card:", text(doc,'ovDistanceVal')==='23.5/23.5 mi' ? 'OK' : `FAIL (${text(doc,'ovDistanceVal')})`);
+  console.log("...counted on Home's distance card:", text(doc,'ovDistanceVal')==='23.5/26.5 mi' ? 'OK' : `FAIL (${text(doc,'ovDistanceVal')})`);
   const todayAfter = Object.values(backend.db.workout_logs).find(r=>r.log_date==='2026-09-18');
   console.log("...without touching today's planned run:", todayAfter.planned_title==='16 mile long run' && todayAfter.actual_run_distance===16.02 ? 'OK' : `FAIL (${todayAfter.planned_title}, ${todayAfter.actual_run_distance})`);
 

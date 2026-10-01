@@ -40,6 +40,7 @@ alter table profiles add column if not exists mile_time_sec int;   -- a recent m
 alter table profiles add column if not exists plan_start_date date;   -- the day the plan begins (today or a later date the user chose)
 alter table profiles add column if not exists lift_intensity_idx int;   -- lifting's own intensity (0 light, 1 moderate, 2 high); null = same as intensity_idx (running's)
 alter table profiles add column if not exists lift_split text;   -- how lifting days are split: auto | full | ppl (push/pull/legs) | bodypart (one muscle group a day)
+alter table profiles add column if not exists classes jsonb not null default '[]'::jsonb; -- weekly classes: [{id, kind, name, days (0=Mon), time 'HH:MM', minutes, from, skips}]
 
 -- ---------------------------------------------------------------------------
 -- workout_logs: one row per (user, calendar day) -- mirrors state.dayLog[dateKey]
@@ -67,6 +68,8 @@ alter table workout_logs add column if not exists planned_interval_rest_sec int;
 alter table workout_logs add column if not exists actual_run_distance numeric; -- what was actually run, from Log Performance -- distinct from the plan's prescribed distance
 alter table workout_logs add column if not exists performance jsonb; -- what was logged for the day's own planned workout in Log Performance (sets/weights, distance/time, notes), shown again when it's reopened
 alter table workout_logs add column if not exists planned_exercises jsonb; -- the day's own workout's exercise list, when the user built or changed it
+alter table workout_logs add column if not exists missed_reason text; -- why the day's workout was missed: sick | injured | vacation | busy | rest | other (sick/injured/vacation pause the streak)
+alter table workout_logs add column if not exists missed_note text;   -- the user's own note on it
 
 -- manual_entries: free-text "+ Add a Workout" logs, children of a workout_log
 create table if not exists manual_entries (

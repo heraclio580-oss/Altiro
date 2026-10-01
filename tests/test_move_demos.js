@@ -41,7 +41,7 @@ check('...and a planted hand or foot stays where it is', Math.max(...planted) < 
 // push-up that sends the elbows back toward the body, never out past the hands.
 check('Every joint bends the way the body does', !wrongWay.length, [...new Set(wrongWay)].slice(0, 4).join(', '));
 // Photo demos: two pictures per move in www/demos/, named after the exercise.
-const PHOTOS = JSON.parse('[' + (html.match(/const DEMO_PHOTOS = new Set\(\[([^\]]*)\]\)/)[1]).replace(/'/g, '"') + ']');
+const PHOTOS = [...html.match(/const DEMO_PHOTOS = new Map\(\[([\s\S]*?)\]\);/)[1].matchAll(/\['([^']+)'/g)].map(m=> m[1]);
 const slug = k => k.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const missing = PHOTOS.flatMap(k=> ['start', 'end'].map(e=> `${slug(k)}-${e}.webp`)).filter(f=> !fs.existsSync(path.join(__dirname, '..', 'www', 'demos', f)));
 check(`Every photo demo has both of its pictures (${PHOTOS.length} with photos)`, PHOTOS.length && !missing.length, missing.join(', '));

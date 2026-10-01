@@ -622,13 +622,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 #moveDemoOverlay{z-index:92;}
 .mv-photo{position:relative;display:block;width:100%;height:100%;background:#26272A;}
 .mv-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;}
-.mv-photo.mv-thumb img{object-fit:cover;object-position:50% 38%;}
+.mv-photo.mv-thumb img{object-fit:cover;object-position:var(--focus,50% 40%);}
 .mv-photo-end{opacity:0;animation:mvPhotoSwap 3s ease-in-out infinite;}
 .mv-photo[data-speed="0.5"] .mv-photo-end{animation-duration:6s;}
 .mv-photo[data-speed="0"] .mv-photo-end{animation-play-state:paused;}
 @keyframes mvPhotoSwap{0%,30%{opacity:0}45%,80%{opacity:1}95%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){ .mv-photo:not([data-speed]) .mv-photo-end{animation:none;} }
-.md-stage .mv-photo{height:min(52vh,420px);}
+.md-stage .mv-photo{height:auto;aspect-ratio:var(--ratio);max-height:min(52vh,420px);}
 .md-stage{margin:4px 0 12px;border-radius:18px;background:var(--card);border:1px solid var(--divider-soft);overflow:hidden;}
 .md-stage svg{width:100%;height:auto;display:block;}
 .md-controls{display:flex;gap:8px;margin-bottom:14px;}
@@ -10046,14 +10046,18 @@ function mvViewBox(key, thumb){
 // A move's figure, drawn at its first pose; mvKick() sets every one on screen moving.
 // Photo demos: two pictures of a move (start and end position, same camera), in www/demos/ named after
 // the exercise -- "Back Squat" -> back-squat-start.webp / back-squat-end.webp. The app fades between
-// them in a loop. An exercise with photos shows them; one without keeps its drawn figure.
-const DEMO_PHOTOS = new Set(['Back Squat']);
+// them in a loop. An exercise with photos shows them; one without keeps its drawn figure. Each lists the
+// photos' shape (width / height) and the part of them a small thumbnail centers on.
+const DEMO_PHOTOS = new Map([
+  ['Back Squat', {ratio: 440/797, focus: '50% 38%'}],
+  ['Push-Up',    {ratio: 720/357, focus: '72% 55%'}],
+]);
 const demoSlug = key => key.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const hasDemo = key => DEMO_PHOTOS.has(key) || !!MOVES[key];
 function moveDemoSvg(key, cls){
   if(DEMO_PHOTOS.has(key)){
-    const src = `demos/${demoSlug(key)}`;
-    return `<span class="mv-photo ${cls}" data-move="${escapeHtml(key)}" aria-hidden="true"><img src="${src}-start.webp" alt="" loading="lazy" decoding="async"><img class="mv-photo-end" src="${src}-end.webp" alt="" loading="lazy" decoding="async"></span>`;
+    const src = `demos/${demoSlug(key)}`, ph = DEMO_PHOTOS.get(key);
+    return `<span class="mv-photo ${cls}" style="--ratio:${ph.ratio.toFixed(3)};--focus:${ph.focus}" data-move="${escapeHtml(key)}" aria-hidden="true"><img src="${src}-start.webp" alt="" loading="lazy" decoding="async"><img class="mv-photo-end" src="${src}-end.webp" alt="" loading="lazy" decoding="async"></span>`;
   }
   const move = MOVES[key];
   if(!move) return '';

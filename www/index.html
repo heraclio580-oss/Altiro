@@ -571,6 +571,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .manual-entry .ic svg{width:14px;height:14px;}
 .manual-entry .body{flex:1;min-width:0;}
 .manual-entry .body .n{font-size:13px;font-weight:600;color:var(--text);}
+.class-entry{gap:8px;}
+.class-entry .body .v{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.class-entry .btn-text{padding-left:2px;padding-right:2px;}
+.class-done{display:flex;align-items:center;gap:4px;color:var(--ok-icon);font-size:11px;margin-top:3px;}
+.class-done svg{width:12px;height:12px;}
 .manual-entry .body .v{font-family:var(--font-mono);font-size:10.5px;color:var(--text-3);margin-top:1px;}
 .del{background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px;flex-shrink:0;}
 .del svg{width:14px;height:14px;display:block;}
@@ -2607,6 +2612,7 @@ const STR = {
     myClassesEmpty: "No classes yet — add one with + Add a workout → Class.",
     classEvery: "Every {days}",
     classDoneMin: "Done · {min}",
+    classDoneToggle: "Class done",
     mdCuesLabel: "Form cues",
     mdPause: "Pause",
     mdPlay: "Play",
@@ -3099,6 +3105,7 @@ const STR = {
     myClassesEmpty: "Aún no hay clases: añade una con + Añadir entrenamiento → Clase.",
     classEvery: "Cada {days}",
     classDoneMin: "Hecha · {min}",
+    classDoneToggle: "Clase hecha",
     mdCuesLabel: "Claves de técnica",
     mdPause: "Pausa",
     mdPlay: "Reproducir",
@@ -5038,25 +5045,26 @@ function classItemsFor(key){
   });
   // (A one-off class's start time is read back from its "3:00 PM · 1h" description.)
   const timeOf = w => { const m = String(w.session.en.detail||'').match(/^(\d{1,2}):(\d{2}) (AM|PM)/); return m ? String((+m[1])%12 + (m[3]==='PM' ? 12 : 0)).padStart(2,'0')+':'+m[2] : ''; };
-  extras.filter(w=>!used.has(w)).forEach(w=> items.push({id:'w:'+w.id, cls:null, extra:w, session:w.session, time:timeOf(w), minutes:null, done:!!w.completed}));
+  // (...and its length from the "1h 30m" after it.)
+  const minutesOf = w => { const m = String(w.session.en.detail||'').match(/·\s*(?:(\d+)h)?\s*(?:(\d+)m)?\s*$/); return m && (m[1]||m[2]) ? (+m[1]||0)*60 + (+m[2]||0) : null; };
+  extras.filter(w=>!used.has(w)).forEach(w=> items.push({id:'w:'+w.id, cls:null, extra:w, session:w.session, time:timeOf(w), minutes:minutesOf(w), done:!!w.completed}));
   return items.sort((a,b)=> (a.time||'99').localeCompare(b.time||'99'));
 }
-// A day's class rows (Home, Day Detail): Start (today) / Mark done (a past day) / skip.
+// A day's class rows (Home, Day Detail): Start (today), a done switch (today or a past day -- for a
+// class whose timer never got started, or one marked done by mistake), and delete / skip.
 function classRowsHtml(key){
   const L = STR[state.lang];
   const today = dateKey(TODAY_DATE);
   return classItemsFor(key).map(it=>{
     const sL = ST(it.session);
     const time = it.extra && it.extra.performance && it.extra.performance.time ? Math.round(it.extra.performance.time) : null;
-    const action = it.done
-      ? `<span class="r-inline-btn" style="display:flex;align-items:center;gap:4px;color:var(--ok-icon);font-size:11px;white-space:nowrap;">${ICONS.checkSm}${time ? L.classDoneMin.replace('{min}', fmtClassLength(time)) : L.recordDoneLabel}</span>`
-      : key===today ? `<button class="btn-text" data-class-start="${it.id}" type="button" style="white-space:nowrap;">${L.classStartBtn}</button>`
-      : key<today ? `<button class="btn-text" data-class-done="${it.id}" type="button" style="white-space:nowrap;">${L.markDoneLabel}</button>`
-      : '';
+    const status = it.done ? `<div class="class-done">${ICONS.checkSm}${time ? L.classDoneMin.replace('{min}', fmtClassLength(time)) : L.recordDoneLabel}</div>` : '';
+    const start = !it.done && key===today ? `<button class="btn-text" data-class-start="${it.id}" type="button" style="white-space:nowrap;">${L.classStartBtn}</button>` : '';
+    const toggle = key<=today ? `<div class="toggle ${it.done?'on':''}" data-class-toggle="${it.id}" role="switch" aria-checked="${it.done}" aria-label="${escapeHtml(L.classDoneToggle)}"><div class="knob"></div></div>` : '';
     return `<div class="manual-entry class-entry" data-class-id="${it.id}">
       <span class="ic">${ICONS.class}</span>
-      <div class="body"><div class="n">${escapeHtml(sL.title)}</div><div class="v">${escapeHtml(sL.detail||'')}</div></div>
-      ${action}
+      <div class="body"><div class="n">${escapeHtml(sL.title)}</div><div class="v">${escapeHtml(sL.detail||'')}</div>${status}</div>
+      ${start}${toggle}
       <button class="del" data-class-skip="${it.id}" type="button" aria-label="${it.done ? 'Delete' : 'Skip'}">${ICONS.trash}</button>
     </div>`;
   }).join('');
@@ -5073,14 +5081,20 @@ function bindClassRows(container, key, after){
     if(!document.getElementById('dayDetailOverlay').hidden) closeDayDetail();
     openLogPerformance(w.id);
   }));
-  container.querySelectorAll('[data-class-done]').forEach(btn=> btn.addEventListener('click', ()=>{
-    const it = item(btn.getAttribute('data-class-done'));
+  container.querySelectorAll('[data-class-toggle]').forEach(tg=> tg.addEventListener('click', ()=>{
+    const it = item(tg.getAttribute('data-class-toggle'));
     if(!it) return;
     const w = recordingFor(it);
-    w.completed = true;
-    // Marked done after the fact: it counts its scheduled length.
-    if(it.minutes && !(w.performance && w.performance.time)) w.performance = {...(w.performance||{}), time: it.minutes};
-    Promise.resolve(w.saved).then(()=>{ if(!w.supabaseId) return; cloudSetExtraWorkoutCompleted(w.supabaseId, true); if(w.performance) cloudSetExtraWorkoutPerformance(w.supabaseId, w.performance); });
+    if(it.done){
+      // Not done after all: it stops counting, time and all.
+      w.completed = false;
+      w.performance = null;
+    } else {
+      // Done without the timer: it counts its scheduled length.
+      w.completed = true;
+      if(it.minutes && !(w.performance && w.performance.time)) w.performance = {...(w.performance||{}), time: it.minutes};
+    }
+    Promise.resolve(w.saved).then(()=>{ if(!w.supabaseId) return; cloudSetExtraWorkoutCompleted(w.supabaseId, w.completed); cloudSetExtraWorkoutPerformance(w.supabaseId, w.performance); });
     after();
   }));
   // A class done (or added just for that day) is deleted with its recorded time; a weekly one not

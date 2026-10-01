@@ -74,6 +74,23 @@ function check(label, ok, detail){
   check('A Thursday doesn\'t', doc.getElementById('dayDetailClassSection').hidden);
   await click('#closeDayDetail');
 
+  // ---- forgot to start the timer: the switch marks it done (its scheduled length), and back ----
+  go('home'); await wait(20);
+  const tgl = () => doc.querySelector('#homeClassesWrap [data-class-toggle]');
+  check('Today\'s class has a done switch next to Start', !!tgl() && !tgl().classList.contains('on') && !!doc.querySelector('#homeClassesWrap [data-class-start]'));
+  tgl().click(); await wait(20);
+  check('Switching it on marks it done with its scheduled length', tgl().classList.contains('on') && /Done · 1h 30m/.test(classRows('#homeClassesWrap')[0]) && !doc.querySelector('#homeClassesWrap [data-class-start]'), classRows('#homeClassesWrap')[0]);
+  check('...without finishing today\'s planned workout', !doc.getElementById('recordBtn').classList.contains('done'));
+  tgl().click(); await wait(20);
+  check('Switching it off undoes it: not done, Start is back', !tgl().classList.contains('on') && !/Done/.test(classRows('#homeClassesWrap')[0]) && !!doc.querySelector('#homeClassesWrap [data-class-start]'), classRows('#homeClassesWrap')[0]);
+  go('progress'); await wait(20);
+  doc.querySelector('[data-act-day="2026-09-18"]')?.click(); await wait(10);
+  check('...and it doesn\'t count in Progress', !/Jiu-Jitsu/.test(text(doc.querySelector('#progActivity .act-detail'))), text(doc.querySelector('#progActivity .act-detail')));
+  go('calendar'); await wait(20);
+  await openCalDay('2026-09-25');
+  check('A future class has no switch yet', !doc.querySelector('#dayDetailClasses [data-class-toggle]'));
+  await click('#closeDayDetail');
+
   // ---- doing it: the clock runs through class ----
   go('home'); await wait(20);
   await click('#homeClassesWrap [data-class-start]');
@@ -103,6 +120,10 @@ function check(label, ok, detail){
   doc.getElementById('classTimeInput').value = '07:00';
   await click('#classRepeatToggle');
   await click('#saveManualEntry');
+  check('...with its switch on', doc.querySelector('#dayDetailClasses .class-entry [data-class-toggle]')?.classList.contains('on'));
+  doc.querySelector('#dayDetailClasses [data-class-toggle]').click(); await wait(20);
+  check('...which a past day can switch off', !/Done/.test(classRows('#dayDetailClasses')[0]||'') && !doc.querySelector('#dayDetailClasses [data-class-toggle]').classList.contains('on'), classRows('#dayDetailClasses').join(' | '));
+  doc.querySelector('#dayDetailClasses [data-class-toggle]').click(); await wait(20);
   check('A one-time class on a past day is filed as done, with its length', /Yoga\s*7:00 AM · 1h.*Done · 1h/.test(classRows('#dayDetailClasses')[0]||''), classRows('#dayDetailClasses').join(' | '));
   await click('#closeDayDetail');
   await openCalDay('2026-09-23');

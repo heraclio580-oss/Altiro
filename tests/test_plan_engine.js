@@ -15,7 +15,7 @@ const E = new Function(`
   function exerciseProgressionKey(key){ return 'strength:'+key; }
   function getExerciseTarget(){ return null; }
   ${src}
-  return {setState: s => { state = s; }, generatePlanWeek, planConfig, exercisesForSession, exerciseAlternatives, weeklyRunMiles, planWeekIndex,
+  return {setState: s => { state = s; }, generatePlanWeek, planConfig, exercisesForSession, exerciseAlternatives, weeklyRunMiles, planWeekIndex, longRunCap,
           LEVEL_PLAN, MOVEMENTS, EXERCISES, isRecoveryWeek};
 `)();
 
@@ -35,7 +35,7 @@ const HARD = /Long Run|Tempo Run|Interval Run|Fartlek Run|Hill Repeats/;
 
 // ---- every setup: right number of sessions, well-formed runs ----
 const DAY_SETS = [[0],[1,4],[0,2,4],[1,3,5],[0,1,3,4],[1,2,3,5,6],[0,1,2,3,4],[0,1,2,3,4,5],[0,1,2,3,4,5,6]];
-let sessionsOk = true, detailOk = true, longestOk = true, capOk = true, sessionsBad = '', detailBad = '', longestBad = '';
+let sessionsOk = true, detailOk = true, longestOk = true, capOk = true, sessionsBad = '', detailBad = '', longestBad = '', capBad = '';
 for(const days of DAY_SETS) for(const focus of [0,1,2,3,4]) for(const level of ['beginner','intermediate','advanced'])
 for(const int of [0,1,2]) for(const mi of [0,8,25,45]) for(const n of [0,1,2,3,4,9,15]){
   const w = setup({days, focus, level, int, miles:mi})(n);
@@ -51,12 +51,24 @@ for(const int of [0,1,2]) for(const mi of [0,8,25,45]) for(const n of [0,1,2,3,4
   const top = Math.max(0, ...runs.map(miles));
   const long = runs.find(d=>d.p.en.title==='Long Run');
   if(long && miles(long) < top){ longestOk = false; longestBad = `${days} ${level} n${n}`; }
-  if(top > E.LEVEL_PLAN[level].longCap) capOk = false;
+  const target = E.weeklyRunMiles(E.planConfig(), w.filter(d=>d.p.t==='run').length, n);
+  if(top > Math.min(22, E.longRunCap(E.planConfig(), target)) + 0.5){ capOk = false; capBad = `${days} ${level} ${mi}mi n${n}: ${top}`; }
 }
 check('Every setup schedules exactly one session per training day', sessionsOk, sessionsBad);
 check('Every run\'s detail starts with its distance (or a timed session\'s minutes), in both languages', detailOk, detailBad);
 check('The long run is always the week\'s longest run', longestOk, longestBad);
-check('No run is ever longer than the level\'s longest run', capOk);
+check('No run is ever longer than the week\'s longest long run (the level\'s, or ~40% of a bigger week; 22 mi at most)', capOk, capBad);
+
+// ---- someone who already runs a lot: the plan starts where they are, whatever level they picked ----
+for(const level of ['beginner','intermediate']){
+  const wk = mi => setup({days:[0,2,4,6], level, miles:mi});
+  const first35 = total(wk(35)(0)), first45 = total(wk(45)(0));
+  check(`${level}: 35 and 45 miles a week start the plan at about those miles (${first35} / ${first45})`, Math.abs(first35-35)<=3 && Math.abs(first45-45)<=3);
+  const later = n => [total(wk(35)(n)), total(wk(45)(n))];
+  check(`${level}: ...and stay apart as it builds (week 8: ${later(8).join(' / ')})`, later(8)[1] - later(8)[0] >= 6 && later(8)[0] >= 35);
+  const longOf = w => miles(w.find(d=>d.p.en.title==='Long Run'));
+  check(`${level}: ...with long runs to match (${longOf(wk(35)(8))} / ${longOf(wk(45)(8))} mi)`, longOf(wk(35)(8)) > 10 && longOf(wk(45)(8)) > longOf(wk(35)(8)) && longOf(wk(45)(8)) <= 22);
+}
 
 // ---- mileage builds, with a recovery week every 4th ----
 const runner = setup({days:[1,2,3,5,6], focus:0, level:'advanced', miles:30});

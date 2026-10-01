@@ -3639,17 +3639,23 @@ function planStartMiles(cfg, runDays){
   const current = (cfg.miles ?? P.startMiles) * Math.min(1, runDays/3);
   return Math.max(current, runDays*P.minRun) * scale;
 }
+// The longest a long run gets: the level's longest, or -- for someone whose weeks are bigger than that
+// level usually runs -- about 40% of the week, up to 22 mi. A runner already doing 35-45 miles a week
+// has long runs to match, whatever level they picked.
+function longRunCap(cfg, weekMiles){ return Math.min(22, Math.max(LEVEL_PLAN[cfg.level].longCap, weekMiles*0.4)); }
 // Target running miles for plan week n: starts at what the user runs now, grows by the level's rate
 // on build weeks, drops to 80% on each recovery week (then carries on from where it was), and levels
-// off at a ceiling -- the level's biggest week, at most 50% (or 10 mi) above where they started, and
-// no more than their number of run days can reasonably hold.
+// off at a ceiling -- the level's biggest week (or 20% above where they started, for someone who
+// already runs more than that), at most 50% (or 10 mi) above where they started, and no more than
+// their number of run days can reasonably hold.
 function weeklyRunMiles(cfg, runDays, n){
   if(!runDays) return 0;
   const P = LEVEL_PLAN[cfg.level];
   const scale = INTENSITY_SCALE[cfg.intensity] ?? 1;
   const start = planStartMiles(cfg, runDays);
-  const roomForDays = P.longCap + (runDays-1)*P.longCap*0.55;
-  const cap = Math.max(start, Math.min(P.weeklyCap*scale, Math.max(start*1.5, start+10), roomForDays));
+  const longest = Math.min(22, Math.max(P.longCap, start*0.5));
+  const roomForDays = longest + (runDays-1)*longest*0.55;
+  const cap = Math.max(start, Math.min(Math.max(P.weeklyCap*scale, start*1.2), Math.max(start*1.5, start+10), roomForDays));
   let cur = start;
   for(let i=1; i<=n; i++) if(!isRecoveryWeek(i)) cur = Math.min(cap, cur*P.growth);
   return isRecoveryWeek(n) ? cur*0.8 : cur;
@@ -3729,23 +3735,28 @@ function plannedJogBlock(session){
 //   30 mi: tempo 4.5, easy 6.5, recovery 3.5, long 16      (15 / 21 / 11.5 / 52%)
 // The quality run and the longer easy run hold steady shares (~17% and ~21%); as the week grows the
 // long run takes the extra and a 4th run shrinks from a second easy run (~21%) to a short recovery run
-// (~12%). The long run is whatever's left, kept between 35% and 55% of the week and within the level's
-// longest run; no other run gets close to it (the longer easy run at most 55% of it).
+// (~12%). The long run is whatever's left, kept between 35% and 55% of the week and within the longest
+// long run (longRunCap); no other run gets close to it (the longer easy run at most 55% of it). Miles
+// the long run can't take, once it's at its longest, go to the other runs as far as they can hold.
 const RUN_SHARE = {quality:0.17, easyLong:0.21, easy:0.15, recovery:0.12};
 function fourthRunShare(total){ return total<=21 ? 0.21 : total>=27 ? 0.12 : 0.21 - (total-21)/6*0.09; }
 function distributeRunMiles(total, roles, cfg){
   const P = LEVEL_PLAN[cfg.level];
   if(!roles.length) return [];
-  if(roles.length===1) return [Math.max(P.minRun, roundHalf(Math.min(total, P.longCap)))];
+  const longCap = longRunCap(cfg, total);
+  if(roles.length===1) return [Math.max(P.minRun, roundHalf(Math.min(total, longCap)))];
   const shares = roles.map(r=> r==='long' ? 0 : roles.length===4 && (r==='easy' || r==='recovery') ? fourthRunShare(total) : RUN_SHARE[r]);
   const others = shares.reduce((a,b)=>a+b, 0);
   const longShare = Math.min(0.55, Math.max(0.35, 1-others));
   const scale = (1-longShare)/others;
-  const long = Math.max(P.minRun, roundHalf(Math.min(P.longCap, total*longShare)));
-  const easyCap = long*0.55;
-  return [long, ...roles.slice(1).map((r,i)=>{
-    const mi = total*shares[i+1]*scale;
-    return Math.max(P.minRun, roundHalf(Math.min(mi, easyCap, long)));
+  const long = Math.max(P.minRun, roundHalf(Math.min(longCap, total*longShare)));
+  const easyCap = Math.min(long*0.55, long);
+  const rest = roles.slice(1).map((r,i)=> total*shares[i+1]*scale);
+  const spare = total - long - rest.reduce((a,b)=>a+b, 0);
+  const room = rest.map(mi=> Math.max(0, easyCap - mi)), roomSum = room.reduce((a,b)=>a+b, 0);
+  return [long, ...rest.map((mi,i)=>{
+    if(spare>0 && roomSum>0) mi += Math.min(room[i], spare*room[i]/roomSum);
+    return Math.max(P.minRun, roundHalf(Math.min(mi, easyCap)));
   })];
 }
 function fmtMiles(mi){ return String(roundHalf(mi)); }

@@ -6778,7 +6778,9 @@ function openLogPerformanceFor(logTarget, mode){
   // nothing left over from whichever workout was logged last.
   if(eff.t==='strength' && !exercises){
     document.getElementById('logPerfWeightInput').value = (perf && perf.weight!=null) ? perf.weight : (target ? target.weight : '');
-    document.getElementById('logPerfRepsInput').value = (perf && perf.reps!=null) ? perf.reps : (target ? target.reps : '');
+    // A workout that says its reps ("50 Push-Ups", "3 x 10") starts from those, not a generic target.
+    const said = textVolume(eff.en.detail, eff.en.title);
+    document.getElementById('logPerfRepsInput').value = (perf && perf.reps!=null) ? perf.reps : said.sets ? said.reps/said.sets : (target ? target.reps : '');
   }
   if(eff.t==='run'){
     // Whatever was actually run wins over the plan's prescribed distance -- the plan's number is
@@ -8575,7 +8577,10 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     // for -- everything else always stays on state.openDayKey.
     const dateInputVal = document.getElementById('manualDateInput').value;
     const targetDayKey = (isCardioLog && dateInputVal) ? dateInputVal : state.openDayKey;
-    logCompletedEntry(targetDayKey, {name, type:manualEntryType, volume, notes, distance:cardioDistance, durationMin:cardioDuration});
+    // Lifts built in the exercise list are what was done: kept as its performance, so they count.
+    const doneExercises = manualEntryType==='strength' ? readManualExercises() : [];
+    const performance = doneExercises.length ? {exercises: doneExercises.map(e=>({name:e.name, setCount:e.sets, reps:e.reps}))} : null;
+    logCompletedEntry(targetDayKey, {name, type:manualEntryType, volume, notes, distance:cardioDistance, durationMin:cardioDuration, ...(performance ? {performance} : {})});
     state.openDayKey = targetDayKey;
   } else {
     planCustomWorkout(state.openDayKey, {title:name, type:manualEntryType, detail:volume, target:readCreateTarget(), exercises: manualEntryType==='strength' ? readManualExercises() : null, alongside: manualEntryAlongside});
@@ -8825,6 +8830,19 @@ function perfVolume(perf){
   } else if(perf && perf.reps>0){ sets += 1; reps += Number(perf.reps) || 0; }
   return {sets, reps};
 }
+// Sets and reps written in a lifting workout's own words, when nothing was logged set by set: "3 x 10",
+// "3 sets of 10", "50 reps", or a name like "50 Push-Ups" -- 50 reps as one set.
+function textVolume(...texts){
+  for(const t of texts.map(x=>String(x||''))){
+    let m = t.match(/(\d+)\s*(?:sets?\s*(?:of|x|×)?|[x×])\s*(\d+)/i);
+    if(m) return {sets:+m[1], reps:+m[1] * +m[2]};
+    m = t.match(/(\d+)\s*reps?\b/i);
+    if(m) return {sets:1, reps:+m[1]};
+  }
+  const name = String(texts[texts.length-1]||'');
+  const m = name.match(/^\s*(\d+)\s+(?!(?:mi|miles?|min|minutes?|km|k|m|sec|seconds?|hrs?|hours?)\b)[a-z]/i);
+  return m ? {sets:1, reps:+m[1]} : {sets:0, reps:0};
+}
 // Everything really done on a day: minutes (the time logged -- a lift's from start to save, a run's as
 // entered or from Strava -- or, for one marked done without a time, its planned minutes), sets, reps,
 // and what the workouts were.
@@ -8832,22 +8850,28 @@ function dayActivity(date){
   const key = dateKey(date), dd = getDayData(date), log = state.dayLog[key];
   let minutes = 0, sets = 0, reps = 0;
   const names = [];
-  const add = (perf, session, name, fallbackMin)=>{
+  // (texts: a lifting workout's description and name, for sets/reps it only has in words.)
+  const add = (perf, session, name, fallbackMin, texts)=>{
     const t = perf && perf.time!=null ? Number(perf.time) : fallbackMin;
     if(t>0) minutes += t;
-    const v = perfVolume(perf);
+    let v = perfVolume(perf);
+    // A workout built with its own exercise list and marked done without logging the sets: as built.
+    const built = session && session.exercises && session.exercises.every(e=> Number(e.sets)>0 && Number(e.reps)>0) ? session.exercises : null;
+    if(!v.sets && built) v = {sets: built.reduce((a,e)=>a+Number(e.sets),0), reps: built.reduce((a,e)=>a+Number(e.sets)*Number(e.reps),0)};
+    if(!v.sets && texts) v = textVolume(...texts);
     sets += v.sets; reps += v.reps;
     if(name) names.push(name);
   };
+  const liftTexts = sesn => sesn && sesn.t==='strength' && !(sesn.exercises && sesn.exercises.length) ? [sesn.en.detail, sesn.en.title] : null;
   if(dd.p.t!=='rest' && dd.primarySource==='plan' && log && log.completedOverride!==false
     && (log.completedOverride===true || log.performance || log.actualRunDistance!=null || (key===dateKey(TODAY_DATE) && state.todayCompleted))){
-    add(log.performance, dd.p, ST(dd.p).title, plannedMinutesOf(dd.p));
+    add(log.performance, dd.p, ST(dd.p).title, plannedMinutesOf(dd.p), dd.isCustom ? liftTexts(dd.p) : null);
   }
-  dd.extraWorkouts.forEach(w=>{ if(w.completed) add(w.performance, w.session, ST(w.session).title, plannedMinutesOf(w.session)); });
+  dd.extraWorkouts.forEach(w=>{ if(w.completed) add(w.performance, w.session, ST(w.session).title, plannedMinutesOf(w.session), liftTexts(w.session)); });
   dd.manualEntries.forEach(e=>{
     const perf = e.performance || null;
     const fallback = e.durationMin!=null ? Number(e.durationMin) : Number((String(e.volume||'').match(/(\d+)\s*min/) || [])[1]) || null;
-    add(perf && perf.time!=null ? perf : {...(perf||{}), time: fallback}, null, e.name, null);
+    add(perf && perf.time!=null ? perf : {...(perf||{}), time: fallback}, null, e.name, null, e.type==='strength' ? [e.volume, e.name] : null);
   });
   return {key, date, minutes, sets, reps, names};
 }

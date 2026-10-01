@@ -10051,6 +10051,7 @@ function mvViewBox(key, thumb){
 const DEMO_PHOTOS = new Map([
   ['Back Squat', {ratio: 440/797, focus: '50% 38%'}],
   ['Push-Up',    {ratio: 720/357, focus: '72% 55%'}],
+  ['Dumbbell Row', {ratio: 1, focus: '60% 45%'}],
 ]);
 const demoSlug = key => key.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const hasDemo = key => DEMO_PHOTOS.has(key) || !!MOVES[key];

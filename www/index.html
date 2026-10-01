@@ -2598,6 +2598,9 @@ const STR = {
     classAddedToast: "Class added to your schedule",
     classSkippedToast: "Skipped this one",
     classRemovedToast: "Class removed",
+    classRemoveWhich: "Remove {name}:",
+    classRemoveDay: "Just this day",
+    classRemoveAll: "Every week",
     myClassesLabel: "My classes",
     myClassesEmpty: "No classes yet — add one with + Add a workout → Class.",
     classEvery: "Every {days}",
@@ -3085,6 +3088,9 @@ const STR = {
     classAddedToast: "Clase añadida a tu horario",
     classSkippedToast: "Omitida esta vez",
     classRemovedToast: "Clase eliminada",
+    classRemoveWhich: "Quitar {name}:",
+    classRemoveDay: "Solo este día",
+    classRemoveAll: "Todas las semanas",
     myClassesLabel: "Mis clases",
     myClassesEmpty: "Aún no hay clases: añade una con + Añadir entrenamiento → Clase.",
     classEvery: "Cada {days}",
@@ -5073,14 +5079,46 @@ function bindClassRows(container, key, after){
     Promise.resolve(w.saved).then(()=>{ if(!w.supabaseId) return; cloudSetExtraWorkoutCompleted(w.supabaseId, true); if(w.performance) cloudSetExtraWorkoutPerformance(w.supabaseId, w.performance); });
     after();
   }));
-  container.querySelectorAll('[data-class-skip]').forEach(btn=> btn.addEventListener('click', ()=>{
-    const it = item(btn.getAttribute('data-class-skip'));
-    if(!it) return;
+  const skipDay = it => {
     if(it.extra) deleteExtraWorkout(key, it.extra.id);
     if(it.cls){ it.cls.skips = [...(it.cls.skips||[]), key]; saveProfileToCloud(); }
     after();
     showToast(STR[state.lang].classSkippedToast);
+  };
+  container.querySelectorAll('[data-class-skip]').forEach(btn=> btn.addEventListener('click', ()=>{
+    const it = item(btn.getAttribute('data-class-skip'));
+    if(!it) return;
+    // A one-off class just goes. A weekly one asks: this day only, or off the calendar for good (a
+    // membership cancelled, a class that was only a test) -- rather than deleting it day by day.
+    if(!it.cls) return skipDay(it);
+    container.querySelectorAll('.class-remove-chooser').forEach(el=>el.remove());
+    const L = STR[state.lang];
+    const row = btn.closest('.class-entry');
+    row.insertAdjacentHTML('afterend', `<div class="wp-chooser class-remove-chooser">
+        <div class="st-label">${escapeHtml(L.classRemoveWhich.replace('{name}', ST(it.session).title))}</div>
+        <div class="wp-scope">
+          <button class="btn btn-ghost" type="button" data-class-remove-scope="day">${L.classRemoveDay}</button>
+          <button class="btn btn-primary" type="button" data-class-remove-scope="all">${L.classRemoveAll}</button>
+        </div>
+        <button class="btn-text" type="button" data-class-remove-cancel style="margin-top:6px;">${L.wpCancel}</button>
+      </div>`);
+    const chooser = row.nextElementSibling;
+    chooser.querySelector('[data-class-remove-scope="day"]').addEventListener('click', ()=> skipDay(it));
+    chooser.querySelector('[data-class-remove-scope="all"]').addEventListener('click', ()=>{ removeClass(it.cls.id); after(); });
+    chooser.querySelector('[data-class-remove-cancel]').addEventListener('click', ()=> chooser.remove());
   }));
+}
+// A weekly class off the calendar on every day it was on. Classes already done stay in the history
+// (they're the day's own recordings); one started but not finished goes with it.
+function removeClass(id){
+  const c = (state.classes||[]).find(x=>x.id===id);
+  if(!c) return;
+  Object.keys(state.dayLog).forEach(k=>{
+    ((state.dayLog[k]||{}).extraWorkouts||[]).filter(w=> !w.completed && isThatClass(w, c)).forEach(w=> deleteExtraWorkout(k, w.id));
+  });
+  state.classes = state.classes.filter(x=>x.id!==id);
+  saveProfileToCloud();
+  showToast(STR[state.lang].classRemovedToast);
 }
 // Settings -> My classes: each weekly class, removable.
 function renderMyClasses(){
@@ -5095,11 +5133,9 @@ function renderMyClasses(){
       <button class="del" data-remove-class="${escapeHtml(c.id)}" type="button" aria-label="Remove">${ICONS.trash}</button></div>`;
   }).join('') : `<div class="footer-note" style="text-align:left;padding:2px 0;">${escapeHtml(L.myClassesEmpty)}</div>`;
   el.querySelectorAll('[data-remove-class]').forEach(btn=> btn.addEventListener('click', ()=>{
-    state.classes = (state.classes||[]).filter(c=>c.id!==btn.getAttribute('data-remove-class'));
-    saveProfileToCloud();
+    removeClass(btn.getAttribute('data-remove-class'));
     refreshViews();
     renderMyClasses();
-    showToast(STR[state.lang].classRemovedToast);
   }));
 }
 

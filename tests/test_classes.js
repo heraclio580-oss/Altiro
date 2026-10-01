@@ -60,7 +60,12 @@ function check(label, ok, detail){
   check('Next Friday has it too', !doc.getElementById('dayDetailClassSection').hidden && /Jiu-Jitsu/.test(classRows('#dayDetailClasses')[0]||''));
   check('...with nothing to start yet (it\'s in the future)', !doc.querySelector('#dayDetailClasses [data-class-start]'));
   await click('#dayDetailClasses [data-class-skip]');
-  check('Skipping it takes it off that Friday only', doc.getElementById('dayDetailClassSection').hidden);
+  check('The trash on a weekly class asks: just this day, or every week', /Remove Jiu-Jitsu/.test(text(doc.querySelector('.class-remove-chooser'))) && !!doc.querySelector('[data-class-remove-scope="all"]'));
+  await click('[data-class-remove-cancel]');
+  check('...Cancel keeps it', !doc.querySelector('.class-remove-chooser') && classRows('#dayDetailClasses').length===1);
+  await click('#dayDetailClasses [data-class-skip]');
+  await click('[data-class-remove-scope="day"]');
+  check('Just this day takes it off that Friday only', doc.getElementById('dayDetailClassSection').hidden);
   await click('#closeDayDetail');
   await openCalDay('2026-10-02');
   check('...the Friday after still has it', /Jiu-Jitsu/.test(classRows('#dayDetailClasses')[0]||''));
@@ -114,6 +119,26 @@ function check(label, ok, detail){
   await openCalDay('2026-10-02');
   check('...every Friday', doc.getElementById('dayDetailClassSection').hidden);
   await click('#closeDayDetail');
+
+  // ---- a whole class off the calendar in one go (a membership cancelled) ----
+  go('home'); await wait(20);
+  await click('#addTodayWorkoutBtn');
+  await click('#manualTypeRow [data-type="class"]');
+  sel.value = 'pilates'; sel.dispatchEvent(new w.Event('change', {bubbles:true}));
+  [...doc.querySelectorAll('#classDaysRow .chip')].filter(c=>/^(mon|wed)$/i.test(c.textContent)).forEach(c=>c.click());
+  await click('#saveManualEntry');
+  go('calendar'); await wait(20);
+  await openCalDay('2026-09-28');
+  check('(set-up) Pilates is on Mondays', /Pilates/.test(classRows('#dayDetailClasses')[0]||''));
+  await click('#dayDetailClasses [data-class-skip]');
+  await click('[data-class-remove-scope="all"]');
+  check('Every week takes it off that day...', doc.getElementById('dayDetailClassSection').hidden);
+  await click('#closeDayDetail');
+  const pilatesLeft = [];
+  for(const k of ['2026-09-18','2026-09-30','2026-10-05','2026-10-09']){ await openCalDay(k); if(classRows('#dayDetailClasses').some(r=>/Pilates/.test(r))) pilatesLeft.push(k); await click('#closeDayDetail'); }
+  check('...and off every other day it was on', !pilatesLeft.length, pilatesLeft.join(', '));
+  go('settings'); await wait(20);
+  check('...and out of My classes', !/Pilates/.test(text(doc.getElementById('myClassesList'))));
 
   // ---- in Spanish ----
   go('settings'); await wait(10);

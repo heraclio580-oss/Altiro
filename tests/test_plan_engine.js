@@ -82,14 +82,27 @@ check('Recovery week has no hard sessions besides the long run', runner(3).every
 const far = total(runner(40));
 check('Mileage levels off at a ceiling instead of growing forever', far <= 30*1.5*1.02 + 1, far);
 
-const lightVsHigh = [0,2].map(int=> total(setup({days:[1,2,3,5,6], focus:0, level:'intermediate', int, miles:20})(0)));
-check('Light intensity plans fewer miles than High', lightVsHigh[0] < lightVsHigh[1], lightVsHigh.join(' vs '));
+const lightVsHigh = [0,2].map(int=> total(setup({days:[1,2,3,5,6], focus:0, level:'intermediate', int, miles:20})(8)));
+check('Light intensity builds to fewer miles than High', lightVsHigh[0] < lightVsHigh[1], lightVsHigh.join(' vs '));
+
+// ---- mileage climbs gradually, in even steps, from the middle of the range picked ----
+// ("21-30" a week on High, 4 runs -- once planned as 22, 28, 30.5.)
+for(const int of [0,1,2]) for(const [level, mi, days] of [['intermediate',25,[0,2,4,6]], ['beginner',15,[1,3,5,6]], ['advanced',35,[0,1,2,4,5,6]]]){
+  const plan = setup({days, focus:0, level, int, miles:mi});
+  const t = [0,1,2,4,5,6].map(n=>total(plan(n)));
+  const steps = [t[1]-t[0], t[2]-t[1], t[4]-t[3], t[5]-t[4]];
+  const label = `${level} ${mi} mi, intensity ${int}: ${t.join(', ')}`;
+  const startMi = int===0 ? Math.round(mi*0.9*2)/2 : mi; // Light starts at 90%
+  check(`${label} -- starts at ${startMi}`, Math.abs(t[0]-startMi)<=0.5);
+  check(`...each build week adds the same small step (at most ~10% of the start, 3 mi)`, steps.every(s=> s===steps[0] && s>0 && s<=Math.min(3, mi*0.1+0.5)), steps.join(' / '));
+}
+setup({days:[1,2,3,5,6], focus:0, level:'advanced', miles:30}); // back to the runner the checks below use
 
 // ---- placement ----
 const wk0 = runner(0);
 check('Long run lands on Saturday when Saturday is a training day', wk0[5].p.en.title==='Long Run', wk0[5].p.en.title);
 check('...with a short recovery run the day after', wk0[6].p.en.title==='Recovery Jog' && miles(wk0[6]) < miles(wk0[5])/2, wk0[6].p.en.title+' '+wk0[6].p.en.detail);
-check('...and the week\'s one fast session early (Tuesday)', /Tempo Run|Interval Run/.test(wk0[1].p.en.title), wk0[1].p.en.title);
+check('...and the week\'s one fast session early (Tuesday)', /Tempo Run|Interval Run/.test(wk0[1].p.en.title), wk0.map(d=>d.p.en.title+' '+d.p.en.detail).join(' | '));
 check('One quality run a week, even for an advanced runner on High', [0,1,2,4,5].every(n=> setup({days:[1,2,3,5,6], focus:0, level:'advanced', int:2, miles:30})(n).filter(d=>HARD.test(d.p.en.title) && d.p.en.title!=='Long Run').length===1));
 // The building block, shaped like a real week: 4 runs of ~30 mi -> tempo 4.5, longer easy 6.5, long 16, recovery 3.5.
 const block = setup({days:[1,3,5,6], focus:0, level:'intermediate', miles:30})(0);

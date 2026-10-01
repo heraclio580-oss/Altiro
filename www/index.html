@@ -3535,7 +3535,8 @@ const REVIEW_RATING_LABELS = {
 // instead of repeating one fixed week forever. Nothing here is stored: a generated day is recomputed
 // whenever it's shown, and only what the user plans or logs themselves is saved.
 
-// How ambitious a plan gets, by level. growth: weekly mileage increase on build weeks. longCap/weeklyCap:
+// How ambitious a plan gets, by level. growth: how much the weekly mileage builds (a build week adds
+// this fraction of the starting miles -- see weeklyRunMiles). longCap/weeklyCap:
 // the longest long run / biggest week it builds toward. quality: hard run sessions a week. minRun: the
 // shortest run worth scheduling. startMiles: assumed current weekly miles if the user never said.
 const LEVEL_PLAN = {
@@ -3543,7 +3544,7 @@ const LEVEL_PLAN = {
   intermediate: {growth:1.08, longCap:16, weeklyCap:40, quality:1, minRun:2,   startMiles:12},
   advanced:     {growth:1.10, longCap:22, weeklyCap:60, quality:2, minRun:3,   startMiles:25},
 };
-const INTENSITY_SCALE = [0.9, 1, 1.1]; // light / moderate / high -- scales weekly mileage
+const INTENSITY_SCALE = [0.9, 1, 1.1]; // light / moderate / high -- scales how fast and how far mileage builds
 // One quality run a week, alternating tempo and intervals -- mostly easy running around it.
 const QUALITY_ROTATION = {
   beginner: ['tempo','intervals'],
@@ -3630,21 +3631,30 @@ function splitTrainingDays(n, focus, goal){
   return focus===1 ? {runs:n-minority, lifts:minority} : {runs:minority, lifts:n-minority};
 }
 function roundHalf(x){ return Math.round(x*2)/2; }
-// Where the plan's weekly mileage starts: the miles the user runs now -- spread over about 3 runs a
-// week, so a plan with fewer run days than that (e.g. mostly lifting) scales down rather than piling
-// a whole week's miles onto one run.
+// Where the plan's weekly mileage starts: the miles the user runs now (the middle of the range they
+// picked -- "21-30" starts at 25, not 30) -- spread over about 3 runs a week, so a plan with fewer run
+// days than that (e.g. mostly lifting) scales down rather than piling a whole week's miles onto one run.
+// Light intensity starts a little below that (90%); Moderate and High start right there -- High builds
+// faster, it doesn't start above what they run.
 function planStartMiles(cfg, runDays){
   const P = LEVEL_PLAN[cfg.level];
-  const scale = INTENSITY_SCALE[cfg.intensity] ?? 1;
   const current = (cfg.miles ?? P.startMiles) * Math.min(1, runDays/3);
-  return Math.max(current, runDays*P.minRun) * scale;
+  return Math.max(current, runDays*P.minRun) * Math.min(1, INTENSITY_SCALE[cfg.intensity] ?? 1);
+}
+// The miles each build week adds: the same amount every week, so the mileage climbs in even steps
+// (a 25-mile week grows 25 -> 27 -> 29, never 22 -> 28). About 6-10% of the starting miles by level,
+// less on Light and more on High intensity, rounded to the half mile -- at least 1 mile, at most 3.
+function weeklyBuildStep(cfg, runDays){
+  const P = LEVEL_PLAN[cfg.level];
+  const pace = [0.75, 1, 1.25][cfg.intensity] ?? 1;
+  return Math.max(1, Math.min(3, roundHalf(planStartMiles(cfg, runDays) * (P.growth-1) * pace)));
 }
 // The longest a long run gets: the level's longest, or -- for someone whose weeks are bigger than that
 // level usually runs -- about 40% of the week, up to 22 mi. A runner already doing 35-45 miles a week
 // has long runs to match, whatever level they picked.
 function longRunCap(cfg, weekMiles){ return Math.min(22, Math.max(LEVEL_PLAN[cfg.level].longCap, weekMiles*0.4)); }
-// Target running miles for plan week n: starts at what the user runs now, grows by the level's rate
-// on build weeks, drops to 80% on each recovery week (then carries on from where it was), and levels
+// Target running miles for plan week n: starts at what the user runs now, adds the same step each
+// build week, drops to 80% on each recovery week (then carries on from where it was), and levels
 // off at a ceiling -- the level's biggest week (or 20% above where they started, for someone who
 // already runs more than that), at most 50% (or 10 mi) above where they started, and no more than
 // their number of run days can reasonably hold.
@@ -3656,8 +3666,7 @@ function weeklyRunMiles(cfg, runDays, n){
   const longest = Math.min(22, Math.max(P.longCap, start*0.5));
   const roomForDays = longest + (runDays-1)*longest*0.55;
   const cap = Math.max(start, Math.min(Math.max(P.weeklyCap*scale, start*1.2), Math.max(start*1.5, start+10), roomForDays));
-  let cur = start;
-  for(let i=1; i<=n; i++) if(!isRecoveryWeek(i)) cur = Math.min(cap, cur*P.growth);
+  const cur = Math.min(cap, start + weeklyBuildStep(cfg, runDays)*buildWeekOf(n));
   return isRecoveryWeek(n) ? cur*0.8 : cur;
 }
 function qualityRunCount(cfg, runDays, n){
@@ -3754,10 +3763,21 @@ function distributeRunMiles(total, roles, cfg){
   const rest = roles.slice(1).map((r,i)=> total*shares[i+1]*scale);
   const spare = total - long - rest.reduce((a,b)=>a+b, 0);
   const room = rest.map(mi=> Math.max(0, easyCap - mi)), roomSum = room.reduce((a,b)=>a+b, 0);
-  return [long, ...rest.map((mi,i)=>{
+  const out = [long, ...rest.map((mi,i)=>{
     if(spare>0 && roomSum>0) mi += Math.min(room[i], spare*room[i]/roomSum);
     return Math.max(P.minRun, roundHalf(Math.min(mi, easyCap)));
   })];
+  // Rounding each run to the half mile shouldn't knock the week off its target (it would make the even
+  // weekly steps uneven): the difference goes to the runs with room for it, the easy runs first.
+  let diff = roundHalf(total) - out.reduce((a,b)=>a+b, 0);
+  const RANK = {easyLong:0, easy:1, recovery:2, quality:3, long:4};
+  roles.map((r,i)=>i).sort((a,b)=> RANK[roles[a]] - RANK[roles[b]]).forEach(i=>{
+    if(!diff) return;
+    const hi = Math.floor((i===0 ? longCap : easyCap)*2)/2;
+    const v = Math.max(P.minRun, Math.min(Math.max(hi, out[i]), out[i] + diff));
+    diff -= v - out[i]; out[i] = v;
+  });
+  return out;
 }
 function fmtMiles(mi){ return String(roundHalf(mi)); }
 // One run, in both languages. Every run's detail starts with its distance ("5 mi ...") -- weekly

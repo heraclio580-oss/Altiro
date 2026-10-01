@@ -10047,11 +10047,21 @@ function mvViewBox(key, thumb){
 // Photo demos: two pictures of a move (start and end position, same camera), in www/demos/ named after
 // the exercise -- "Back Squat" -> back-squat-start.webp / back-squat-end.webp. The app fades between
 // them in a loop. An exercise with photos shows them; one without keeps its drawn figure. Each lists the
-// photos' shape (width / height) and the part of them a small thumbnail centers on.
+// photos' shape (width / height), the part of them a small thumbnail centers on, and -- for a move with
+// no drawn figure -- its form cues.
 const DEMO_PHOTOS = new Map([
   ['Back Squat', {ratio: 440/797, focus: '50% 38%'}],
   ['Push-Up',    {ratio: 720/357, focus: '72% 55%'}],
   ['Dumbbell Row', {ratio: 1, focus: '60% 45%'}],
+  ['Lat Pulldown', {ratio: 440/889, focus: '50% 28%', cues: {
+    en: ['Thighs locked under the pad, chest up', 'Pull the bar to your upper chest', 'Drive your elbows down and back', 'Control it back up to a full stretch'],
+    es: ['Muslos firmes bajo el soporte, pecho arriba', 'Lleva la barra a la parte alta del pecho', 'Baja los codos hacia atrás y abajo', 'Sube controlando hasta estirar los brazos']}}],
+  ['Lateral Raise', {ratio: 620/460, focus: '50% 30%', cues: {
+    en: ['A slight bend in the elbows', 'Raise out to the sides to shoulder height', 'Lead with your elbows, shoulders down', 'Lower slowly, no swinging'],
+    es: ['Codos ligeramente flexionados', 'Sube hacia los lados hasta la altura de los hombros', 'Guía con los codos, hombros abajo', 'Baja despacio, sin balancearte']}}],
+  ['Dumbbell Shoulder Press', {ratio: 440/889, focus: '50% 25%', cues: {
+    en: ['Dumbbells at shoulder height, palms forward', 'Brace your core, sit tall', 'Press straight up until your arms are straight', 'Lower with control back to your shoulders'],
+    es: ['Mancuernas a la altura de los hombros, palmas al frente', 'Abdomen firme, espalda recta', 'Empuja hacia arriba hasta estirar los brazos', 'Baja con control hasta los hombros']}}],
 ]);
 const demoSlug = key => key.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const hasDemo = key => DEMO_PHOTOS.has(key) || !!MOVES[key];
@@ -10114,7 +10124,8 @@ function renderMoveDemo(){
   if(!mdKey) return;
   const L = STR[state.lang];
   document.getElementById('mdTitle').textContent = exerciseDisplayName(mdKey);
-  const cues = MOVES[mdKey] ? MOVES[mdKey].cues[state.lang] : [];
+  const cueSet = MOVES[mdKey] ? MOVES[mdKey].cues : (DEMO_PHOTOS.get(mdKey) || {}).cues;
+  const cues = cueSet ? cueSet[state.lang] : [];
   document.getElementById('mdCues').innerHTML = cues.map(c=>`<li>${escapeHtml(c)}</li>`).join('');
   document.getElementById('mdCuesSection').hidden = !cues.length;
   const shown = document.querySelector('#mdStage [data-move]');

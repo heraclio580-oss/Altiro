@@ -41,7 +41,7 @@ check('...and a planted hand or foot stays where it is', Math.max(...planted) < 
 // push-up that sends the elbows back toward the body, never out past the hands.
 check('Every joint bends the way the body does', !wrongWay.length, [...new Set(wrongWay)].slice(0, 4).join(', '));
 // Photo demos: two pictures per move in www/demos/, named after the exercise.
-const PHOTOS = [...html.match(/const DEMO_PHOTOS = new Map\(\[([\s\S]*?)\]\);/)[1].matchAll(/\['([^']+)'/g)].map(m=> m[1]);
+const PHOTOS = [...html.match(/const DEMO_PHOTOS = new Map\(\[([\s\S]*?)\n\]\);/)[1].matchAll(/^\s*\['([^']+)',\s*\{/gm)].map(m=> m[1]);
 const slug = k => k.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const missing = PHOTOS.flatMap(k=> ['start', 'end'].map(e=> `${slug(k)}-${e}.webp`)).filter(f=> !fs.existsSync(path.join(__dirname, '..', 'www', 'demos', f)));
 check(`Every photo demo has both of its pictures (${PHOTOS.length} with photos)`, PHOTOS.length && !missing.length, missing.join(', '));
@@ -112,6 +112,15 @@ check('Each demo has form cues in English and Spanish', DEMO_KEYS.every(k=> MOVE
   doc.getElementById('dayDetailPlanRow').click(); await wait(20);
   doc.querySelector(`#logPerfExercisesList [data-demo="${swapped}"]`).click(); await wait(20);
   check('In Spanish: the cues and buttons', [...doc.querySelectorAll('#mdCues li')].map(li=>li.textContent).join('|')===MOVES[swapped].cues.es.join('|') && doc.getElementById('mdPlayBtn').textContent.includes('Pausa') && doc.getElementById('mdSlowBtn').textContent==='Cámara lenta', doc.getElementById('mdTitle').textContent);
+
+  // Every photo demo opens with its form cues (here in Spanish), whether or not it has a drawn figure too.
+  const noCues = PHOTOS.filter(k=>{
+    const b = doc.createElement('button'); b.setAttribute('data-demo', k); doc.body.appendChild(b); b.click(); b.remove();
+    const n = doc.querySelectorAll('#mdCues li').length, shown = doc.querySelector('#mdStage .mv-photo img');
+    doc.getElementById('closeMoveDemo').click();
+    return n < 3 || !shown || doc.getElementById('mdCuesSection').hidden;
+  });
+  check('Every photo demo opens with its pictures and form cues', !noCues.length, noCues.join(', '));
 
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(0);

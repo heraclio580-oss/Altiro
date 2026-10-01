@@ -145,12 +145,16 @@ function makeSharedBackend(){
   // Plan a custom workout for TODAY. "Mark as Completed" already defaults off, so this goes through
   // planCustomWorkout, the exact path that writes into state.week[TODAY_IDX] and syncs to the
   // workout_logs table.
-  doc.getElementById('addTodayWorkoutBtn').click();
+  // (Through Day Detail, which plans the day's workout; Home's "+ Add a workout" adds one alongside.)
+  doc.querySelector('#weekStrip .day-cell.today').click();
+  await wait(20);
+  doc.getElementById('addWorkoutBtn').click();
   await wait(20);
   doc.getElementById('manualNameInput').value = 'Garage Gym Session';
   doc.getElementById('manualNameInput').dispatchEvent(new dom.window.Event('input', {bubbles:true}));
   doc.getElementById('saveManualEntry').click();
   await wait(60);
+  if(!doc.getElementById('dayDetailOverlay').hidden) doc.getElementById('closeDayDetail').click();
   console.log('Planned workout shows on Home right after creating it:', doc.getElementById('sessionCard').textContent.includes('Garage Gym Session') ? 'OK' : 'FAIL');
   console.log('Planned workout synced to the cloud:', Object.values(backend.db.workout_logs).some(r=>r.planned_title==='Garage Gym Session') ? 'OK' : 'FAIL');
 

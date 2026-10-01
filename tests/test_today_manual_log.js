@@ -32,7 +32,8 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('manualNameInput').value = 'Extra Cardio';
   doc.getElementById('manualNameInput').dispatchEvent(new window.Event('input', {bubbles:true}));
   // Create Workout always defaults to "just planned" now -- mark it done so this becomes a real
-  // logged entry, which is what actually flips today to "done" (the thing this test verifies).
+  // logged entry. Logged alongside today's planned workout, it doesn't finish that workout (50
+  // push-ups at work don't make today's run done) -- the thing this test verifies.
   if(!doc.getElementById('createCompletedToggle').classList.contains('on')) doc.getElementById('createCompletedToggle').click();
   doc.getElementById('saveManualEntry').click();
   await wait(20);
@@ -40,13 +41,13 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   goPill('home');
   await wait(20);
   const todayCellAfter = doc.querySelector(`#weekStrip .day-cell[data-day="${todayDayIdx}"]`);
-  console.log('After a manual log (no Record Workout press), today\'s specific cell flips to "done":', todayCellAfter.classList.contains('done') ? 'OK' : `FAIL (${todayCellAfter.className})`);
-  console.log('That same cell still carries "today" (blue ring persists once done):', todayCellAfter.classList.contains('today') ? 'OK' : 'FAIL');
+  console.log('After a manual log alongside today\'s planned workout, today\'s cell is still "today", not "done":', !todayCellAfter.classList.contains('done') ? 'OK' : `FAIL (${todayCellAfter.className})`);
+  console.log('That same cell still carries "today":', todayCellAfter.classList.contains('today') ? 'OK' : 'FAIL');
 
   goPill('calendar');
   await wait(20);
   const calTodayCellAfter = doc.querySelector(`#calGrid .mo-cell[data-date="${todayDateKey}"]`);
-  console.log('Calendar agrees: today\'s specific cell is now "done" from the manual log alone:', calTodayCellAfter.classList.contains('done') ? 'OK' : `FAIL (${calTodayCellAfter.className})`);
+  console.log('Calendar agrees: the manual log alone doesn\'t mark today done:', !calTodayCellAfter.classList.contains('done') ? 'OK' : `FAIL (${calTodayCellAfter.className})`);
   console.log('Calendar\'s today cell still carries "today" (blue ring persists once done):', calTodayCellAfter.classList.contains('today') ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');

@@ -27,13 +27,16 @@ function planTodayWorkout(doc, win, name){
   goPill('home');
   await wait(20);
 
+  // Today already has its planned workout: workouts added on Home join it as Additional Workouts
+  // instead of replacing it.
+  const planned = doc.querySelector('#sessionCard .title').textContent;
   await planTodayWorkout(doc, window, 'Home Workout A');
-  console.log('First planned workout today becomes the primary session card:', doc.getElementById('sessionCard').textContent.includes('Home Workout A') ? 'OK' : `FAIL (${doc.getElementById('sessionCard').textContent})`);
-  console.log('No "Additional Workouts" section yet:', doc.getElementById('homeExtraWorkoutsWrap')===null ? 'OK' : 'FAIL');
+  console.log('A workout added on Home joins today\'s planned workout (doesn\'t replace it):',
+    doc.querySelector('#sessionCard .title').textContent===planned && doc.getElementById('homeExtraWorkoutsWrap') && doc.getElementById('homeExtraWorkoutsWrap').textContent.includes('Home Workout A') ? 'OK' : `FAIL (${doc.querySelector('#sessionCard .title').textContent})`);
 
   await planTodayWorkout(doc, window, 'Home Workout B');
-  console.log('Primary session card still shows Workout A (not replaced):', doc.getElementById('sessionCard').textContent.includes('Home Workout A') ? 'OK' : `FAIL (${doc.getElementById('sessionCard').textContent})`);
-  console.log('Additional Workouts section now shows on Home:', doc.getElementById('homeExtraWorkoutsWrap') && doc.getElementById('homeExtraWorkoutsWrap').textContent.includes('Home Workout B') ? 'OK' : 'FAIL');
+  console.log('A second one joins too, the planned workout still today\'s:', doc.querySelector('#sessionCard .title').textContent===planned ? 'OK' : `FAIL (${doc.getElementById('sessionCard').textContent})`);
+  console.log('Additional Workouts section shows both on Home:', doc.getElementById('homeExtraWorkoutsWrap') && ['Home Workout A','Home Workout B'].every(n=>doc.getElementById('homeExtraWorkoutsWrap').textContent.includes(n)) ? 'OK' : 'FAIL');
 
   const startBtn = doc.querySelector('#homeExtraWorkoutsWrap [data-start-extra]');
   console.log('Extra workout has its own Start action:', !!startBtn ? 'OK' : 'FAIL');
@@ -51,14 +54,14 @@ function planTodayWorkout(doc, win, name){
   await wait(20);
   const extraRow = [...doc.querySelectorAll('#homeExtraWorkoutsWrap .manual-entry')].find(r=>r.getAttribute('data-extra-id')===extraId);
   console.log('Completed extra workout now shows as done (no Start button) on Home:', extraRow && !extraRow.querySelector('[data-start-extra]') ? 'OK' : 'FAIL');
-  console.log('Completing an extra workout also flips the day/record button to done (same rule as a logged manual entry):', doc.getElementById('recordBtn').classList.contains('done') ? 'OK' : 'FAIL');
+  // (50 push-ups at work don't finish today's run: the day's own workout is still there to do.)
+  console.log('Completing an extra workout leaves today\'s own workout still to do (its Start button stays):', !doc.getElementById('recordBtn').classList.contains('done') && !doc.getElementById('recordBtn').classList.contains('disabled') ? 'OK' : 'FAIL');
 
-  // Delete the (now completed) extra workout -- should just disappear, primary untouched.
-  const delBtn = doc.querySelector('#homeExtraWorkoutsWrap [data-del-extra]');
-  delBtn.click();
+  // Delete the (now completed) extra workout -- it just disappears, the rest untouched.
+  doc.querySelector(`#homeExtraWorkoutsWrap [data-extra-id="${extraId}"] [data-del-extra]`).click();
   await wait(20);
-  console.log('Deleting the extra workout removes the section:', doc.getElementById('homeExtraWorkoutsWrap')===null ? 'OK' : 'FAIL');
-  console.log('Primary session card unaffected by deleting the extra:', doc.getElementById('sessionCard').textContent.includes('Home Workout A') ? 'OK' : 'FAIL');
+  console.log('Deleting an extra workout removes just that one:', !doc.querySelector(`#homeExtraWorkoutsWrap [data-extra-id="${extraId}"]`) && doc.getElementById('homeExtraWorkoutsWrap').textContent.includes('Home Workout B') ? 'OK' : 'FAIL');
+  console.log('Today\'s planned workout unaffected by deleting it:', doc.querySelector('#sessionCard .title').textContent===planned ? 'OK' : 'FAIL');
 
   console.log('ALL DONE');
   process.exit(0);

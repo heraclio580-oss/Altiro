@@ -66,7 +66,8 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   goPill('calendar');
   await wait(20);
   const cell = doc.querySelector('#calGrid .mo-cell[data-date="2026-09-25"]');
-  console.log('Calendar cell for that Friday shows done (from the completed extra alone):', cell && cell.classList.contains('done') ? 'OK' : `FAIL (${cell ? cell.className : 'not found'})`);
+  // The completed extra doesn't finish the day's own (not done) jog.
+  console.log('Calendar cell for that Friday still shows its jog missed (the completed extra doesn\'t finish it):', cell && cell.classList.contains('missed') && !cell.classList.contains('done') ? 'OK' : `FAIL (${cell ? cell.className : 'not found'})`);
 
   // The "Completed" control on a past extra is still a toggle, not a one-way door -- undo a mistake.
   goPill('home');

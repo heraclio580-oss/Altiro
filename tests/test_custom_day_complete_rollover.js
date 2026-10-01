@@ -132,9 +132,12 @@ function openSession(backend, todayStr){
 
   goPillA('home');
   await wait(20);
-  // "+ Create Workout" defaults to Mark as Completed OFF -> planning mode -> becomes today's
-  // CUSTOM primary session (not an instant manual-entry log).
-  docA.getElementById('addTodayWorkoutBtn').click();
+  // Day Detail's "+ Add Workout" defaults to Mark as Completed OFF -> planning mode -> becomes today's
+  // CUSTOM primary session (not an instant manual-entry log). (Home's "+ Add a workout" would add it
+  // alongside today's planned workout instead.)
+  docA.querySelector('#weekStrip .day-cell.today').click();
+  await wait(20);
+  docA.getElementById('addWorkoutBtn').click();
   await wait(20);
   if(docA.getElementById('createCompletedToggle').classList.contains('on')) docA.getElementById('createCompletedToggle').click();
   docA.getElementById('manualNameInput').value = 'Custom Push Day';
@@ -142,6 +145,7 @@ function openSession(backend, todayStr){
   [...docA.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.getAttribute('data-type')==='strength').click();
   docA.getElementById('saveManualEntry').click();
   await wait(60);
+  if(!docA.getElementById('dayDetailOverlay').hidden) docA.getElementById('closeDayDetail').click();
   console.log('Session A: custom plan for today synced (planned_type set):',
     Object.values(backend.db.workout_logs).some(r=>r.planned_type==='strength' && r.planned_title==='Custom Push Day') ? 'OK' : 'FAIL');
 

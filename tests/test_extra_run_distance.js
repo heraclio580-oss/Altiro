@@ -24,7 +24,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   const mileageBefore = mileageBaseline();
 
-  // First planned (non-instant) workout for today becomes the custom primary slot.
+  // A planned (non-instant) workout added on Home joins today's planned workout as an Additional Workout.
   doc.getElementById('addTodayWorkoutBtn').click();
   await wait(20);
   // Create Workout already defaults to "Mark as Completed" off (planning mode).
@@ -33,7 +33,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('saveManualEntry').click();
   await wait(30);
 
-  // Second planned workout for today (a run) lands in extraWorkouts instead of replacing the primary.
+  // A second one (a run) lands in extraWorkouts too.
   doc.getElementById('addTodayWorkoutBtn').click();
   await wait(20);
   doc.getElementById('manualNameInput').value = 'Evening Trail Run';
@@ -42,7 +42,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('saveManualEntry').click();
   await wait(30);
 
-  const startExtraBtn = doc.querySelector('#homeExtraWorkoutsWrap [data-start-extra]');
+  // (Both join today's planned workout as Additional Workouts -- start the run.)
+  const runRow = [...doc.querySelectorAll('#homeExtraWorkoutsWrap .manual-entry')].find(r=>r.textContent.includes('Evening Trail Run'));
+  const startExtraBtn = runRow && runRow.querySelector('[data-start-extra]');
   console.log('Extra run workout appears on Home with a Start Workout button:', !!startExtraBtn ? 'OK' : 'FAIL');
 
   startExtraBtn.click();
@@ -65,7 +67,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   goPill('home');
   await wait(20);
   console.log('Extra workout now shows as done on Home:',
-    doc.querySelector('#homeExtraWorkoutsWrap .manual-entry')?.textContent.includes('Trail Run') ? 'OK' : 'FAIL');
+    (r => r && !r.querySelector('[data-start-extra]'))([...doc.querySelectorAll('#homeExtraWorkoutsWrap .manual-entry')].find(r=>r.textContent.includes('Trail Run'))) ? 'OK' : 'FAIL');
   const mileageAfter = mileageBaseline();
   console.log('Home "This Week" distance increased by the extra run\'s actual distance:',
     +(mileageAfter - mileageBefore).toFixed(1) === actualDist ? `OK (${mileageBefore} -> ${mileageAfter})` : `FAIL (${mileageBefore} -> ${mileageAfter}, expected +${actualDist})`);

@@ -47,7 +47,8 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
 
   console.log('Logged entry now shows directly in Home\'s dashboard list:', doc.getElementById('homeEntriesWrap').textContent.includes('Extra Cardio') ? 'OK' : 'FAIL');
-  console.log('Home\'s Completed toggle auto-reflects done (from the manual log):', doc.getElementById('homeCompleteToggle').classList.contains('on') ? 'OK' : 'FAIL');
+  // A workout logged alongside today's planned one doesn't finish it (50 push-ups at work don't finish the run).
+  console.log('Home\'s Completed toggle stays off -- a workout logged alongside today\'s doesn\'t finish it:', !doc.getElementById('homeCompleteToggle').classList.contains('on') ? 'OK' : 'FAIL');
 
   // --- Delete that entry directly from Home, without opening Day Detail ---
   const delBtn = doc.querySelector('#homeEntriesWrap [data-del]');

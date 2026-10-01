@@ -172,6 +172,30 @@ function check(label, ok, detail){
   await click('#saveManualEntry');
   check('...and so is the class on Home (after today\'s 3 PM one, by time)', /Lucha\s*18:00 · 1h\s*Empezar clase/.test(classRows('#homeClassesWrap')[1]||''), classRows('#homeClassesWrap').join(' | '));
 
+  // ---- a class already done today can be deleted, like any other workout ----
+  const homeRow = name => classRows('#homeClassesWrap').find(r=>r.includes(name)) || '';
+  const delBtn = name => [...doc.querySelectorAll('#homeClassesWrap .class-entry')].find(r=>text(r).includes(name))?.querySelector('[data-class-skip]');
+  check('(set-up) today\'s Jiu-Jitsu is done', /Hech[oa]|Done/.test(homeRow('Jiu-Jitsu')), homeRow('Jiu-Jitsu'));
+  check('A done class has a delete button too', !!delBtn('Jiu-Jitsu'));
+  delBtn('Jiu-Jitsu').click(); await wait(20);
+  check('...and deleting it takes it (and its time) off today', !homeRow('Jiu-Jitsu') && /Clase eliminada/.test(doc.getElementById('toastMsg').textContent), classRows('#homeClassesWrap').join(' | '));
+  go('progress'); await wait(20);
+  doc.querySelector('[data-act-day="2026-09-18"]')?.click(); await wait(10);
+  check('...and out of Progress', !/Jiu-Jitsu/.test(text(doc.querySelector('#progActivity .act-detail'))), text(doc.querySelector('#progActivity .act-detail')));
+  go('home'); await wait(20);
+  // A weekly one done today: just today's goes, the class stays on the following weeks.
+  doc.querySelector('#homeClassesWrap [data-class-start]').click(); await wait(20);
+  await click('#saveLogPerf');
+  if(!doc.getElementById('reviewOverlay')?.hidden) await click('#submitReviewBtn');
+  go('home'); await wait(20);
+  delBtn('Lucha').click(); await wait(20);
+  await click('[data-class-remove-scope="day"]');
+  check('A weekly class done today: "just this day" deletes today\'s', !homeRow('Lucha'), classRows('#homeClassesWrap').join(' | '));
+  go('calendar'); await wait(20);
+  await openCalDay('2026-09-25');
+  check('...and keeps it on the next week', /Lucha/.test(classRows('#dayDetailClasses').join(' ')));
+  await click('#closeDayDetail');
+
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(0);
 })().catch(e => { console.log('TEST THREW:', e.stack || e); process.exit(1); });

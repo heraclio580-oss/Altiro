@@ -2598,6 +2598,7 @@ const STR = {
     classStartBtn: "Start class",
     classAddedToast: "Class added to your schedule",
     classSkippedToast: "Skipped this one",
+    classDeletedToast: "Class deleted",
     classRemovedToast: "Class removed",
     classRemoveWhich: "Remove {name}:",
     classRemoveDay: "Just this day",
@@ -3089,6 +3090,7 @@ const STR = {
     classStartBtn: "Empezar clase",
     classAddedToast: "Clase añadida a tu horario",
     classSkippedToast: "Omitida esta vez",
+    classDeletedToast: "Clase eliminada",
     classRemovedToast: "Clase eliminada",
     classRemoveWhich: "Quitar {name}:",
     classRemoveDay: "Solo este día",
@@ -5055,7 +5057,7 @@ function classRowsHtml(key){
       <span class="ic">${ICONS.class}</span>
       <div class="body"><div class="n">${escapeHtml(sL.title)}</div><div class="v">${escapeHtml(sL.detail||'')}</div></div>
       ${action}
-      ${it.done ? '' : `<button class="del" data-class-skip="${it.id}" type="button" aria-label="Skip">${ICONS.trash}</button>`}
+      <button class="del" data-class-skip="${it.id}" type="button" aria-label="${it.done ? 'Delete' : 'Skip'}">${ICONS.trash}</button>
     </div>`;
   }).join('');
 }
@@ -5081,11 +5083,13 @@ function bindClassRows(container, key, after){
     Promise.resolve(w.saved).then(()=>{ if(!w.supabaseId) return; cloudSetExtraWorkoutCompleted(w.supabaseId, true); if(w.performance) cloudSetExtraWorkoutPerformance(w.supabaseId, w.performance); });
     after();
   }));
+  // A class done (or added just for that day) is deleted with its recorded time; a weekly one not
+  // done yet is skipped for that day.
   const skipDay = it => {
     if(it.extra) deleteExtraWorkout(key, it.extra.id);
     if(it.cls){ it.cls.skips = [...(it.cls.skips||[]), key]; saveProfileToCloud(); }
     after();
-    showToast(STR[state.lang].classSkippedToast);
+    showToast(STR[state.lang][it.done || !it.cls ? 'classDeletedToast' : 'classSkippedToast']);
   };
   container.querySelectorAll('[data-class-skip]').forEach(btn=> btn.addEventListener('click', ()=>{
     const it = item(btn.getAttribute('data-class-skip'));
@@ -5106,7 +5110,9 @@ function bindClassRows(container, key, after){
       </div>`);
     const chooser = row.nextElementSibling;
     chooser.querySelector('[data-class-remove-scope="day"]').addEventListener('click', ()=> skipDay(it));
-    chooser.querySelector('[data-class-remove-scope="all"]').addEventListener('click', ()=>{ removeClass(it.cls.id); after(); });
+    // (Removing it from every week from a class already done today takes that one too -- the row the
+    // trash was tapped on goes either way.)
+    chooser.querySelector('[data-class-remove-scope="all"]').addEventListener('click', ()=>{ if(it.extra) deleteExtraWorkout(key, it.extra.id); removeClass(it.cls.id); after(); });
     chooser.querySelector('[data-class-remove-cancel]').addEventListener('click', ()=> chooser.remove());
   }));
 }

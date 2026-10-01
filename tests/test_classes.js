@@ -109,6 +109,27 @@ function check(label, ok, detail){
   check('...and isn\'t on the next Wednesday', doc.getElementById('dayDetailClassSection').hidden);
   await click('#closeDayDetail');
 
+  // ---- several days, just this week: Pilates Mon / Wed / Fri at 6 PM for 1h 30m, from a Monday ----
+  await openCalDay('2026-09-21');
+  await click('#addWorkoutBtn');
+  await click('#manualTypeRow [data-type="class"]');
+  sel.value = 'pilates'; sel.dispatchEvent(new w.Event('change', {bubbles:true}));
+  [...doc.querySelectorAll('#classDaysRow .chip')].filter(c=>/^(wed|fri)$/i.test(c.textContent)).forEach(c=>c.click());
+  doc.getElementById('classTimeInput').value = '18:00';
+  doc.getElementById('classLenHInput').value = '1';
+  doc.getElementById('classLenMInput').value = '30';
+  await click('#classRepeatToggle');
+  check('Turning repeat off says it\'s just once', /just once/i.test(doc.getElementById('classRepeatSub').textContent));
+  await click('#saveManualEntry');
+  await click('#closeDayDetail');
+  const onDays = [];
+  for(const k of ['2026-09-21','2026-09-22','2026-09-23','2026-09-25','2026-09-28','2026-09-30','2026-10-02']){
+    await openCalDay(k);
+    if(classRows('#dayDetailClasses').some(r=>/Pilates\s*6:00 PM · 1h 30m/.test(r))) onDays.push(k.slice(5));
+    await click('#closeDayDetail');
+  }
+  check('Just once on Mon, Wed and Fri: on all three days that week, and not the week after', onDays.join()==='09-21,09-23,09-25', onDays.join());
+
   // ---- My classes ----
   go('settings'); await wait(20);
   const mine = [...doc.querySelectorAll('#myClassesList .manual-entry')].map(text);

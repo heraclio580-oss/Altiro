@@ -2070,7 +2070,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
           </div>
         </div>
         <div class="toggle-row" style="margin-top:14px;">
-          <div><div class="tt" data-i18n="classRepeatTitle"></div><div class="ts" data-i18n="classRepeatSub"></div></div>
+          <div><div class="tt" data-i18n="classRepeatTitle"></div><div class="ts" id="classRepeatSub"></div></div>
           <div class="toggle on" id="classRepeatToggle"><div class="knob"></div></div>
         </div>
       </div>
@@ -2593,6 +2593,7 @@ const STR = {
     classLengthLabel: "Length",
     classRepeatTitle: "Repeats every week",
     classRepeatSub: "Shows on these days every week, next to your plan.",
+    classOnceSub: "Off: just once, on the next of each day picked.",
     classesLabel: "Classes",
     classStartBtn: "Start class",
     classAddedToast: "Class added to your schedule",
@@ -3083,6 +3084,7 @@ const STR = {
     classLengthLabel: "Duración",
     classRepeatTitle: "Se repite cada semana",
     classRepeatSub: "Aparece estos días cada semana, junto a tu plan.",
+    classOnceSub: "Desactivado: solo una vez, el próximo de cada día elegido.",
     classesLabel: "Clases",
     classStartBtn: "Empezar clase",
     classAddedToast: "Clase añadida a tu horario",
@@ -8271,6 +8273,7 @@ function renderClassForm(){
     renderClassForm();
   }));
   document.getElementById('classRepeatToggle').classList.toggle('on', classRepeat);
+  document.getElementById('classRepeatSub').textContent = classRepeat ? L.classRepeatSub : L.classOnceSub;
 }
 document.getElementById('classKindSelect').addEventListener('change', e=>{
   // Picking a class names the workout (unless the user already typed their own name).
@@ -8520,9 +8523,15 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
       state.classes = [...(state.classes||[]), cls];
       saveProfileToCloud();
     } else {
-      // Just this once: it's that day's class alone (already done, with its length, on a past day).
-      const w = addExtraWorkout(state.openDayKey, classSessionFor(cls));
-      if(w.completed){ w.performance = {time: cls.minutes}; Promise.resolve(w.saved).then(()=>{ if(w.supabaseId) cloudSetExtraWorkoutPerformance(w.supabaseId, w.performance); }); }
+      // Just this once: one class on each day picked -- the next of each weekday, starting from the
+      // day this was opened for (Mon / Wed / Fri from a Monday is that Monday, Wednesday and Friday).
+      // A day already past is filed as done, with its length.
+      const start = parseDateKey(state.openDayKey), startDow = (start.getDay()+6)%7;
+      cls.days.forEach(d=>{
+        const day = new Date(start); day.setDate(start.getDate() + (d - startDow + 7) % 7);
+        const w = addExtraWorkout(dateKey(day), classSessionFor(cls));
+        if(w.completed){ w.performance = {time: cls.minutes}; Promise.resolve(w.saved).then(()=>{ if(w.supabaseId) cloudSetExtraWorkoutPerformance(w.supabaseId, w.performance); }); }
+      });
     }
     closeManualEntry();
     refreshViews();

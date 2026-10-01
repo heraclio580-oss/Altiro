@@ -3745,7 +3745,7 @@ function plannedJogBlock(session){
 // The quality run and the longer easy run hold steady shares (~17% and ~21%); as the week grows the
 // long run takes the extra and a 4th run shrinks from a second easy run (~21%) to a short recovery run
 // (~12%). The long run is whatever's left, kept between 35% and 55% of the week and within the longest
-// long run (longRunCap); no other run gets close to it (the longer easy run at most 55% of it). Miles
+// long run (longRunCap); no other run gets close to it (the others at most 70% of it). Miles
 // the long run can't take, once it's at its longest, go to the other runs as far as they can hold.
 const RUN_SHARE = {quality:0.17, easyLong:0.21, easy:0.15, recovery:0.12};
 function fourthRunShare(total){ return total<=21 ? 0.21 : total>=27 ? 0.12 : 0.21 - (total-21)/6*0.09; }
@@ -3759,22 +3759,25 @@ function distributeRunMiles(total, roles, cfg){
   const longShare = Math.min(0.55, Math.max(0.35, 1-others));
   const scale = (1-longShare)/others;
   const long = Math.max(P.minRun, roundHalf(Math.min(longCap, total*longShare)));
-  const easyCap = Math.min(long*0.55, long);
+  const easyCap = long*0.7;
   const rest = roles.slice(1).map((r,i)=> total*shares[i+1]*scale);
   const spare = total - long - rest.reduce((a,b)=>a+b, 0);
   const room = rest.map(mi=> Math.max(0, easyCap - mi)), roomSum = room.reduce((a,b)=>a+b, 0);
+  // The recovery run stays a short shake-out, 3-4 miles, however big the week gets.
+  const lo = i => roles[i]==='recovery' ? Math.max(P.minRun, 3) : P.minRun;
+  const hi = i => Math.floor((i===0 ? longCap : roles[i]==='recovery' ? 4 : easyCap)*2)/2;
   const out = [long, ...rest.map((mi,i)=>{
     if(spare>0 && roomSum>0) mi += Math.min(room[i], spare*room[i]/roomSum);
-    return Math.max(P.minRun, roundHalf(Math.min(mi, easyCap)));
+    return Math.max(lo(i+1), Math.min(roundHalf(mi), hi(i+1)));
   })];
-  // Rounding each run to the half mile shouldn't knock the week off its target (it would make the even
-  // weekly steps uneven): the difference goes to the runs with room for it, the easy runs first.
+  // Rounding each run to the half mile (or holding the recovery run at 3-4) shouldn't knock the week off
+  // its target (it would make the even weekly steps uneven): the difference goes to the runs with room
+  // for it, the easy runs first.
   let diff = roundHalf(total) - out.reduce((a,b)=>a+b, 0);
   const RANK = {easyLong:0, easy:1, recovery:2, quality:3, long:4};
   roles.map((r,i)=>i).sort((a,b)=> RANK[roles[a]] - RANK[roles[b]]).forEach(i=>{
     if(!diff) return;
-    const hi = Math.floor((i===0 ? longCap : easyCap)*2)/2;
-    const v = Math.max(P.minRun, Math.min(Math.max(hi, out[i]), out[i] + diff));
+    const v = Math.max(lo(i), Math.min(Math.max(hi(i), out[i]), out[i] + diff));
     diff -= v - out[i]; out[i] = v;
   });
   return out;

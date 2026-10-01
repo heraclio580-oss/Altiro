@@ -96,6 +96,11 @@ for(const int of [0,1,2]) for(const [level, mi, days] of [['intermediate',25,[0,
   check(`${label} -- starts at ${startMi}`, Math.abs(t[0]-startMi)<=0.5);
   check(`...each build week adds the same small step (at most ~10% of the start, 3 mi)`, steps.every(s=> s===steps[0] && s>0 && s<=Math.min(3, mi*0.1+0.5)), steps.join(' / '));
 }
+// The recovery run stays a short shake-out, 3-4 miles, however big or small the week.
+const recoveryMiles = new Set();
+for(const level of ['beginner','intermediate','advanced']) for(const mi of [8,15,25,35,45]) for(const days of [[1,3,5,6],[0,1,3,5,6],[0,1,2,4,5,6],[0,1,2,3,4,5,6]])
+for(const int of [0,1,2]) for(let n=0; n<12; n++) setup({days, focus:0, level, int, miles:mi})(n).forEach(d=>{ if(d.p.en.title==='Recovery Jog') recoveryMiles.add(miles(d)); });
+check('The recovery run is always 3-4 miles', recoveryMiles.size && [...recoveryMiles].every(m=> m>=3 && m<=4), [...recoveryMiles].sort((a,b)=>a-b).join(', '));
 setup({days:[1,2,3,5,6], focus:0, level:'advanced', miles:30}); // back to the runner the checks below use
 
 // ---- placement ----
@@ -179,9 +184,11 @@ for(const lvl of ['beginner','intermediate','advanced']) for(const mi of [10,15,
   const long = w.find(d=>d.p.en.title==='Long Run');
   if(!long) continue;
   const other = Math.max(...w.filter(d=>d.p.t==='run' && d!==long).map(miles));
-  if(other > miles(long)*0.6) nearLong = `${lvl} ${mi}mi ${days}: ${other} vs long ${miles(long)}`;
+  if(other > miles(long)*0.7) nearLong = `${lvl} ${mi}mi ${days}: ${other} vs long ${miles(long)}`;
 }
-check('No other run is ever close to the long run (at most ~55-60% of it)', !nearLong, nearLong);
+// (A big week on few runs puts more on the others, the recovery run staying at 3-4 mi: 50 mi on 4 runs is
+// long 22, two runs of ~12-15, recovery 4.)
+check('No other run is ever close to the long run (at most 70% of it)', !nearLong, nearLong);
 
 // ---- running and lifting together: an easy jog after lifting ----
 const hybrid = setup({days:[0,1,2,3,4,5], focus:2, level:'intermediate', miles:15})(0);

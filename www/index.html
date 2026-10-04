@@ -1086,6 +1086,20 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 }
 
 /* ---------- toast ---------- */
+/* Guided tour. The dimming is the spotlight's own shadow; four clear blocks around it (and one over
+   it, except where the step lets the user change something) stop taps reaching the app underneath. */
+.tour{position:absolute;inset:0;z-index:110;}
+.tour-block{position:absolute;}
+.tour-hole{position:absolute;border-radius:14px;box-shadow:0 0 0 2px var(--accent), 0 0 0 4000px rgba(6,6,8,0.66);pointer-events:none;transition:top .25s ease, left .25s ease, width .25s ease, height .25s ease;}
+.tour.no-target .tour-hole{box-shadow:0 0 0 4000px rgba(6,6,8,0.66);}
+.tour-card{position:absolute;left:16px;right:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 14px 10px;box-shadow:0 18px 40px rgba(0,0,0,0.45);transition:top .25s ease;}
+.tour-count{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
+.tour-title{font-size:16px;font-weight:700;color:var(--text);margin-top:4px;}
+.tour-body{font-size:13px;line-height:1.45;color:var(--text-2);margin-top:5px;}
+.tour-try{font-size:12px;color:var(--accent);margin-top:7px;font-weight:600;}
+.tour-actions{display:flex;align-items:center;gap:8px;margin-top:12px;}
+.tour-btn{height:38px;padding:0 16px;font-size:11.5px;width:auto;}
+@media (prefers-reduced-motion: reduce){.tour-hole,.tour-card{transition:none;}}
 .toast{position:absolute;left:16px;right:16px;bottom:78px;background:var(--toast-bg);border:1px solid var(--divider);border-left:4px solid var(--ok-border);border-radius:var(--r-md);padding:11px 12px;font-size:12.5px;color:var(--toast-text);display:flex;align-items:center;gap:8px;z-index:100;animation:toastIn .2s ease both;}
 .toast[hidden]{display:none;}
 .toast svg{width:14px;height:14px;color:var(--ok-icon);flex-shrink:0;}
@@ -1655,6 +1669,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="how-it-works-btn" id="settingsTutorialBtn" type="button">
           <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 4.5v11l9-5.5z"/></svg></span>
           <span data-i18n="seeHowItWorks"></span>
+        </button>
+        <button class="how-it-works-btn" id="settingsTourBtn" type="button" style="margin-top:8px;">
+          <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.2" fill="currentColor"/></svg></span>
+          <span data-i18n="tourReplayBtn"></span>
         </button>
       </div>
 
@@ -2244,6 +2262,25 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     </div>
   </div>
 
+  <!-- Guided tour: a spotlight on one real part of the app at a time, with a card explaining it. -->
+  <div class="tour" id="tourOverlay" hidden>
+    <div class="tour-block" data-side="top"></div><div class="tour-block" data-side="bottom"></div>
+    <div class="tour-block" data-side="left"></div><div class="tour-block" data-side="right"></div>
+    <div class="tour-block" data-side="hole"></div>
+    <div class="tour-hole" id="tourHole"></div>
+    <div class="tour-card" id="tourCard" role="dialog" aria-live="polite" aria-labelledby="tourTitle">
+      <div class="tour-count" id="tourCount"></div>
+      <div class="tour-title" id="tourTitle"></div>
+      <div class="tour-body" id="tourBody"></div>
+      <div class="tour-try" id="tourTry" hidden></div>
+      <div class="tour-actions">
+        <button class="btn-text" type="button" id="tourSkip"></button>
+        <span style="flex:1"></span>
+        <button class="btn btn-ghost tour-btn" type="button" id="tourBack"></button>
+        <button class="btn btn-primary tour-btn" type="button" id="tourNext"></button>
+      </div>
+    </div>
+  </div>
   <div class="toast" id="toast" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 10l4 4 8-9"/></svg><span id="toastMsg"></span></div>
 
   <!-- HOW IT WORKS TUTORIAL: a swipeable tour of the app -->
@@ -2551,6 +2588,52 @@ const STR = {
     footNote: "A few quick questions. Takes about a minute.",
     taglineText: "Your pace, your plan.",
     seeHowItWorks: "See how it works",
+    tourReplayBtn: "Take the guided tour",
+    tourSkip: "Skip tour",
+    tourBack: "Back",
+    tourNext: "Next",
+    tourDone: "Let's go",
+    tourTry: "Try it: tap to change it right here.",
+    tour_today_t: "Today's workout",
+    tour_today_b: "Built from your goal, level and training days. It changes every day of your plan.",
+    tour_start_t: "Start Workout",
+    tour_start_b: "Tap it when you're ready. It times the workout and lets you log your sets, weights or miles, which is how your plan learns and progresses.",
+    tour_week_t: "This week",
+    tour_week_b: "Workouts and miles done so far, out of what this week has planned.",
+    tour_strip_t: "Your week",
+    tour_strip_b: "Tap any day to open it. Green is done, gold is coming up, red is missed.",
+    tour_session_t: "The details",
+    tour_session_b: "Everything in today's workout. Watch Demo shows a move, and + Add Workout logs anything extra, like push-ups at work or a class.",
+    tour_plan_t: "Your plan",
+    tour_plan_b: "This week and next. Build and deload weeks are marked, and you can hold and drag a workout to move it to another day.",
+    tour_adjust_t: "Make it yours",
+    tour_adjust_b: "This wrench opens Adjust: every choice that shapes your program. Let's go through them now.",
+    tour_focus_t: "Running or lifting",
+    tour_focus_b: "Slide to set your mix: all running, all lifting, or anything in between.",
+    tour_intensity_t: "Intensity",
+    tour_intensity_b: "How hard the plan pushes you. Light builds slowly; High progresses faster.",
+    tour_miles_t: "Weekly miles",
+    tour_miles_b: "About how many miles you run a week now. Your plan starts there and builds up gradually.",
+    tour_mile_t: "Mile time",
+    tour_mile_b: "Optional: a recent mile time sets your paces for easy, tempo and fast runs.",
+    tour_equip_t: "Equipment and split",
+    tour_equip_b: "What you have to lift with and how your lifting days are split. My lifts sets your own starting weights.",
+    tour_days_t: "Training days",
+    tour_days_b: "How many days a week, and which ones. The other days are rest days.",
+    tour_apply_t: "Save your choices",
+    tour_apply_b: "Next saves any changes and rebuilds your plan. You can come back to Adjust any time from the wrench.",
+    tour_calendar_t: "Calendar",
+    tour_calendar_b: "The month at a glance. Tap a day to see it, log something you did, or say why you missed a workout.",
+    tour_progress_t: "Progress",
+    tour_progress_b: "Workouts and miles week by week, plus your time, sets and reps, and personal records below.",
+    tour_classes_t: "Classes",
+    tour_classes_b: "Go to spin, yoga or jiu-jitsu? Add it with + Add Workout, then Class, and it shows up on those days every week.",
+    tour_reminders_t: "Reminders",
+    tour_reminders_b: "Get a daily reminder for your workout, at the time you choose.",
+    tour_strava_t: "Strava",
+    tour_strava_b: "Connect Strava and your runs come in on their own.",
+    tour_end_t: "You're all set",
+    tour_end_b: "Replay this tour any time from Settings, under Help.",
     tutSkip: "Skip",
     tutBack: "Back",
     tutNext: "Next",
@@ -3044,6 +3127,52 @@ const STR = {
     footNote: "Unas preguntas rápidas. Toma alrededor de un minuto.",
     taglineText: "Tu ritmo, tu plan.",
     seeHowItWorks: "Ver cómo funciona",
+    tourReplayBtn: "Hacer el recorrido guiado",
+    tourSkip: "Saltar",
+    tourBack: "Atrás",
+    tourNext: "Siguiente",
+    tourDone: "Vamos",
+    tourTry: "Pruébalo: tócalo para cambiarlo aquí mismo.",
+    tour_today_t: "El entrenamiento de hoy",
+    tour_today_b: "Hecho según tu objetivo, nivel y días de entrenamiento. Cambia cada día de tu plan.",
+    tour_start_t: "Empezar entrenamiento",
+    tour_start_b: "Tócalo cuando estés listo. Cronometra el entrenamiento y te deja registrar series, pesos o millas, y así tu plan aprende y progresa.",
+    tour_week_t: "Esta semana",
+    tour_week_b: "Entrenamientos y millas hechos hasta ahora, de lo que tiene planeado esta semana.",
+    tour_strip_t: "Tu semana",
+    tour_strip_b: "Toca cualquier día para abrirlo. Verde es hecho, dorado es próximo, rojo es perdido.",
+    tour_session_t: "Los detalles",
+    tour_session_b: "Todo lo del entrenamiento de hoy. Ver demo muestra un ejercicio, y + Añadir entrenamiento registra algo extra, como flexiones en el trabajo o una clase.",
+    tour_plan_t: "Tu plan",
+    tour_plan_b: "Esta semana y la próxima. Las semanas de carga y descarga están marcadas, y puedes mantener y arrastrar un entrenamiento para moverlo a otro día.",
+    tour_adjust_t: "Hazlo tuyo",
+    tour_adjust_b: "Esta llave abre Ajustar: cada elección que da forma a tu programa. Vamos a verlas ahora.",
+    tour_focus_t: "Correr o pesas",
+    tour_focus_b: "Desliza para elegir tu mezcla: solo correr, solo pesas o algo intermedio.",
+    tour_intensity_t: "Intensidad",
+    tour_intensity_b: "Cuánto te exige el plan. Ligera avanza despacio; Alta progresa más rápido.",
+    tour_miles_t: "Millas por semana",
+    tour_miles_b: "Cuántas millas corres ahora por semana, más o menos. Tu plan empieza ahí y sube poco a poco.",
+    tour_mile_t: "Tiempo por milla",
+    tour_mile_b: "Opcional: un tiempo reciente en la milla fija tus ritmos para carreras suaves, de tempo y rápidas.",
+    tour_equip_t: "Equipo y división",
+    tour_equip_b: "Con qué puedes levantar y cómo se reparten tus días de pesas. Mis levantamientos fija tus propios pesos iniciales.",
+    tour_days_t: "Días de entrenamiento",
+    tour_days_b: "Cuántos días por semana y cuáles. Los demás son días de descanso.",
+    tour_apply_t: "Guarda tus elecciones",
+    tour_apply_b: "Siguiente guarda los cambios y rehace tu plan. Puedes volver a Ajustar cuando quieras desde la llave.",
+    tour_calendar_t: "Calendario",
+    tour_calendar_b: "El mes de un vistazo. Toca un día para verlo, registrar algo que hiciste o decir por qué te perdiste un entrenamiento.",
+    tour_progress_t: "Progreso",
+    tour_progress_b: "Entrenamientos y millas semana a semana, más tu tiempo, series y repeticiones, y récords personales abajo.",
+    tour_classes_t: "Clases",
+    tour_classes_b: "¿Vas a spinning, yoga o jiu-jitsu? Añádela con + Añadir entrenamiento y luego Clase, y aparecerá esos días cada semana.",
+    tour_reminders_t: "Recordatorios",
+    tour_reminders_b: "Recibe un recordatorio diario para tu entrenamiento, a la hora que elijas.",
+    tour_strava_t: "Strava",
+    tour_strava_b: "Conecta Strava y tus carreras llegan solas.",
+    tour_end_t: "¡Todo listo!",
+    tour_end_b: "Repite este recorrido cuando quieras desde Ajustes, en Ayuda.",
     tutSkip: "Omitir",
     tutBack: "Atrás",
     tutNext: "Siguiente",
@@ -5512,7 +5641,7 @@ function showScreen(id){
   bn.hidden = !TAB_SCREENS.includes(id);
   bn.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===id));
   if(id==='loading') runLoading();
-  if(id==='home') renderHome();
+  if(id==='home'){ renderHome(); if(state.tourPending) maybeStartTour(); }
   if(id==='week'){ renderWeek(); scrollPlanToToday(); }
   if(id==='calendar') renderCalendar();
   if(id==='progress') renderProgress();
@@ -5614,6 +5743,7 @@ const NAV_MAP = [
 // bypass that backdrop entirely, so without this they can leave a sheet from a previous jump
 // stranded open over whatever screen is jumped to next.
 function closeAllOverlays(){
+  if(!document.getElementById('tourOverlay').hidden) endTour();
   if(!document.getElementById('logPerfOverlay').hidden) closeLogPerformance();
   if(!document.getElementById('intervalTimerOverlay').hidden) closeIntervalTimer();
   if(!document.getElementById('workoutPreviewOverlay').hidden) closeWorkoutPreview();
@@ -6049,6 +6179,7 @@ function runLoading(){
       startPlanOn(startDateFor(state.startChoice || 'today', state.startPick) || dateKey(TODAY_DATE));
       state.week = buildWeek();
       if(state.signedIn && state.userId) saveProfileToCloud();
+      state.tourPending = true; // a brand-new plan: show the guided tour once on Today
       state.loadTimer = setTimeout(()=>showScreen('home'), 550);
     }
   }
@@ -9439,6 +9570,7 @@ function applyPendingSignup(user, profile){
   startPlanOn(startDateFor(state.startChoice || 'today', state.startPick) || dateKey(TODAY_DATE));
   state.week = buildWeek();
   saveProfileToCloud();
+  state.tourPending = true; // first sign-in after confirming the email: show the guided tour once
   return true;
 }
 function showResendConfirm(email){
@@ -10772,6 +10904,183 @@ function openTutorial(origin){
 }
 function closeTutorial(){
   document.getElementById('tutorialOverlay').hidden = true;
+}
+/* ---------------- guided tour ---------------- */
+// Runs once for a new account, right after its plan is built (see runLoading / applyPendingSignup), and
+// any time from Settings. Each stop spotlights one real part of the app; the Adjust stops open the real
+// Adjust sheet and let the user change each choice in place, saved on the last of them.
+const TOUR_DONE_KEY = 'altiro_tour_done';
+const adjSection = id => { const el = document.getElementById(id); return el && el.closest('.sheet-section'); };
+const settingsSection = id => { const el = document.getElementById(id); return el && el.closest('.sheet-section'); };
+const TOUR_STEPS = [
+  {key:'today',    screen:'home', target: ()=> document.getElementById('todayHero')},
+  {key:'start',    screen:'home', target: ()=> document.getElementById('recordBtn')},
+  {key:'week',     screen:'home', target: ()=> document.querySelector('#screen-home .overview-card')},
+  {key:'strip',    screen:'home', target: ()=> document.getElementById('weekStrip')},
+  {key:'session',  screen:'home', target: ()=> document.getElementById('sessionCard'), top:true},
+  {key:'plan',     screen:'week', target: ()=> document.querySelector('#weekList .plan-row') && [...document.querySelectorAll('#weekList .plan-row[data-week-idx="0"]')], top:true},
+  {key:'adjust',   screen:'week', target: ()=> document.querySelector('#screen-week [data-open-adjust]')},
+  {key:'focus',    sheet:true, try:true, target: ()=> adjSection('adjSliderTrack')},
+  {key:'intensity',sheet:true, try:true, target: ()=> adjSection('adjIntensityTabs')},
+  {key:'miles',    sheet:true, try:true, target: ()=> document.getElementById('adjMilesSection')},
+  {key:'mile',     sheet:true, try:true, target: ()=> document.getElementById('adjMileSection')},
+  {key:'equip',    sheet:true, try:true, target: ()=> document.getElementById('adjEquipSection')},
+  {key:'days',     sheet:true, try:true, target: ()=> adjSection('adjWeekdayChips')},
+  {key:'apply',    sheet:true, target: ()=> document.getElementById('applyAdjust'), save:true},
+  {key:'calendar', screen:'calendar', target: ()=> document.getElementById('calGrid'), top:true},
+  {key:'progress', screen:'progress', target: ()=> document.getElementById('progBarChart')?.closest('.sheet-section'), top:true},
+  {key:'classes',  screen:'settings', target: ()=> settingsSection('myClassesList')},
+  {key:'reminders',screen:'settings', try:true, target: ()=> settingsSection('notifToggle')},
+  {key:'strava',   screen:'settings', target: ()=> settingsSection('stravaConnectBtn')},
+  {key:'end',      screen:'home', target: null},
+];
+const tour = {on:false, i:0, steps:[], adjSnapshot:null, raf:0};
+// A stop whose part of the app isn't there for this user (no weekly miles on a lifting-only plan, no
+// equipment on a running-only one) is left out.
+function tourVisible(el){
+  const els = Array.isArray(el) ? el : [el];
+  return els.length>0 && els.every(e=> e && !e.closest('[hidden]'));
+}
+function tourTargetEl(step){
+  const t = step.target ? step.target() : null;
+  return t && tourVisible(t) ? t : null;
+}
+function tourAdjustOpen(){ return !document.getElementById('adjustOverlay').hidden; }
+function tourAdjustChanged(){ return !!state.adjustDraft && JSON.stringify(state.adjustDraft)!==tour.adjSnapshot; }
+// Gets the app to where a stop is: its screen, and the Adjust sheet open or closed.
+function tourEnterContext(step){
+  if(step.sheet){
+    if(!tourAdjustOpen()){
+      if(!elFor('week') || elFor('week').hidden) showScreen('week');
+      openAdjustSheet();
+      tour.adjSnapshot = JSON.stringify(state.adjustDraft);
+    }
+  } else {
+    if(tourAdjustOpen()) closeAdjustSheet();
+    if(step.screen && elFor(step.screen).hidden) showScreen(step.screen);
+  }
+}
+function startTour(){
+  closeAllOverlays();
+  tour.on = true;
+  tour.i = 0;
+  showScreen('home');
+  document.getElementById('tourOverlay').hidden = false;
+  tourGo(0, 1);
+  cancelAnimationFrame(tour.raf);
+  const follow = ()=>{ if(!tour.on) return; tourPlace(); tour.raf = requestAnimationFrame(follow); };
+  tour.raf = requestAnimationFrame(follow);
+}
+function endTour(){
+  tour.on = false;
+  cancelAnimationFrame(tour.raf);
+  document.getElementById('tourOverlay').hidden = true;
+  if(tourAdjustOpen()) closeAdjustSheet();
+  try{ localStorage.setItem(TOUR_DONE_KEY, '1'); }catch(e){}
+}
+// To stop i, skipping (in the direction of travel) any stop that isn't there for this user.
+function tourGo(i, dir){
+  while(i>=0 && i<TOUR_STEPS.length){
+    const step = TOUR_STEPS[i];
+    tourEnterContext(step);
+    if(!step.target || tourTargetEl(step)) break;
+    i += dir;
+  }
+  if(i<0) i = 0;
+  if(i>=TOUR_STEPS.length){ endTour(); showScreen('home'); return; }
+  tour.i = i;
+  const step = TOUR_STEPS[i];
+  const el = tourTargetEl(step);
+  const first = Array.isArray(el) ? el[0] : el;
+  if(first && first.scrollIntoView) first.scrollIntoView({block: step.top ? 'start' : 'center'});
+  tourRender();
+}
+function tourRender(){
+  const L = STR[state.lang], step = TOUR_STEPS[tour.i];
+  // Which part of the app this stop is in, in place of a count (how many stops there are depends on
+  // choices the user can change during the tour).
+  const sec = step.sheet ? L.adjustTitle : {home:L.navToday, week:L.navPlan, calendar:L.navCalendar, progress:L.navProgress, settings:L.navSettings}[step.screen];
+  document.getElementById('tourCount').textContent = step.target ? sec : '';
+  document.getElementById('tourTitle').textContent = L['tour_'+step.key+'_t'];
+  document.getElementById('tourBody').textContent = L['tour_'+step.key+'_b'];
+  const tryEl = document.getElementById('tourTry');
+  tryEl.hidden = !step.try;
+  tryEl.textContent = L.tourTry;
+  document.getElementById('tourSkip').textContent = L.tourSkip;
+  document.getElementById('tourSkip').hidden = !step.target;
+  document.getElementById('tourBack').textContent = L.tourBack;
+  document.getElementById('tourBack').hidden = tour.i===0 || !step.target;
+  document.getElementById('tourNext').textContent = step.target ? L.tourNext : L.tourDone;
+  document.getElementById('tourOverlay').classList.toggle('no-target', !step.target);
+  // Only a stop with something to change lets taps through to it.
+  document.querySelector('.tour-block[data-side="hole"]').hidden = !!step.try;
+  tourPlace();
+}
+// Spotlight and card follow the stop's element every frame (the Adjust sheet re-renders as it's
+// changed, screens scroll), measured against the device frame the overlay sits in.
+function tourPlace(){
+  const step = TOUR_STEPS[tour.i];
+  const dev = document.getElementById('device'), dr = dev.getBoundingClientRect();
+  const W = dev.clientWidth, H = dev.clientHeight, ox = dr.left + dev.clientLeft, oy = dr.top + dev.clientTop;
+  const el = tourTargetEl(step);
+  let box = null;
+  if(el){
+    const rects = (Array.isArray(el) ? el : [el]).map(e=> e.getBoundingClientRect());
+    const pad = 6;
+    let x = Math.min(...rects.map(r=>r.left)) - ox - pad, y = Math.min(...rects.map(r=>r.top)) - oy - pad;
+    let x2 = Math.max(...rects.map(r=>r.right)) - ox + pad, y2 = Math.max(...rects.map(r=>r.bottom)) - oy + pad;
+    // Kept inside the screen, above the bottom nav (which the Adjust sheet covers).
+    const nav = document.getElementById('bottomNav'), navTop = !nav.hidden && !step.sheet ? nav.getBoundingClientRect().top - oy : H;
+    x = Math.max(4, x); y = Math.max(4, y); x2 = Math.min(W-4, x2); y2 = Math.min(Math.min(H, navTop)-4, y2);
+    if(y2 > y && x2 > x) box = {x, y, w: x2-x, h: y2-y};
+  }
+  const hole = document.getElementById('tourHole');
+  const b = box || {x: W/2, y: H/2, w: 0, h: 0};
+  Object.assign(hole.style, {left: b.x+'px', top: b.y+'px', width: b.w+'px', height: b.h+'px'});
+  const blocks = {};
+  document.querySelectorAll('.tour-block').forEach(e=> blocks[e.dataset.side] = e.style);
+  Object.assign(blocks.top,    {left:'0px', top:'0px', width: W+'px', height: b.y+'px'});
+  Object.assign(blocks.bottom, {left:'0px', top:(b.y+b.h)+'px', width: W+'px', height: Math.max(0, H-b.y-b.h)+'px'});
+  Object.assign(blocks.left,   {left:'0px', top: b.y+'px', width: b.x+'px', height: b.h+'px'});
+  Object.assign(blocks.right,  {left:(b.x+b.w)+'px', top: b.y+'px', width: Math.max(0, W-b.x-b.w)+'px', height: b.h+'px'});
+  Object.assign(blocks.hole,   {left: b.x+'px', top: b.y+'px', width: b.w+'px', height: b.h+'px'});
+  // The card goes below the spotlight if it fits, else above, else at the bottom of the screen.
+  const card = document.getElementById('tourCard'), ch = card.offsetHeight, gap = 12;
+  let top;
+  if(!box) top = (H - ch)/2;
+  else if(b.y + b.h + gap + ch <= H - 12) top = b.y + b.h + gap;
+  else if(b.y - gap - ch >= 12) top = b.y - gap - ch;
+  else top = H - ch - 16;
+  card.style.top = Math.max(12, top)+'px';
+}
+document.getElementById('tourNext').addEventListener('click', ()=>{
+  const step = TOUR_STEPS[tour.i];
+  // Leaving Adjust: the choices made in it are saved (and the plan rebuilt) only if one changed.
+  if(step.save && tourAdjustOpen()){
+    if(tourAdjustChanged()) document.getElementById('applyAdjust').click();
+    else closeAdjustSheet();
+  }
+  if(!step.target){ endTour(); showScreen('home'); return; }
+  tourGo(tour.i+1, 1);
+});
+document.getElementById('tourBack').addEventListener('click', ()=>{
+  // Going back out of Adjust (to the wrench) leaves it unsaved, as if closed.
+  tourGo(tour.i-1, -1);
+});
+document.getElementById('tourSkip').addEventListener('click', ()=>{ endTour(); showScreen('home'); });
+document.getElementById('settingsTourBtn').addEventListener('click', startTour);
+document.addEventListener('keydown', e=>{
+  if(!tour.on) return;
+  if(e.key==='Escape'){ endTour(); showScreen('home'); }
+});
+// A new account sees it once, the first time it reaches Today.
+function maybeStartTour(){
+  if(!state.tourPending) return;
+  state.tourPending = false;
+  let done = false;
+  try{ done = localStorage.getItem(TOUR_DONE_KEY)==='1'; }catch(e){}
+  if(done) return;
+  setTimeout(()=>{ if(!elFor('home').hidden && !tour.on) startTour(); }, 700);
 }
 document.getElementById('openTutorialBtn').addEventListener('click', ()=> openTutorial('welcome'));
 document.getElementById('settingsTutorialBtn').addEventListener('click', ()=> openTutorial('settings'));

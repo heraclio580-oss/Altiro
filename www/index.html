@@ -730,6 +730,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
 .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:12px 13px;}
 .toggle-row .tt{font-size:13px;color:var(--text);font-weight:500;}
+.option-list.dimmed{opacity:0.4;}
 .toggle-row .ts{font-size:11px;color:var(--text-3);margin-top:2px;}
 .reminder-time-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:0 4px 0 13px;font-size:13px;color:var(--text-2);}
 .reminder-time-row[hidden]{display:none;}
@@ -1240,6 +1241,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <h2 class="hl" data-i18n="goalHeadline"></h2>
       <p class="sub" data-i18n="goalSub"></p>
       <div class="option-list" id="goalList"></div>
+      <div class="toggle-row" style="margin-top:18px;">
+        <div><div class="tt" data-i18n="ownWorkoutsTitle"></div><div class="ts" data-i18n="ownWorkoutsOnbSub"></div></div>
+        <div class="toggle" id="onbOwnToggle" role="switch" tabindex="0"><div class="knob"></div></div>
+      </div>
     </div>
     <div class="footer-cta">
       <button class="btn btn-primary" id="goalNext" data-i18n="continueBtn" disabled data-go="onb-level"></button>
@@ -1890,6 +1895,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="iconbtn" id="closeAdjust"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       </div>
 
+      <div class="sheet-section" id="adjOwnSection">
+        <div class="toggle-row">
+          <div><div class="tt" data-i18n="ownWorkoutsTitle"></div><div class="ts" data-i18n="ownWorkoutsSub"></div></div>
+          <div class="toggle" id="adjOwnToggle" role="switch" tabindex="0"><div class="knob"></div></div>
+        </div>
+      </div>
+      <div id="adjPlanOptions">
       <div class="sheet-section">
         <div class="st-label" data-i18n="focusRatioLabel"></div>
         <div class="slider-endlabels"><span data-i18n="sliderRunningOnly"></span><span data-i18n="sliderWeightsOnly"></span></div>
@@ -1960,6 +1972,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjStartNote"></div>
       </div>
 
+      </div>
       <button class="btn btn-primary sheet-apply" id="applyAdjust" data-i18n="applyBtn"></button>
     </div>
   </div>
@@ -2589,6 +2602,13 @@ const STR = {
     taglineText: "Your pace, your plan.",
     seeHowItWorks: "See how it works",
     tourReplayBtn: "Take the guided tour",
+    ownWorkoutsTitle: "Create my own workouts",
+    ownWorkoutsSub: "No generated plan: every day is open for the workouts you add yourself.",
+    ownWorkoutsOnbSub: "Skip the questions and start with an open calendar.",
+    heroEyebrowOwn: "Your day", heroTitleOwn: "Nothing planned yet.", heroSubOwn: "Add a workout for today, or plan your week from the Plan tab.",
+    ownRestTip: "Your workouts, your way. Tap + Add Workout to create today's, or add one to any day from the Plan or Calendar.",
+    tour_own_t: "Your own workouts",
+    tour_own_b: "Prefer to build your own? Turn this on and the generated plan steps aside, leaving every day open for the workouts you add.",
     tourSkip: "Skip tour",
     tourBack: "Back",
     tourNext: "Next",
@@ -3130,6 +3150,13 @@ const STR = {
     taglineText: "Tu ritmo, tu plan.",
     seeHowItWorks: "Ver cómo funciona",
     tourReplayBtn: "Hacer el recorrido guiado",
+    ownWorkoutsTitle: "Crear mis propios entrenamientos",
+    ownWorkoutsSub: "Sin plan generado: cada día queda libre para los entrenamientos que añadas tú.",
+    ownWorkoutsOnbSub: "Sáltate las preguntas y empieza con el calendario libre.",
+    heroEyebrowOwn: "Tu día", heroTitleOwn: "Nada planeado todavía.", heroSubOwn: "Añade un entrenamiento para hoy o planea tu semana desde Plan.",
+    ownRestTip: "Tus entrenamientos, a tu manera. Toca + Añadir entrenamiento para crear el de hoy, o añade uno a cualquier día desde Plan o Calendario.",
+    tour_own_t: "Tus propios entrenamientos",
+    tour_own_b: "¿Prefieres crear los tuyos? Actívalo y el plan generado se aparta, dejando cada día libre para lo que añadas.",
     tourSkip: "Saltar",
     tourBack: "Atrás",
     tourNext: "Siguiente",
@@ -4409,6 +4436,9 @@ function planWeekFor(date){
 }
 // The generated session for a date, as a fresh copy (callers may edit it).
 function plannedSessionFor(date){
+  // Creating their own workouts: from the day they chose to, nothing is generated -- every day is open
+  // (days before it keep the plan they had, so history stays as it was).
+  if(state.ownSince && dateKey(date) >= state.ownSince) return {p: ses('rest','Rest Day','','Día de descanso',''), c: null};
   if(beforePlanStart(date)){
     return {p: ses('rest','Rest Day', STR.en.planStartsOn.replace('{date}', fmtDayDate(state.planStartDate,'en')),
       'Día de descanso', STR.es.planStartsOn.replace('{date}', fmtDayDate(state.planStartDate,'es'))), c: null};
@@ -4881,6 +4911,8 @@ function applyTheme(theme){
 /* ---------------- state ---------------- */
 const defaultState = () => ({
   goal:null, level:null,
+  ownWorkouts:false, // "Create my own workouts": no generated plan, every day open for the user's own...
+  ownSince:null,     // ...from this day (YYYY-MM-DD) on; null when the plan is on (see plannedSessionFor)
   trainingDays:[0,2,4], // Mon/Wed/Fri by default
   age:null, gender:null, weight:null, weightUnit:'lb',
   focusRatio:2, intensityIdx:1, liftIntensityIdx:null, // see runIntensity() / liftIntensity()
@@ -5860,6 +5892,7 @@ function resetToWelcome(){
   strava = {connected:false, athleteName:'', status:'idle', lastSyncAt:0};
   signedInLoad = null;
   document.getElementById('goalNext').disabled = true;
+  renderOnbOwn();
   document.getElementById('levelNext').disabled = true;
   document.getElementById('intensityNext').disabled = true;
   document.getElementById('emailInput').value = '';
@@ -5888,8 +5921,27 @@ function renderOptionList(containerId, items, selectedKey, onSelect){
     card.addEventListener('click', ()=> onSelect(card.getAttribute('data-key')));
   });
 }
+// "Create my own workouts" on the first question: the rest of the questions are skipped, straight to
+// the account.
+function renderOnbOwn(){
+  const own = !!state.ownWorkouts;
+  const t = document.getElementById('onbOwnToggle');
+  t.classList.toggle('on', own);
+  t.setAttribute('aria-checked', own);
+  document.getElementById('goalList').classList.toggle('dimmed', own);
+  const next = document.getElementById('goalNext');
+  next.setAttribute('data-go', own ? 'onb-account' : 'onb-level');
+  next.disabled = !own && !state.goal;
+  if(!accountReturning) document.getElementById('accountBackBtn').setAttribute('data-go', own ? 'onb-goal' : 'onb-info');
+}
+function setOwnWorkouts(on){
+  state.ownWorkouts = !!on;
+  state.ownSince = on ? dateKey(TODAY_DATE) : null;
+}
+document.getElementById('onbOwnToggle').addEventListener('click', ()=>{ setOwnWorkouts(!state.ownWorkouts); renderOnbOwn(); });
 function selectGoal(k){
   state.goal=k;
+  if(state.ownWorkouts){ setOwnWorkouts(false); renderOnbOwn(); } // picking a goal means they want the plan
   if(!state._focusTouched) state.focusRatio = {cardio:1, strength:3, mix:2}[k];
   renderOptionList('goalList', GOALS, state.goal, selectGoal);
   document.getElementById('goalNext').disabled=false;
@@ -6184,7 +6236,9 @@ function makeSlider(trackEl, thumbEl, fillEl, getVal, setVal, onChange){
 }
 
 function previewCardsHtml(focusIdx){
-  const d = generatePlanWeek(planConfig({focus: focusIdx, days: state.trainingDays.length ? planConfig().days : [0,2,4]}), 0).find(x => x.p.t !== 'rest');
+  // (The plan this would make, whether or not they've chosen to create their own workouts instead.)
+  const d = generatePlanWeek(planConfig({focus: focusIdx, days: state.trainingDays.length ? state.trainingDays.slice().sort((a,b)=>a-b) : [0,2,4]}), 0).find(x => x.p.t !== 'rest');
+  if(!d) return '';
   const L = STR[state.lang];
   const pL = d.p[state.lang], cL = d.c[state.lang];
   return `
@@ -6276,7 +6330,7 @@ function renderHome(){
   });
 
   const eff = todaySession(); const effL = ST(eff);
-  const tip = (SESSION_TIP[eff.t]||SESSION_TIP.rest)[state.lang];
+  const tip = state.ownWorkouts && eff.t==='rest' ? L.ownRestTip : (SESSION_TIP[eff.t]||SESSION_TIP.rest)[state.lang];
   // Today's plan workout was placed around a hard class today (see placeSessions): say so.
   const hardClass = eff.t!=='rest' && !state.week[TODAY_IDX].isCustom && classItemsFor(dateKey(TODAY_DATE)).find(it=> it.cls && CLASS_LOAD[it.cls.kind]);
   const aroundClass = hardClass ? ST(hardClass.session).title : '';
@@ -7119,6 +7173,13 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
 
 document.getElementById('recordBtn').addEventListener('click', function(){
   if(this.classList.contains('disabled') || this.classList.contains('done') || this.classList.contains('recording')) return;
+  // Their own workouts, nothing planned today: the button is "Add Workout".
+  if(state.ownWorkouts && todaySession().t==='rest'){
+    state.openDayKey = dateKey(TODAY_DATE);
+    openManualEntry();
+    manualEntryAlongside = true;
+    return;
+  }
   if(todaySession().t==='interval'){ openIntervalTimer(); return; }
   this.classList.add('recording');
   document.getElementById('recordLabel').textContent = STR[state.lang].recordingLabel;
@@ -7488,8 +7549,10 @@ function weekPlanMetaHtml(weekIdx){
   const L = STR[state.lang];
   const dates = weekDates(weekIdx);
   if(beforePlanStart(dates[6])) return `<span class="week-block-meta">${L.planStartsOn.replace('{date}', fmtDayDate(state.planStartDate, state.lang))}</span>`;
-  const phase = isRecoveryWeek(planWeekIndex(dates[0])) ? L.planWeekRecovery : L.planWeekBuild;
   const mi = weekStats(weekIdx).plannedDistance;
+  // Their own workouts: no build / deload cycle, just the miles they've planned.
+  if(state.ownWorkouts) return mi>0 ? `<span class="week-block-meta">${+mi.toFixed(1)} mi</span>` : '';
+  const phase = isRecoveryWeek(planWeekIndex(dates[0])) ? L.planWeekRecovery : L.planWeekBuild;
   return `<span class="week-block-meta">${phase}${mi>0 ? ` · ${+mi.toFixed(1)} mi` : ''}</span>`;
 }
 function weekRangeLabel(weekIdx){
@@ -9236,7 +9299,7 @@ document.getElementById('signOutBtn').addEventListener('click', async ()=>{
 /* ---------------- adjust sheet ---------------- */
 function openAdjustSheet(){
   ensureWeek();
-  state.adjustDraft = {focusRatio: state.focusRatio, intensityIdx: state.focusRatio>=4 ? liftIntensity() : state.intensityIdx, liftIntensityIdx: state.liftIntensityIdx ?? null, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, liftSplit: state.liftSplit, mileTime: state.mileTime};
+  state.adjustDraft = {own: !!state.ownWorkouts, focusRatio: state.focusRatio, intensityIdx: state.focusRatio>=4 ? liftIntensity() : state.intensityIdx, liftIntensityIdx: state.liftIntensityIdx ?? null, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, liftSplit: state.liftSplit, mileTime: state.mileTime};
   document.getElementById('adjustOverlay').hidden = false;
   highlightNav('adjust');
   adjSlider.paint();
@@ -9245,7 +9308,21 @@ function openAdjustSheet(){
   renderAdjDaysChips();
   renderAdjBaseline();
   renderAdjStart();
+  renderAdjOwn();
 }
+// "Create my own workouts" on: the generated plan's options don't apply, so they're put away.
+function renderAdjOwn(){
+  const own = !!(state.adjustDraft && state.adjustDraft.own);
+  const t = document.getElementById('adjOwnToggle');
+  t.classList.toggle('on', own);
+  t.setAttribute('aria-checked', own);
+  document.getElementById('adjPlanOptions').hidden = own;
+}
+document.getElementById('adjOwnToggle').addEventListener('click', ()=>{
+  if(!state.adjustDraft) return;
+  state.adjustDraft.own = !state.adjustDraft.own;
+  renderAdjOwn();
+});
 function renderAdjBaseline(){
   if(state.adjustDraft) renderBaselineChips('adj', state.adjustDraft, renderAdjBaseline);
 }
@@ -9277,6 +9354,10 @@ function renderAdjDaysChips(){
 
 document.getElementById('applyAdjust').addEventListener('click', ()=>{
   const d = state.adjustDraft;
+  // Their own workouts from today on; or back to a generated plan, which starts fresh from today (the
+  // days they planned themselves stay as they were, not filled in with workouts they "missed").
+  const ownChanged = !!d.own !== !!state.ownWorkouts;
+  if(ownChanged) setOwnWorkouts(d.own);
   state.focusRatio = d.focusRatio;
   state.intensityIdx = d.intensityIdx;
   // Weights only: the one row is lifting's. Both: lifting keeps its own (unless it matches running's).
@@ -9290,6 +9371,7 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
   // the build-up from today -- unless the plan hasn't started yet, in which case it keeps its date.
   const restartOn = d.startChoice && d.startChoice!=='keep' ? startDateFor(d.startChoice, d.startPick) : null;
   if(restartOn){ startPlanOn(restartOn); clearOldPlanDays(restartOn); }
+  else if(ownChanged && !d.own) startPlanOn(dateKey(TODAY_DATE));
   else if(d.weeklyMiles!==state.weeklyMiles && !(state.planStartDate && state.planStartDate > dateKey(TODAY_DATE))) startPlanOn(dateKey(TODAY_DATE));
   state.weeklyMiles = d.weeklyMiles;
   state.week = regenerateUpcomingWeek();
@@ -9616,7 +9698,7 @@ function renderSummary(){
 // instead of a default one. The link usually opens in the same browser (or one that shares it).
 const PENDING_SIGNUP_KEY = 'altiro_pending_signup';
 const SIGNUP_FIELDS = ['goal','level','trainingDays','focusRatio','intensityIdx','liftIntensityIdx','age','gender','weight','weightUnit',
-  'weeklyMiles','equipment','liftSplit','mileTime','jogBaseline','startChoice','startPick','lang'];
+  'weeklyMiles','equipment','liftSplit','mileTime','jogBaseline','startChoice','startPick','lang','ownWorkouts','ownSince'];
 function savePendingSignup(email){
   const fields = {};
   SIGNUP_FIELDS.forEach(k=>{ if(state[k]!==undefined) fields[k] = state[k]; });
@@ -9731,7 +9813,7 @@ function updateAuthModeUI(){
   const L = STR[state.lang];
   document.getElementById('emailSignupBtn').textContent = authMode==='signup' ? L.createAccountBtn : L.signInBtn;
   document.getElementById('toggleAuthMode').textContent = authMode==='signup' ? L.alreadyHaveAccount : L.needAccount;
-  document.getElementById('accountBackBtn').setAttribute('data-go', accountReturning ? 'welcome' : 'onb-info');
+  document.getElementById('accountBackBtn').setAttribute('data-go', accountReturning ? 'welcome' : state.ownWorkouts ? 'onb-goal' : 'onb-info');
   document.getElementById('accountStepTag').hidden = accountReturning;
   document.getElementById('accountProgress').hidden = accountReturning;
   document.getElementById('accountHeadline').textContent = accountReturning ? L.welcomeBackHeadline : L.accountHeadline;
@@ -9793,6 +9875,7 @@ async function loadProfileFromCloud(){
   if(data.jog_baseline && typeof data.jog_baseline==='object') state.jogBaseline = data.jog_baseline;
   if(data.exercise_swaps && typeof data.exercise_swaps==='object') state.exerciseSwaps = data.exercise_swaps;
   if(Array.isArray(data.classes)) state.classes = data.classes;
+  if('own_since' in data){ state.ownSince = data.own_since || null; state.ownWorkouts = !!state.ownSince; }
   if(data.plan_start) state.planStart = data.plan_start;
   if(data.plan_start_date) state.planStartDate = String(data.plan_start_date).slice(0,10);
   else if(!state.planStart){
@@ -9832,6 +9915,7 @@ async function saveProfileToCloud(){
       jog_baseline: state.jogBaseline,
       mile_time_sec: state.mileTime,
       classes: state.classes,
+      own_since: state.ownWorkouts ? state.ownSince : null,
       updated_at: new Date().toISOString(),
     };
     const { error } = await sb.from('profiles').update(payload).eq('id', state.userId);
@@ -9839,7 +9923,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes','own_since'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }
@@ -10989,6 +11073,7 @@ const TOUR_STEPS = [
   {key:'session',  screen:'home', target: ()=> document.getElementById('sessionCard'), top:true},
   {key:'plan',     screen:'week', target: ()=> document.querySelector('#weekList .plan-row') && [...document.querySelectorAll('#weekList .plan-row[data-week-idx="0"]')], top:true},
   {key:'adjust',   screen:'week', target: ()=> document.querySelector('#screen-week [data-open-adjust]')},
+  {key:'own',      sheet:true, try:true, target: ()=> document.getElementById('adjOwnSection')},
   {key:'focus',    sheet:true, try:true, target: ()=> adjSection('adjSliderTrack')},
   {key:'intensity',sheet:true, try:true, target: ()=> adjSection('adjIntensityTabs')},
   {key:'miles',    sheet:true, try:true, target: ()=> document.getElementById('adjMilesSection')},
@@ -11311,7 +11396,11 @@ function renderTodayHero(eff, effL, workoutGoal){
   btn.classList.remove('disabled','done','recording');
   document.getElementById('thArt').innerHTML = done ? ICONS.checkSm : (TYPE_ICON[eff.t] || ICONS.flame);
   let eyebrow, title, sub;
-  if(rest){
+  if(rest && state.ownWorkouts){
+    // Their own workouts: nothing planned today yet -- the button adds one.
+    eyebrow = L.heroEyebrowOwn; title = L.heroTitleOwn; sub = L.heroSubOwn;
+    icon.innerHTML = ICONS.plus; label.textContent = L.addWorkoutBtn.replace(/^\+\s*/, '');
+  } else if(rest){
     eyebrow = L.heroEyebrowRest; title = L.heroTitleRest; sub = L.heroSubRest;
     btn.classList.add('disabled'); icon.innerHTML = ICONS.rest; label.textContent = L.recordRestLabel;
   } else if(done){

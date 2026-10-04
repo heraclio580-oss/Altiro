@@ -1088,8 +1088,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 /* ---------- toast ---------- */
 /* Guided tour. The dimming is the spotlight's own shadow; four clear blocks around it (and one over
    it, except where the step lets the user change something) stop taps reaching the app underneath. */
-.tour{position:absolute;inset:0;z-index:110;}
-.tour-block{position:absolute;}
+.tour{position:absolute;inset:0;z-index:110;pointer-events:none;}
+.tour-block,.tour-card{position:absolute;pointer-events:auto;}
 .tour-hole{position:absolute;border-radius:14px;box-shadow:0 0 0 2px var(--accent), 0 0 0 4000px rgba(6,6,8,0.66);pointer-events:none;transition:top .25s ease, left .25s ease, width .25s ease, height .25s ease;}
 .tour.no-target .tour-hole{box-shadow:0 0 0 4000px rgba(6,6,8,0.66);}
 .tour-card{position:absolute;left:16px;right:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 14px 10px;box-shadow:0 18px 40px rgba(0,0,0,0.45);transition:top .25s ease;}

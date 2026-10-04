@@ -51,7 +51,12 @@ function check(label, ok, detail){
   await click('#saveManualEntry');
 
   check('Today: the class shows under Classes, with its time and a Start button', classRows('#homeClassesWrap').length===1 && /Jiu-Jitsu\s*3:00 PM · 1h 30m\s*Start class/.test(classRows('#homeClassesWrap')[0]), classRows('#homeClassesWrap').join(' | '));
-  check('...next to today\'s planned workout, which stays the day\'s workout', text(doc.querySelector('#sessionCard .title'))===planned);
+  // Jiu-jitsu is a hard class: today's plan works around it (no long run or fast run alongside it).
+  const nowPlanned = text(doc.querySelector('#sessionCard .title'));
+  check('(set-up) today was a long run', /Long Run/.test(planned), planned);
+  check('A hard class reshapes the plan around it: no long run today any more', !/Long Run|Tempo|Interval/.test(nowPlanned) && nowPlanned!=='Rest Day', `${planned} -> ${nowPlanned}`);
+  check('...says so', /works around it/.test(doc.getElementById('toastMsg').textContent) && /Planned around your Jiu-Jitsu class/.test(text(doc.getElementById('sessionCard'))));
+  check('...and the class sits next to today\'s workout, which stays the day\'s workout', !doc.getElementById('recordBtn').classList.contains('done'));
   check('...and not doubled under Additional Workouts', !doc.getElementById('homeExtraWorkoutsWrap'));
 
   // ---- every Friday after ----

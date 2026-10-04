@@ -26,7 +26,7 @@ function check(label, ok, detail){
 }
 function setup(o){
   E.setState({trainingDays:o.days, focusRatio:o.focus ?? 0, goal:o.goal ?? null, level:o.level ?? 'intermediate', intensityIdx:o.int ?? 1,
-    weeklyMiles:o.miles ?? null, equipment:o.eq ?? 'gym', jogBaseline:o.jog ?? null, planStart:o.planStart ?? '2026-09-28', lang:'en', progression:{}});
+    weeklyMiles:o.miles ?? null, equipment:o.eq ?? 'gym', jogBaseline:o.jog ?? null, planStart:o.planStart ?? '2026-09-28', lang:'en', progression:{}, classes:o.classes ?? []});
   return n => E.generatePlanWeek(E.planConfig(), n);
 }
 const miles = d => d.p.t==='run' ? parseFloat(d.p.en.detail) : 0;
@@ -257,6 +257,41 @@ for(let wkOffset=0; wkOffset<8; wkOffset++) for(const title of LIFTS){
   if(list.some(ex=>ex.key==='Superman' || ex.key==='Push-Up')) swapsApplied = false;
 }
 check('Standing swaps and skips apply to every generated workout', swapsApplied);
+
+// ---- hard weekly classes: the plan works around them ----
+{
+  const cls = (kind, days, from) => [{kind, days, from: from || '2026-09-28'}];
+  const title = d => d.p.en.title;
+  let longOn = [], fastOn = [], peakOn = [], legsHeavy = [], cases = 0;
+  for(const days of DAY_SETS.filter(d=>d.length>=2)) for(const focus of [0,1,2,3,4]) for(const cd of days) for(const n of [0,1,2,3,5,9])
+  for(const kind of ['jiujitsu','wrestling','spin','boxing']){
+    const w = setup({days, focus, miles:25, classes:cls(kind, [cd])})(n); cases++;
+    const at = w[cd];
+    if(/Long Run/.test(title(at))) longOn.push(`${kind} ${days.join('')}@${cd} f${focus} n${n}`);
+    if(/Tempo|Interval|Fartlek|Hill/.test(title(at))) fastOn.push(`${kind} ${days.join('')}@${cd} f${focus} n${n} ${title(at)}`);
+    if(at.wave && at.wave.pos==='peak') peakOn.push(`${kind} ${days.join('')}@${cd} f${focus} n${n}`);
+    if(at.wave && at.wave.pos!=='light') legsHeavy.push(`${kind} ${days.join('')}@${cd} f${focus} n${n} ${at.wave.pos}`);
+  }
+  check(`A hard class's day never gets the long run (${cases} setups)`, !longOn.length, longOn.slice(0,3).join('; '));
+  check('...or a fast run (one with nowhere else to go becomes an easy run)', !fastOn.length, fastOn.slice(0,3).join('; '));
+  check('...or the week\'s heaviest lifting day: lifting alongside it is a light day', !peakOn.length && !legsHeavy.length, peakOn.concat(legsHeavy).slice(0,3).join('; '));
+
+  // Jiu-jitsu Friday afternoons, lifting that morning: Friday is the light lift, the heavy one moves.
+  const base = setup({days:[0,2,4,5], focus:2, miles:25})(1), bjj = setup({days:[0,2,4,5], focus:2, miles:25, classes:cls('jiujitsu',[4])})(1);
+  check('(set-up) Friday is normally the week\'s heaviest lift', base[4].wave && base[4].wave.pos==='peak');
+  check('Jiu-jitsu on Friday: Friday becomes a light lift and the heavy one moves earlier', bjj[4].wave && bjj[4].wave.pos==='light' && bjj.some((d,i)=> i<4 && d.wave && d.wave.pos==='peak'), bjj.map(d=>d.wave ? d.wave.pos : '-').join(','));
+  check('...with no extra jog after it', !bjj[4].c || !/Jog/.test(bjj[4].c.en.title));
+  // (Short, too: the shorter ladder the deload week uses -- see applyPyramid.)
+  check('...and a short one, without the week\'s top single', bjj[4].wave.classDay && !bjj[4].wave.focus);
+  // Wrestling on Saturday: the long run moves to Sunday.
+  const sat = setup({days:[0,1,3,5,6], focus:2, miles:25})(1), wr = setup({days:[0,1,3,5,6], focus:2, miles:25, classes:cls('wrestling',[5])})(1);
+  check('Wrestling on Saturday moves the long run to Sunday', /Long Run/.test(title(sat[5])) && /Long Run/.test(title(wr[6])) && !/Long Run|Tempo|Interval/.test(title(wr[5])), `${title(sat[5])} -> Sat ${title(wr[5])}, Sun ${title(wr[6])}`);
+  // Easy classes, and classes not started yet, change nothing.
+  const same = (a, b) => a.map(title).join()===b.map(title).join() && a.map(d=>d.wave ? d.wave.pos : '').join()===b.map(d=>d.wave ? d.wave.pos : '').join();
+  check('Yoga and Pilates don\'t change the plan', same(base, setup({days:[0,2,4,5], focus:2, miles:25, classes:[...cls('yoga',[4]), ...cls('pilates',[0,2])]})(1)));
+  check('A class only shapes the weeks from when it starts', same(setup({days:[0,2,4,5], focus:2, miles:25})(0), setup({days:[0,2,4,5], focus:2, miles:25, classes:cls('jiujitsu',[4],'2026-10-05')})(0))
+    && !same(base, setup({days:[0,2,4,5], focus:2, miles:25, classes:cls('jiujitsu',[4],'2026-10-05')})(1)));
+}
 
 console.log('ALL DONE');
 process.exit(failures ? 1 : 0);

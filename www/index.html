@@ -2685,6 +2685,8 @@ const STR = {
     classesLabel: "Classes",
     classStartBtn: "Start class",
     classAddedToast: "Class added to your schedule",
+    classPlanAroundToast: "Class added. Your plan now works around it.",
+    plannedAroundClass: "Planned around your {name} class",
     classSkippedToast: "Skipped this one",
     classDeletedToast: "Class deleted",
     classRemovedToast: "Class removed",
@@ -3224,6 +3226,8 @@ const STR = {
     classesLabel: "Clases",
     classStartBtn: "Empezar clase",
     classAddedToast: "Clase añadida a tu horario",
+    classPlanAroundToast: "Clase añadida. Tu plan ahora se organiza alrededor de ella.",
+    plannedAroundClass: "Planeado alrededor de tu clase de {name}",
     classSkippedToast: "Omitida esta vez",
     classDeletedToast: "Clase eliminada",
     classRemovedToast: "Clase eliminada",
@@ -3837,8 +3841,39 @@ function planConfig(overrides){
     // way to choosing the split).
     strengthFocus: 'allround',
     liftSplit: LIFT_SPLIT_OPTIONS.some(o=>o.key===state.liftSplit) ? state.liftSplit : 'auto',
+    // Hard weekly classes the plan works around (see classLoadFor), and the plan's first Monday to
+    // tell which weeks each one is in.
+    ...planClassLoad(),
     ...(overrides||{}),
   };
+}
+// How hard a class is on the body, for planning around it: hard (a session in its own right -- no
+// long run or fast run that day), legs (no heavy leg day with it), upper (no heavy upper-body lifting
+// with it). Yoga, Pilates, barre, swimming, dance and anything else don't change the plan.
+const CLASS_LOAD = {
+  jiujitsu:{hard:true, legs:true}, wrestling:{hard:true, legs:true}, mma:{hard:true, legs:true},
+  muaythai:{hard:true, legs:true}, kickboxing:{hard:true, legs:true}, boxing:{hard:true},
+  crossfit:{hard:true, legs:true}, hiit:{hard:true, legs:true}, spin:{hard:true, legs:true},
+  climbing:{upper:true},
+};
+function planClassLoad(){
+  const classes = (state.classes||[]).filter(c=> CLASS_LOAD[c.kind]).map(c=>({days:(c.days||[]).slice().sort((a,b)=>a-b), from:c.from||'', ...CLASS_LOAD[c.kind]}));
+  return classes.length ? {classes, weekStart: planStartKey()} : {};
+}
+// Week n's class load by day (0 = Mon): the hard classes on that weekday from the week they start.
+function classLoadFor(cfg, n){
+  const load = {};
+  if(!cfg.classes || !cfg.weekStart) return load;
+  const sunday = parseDateKey(cfg.weekStart); sunday.setDate(sunday.getDate() + 7*n + 6);
+  const last = dateKey(sunday);
+  cfg.classes.forEach(c=>{
+    if(c.from > last) return;
+    c.days.forEach(d=>{
+      const l = load[d] || (load[d] = {hard:false, legs:false, upper:false});
+      l.hard = l.hard || !!c.hard; l.legs = l.legs || !!c.legs; l.upper = l.upper || !!c.upper;
+    });
+  });
+  return load;
 }
 function isRecoveryWeek(n){ return n%4===3; }
 function mondayOf(date){
@@ -4135,8 +4170,9 @@ const COMPANION = {
 // there's a weekend training day. At most 7 sessions, so trying every arrangement is cheap -- and it's
 // remembered, since it only depends on the days and the kinds of sessions.
 const placementCache = new Map();
-function placeSessions(days, items){
-  const cacheKey = days.join(',')+'|'+items.map(it=>it.sig).join(',');
+function placeSessions(days, items, load){
+  load = load || {};
+  const cacheKey = days.join(',')+'|'+items.map(it=>it.sig).join(',')+'|'+JSON.stringify(load);
   if(placementCache.has(cacheKey)) return placementCache.get(cacheKey);
   const hasWeekend = days.includes(5) || days.includes(6);
   const lastDay = days[days.length-1];
@@ -4174,6 +4210,20 @@ function placeSessions(days, items){
       if(it.role==='recovery'){ const prev = byDay[d===0 ? 6 : d-1]; c += prev && prev.role==='long' ? 0 : 2; }
       if(it.role==='quality') c += 0.3*d;
       if(it.role==='easyLong') c += 0.2*Math.abs(d-3);
+      // Around a hard class (jiu-jitsu, wrestling, spin...): not the long run or a fast run that day,
+      // or heavy legs with a leg-heavy class, or heavy upper body with climbing -- and nothing hard the
+      // day after, nor the long run the day before.
+      const cl = load[d], before = load[d===0 ? 6 : d-1], after = load[d===6 ? 0 : d+1];
+      if(cl){
+        if(cl.hard && it.role==='long') c += 18;
+        else if(cl.hard && it.hard) c += 10;
+        if(cl.legs && it.kind==='lift' && it.legs) c += 5;
+        if((cl.hard || cl.legs) && it.peak) c += 2; // the week's heaviest lifting day goes elsewhere
+        if(cl.upper && it.kind==='lift' && !it.legs) c += 3;
+      }
+      if(before && before.hard && (it.role==='long' || it.hard)) c += 3;
+      if(before && before.legs && it.kind==='lift' && it.legs) c += 2;
+      if(after && after.hard && it.role==='long') c += 3;
     });
     return c;
   }
@@ -4245,7 +4295,10 @@ function generatePlanWeek(cfg, n){
     items.push({kind:'lift', split, group:L.group, legs:L.legs, hard:false, peak:k===peakSplit, sig:'lift:'+split+(k===peakSplit ? ':peak' : '')});
   });
 
-  const placed = placeSessions(days, items).slice();
+  const classLoad = classLoadFor(cfg, n);
+  const placed = placeSessions(days, items, classLoad).slice();
+  // A fast run with nowhere to go but a hard class's day (too few run days) is an easy run instead.
+  days.forEach((d,i)=>{ if(placed[i].role==='quality' && classLoad[d] && classLoad[d].hard) placed[i] = {...placed[i], sub:'easy', hard:false}; });
   // A short run that can't be the day after the long run is simply a short easy run -- and the longer
   // easy run comes before it in the week (e.g. Tue fast, Wed longer easy, Thu short easy, Sat long).
   const rec = placed.findIndex(it=>it.kind==='run' && it.role==='recovery');
@@ -4277,7 +4330,13 @@ function generatePlanWeek(cfg, n){
   });
   // The lifting days' weekly wave (see liftWave), in day order.
   const liftDays = days.filter((d,i)=>placed[i].kind==='lift');
-  liftWave(liftDays.map(d=>placed[days.indexOf(d)]), cfg, n).forEach((w,i)=>{ week[liftDays[i]].wave = w; });
+  liftWave(liftDays.map(d=>placed[days.indexOf(d)]), cfg, n).forEach((w,i)=>{
+    // Lifting on the same day as a hard class (when there's no other day for it) is one of the week's
+    // light days.
+    // (Even the week's peak, when there's no other day for it -- then there's no top single that week.)
+    const cl = classLoad[liftDays[i]];
+    week[liftDays[i]].wave = cl && (cl.hard || cl.legs) ? {...w, pos:'light', focus:null, classDay:true} : w;
+  });
   // Running and lifting go hand in hand: in a plan with both, a lifting day is followed by an easy
   // 20-30 minute jog -- except the peak day, a day before a hard run or the long run, and for someone
   // still building up to running.
@@ -4285,7 +4344,8 @@ function generatePlanWeek(cfg, n){
     liftDays.forEach(d=>{
       const next = week[(d+1)%7].p;
       const hardNext = next.t==='run' && /Long Run|Tempo Run|Interval Run/.test(next.en.title);
-      if(week[d].wave && week[d].wave.pos!=='peak' && !hardNext) week[d].c = COMPANION.jog();
+      const classDay = classLoad[d] && classLoad[d].hard;
+      if(week[d].wave && week[d].wave.pos!=='peak' && !hardNext && !classDay) week[d].c = COMPANION.jog();
     });
   }
   return week;
@@ -4750,7 +4810,8 @@ function applyPyramid(list, session, date){
   const top = pyramidTop(target);
   const peak = wave.pos==='peak' && !wave.deload;
   // Beginners build up to the heavy 5s but don't do the single yet.
-  const ladder = wave.deload ? PYRAMID_DELOAD : peak ? PYRAMID_PEAK.filter(st=> planLevel()!=='beginner' || st[2]!=='top') : PYRAMID_LIGHT;
+  // (A lift on a hard class's day is light and short: the deload week's shorter ladder.)
+  const ladder = wave.deload || wave.classDay ? PYRAMID_DELOAD : peak ? PYRAMID_PEAK.filter(st=> planLevel()!=='beginner' || st[2]!=='top') : PYRAMID_LIGHT;
   const steps = pyramidSteps(ladder, peak ? top : top*WAVE_TOP[wave.pos]*(wave.deload ? DELOAD_FACTOR : 1));
   const out = list.slice();
   out[0] = {...ex, sets: steps.length, reps: 10, pyramid: {peak, pos: wave.pos, deload: !!wave.deload, steps, top: Math.max(...steps.map(st=>st.weight))}};
@@ -5268,6 +5329,8 @@ function removeClass(id){
     ((state.dayLog[k]||{}).extraWorkouts||[]).filter(w=> !w.completed && isThatClass(w, c)).forEach(w=> deleteExtraWorkout(k, w.id));
   });
   state.classes = state.classes.filter(x=>x.id!==id);
+  // A hard class gone: the rest of this week goes back to the plan without it.
+  if(CLASS_LOAD[c.kind]) state.week = regenerateUpcomingWeek();
   saveProfileToCloud();
   showToast(STR[state.lang].classRemovedToast);
 }
@@ -6214,6 +6277,9 @@ function renderHome(){
 
   const eff = todaySession(); const effL = ST(eff);
   const tip = (SESSION_TIP[eff.t]||SESSION_TIP.rest)[state.lang];
+  // Today's plan workout was placed around a hard class today (see placeSessions): say so.
+  const hardClass = eff.t!=='rest' && !state.week[TODAY_IDX].isCustom && classItemsFor(dateKey(TODAY_DATE)).find(it=> it.cls && CLASS_LOAD[it.cls.kind]);
+  const aroundClass = hardClass ? ST(hardClass.session).title : '';
   const comp = state.week[TODAY_IDX].c; const compL = comp ? ST(comp) : null;
   const canStart = eff.t!=='rest' && !state.todayCompleted;
   // A structured strength session tracks progression per exercise, not for the session as a whole,
@@ -6267,6 +6333,7 @@ function renderHome(){
       ${exerciseListHtml(eff, undefined, true).replace('r-exercise-list', 'r-exercise-list card')}
       ${runBreakdownHtml(eff, 'card')}
       <div class="session-tip"><p>${tip}</p></div>
+      ${aroundClass ? `<div class="paired">${ICONS.class}<span>${L.plannedAroundClass.replace('{name}', `<b>${escapeHtml(aroundClass)}</b>`)}</span></div>` : ''}
       ${suggestedTargetStr ? `<div class="paired"><span>${L.statProgress}: <b>${suggestedTargetStr}</b></span></div>` : ''}
       ${isPaceFree(eff) ? `<div class="paired"><span>${L.effortLabel}: <b>${L.effortEasyTalk}</b></span></div>` : ''}
       ${(eff.t!=='rest' && compL) ? `<div class="paired">${TYPE_ICON[comp.t]}<span>${L.pairedWithInline} <b>${compL.title}${compL.detail?', '+compL.detail:''}</b></span></div>` : ''}
@@ -8674,6 +8741,8 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
       time: document.getElementById('classTimeInput').value || '18:00', minutes: minutes || 60, from: state.openDayKey, skips: []};
     if(classRepeat){
       state.classes = [...(state.classes||[]), cls];
+      // A hard one reshapes the plan around it -- from the rest of this week on.
+      if(CLASS_LOAD[kind]) state.week = regenerateUpcomingWeek();
       saveProfileToCloud();
     } else {
       // Just this once: one class on each day picked -- the next of each weekday, starting from the
@@ -8689,7 +8758,7 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     closeManualEntry();
     refreshViews();
     if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail();
-    showToast(STR[state.lang].classAddedToast);
+    showToast(STR[state.lang][classRepeat && CLASS_LOAD[kind] ? 'classPlanAroundToast' : 'classAddedToast']);
     return;
   }
 

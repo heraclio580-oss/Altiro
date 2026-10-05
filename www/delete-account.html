@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete Your Altiro Account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#0B0B0C; --card:#1C1C1E; --border:#3A3A3D;
+  --text:#F5F5F5; --text-2:#B4B4B8; --text-3:#8A8A8E;
+  --accent:#DA1419; --strava:#FC5200;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#F6F6F4; --card:#FFFFFF; --border:#E2E2DE; --text:#1A1A1A; --text-2:#4A4A4F; --text-3:#6E6E73; }
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text-2);font:15px/1.6 'IBM Plex Sans',system-ui,-apple-system,sans-serif;}
+main{max-width:680px;margin:0 auto;padding:40px 16px 64px;}
+.brand{font-family:Montserrat,sans-serif;font-weight:800;letter-spacing:0.14em;font-size:13px;color:var(--accent);text-transform:uppercase;}
+h1{font-family:Montserrat,sans-serif;font-weight:800;color:var(--text);font-size:30px;line-height:1.15;margin:8px 0 6px;}
+.updated{font-size:13px;color:var(--text-3);margin:0 0 28px;}
+h2{font-family:Montserrat,sans-serif;font-weight:700;color:var(--text);font-size:18px;margin:36px 0 8px;}
+h3{color:var(--text);font-size:15px;font-weight:600;margin:20px 0 4px;}
+p{margin:0 0 12px;}
+ul{margin:0 0 12px;padding-left:20px;}
+li{margin:4px 0;}
+b{color:var(--text);font-weight:600;}
+a{color:var(--text);text-underline-offset:3px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 18px 8px;margin:16px 0;}
+.card.strava{border-left:4px solid var(--strava);}
+.strava-mark{width:14px;height:14px;vertical-align:-2px;color:var(--strava);}
+.back{display:inline-block;margin-top:36px;font-size:14px;}
+label{display:block;font-size:13px;color:var(--text-3);margin:12px 0 4px;}
+input{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 12px;}
+button{font:600 14px 'IBM Plex Sans',system-ui,sans-serif;border-radius:999px;padding:12px 20px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;margin:16px 0 8px;}
+button.danger{background:var(--accent);border-color:var(--accent);color:#fff;}
+button:disabled{opacity:0.5;cursor:default;}
+.msg{font-size:14px;margin:8px 0 12px;}
+.msg.err{color:#F23A3F;}
+.msg.ok{color:#2EB872;}
+[hidden]{display:none !important;}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">Altiro</div>
+  <h1 data-en="Delete your account" data-es="Elimina tu cuenta">Delete your account</h1>
+  <p class="updated"><a href="#" id="langSwitch">En español</a></p>
+
+  <p data-en="Deleting your Altiro account removes everything in it, right away: your plan, workouts and history, classes, lifts and records, reminders, feedback you've sent, and your Strava connection (Altiro's access on Strava is withdrawn too). It can't be undone."
+     data-es="Eliminar tu cuenta de Altiro borra todo lo que contiene, al instante: tu plan, entrenamientos e historial, clases, levantamientos y récords, recordatorios, los comentarios que nos enviaste y tu conexión con Strava (también se retira el acceso de Altiro en Strava). No se puede deshacer.">Deleting your Altiro account removes everything in it, right away: your plan, workouts and history, classes, lifts and records, reminders, feedback you've sent, and your Strava connection (Altiro's access on Strava is withdrawn too). It can't be undone.</p>
+  <p data-en="In the app, you can also do this from Settings → Delete account."
+     data-es="En la app también puedes hacerlo desde Ajustes → Eliminar cuenta.">In the app, you can also do this from Settings → Delete account.</p>
+
+  <div class="card" id="signInCard">
+    <h3 data-en="Sign in to the account to delete" data-es="Inicia sesión en la cuenta que quieres eliminar">Sign in to the account to delete</h3>
+    <form id="signInForm">
+      <label for="email" data-en="Email" data-es="Correo">Email</label>
+      <input type="email" id="email" autocomplete="email" required>
+      <label for="password" data-en="Password" data-es="Contraseña">Password</label>
+      <input type="password" id="password" autocomplete="current-password" required>
+      <button type="submit" id="signInBtn" data-en="Sign in" data-es="Iniciar sesión">Sign in</button>
+    </form>
+    <div class="msg err" id="signInMsg" hidden></div>
+  </div>
+
+  <div class="card" id="deleteCard" hidden>
+    <h3 id="signedInAs"></h3>
+    <label for="confirmWord" id="confirmLabel"></label>
+    <input type="text" id="confirmWord" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <button class="danger" id="deleteBtn" disabled data-en="Delete my account" data-es="Eliminar mi cuenta">Delete my account</button>
+    <button id="signOutBtn" data-en="Cancel" data-es="Cancelar">Cancel</button>
+    <div class="msg err" id="deleteMsg" hidden></div>
+  </div>
+
+  <div class="card" id="doneCard" hidden>
+    <p class="msg ok" data-en="Your Altiro account and everything in it have been deleted." data-es="Tu cuenta de Altiro y todo lo que contenía se han eliminado.">Your Altiro account and everything in it have been deleted.</p>
+  </div>
+
+  <p data-en="Can't sign in? Email altiro580@gmail.com from the address you signed up with and we'll delete your account within 30 days."
+     data-es="¿No puedes iniciar sesión? Escribe a altiro580@gmail.com desde el correo con el que te registraste y eliminaremos tu cuenta en un plazo de 30 días.">Can't sign in? Email altiro580@gmail.com from the address you signed up with and we'll delete your account within 30 days.</p>
+  <a class="back" href="privacy.html" data-en="Privacy policy" data-es="Política de privacidad">Privacy policy</a>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  // The same project and public (anon) key the app uses -- the key only allows what each signed-in
+  // user may do to their own data; deleting the account is done by the delete-account Edge Function.
+  var SUPABASE_URL = 'https://ylzyqdeciysvufpffatu.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsenlxZGVjaXlzdnVmcGZmYXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NDk2NTcsImV4cCI6MjEwNTUyNTY1N30.WCrPVr0MwwjMqf3NASXtsm6Kjt8prR9aMaMlinn2YsY';
+  var lang = /^es/i.test(new URLSearchParams(location.search).get('lang') || navigator.language || '') ? 'es' : 'en';
+  var WORD = {en:'DELETE', es:'ELIMINAR'};
+  var T = {
+    signedInAs: {en:'Signed in as {email}', es:'Sesión iniciada como {email}'},
+    confirm: {en:'Type {word} to confirm', es:'Escribe {word} para confirmar'},
+    signInFailed: {en:"Couldn't sign in: {reason}", es:'No se pudo iniciar sesión: {reason}'},
+    deleteFailed: {en:"Couldn't delete the account ({reason}). Try again, or email altiro580@gmail.com.", es:'No se pudo eliminar la cuenta ({reason}). Inténtalo de nuevo o escribe a altiro580@gmail.com.'},
+    deleting: {en:'Deleting…', es:'Eliminando…'},
+    offline: {en:'the sign-in service didn\'t load', es:'no cargó el servicio de inicio de sesión'},
+  };
+  var $ = function(id){ return document.getElementById(id); };
+  var sb = window.supabase && window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  var email = '';
+  function applyLang(){
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-en]').forEach(function(el){ el.textContent = el.getAttribute('data-' + lang); });
+    $('langSwitch').textContent = lang === 'es' ? 'In English' : 'En español';
+    $('confirmLabel').textContent = T.confirm[lang].replace('{word}', WORD[lang]);
+    $('confirmWord').placeholder = WORD[lang];
+    if(email) $('signedInAs').textContent = T.signedInAs[lang].replace('{email}', email);
+    checkWord();
+  }
+  function checkWord(){ $('deleteBtn').disabled = $('confirmWord').value.trim().toUpperCase() !== WORD[lang]; }
+  function show(err, el, text){ el.textContent = text; el.hidden = !text; }
+  function signedIn(user){
+    email = user.email || '';
+    $('signInCard').hidden = true; $('deleteCard').hidden = false;
+    applyLang();
+  }
+  $('langSwitch').addEventListener('click', function(e){ e.preventDefault(); lang = lang === 'es' ? 'en' : 'es'; applyLang(); });
+  $('confirmWord').addEventListener('input', checkWord);
+  $('signInForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    show(true, $('signInMsg'), '');
+    if(!sb){ show(true, $('signInMsg'), T.signInFailed[lang].replace('{reason}', T.offline[lang])); return; }
+    $('signInBtn').disabled = true;
+    var res = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+    $('signInBtn').disabled = false;
+    if(res.error){ show(true, $('signInMsg'), T.signInFailed[lang].replace('{reason}', res.error.message)); return; }
+    signedIn(res.data.user);
+  });
+  $('signOutBtn').addEventListener('click', async function(){
+    try{ await sb.auth.signOut(); }catch(e){}
+    email = ''; $('deleteCard').hidden = true; $('signInCard').hidden = false; $('password').value = ''; $('confirmWord').value = '';
+  });
+  $('deleteBtn').addEventListener('click', async function(){
+    if($('confirmWord').value.trim().toUpperCase() !== WORD[lang]) return;
+    var btn = this; btn.disabled = true; btn.textContent = T.deleting[lang];
+    show(true, $('deleteMsg'), '');
+    var failed = null;
+    try{
+      var s = await sb.auth.getSession();
+      var token = s.data && s.data.session && s.data.session.access_token;
+      var res = await sb.functions.invoke('delete-account', { body: {confirm: 'DELETE'}, headers: { Authorization: 'Bearer ' + SUPABASE_ANON_KEY, 'x-altiro-user': token } });
+      if(res.error || !res.data || !res.data.deleted){
+        failed = res.error ? res.error.message : 'unknown';
+        try{ var body = await res.error.context.json(); if(body && body.error) failed = body.error; }catch(e){}
+      }
+    }catch(e){ failed = String((e && e.message) || e); }
+    if(failed){
+      show(true, $('deleteMsg'), T.deleteFailed[lang].replace('{reason}', failed));
+      btn.textContent = btn.getAttribute('data-' + lang); checkWord();
+      return;
+    }
+    try{ await sb.auth.signOut(); }catch(e){}
+    $('deleteCard').hidden = true; $('doneCard').hidden = false;
+  });
+  applyLang();
+})();
+</script>
+</body>
+</html>

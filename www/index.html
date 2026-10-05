@@ -1089,6 +1089,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 /* ---------- toast ---------- */
 /* Guided tour. The dimming is the spotlight's own shadow; four clear blocks around it (and one over
    it, except where the step lets the user change something) stop taps reaching the app underneath. */
+.delete-account-link{display:block;margin:18px auto 0;color:var(--alert);font-size:12.5px;}
+.delete-account-confirm{background:var(--alert);border-color:var(--alert);box-shadow:none;}
+.delete-account-confirm:disabled{opacity:0.45;}
 .tour{position:absolute;inset:0;z-index:110;pointer-events:none;}
 .tour-block,.tour-card{position:absolute;pointer-events:auto;}
 .tour-hole{position:absolute;border-radius:14px;box-shadow:0 0 0 2px var(--accent), 0 0 0 4000px rgba(6,6,8,0.66);pointer-events:none;transition:top .25s ease, left .25s ease, width .25s ease, height .25s ease;}
@@ -1682,6 +1685,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <button class="btn btn-ghost" style="margin-top:28px;" id="signOutBtn" data-i18n="signOutBtn"></button>
+      <button class="btn-text delete-account-link" type="button" id="deleteAccountBtn" data-i18n="deleteAccountBtn" hidden></button>
       <a class="settings-link" style="display:block;text-align:center;margin-top:14px;" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a>
     </div>
   </section>
@@ -1764,6 +1768,27 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <input type="text" class="text-input" id="editNameInput">
       </div>
       <button class="btn btn-primary sheet-apply" id="saveEditName" data-i18n="saveNameBtn"></button>
+    </div>
+  </div>
+
+  <!-- DELETE ACCOUNT SHEET (overlay) -->
+  <div class="sheet-overlay" id="deleteAccountOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="deleteAccountTitle"></span>
+        <button class="iconbtn" id="closeDeleteAccount"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <div class="sheet-section">
+        <p class="fb-sub" style="margin-top:0;" data-i18n="deleteAccountWhat"></p>
+        <p class="fb-sub" data-i18n="deleteAccountForever"></p>
+      </div>
+      <div class="sheet-section">
+        <div class="st-label" id="deleteAccountTypeLabel"></div>
+        <input type="text" class="text-input" id="deleteAccountInput" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <div class="footer-note" id="deleteAccountError" style="text-align:left;margin-top:8px;color:var(--alert);" hidden></div>
+      </div>
+      <button class="btn btn-primary sheet-apply delete-account-confirm" id="confirmDeleteAccount" data-i18n="deleteAccountConfirmBtn" disabled></button>
     </div>
   </div>
 
@@ -3089,6 +3114,16 @@ const STR = {
     installedToast: "Altiro is on your Home Screen",
     signOutBtn: "Sign Out",
     signOutToast: "Signed out",
+    deleteAccountBtn: "Delete account",
+    deleteAccountTitle: "Delete Account",
+    deleteAccountWhat: "This deletes your Altiro account and everything in it: your plan, workouts and history, classes, lifts and records, reminders, and your Strava connection.",
+    deleteAccountForever: "It can't be undone. You can make a new account any time, but it starts from scratch.",
+    deleteAccountWord: "DELETE",
+    deleteAccountTypeLabel: "Type {word} to confirm",
+    deleteAccountConfirmBtn: "Delete my account",
+    deletingAccountMsg: "Deleting…",
+    deleteAccountFailed: "Couldn't delete your account ({reason}). Check your connection and try again, or email altiro580@gmail.com.",
+    accountDeletedToast: "Your account was deleted",
     scheduledLabel: "Scheduled",
     additionalWorkoutsLabel: "Additional Workouts",
     markCompleteTitle: "Completed",
@@ -3637,6 +3672,16 @@ const STR = {
     installedToast: "Altiro está en tu pantalla de inicio",
     signOutBtn: "Cerrar sesión",
     signOutToast: "Sesión cerrada",
+    deleteAccountBtn: "Eliminar cuenta",
+    deleteAccountTitle: "Eliminar cuenta",
+    deleteAccountWhat: "Esto elimina tu cuenta de Altiro y todo lo que contiene: tu plan, entrenamientos e historial, clases, levantamientos y récords, recordatorios y tu conexión con Strava.",
+    deleteAccountForever: "No se puede deshacer. Puedes crear una cuenta nueva cuando quieras, pero empieza desde cero.",
+    deleteAccountWord: "ELIMINAR",
+    deleteAccountTypeLabel: "Escribe {word} para confirmar",
+    deleteAccountConfirmBtn: "Eliminar mi cuenta",
+    deletingAccountMsg: "Eliminando…",
+    deleteAccountFailed: "No se pudo eliminar tu cuenta ({reason}). Revisa tu conexión e inténtalo de nuevo, o escribe a altiro580@gmail.com.",
+    accountDeletedToast: "Tu cuenta fue eliminada",
     scheduledLabel: "Programado",
     additionalWorkoutsLabel: "Entrenamientos adicionales",
     markCompleteTitle: "Completado",
@@ -5845,6 +5890,7 @@ function closeAllOverlays(){
   if(!document.getElementById('dayDetailOverlay').hidden) closeDayDetail();
   if(!document.getElementById('manualEntryOverlay').hidden) closeManualEntry();
   if(!document.getElementById('editNameOverlay').hidden) closeEditName();
+  if(!document.getElementById('deleteAccountOverlay').hidden) closeDeleteAccount();
   if(!document.getElementById('feedbackOverlay').hidden) closeFeedback();
   if(!document.getElementById('liftsOverlay').hidden) closeLifts();
   if(!document.getElementById('repeatOverlay').hidden) closeRepeatWeek();
@@ -9253,6 +9299,7 @@ document.getElementById('progWeeksNext').addEventListener('click', ()=>{
 
 /* ---------------- settings ---------------- */
 function renderSettings(){
+  document.getElementById('deleteAccountBtn').hidden = !state.signedIn;
   document.getElementById('profileAvatar').textContent = state.userName.charAt(0);
   document.getElementById('profileName').textContent = state.userName;
   document.getElementById('profileEmail').textContent = state.userEmail;
@@ -9294,6 +9341,60 @@ document.getElementById('signOutBtn').addEventListener('click', async ()=>{
   await sb.auth.signOut();
   resetToWelcome();
   showToast(STR[state.lang].signOutToast);
+});
+
+/* ---------------- delete account ---------------- */
+// Settings -> Delete account: says what goes, asks them to type the word, then the delete-account Edge
+// Function removes the account (and with it every row of their data -- see supabase/schema.sql).
+function deleteAccountWord(){ return STR[state.lang].deleteAccountWord; }
+function openDeleteAccount(){
+  const L = STR[state.lang];
+  document.getElementById('deleteAccountTypeLabel').textContent = L.deleteAccountTypeLabel.replace('{word}', deleteAccountWord());
+  const input = document.getElementById('deleteAccountInput');
+  input.value = '';
+  input.placeholder = deleteAccountWord();
+  document.getElementById('deleteAccountError').hidden = true;
+  const btn = document.getElementById('confirmDeleteAccount');
+  btn.disabled = true;
+  btn.textContent = L.deleteAccountConfirmBtn;
+  document.getElementById('deleteAccountOverlay').hidden = false;
+}
+function closeDeleteAccount(){ document.getElementById('deleteAccountOverlay').hidden = true; }
+document.getElementById('deleteAccountBtn').addEventListener('click', openDeleteAccount);
+document.getElementById('closeDeleteAccount').addEventListener('click', closeDeleteAccount);
+document.getElementById('deleteAccountInput').addEventListener('input', e=>{
+  document.getElementById('confirmDeleteAccount').disabled = e.target.value.trim().toUpperCase()!==deleteAccountWord();
+});
+document.getElementById('confirmDeleteAccount').addEventListener('click', async function(){
+  const L = STR[state.lang];
+  if(this.disabled || document.getElementById('deleteAccountInput').value.trim().toUpperCase()!==deleteAccountWord()) return;
+  const errEl = document.getElementById('deleteAccountError');
+  errEl.hidden = true;
+  this.disabled = true;
+  this.textContent = L.deletingAccountMsg;
+  let failed = null;
+  try{
+    const { data, error } = await invokeFunction('delete-account', {confirm:'DELETE'});
+    if(error || !data || !data.deleted){
+      let code = null;
+      try{ code = error && error.context && (await error.context.json()).error; }catch(e){}
+      failed = code || (error && error.message) || 'unknown';
+    }
+  }catch(e){ failed = String((e && e.message) || e); }
+  if(failed){
+    errEl.textContent = L.deleteAccountFailed.replace('{reason}', failed);
+    errEl.hidden = false;
+    this.textContent = L.deleteAccountConfirmBtn;
+    this.disabled = false;
+    return;
+  }
+  // Gone on the server: forget it on this device too, then back to the start.
+  try{ await forgetThisDeviceForReminders(); }catch(e){}
+  try{ await sb.auth.signOut(); }catch(e){}
+  ['altiro_pending_signup','altiro_workout_start','altiro_strava_callback','altiro_tour_done'].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+  closeDeleteAccount();
+  resetToWelcome();
+  showToast(L.accountDeletedToast);
 });
 
 /* ---------------- adjust sheet ---------------- */

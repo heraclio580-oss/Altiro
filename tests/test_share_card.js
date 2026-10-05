@@ -102,17 +102,17 @@ const outDir = process.env.SHARE_CARD_OUT;
     check('...each set of a changing lift', /Bench Press: 135×8 · 155×6 · 175×4 lb/.test(post.alt), post.alt);
     check('...and a lift done the same every set, written short', /Overhead Press: 3 × 8 @ 95 lb/.test(post.alt), post.alt);
     check('...and an exercise the app didn\'t know', /Cable Crossover Machine: 2 × 12 @ 40 lb/.test(post.alt), post.alt);
-    await keep(page, 'post-lifting.png');
+    await keep(page, 'post-lifting.jpg');
 
     await page.tap('[data-share-format="story"]');
     const story = await waitPreview(page, 1920);
     check('Story makes a 1080 × 1920 picture', story.w===1080 && story.h===1920, `${story.w}x${story.h}`);
-    await keep(page, 'story-lifting.png');
+    await keep(page, 'story-lifting.jpg');
 
     await page.tap('#shareCardShareBtn');
     await sleep(300);
     const shared = await page.evaluate(()=> window.__shared);
-    check('Share hands the picture to the phone\'s share sheet', shared.length===1 && shared[0].type==='image/png' && shared[0].size>20000 && shared[0].name==='altiro-workout-2026-09-19-story.png', JSON.stringify(shared));
+    check('Share hands the picture to the phone\'s share sheet, as a small JPEG (well under a screenshot\'s size)', shared.length===1 && shared[0].type==='image/jpeg' && shared[0].size>20000 && shared[0].size<300000 && shared[0].name==='altiro-workout-2026-09-19-story.jpg', JSON.stringify(shared));
     check('...with a line of text to go with it', /Push Day/.test(shared[0] && shared[0].text || ''), JSON.stringify(shared));
 
     // Where the browser can't share files, the picture is saved instead.
@@ -120,10 +120,22 @@ const outDir = process.env.SHARE_CARD_OUT;
     const dl = page.waitForEvent('download', {timeout: 3000}).catch(()=> null);
     await page.tap('#shareCardShareBtn');
     const download = await dl;
-    check('Can\'t share here? The picture is saved instead', !!download && download.suggestedFilename()==='altiro-workout-2026-09-19-story.png', download && download.suggestedFilename());
+    check('Can\'t share here? The picture is saved instead', !!download && download.suggestedFilename()==='altiro-workout-2026-09-19-story.jpg', download && download.suggestedFilename());
     const dl2 = page.waitForEvent('download', {timeout: 3000}).catch(()=> null);
     await page.tap('#shareCardSaveBtn');
     check('Save image saves it', !!(await dl2));
+    // Full screen, for a screenshot instead of a saved file.
+    await page.tap('#shareCardPreview');
+    await sleep(200);
+    const full = await page.evaluate(()=>{ const f = document.getElementById('shareCardFull'), i = document.getElementById('shareCardFullImg'), r = i.getBoundingClientRect();
+      return {shown: !f.hidden, loaded: i.complete && i.naturalHeight===1920, w: r.width, h: r.height, tip: !document.getElementById('shareCardFullTip').classList.contains('gone')}; });
+    check('Tapping the preview shows the picture full screen, ready for a screenshot', full.shown && full.loaded && (Math.round(full.w)===390 || Math.round(full.h)===844), JSON.stringify(full));
+    check('...with a short tip', full.tip);
+    await sleep(2600);
+    check('...that fades away before the screenshot', await page.evaluate(()=> document.getElementById('shareCardFullTip').classList.contains('gone')));
+    await page.tap('#shareCardFull');
+    await sleep(150);
+    check('A tap closes full screen, back to the preview', await page.evaluate(()=> document.getElementById('shareCardFull').hidden && !document.getElementById('shareCardOverlay').hidden));
     await page.tap('#closeShareCard');
     check('The preview closes', await page.evaluate(()=> document.getElementById('shareCardOverlay').hidden));
     check('No page errors', errors.length===0, errors.join(' | '));
@@ -154,7 +166,7 @@ const outDir = process.env.SHARE_CARD_OUT;
     const p = await waitPreview(page, 1350);
     check('An interval workout\'s card (in Spanish): its rounds, work, rest and time', /Saco de boxeo/.test(p.alt) && /Rondas: 1/.test(p.alt) && /sept/i.test(p.alt), p.alt);
     check('...and no exercise list', !/×/.test(p.alt), p.alt);
-    await keep(page, 'post-interval-es.png');
+    await keep(page, 'post-interval-es.jpg');
     check('No page errors', errors.length===0, errors.join(' | '));
     await page.context().close();
   }

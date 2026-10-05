@@ -1130,6 +1130,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .share-preview{margin:12px 0 4px;display:flex;justify-content:center;}
 .share-preview img{display:block;max-width:100%;max-height:52vh;width:auto;height:auto;border-radius:14px;border:1px solid var(--border);background:#0A0A0B;}
 .share-preview img:not([src]){width:62%;aspect-ratio:4/5;}
+.share-preview img[src]{cursor:zoom-in;}
+.share-hint{text-align:center;font-size:12px;color:var(--text-3);margin-top:6px;}
+.share-full{position:fixed;inset:0;z-index:300;background:#0A0A0B;display:flex;align-items:center;justify-content:center;cursor:zoom-out;}
+.share-full[hidden]{display:none;}
+.share-full img{max-width:100%;max-height:100%;width:auto;height:auto;display:block;}
+.share-full .share-full-tip{position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#F5F5F5;font-size:13px;padding:8px 14px;border-radius:999px;white-space:nowrap;transition:opacity .4s;pointer-events:none;}
+.share-full .share-full-tip.gone{opacity:0;}
 .share-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
 .summary-note{margin:20px 20px 0;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--r-lg);padding:13px 14px;}
 .summary-note p{font-size:13px;line-height:1.5;color:var(--text-2);margin:0;}
@@ -1799,6 +1806,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   </div>
 
   <!-- DELETE ACCOUNT SHEET (overlay) -->
+  <div class="share-full" id="shareCardFull" hidden><img id="shareCardFullImg" alt=""><div class="share-full-tip" id="shareCardFullTip" data-i18n="shareCardFullTip"></div></div>
   <div class="sheet-overlay" id="shareCardOverlay" hidden>
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
@@ -1811,6 +1819,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="chip" data-share-format="story" data-i18n="shareFormatStory"></div>
       </div>
       <div class="share-preview"><img id="shareCardPreview" alt=""></div>
+      <div class="share-hint" data-i18n="shareCardFullHint"></div>
       <div class="share-actions">
         <button class="btn btn-primary" id="shareCardShareBtn" data-i18n="shareCardShareBtn"></button>
         <button class="btn btn-ghost" id="shareCardSaveBtn" data-i18n="shareCardSaveBtn"></button>
@@ -3017,7 +3026,7 @@ const STR = {
     workoutCompleteTitle: "Workout Complete",
     backToTodayBtn: "Back to Today",
     shareWorkoutBtn: "Share workout", shareCardTitle: "Share your workout", shareFormatPost: "Post", shareFormatStory: "Story",
-    shareCardShareBtn: "Share", shareCardSaveBtn: "Save image", shareCardSaved: "Image saved",
+    shareCardShareBtn: "Share", shareCardSaveBtn: "Save image", shareCardSaved: "Image saved", shareCardFullHint: "Tap the picture to see it full screen, ready for a screenshot.", shareCardFullTip: "Take your screenshot · tap to close",
     shareCardFailed: "Couldn't share it. Try Save image instead.", shareCardNoShare: "Sharing isn't available here, so the image was saved instead.",
     shareStatSets: "Sets", shareStatReps: "Reps", shareStatVolume: "Volume", shareStatTopSet: "Top set", shareExercisesLabel: "Exercises",
     shareMore: "+{n} more", shareFooter: "Tracked with Altiro", shareStreak: "{n}-week streak",
@@ -3599,7 +3608,7 @@ const STR = {
     workoutCompleteTitle: "Entrenamiento completado",
     backToTodayBtn: "Volver a hoy",
     shareWorkoutBtn: "Compartir entrenamiento", shareCardTitle: "Comparte tu entrenamiento", shareFormatPost: "Publicación", shareFormatStory: "Historia",
-    shareCardShareBtn: "Compartir", shareCardSaveBtn: "Guardar imagen", shareCardSaved: "Imagen guardada",
+    shareCardShareBtn: "Compartir", shareCardSaveBtn: "Guardar imagen", shareCardSaved: "Imagen guardada", shareCardFullHint: "Toca la imagen para verla en pantalla completa y hacer una captura.", shareCardFullTip: "Haz tu captura · toca para cerrar",
     shareCardFailed: "No se pudo compartir. Prueba Guardar imagen.", shareCardNoShare: "Aquí no se puede compartir, así que se guardó la imagen.",
     shareStatSets: "Series", shareStatReps: "Reps", shareStatVolume: "Volumen", shareStatTopSet: "Serie máxima", shareExercisesLabel: "Ejercicios",
     shareMore: "+{n} más", shareFooter: "Registrado con Altiro", shareStreak: "{n} semanas seguidas",
@@ -10318,7 +10327,7 @@ async function shareFontsReady(){
     ]);
   }catch(e){}
 }
-// Draws the card for the chosen format and keeps it ready as a PNG, so a tap on Share can hand it over
+// Draws the card for the chosen format and keeps it ready as a JPEG (about 100 KB -- a tenth of a PNG), so a tap on Share can hand it over
 // right away (phones only allow sharing straight from the tap).
 async function renderShareCard(){
   const token = ++shareCardToken;
@@ -10331,7 +10340,7 @@ async function renderShareCard(){
   if(token!==shareCardToken) return false;
   const d = shareCardData();
   drawShareCard(canvas, d, shareFormat);
-  const blob = await new Promise(res=>{ try{ canvas.toBlob(res, 'image/png'); }catch(e){ res(null); } });
+  const blob = await new Promise(res=>{ try{ canvas.toBlob(res, 'image/jpeg', 0.9); }catch(e){ res(null); } });
   if(token!==shareCardToken || !blob) return false;
   shareCardBlob = blob;
   if(shareCardUrl) URL.revokeObjectURL(shareCardUrl);
@@ -10341,7 +10350,7 @@ async function renderShareCard(){
   img.dataset.format = shareFormat;
   return true;
 }
-function shareCardFileName(){ return `altiro-workout-${dateKey(TODAY_DATE)}${shareFormat==='story' ? '-story' : ''}.png`; }
+function shareCardFileName(){ return `altiro-workout-${dateKey(TODAY_DATE)}${shareFormat==='story' ? '-story' : ''}.jpg`; }
 function shareCardMessage(){ return STR[state.lang].shareText.replace('{title}', shareCardData().title); }
 function saveShareCardImage(){
   if(!shareCardBlob) return false;
@@ -10365,7 +10374,7 @@ async function shareShareCard(){
       await plugins.Share.share({title: L.shareCardTitle, text: shareCardMessage(), files: [file.uri], dialogTitle: L.shareCardTitle});
       return;
     }
-    const file = typeof File==='function' ? new File([shareCardBlob], shareCardFileName(), {type:'image/png'}) : null;
+    const file = typeof File==='function' ? new File([shareCardBlob], shareCardFileName(), {type:'image/jpeg'}) : null;
     if(file && navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
       await navigator.share({files:[file], title: L.shareCardTitle, text: shareCardMessage()});
       return;
@@ -10384,9 +10393,23 @@ function openShareCard(){
   document.getElementById('shareCardSaveBtn').hidden = isNativeShell();
   renderShareCard().then(r=>{ if(r==='unsupported') showToast(STR[state.lang].shareCardFailed); });
 }
-function closeShareCard(){ document.getElementById('shareCardOverlay').hidden = true; shareCardToken++; }
+// Full screen: just the picture, edge to edge, for anyone who'd rather take a screenshot of it.
+let shareFullTipTimer = null;
+function openShareFull(){
+  if(!shareCardUrl || !document.getElementById('shareCardPreview').getAttribute('src')) return;
+  document.getElementById('shareCardFullImg').src = shareCardUrl;
+  const tip = document.getElementById('shareCardFullTip');
+  tip.classList.remove('gone');
+  clearTimeout(shareFullTipTimer);
+  shareFullTipTimer = setTimeout(()=> tip.classList.add('gone'), 2200); // out of the way before the screenshot
+  document.getElementById('shareCardFull').hidden = false;
+}
+function closeShareFull(){ document.getElementById('shareCardFull').hidden = true; }
+function closeShareCard(){ closeShareFull(); document.getElementById('shareCardOverlay').hidden = true; shareCardToken++; }
 document.getElementById('shareWorkoutBtn').addEventListener('click', openShareCard);
 document.getElementById('closeShareCard').addEventListener('click', closeShareCard);
+document.getElementById('shareCardPreview').addEventListener('click', openShareFull);
+document.getElementById('shareCardFull').addEventListener('click', closeShareFull);
 document.getElementById('shareCardOverlay').addEventListener('click', e=>{ if(e.target.id==='shareCardOverlay') closeShareCard(); });
 document.querySelectorAll('#shareFormatChips .chip').forEach(c=> c.addEventListener('click', ()=>{
   if(shareFormat===c.dataset.shareFormat) return;

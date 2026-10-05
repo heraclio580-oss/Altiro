@@ -32,16 +32,14 @@ Links you'll need:
 Supabase's built-in email sender only delivers to your own project's team addresses, and only a few
 emails an hour. Strangers signing up won't get their confirmation email until this is done.
 
-- [ ] **Buy a domain** (for example altiro.app or getaltiro.com, about $10–20/year from Cloudflare,
-  Namecheap or Porkbun). It's also useful for a professional support email
-  and website later.
+- [x] **Buy a domain:** `getaltiro.app` (Cloudflare).
 - [ ] **Verify the domain in Resend** (Resend → Domains → Add domain, then add the DNS records it shows you).
 - [ ] **Point Supabase's emails at Resend:** Supabase → Authentication → Emails → SMTP Settings → enable
   custom SMTP. Host `smtp.resend.com`, port `465`, user `resend`, password = a Resend API key, sender
-  e.g. `Altiro <hello@yourdomain>`.
+  `no-reply@getaltiro.app`, name `Altiro`.
 - [ ] **Raise the email rate limit** to something like 30/hour (Authentication → Rate Limits).
 - [ ] **Send yourself a test sign-up** and check the email arrives and isn't in spam.
-- [ ] Optional: set `FEEDBACK_ALERT_FROM` to an address on the same domain, so feedback alerts can go to any
+- [ ] Optional: set `FEEDBACK_ALERT_FROM` to `Altiro Feedback <feedback@getaltiro.app>`, so feedback alerts can go to any
   inbox.
 
 ## 3. Developer accounts (start early, verification takes days)

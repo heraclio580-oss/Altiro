@@ -16,10 +16,10 @@ Links you'll need:
 
 ## 1. This week (Supabase and keys)
 
-- [ ] **Deploy the `delete-account` function.** Supabase → Edge Functions → Deploy a new function, named
+- [x] **Deploy the `delete-account` function.** Supabase → Edge Functions → Deploy a new function, named
   exactly `delete-account`. Paste the whole of `supabase/functions/delete-account/index.ts` (clear the editor
   first). It needs no secrets.
-- [ ] **Test Delete account on a throwaway account,** not your real one: sign up with a second email, then
+- [x] **Test Delete account on a throwaway account,** not your real one: sign up with a second email, then
   Settings → Delete account.
 - [ ] **Rotate the Resend API key** you pasted in chat earlier. Make a new key in Resend, update the
   `RESEND_API_KEY` secret in Supabase, then delete the old key.

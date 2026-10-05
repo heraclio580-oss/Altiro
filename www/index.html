@@ -1773,6 +1773,17 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     </div>
   </div>
 
+  <!-- "EMAIL CONFIRMED -- OPEN THE APP" (overlay) -->
+  <div class="sheet-overlay" id="appHandoffOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><span class="label" data-i18n="appHandoffTitle"></span></div>
+      <div class="sheet-section"><p class="fb-sub" style="margin-top:0;" data-i18n="appHandoffBody"></p></div>
+      <a class="btn btn-primary sheet-apply" id="appHandoffOpen" href="altiro://confirmed" data-i18n="appHandoffOpenBtn" style="display:flex;align-items:center;justify-content:center;text-decoration:none;"></a>
+      <button class="btn-text" type="button" id="appHandoffWeb" data-i18n="appHandoffWebBtn" style="display:block;margin:12px auto 0;"></button>
+    </div>
+  </div>
+
   <!-- DELETE ACCOUNT SHEET (overlay) -->
   <div class="sheet-overlay" id="deleteAccountOverlay" hidden>
     <div class="sheet-panel">
@@ -2781,6 +2792,11 @@ const STR = {
     signInBtn: "Sign In",
     confirmEmailMsg: "Check your email and tap the link to confirm. It brings you right back here, signed in, with your plan ready.",
     emailConfirmedToast: "Email confirmed. Welcome to Altiro!",
+    appHandoffTitle: "Email confirmed",
+    appHandoffBody: "Your account is ready. Go back to the Altiro app and sign in to start your plan.",
+    appHandoffOpenBtn: "Open Altiro",
+    appHandoffWebBtn: "Or continue here on the web",
+    emailConfirmedSignInMsg: "Email confirmed. Sign in to start your plan.",
     confirmLinkExpired: "That email link has expired or was already used. Sign in below, or get a new link.",
     forgotPasswordBtn: "Forgot password?",
     emailRateLimitMsg: "Too many emails have been sent in the last hour. Please wait a little while and try again.",
@@ -3342,6 +3358,11 @@ const STR = {
     signInBtn: "Iniciar sesión",
     confirmEmailMsg: "Revisa tu correo y toca el enlace para confirmar. Te trae de vuelta aquí, con la sesión iniciada y tu plan listo.",
     emailConfirmedToast: "Correo confirmado. ¡Bienvenido a Altiro!",
+    appHandoffTitle: "Correo confirmado",
+    appHandoffBody: "Tu cuenta está lista. Vuelve a la app de Altiro e inicia sesión para empezar tu plan.",
+    appHandoffOpenBtn: "Abrir Altiro",
+    appHandoffWebBtn: "O sigue aquí en la web",
+    emailConfirmedSignInMsg: "Correo confirmado. Inicia sesión para empezar tu plan.",
     confirmLinkExpired: "Ese enlace expiró o ya se usó. Inicia sesión abajo, o pide un enlace nuevo.",
     forgotPasswordBtn: "¿Olvidaste tu contraseña?",
     emailRateLimitMsg: "Se enviaron demasiados correos en la última hora. Espera un poco y vuelve a intentarlo.",
@@ -10583,7 +10604,9 @@ setInterval(()=>{
   else importStravaActivities();
 }, STRAVA_OPEN_CHECK_MS);
 function stravaRedirectUri(){
-  return new URL('strava-callback.html', window.location.href).href;
+  // The store app's own pages aren't a web address Strava can send people back to -- it uses the
+  // website's callback page, which hands the reply back into the app (see strava-callback.html).
+  return new URL('strava-callback.html', isNativeShell() ? APP_URL : window.location.href).href;
 }
 async function connectStrava(){
   const L = STR[state.lang];
@@ -10594,17 +10617,24 @@ async function connectStrava(){
     showToast(stravaFailedText(error));
     return;
   }
-  window.location.href = data.url;
+  let url = data.url;
+  if(isNativeShell()){
+    // Strava's page opens in the phone's browser; state=native tells the callback page to send the
+    // reply back to the app (altiro://strava-callback), where handleAppLink finishes the connection.
+    const u = new URL(url); u.searchParams.set('state', 'native'); url = u.href;
+  }
+  window.location.href = url;
 }
 // Finishes a connection when the app reopens after Strava's "Authorize" page (strava-callback.html
 // leaves Strava's reply in localStorage). Returns true if there was one to finish.
-async function finishStravaConnect(){
-  let cb = null;
+// (handed: Strava's reply passed in directly -- from an altiro:// link into the store app.)
+async function finishStravaConnect(handed){
+  let cb = handed || null;
   try{
     const raw = localStorage.getItem(STRAVA_CALLBACK_KEY);
     localStorage.removeItem(STRAVA_CALLBACK_KEY);
-    cb = raw ? JSON.parse(raw) : null;
-  }catch(e){ cb = null; }
+    if(!cb) cb = raw ? JSON.parse(raw) : null;
+  }catch(e){}
   if(!cb || !state.userId || Date.now()-cb.at > 10*60*1000) return false;
   const L = STR[state.lang];
   const params = new URLSearchParams(cb.search || '');
@@ -10627,6 +10657,40 @@ async function finishStravaConnect(){
   if(!(await importStravaActivities())) showToast(L.stravaConnectedToast);
   return true;
 }
+// altiro:// links into the store app (see scripts/native-config.js):
+//   altiro://strava-callback?code=...&scope=...  Strava's reply, handed back by strava-callback.html
+//   altiro://confirmed                           "Open Altiro" after confirming the sign-up email
+// Never carries a sign-in -- after confirming, they sign in here with their password.
+let lastAppLink = '';
+function handleAppLink(url){
+  if(!url || url===lastAppLink) return; // (a cold start reports its link both ways)
+  lastAppLink = url;
+  let u;
+  try{ u = new URL(url); }catch(e){ return; }
+  if(u.protocol!=='altiro:') return;
+  const what = (u.host || u.pathname.replace(/^\/+/, '')).split('/')[0];
+  if(what==='strava-callback'){
+    const cb = {search: u.search, at: Date.now()};
+    // Signed in: finish now. Still loading (the link started the app): kept for startStravaSync.
+    if(state.userId) finishStravaConnect(cb);
+    else try{ localStorage.setItem(STRAVA_CALLBACK_KEY, JSON.stringify(cb)); }catch(e){}
+    return;
+  }
+  if(what==='confirmed' && !state.signedIn){
+    openReturningSignIn();
+    const pending = readPendingSignup();
+    if(pending) document.getElementById('emailInput').value = pending.email;
+    const errEl = document.getElementById('authError');
+    errEl.style.color = 'var(--ok-icon)';
+    errEl.textContent = STR[state.lang].emailConfirmedSignInMsg;
+  }
+}
+(function(){
+  const AppPlugin = isNativeShell() && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if(AppPlugin && AppPlugin.addListener) try{ AppPlugin.addListener('appUrlOpen', e=> handleAppLink(e && e.url)); }catch(e){}
+  // Opened by a link while it wasn't running: the link it was launched with.
+  if(AppPlugin && AppPlugin.getLaunchUrl) try{ AppPlugin.getLaunchUrl().then(r=> handleAppLink(r && r.url)).catch(()=>{}); }catch(e){}
+})();
 // Called once the signed-in user's own data has loaded (all three sign-in paths).
 function startStravaSync(){
   finishStravaConnect().then(finished=>{ if(!finished) syncStrava({force:true}); });
@@ -10730,7 +10794,8 @@ document.getElementById('emailSignupBtn').addEventListener('click', async functi
   try{
     if(authMode==='signup'){
       signingUp = true;
-      const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: authRedirectUrl() } }).finally(()=>{ signingUp = false; });
+      // signup_source: the confirmation link opens the website; one made in the store app sends them back there.
+      const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: authRedirectUrl(), data: { signup_source: isNativeShell() ? 'app' : 'web' } } }).finally(()=>{ signingUp = false; });
       if(error) throw error;
       if(!data.session){
         // Email confirmation is required by this Supabase project's Auth settings --
@@ -12043,6 +12108,17 @@ document.getElementById('installDoneBtn').addEventListener('click', closeInstall
 registerServiceWorker();
 renderInstallUI();
 
+// "Email confirmed -- open Altiro": the store app takes it from here (altiro://confirmed, see handleAppLink).
+function openAppHandoff(user){
+  const ov = document.getElementById('appHandoffOverlay');
+  ov.hidden = false;
+  document.getElementById('appHandoffWeb').onclick = async ()=>{
+    ov.hidden = true;
+    await enterSignedIn(user);
+    showToast(STR[state.lang].emailConfirmedToast);
+  };
+}
+
 /* ---------------- init ---------------- */
 setupSliders();
 ensureWeek();
@@ -12054,7 +12130,11 @@ showScreen('welcome');
   try{
     await supabaseReady; // don't ask the offline stub whether a real session exists
     const { data: { session } } = await sb.auth.getSession();
-    if(session){
+    if(session && AUTH_RETURN.type==='signup' && !isNativeShell() && (session.user.user_metadata||{}).signup_source==='app'){
+      // Signed up in the store app, confirmed here in the browser: back to the app to sign in (or
+      // carry on here instead).
+      openAppHandoff(session.user);
+    } else if(session){
       await enterSignedIn(session.user);
       if(AUTH_RETURN.type==='signup') showToast(STR[state.lang].emailConfirmedToast);
       if(AUTH_RETURN.type==='recovery') openNewPasswordSheet();

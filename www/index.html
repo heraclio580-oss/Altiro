@@ -1089,6 +1089,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 /* ---------- toast ---------- */
 /* Guided tour. The dimming is the spotlight's own shadow; four clear blocks around it (and one over
    it, except where the step lets the user change something) stop taps reaching the app underneath. */
+.legal-links{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:8px;color:var(--text-3);font-size:12px;}
 .delete-account-link{display:block;margin:18px auto 0;color:var(--alert);font-size:12.5px;}
 .delete-account-confirm{background:var(--alert);border-color:var(--alert);box-shadow:none;}
 .delete-account-confirm:disabled{opacity:0.45;}
@@ -1444,7 +1445,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <button class="btn-text" id="resendConfirmBtn" type="button" style="margin-top:6px;width:100%;text-align:center;" data-i18n="resendConfirmBtn" hidden></button>
 
       <div class="footer-note" style="margin-top:14px;" data-i18n="mockAuthNote"></div>
-      <a class="settings-link" style="display:block;text-align:center;margin-top:8px;" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a>
+      <div class="footer-note" style="margin-top:6px;" data-i18n="agreeTermsNote"></div>
+      <div class="legal-links"><a class="settings-link terms-link" href="terms.html" target="_blank" rel="noopener" data-i18n="termsLink"></a><span>·</span><a class="settings-link" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a></div>
     </div>
   </section>
 
@@ -1686,7 +1688,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
       <button class="btn btn-ghost" style="margin-top:28px;" id="signOutBtn" data-i18n="signOutBtn"></button>
       <button class="btn-text delete-account-link" type="button" id="deleteAccountBtn" data-i18n="deleteAccountBtn" hidden></button>
-      <a class="settings-link" style="display:block;text-align:center;margin-top:14px;" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a>
+      <div class="legal-links" style="margin-top:14px;"><a class="settings-link terms-link" href="terms.html" target="_blank" rel="noopener" data-i18n="termsLink"></a><span>·</span><a class="settings-link" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a></div>
     </div>
   </section>
 
@@ -3045,6 +3047,8 @@ const STR = {
     stravaSyncBtn: "Sync now",
     stravaPrivacyLink: "How Altiro uses your Strava data",
     privacyPolicyLink: "Privacy policy",
+    termsLink: "Terms of use",
+    agreeTermsNote: "By creating an account, you agree to Altiro's Terms of Use, including its health disclaimer.",
     viewOnStrava: "View on Strava",
     stravaDisconnectBtn: "Disconnect Strava",
     stravaConnectedToast: "Strava connected",
@@ -3597,6 +3601,8 @@ const STR = {
     connectedAppsLabel: "Apps conectadas",
     stravaPrivacyLink: "Cómo usa Altiro tus datos de Strava",
     privacyPolicyLink: "Política de privacidad",
+    termsLink: "Términos de uso",
+    agreeTermsNote: "Al crear una cuenta, aceptas los Términos de uso de Altiro, incluido su aviso de salud.",
     viewOnStrava: "View on Strava",
     stravaConnectSub: "Importa tus carreras del reloj automáticamente",
     stravaConnectedSub: "Conectado como {name} · las carreras se importan solas",
@@ -5824,6 +5830,7 @@ function applyLang(){
   document.querySelectorAll('.lang-btn').forEach(b=>{
     b.classList.toggle('active', b.getAttribute('data-lang')===state.lang);
   });
+  document.querySelectorAll('.terms-link').forEach(a=> a.setAttribute('href', state.lang==='es' ? 'terms.html#es' : 'terms.html'));
   renderOptionList('goalList', GOALS, state.goal, selectGoal);
   renderOptionList('levelList', LEVELS, state.level, selectLevel);
   renderIntensityList();

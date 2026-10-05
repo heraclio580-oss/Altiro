@@ -3103,6 +3103,7 @@ const STR = {
     remindersBlocked: "Notifications are blocked for Altiro. Allow them in your browser's site settings, then try again.",
     remindersUnsupported: "This browser can't show notifications. Try Chrome on Android, or Safari after adding Altiro to your Home Screen.",
     remindersFailed: "Couldn't turn on reminders. Check your connection and try again.",
+    remindersBlockedNative: "Notifications are off for Altiro. Turn them on in your phone's Settings, then try again.",
     remindersIosNote: "On iPhone, reminders work once Altiro is on your Home Screen. Tap Add to Home Screen below, then open Altiro from there and turn this on.",
     remindersDeviceNote: "Reminders are on for your account. To get them on this device too, turn them off and on again here.",
     installLabel: "Home Screen",
@@ -3663,6 +3664,7 @@ const STR = {
     remindersBlocked: "Las notificaciones de Altiro están bloqueadas. Permítelas en la configuración del sitio de tu navegador y vuelve a intentarlo.",
     remindersUnsupported: "Este navegador no puede mostrar notificaciones. Prueba Chrome en Android, o Safari después de añadir Altiro a tu pantalla de inicio.",
     remindersFailed: "No se pudieron activar los recordatorios. Revisa tu conexión y vuelve a intentarlo.",
+    remindersBlockedNative: "Las notificaciones de Altiro están desactivadas. Actívalas en los Ajustes del teléfono y vuelve a intentarlo.",
     remindersIosNote: "En iPhone, los recordatorios funcionan cuando Altiro está en tu pantalla de inicio. Toca Añadir a pantalla de inicio abajo, abre Altiro desde ahí y actívalos.",
     remindersDeviceNote: "Los recordatorios están activados en tu cuenta. Para recibirlos también en este dispositivo, desactívalos y vuelve a activarlos aquí.",
     installLabel: "Pantalla de inicio",
@@ -11717,9 +11719,14 @@ function isStandalone(){
   return navigator.standalone===true;
 }
 function isNativeShell(){ return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
-// 'ok', or why this device can't get reminders right now.
+// The store app's own notifications (the @capacitor/local-notifications plugin): reminders there are
+// scheduled on the phone itself -- web push doesn't reach an app from the App Store / Google Play.
+function nativeNotifications(){
+  return isNativeShell() && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications || null;
+}
+// 'ok' / 'native', or why this device can't get reminders right now.
 function pushSupport(){
-  if(isNativeShell()) return 'unsupported';
+  if(isNativeShell()) return nativeNotifications() ? 'native' : 'unsupported';
   if(isIOS() && !isStandalone()) return 'ios-install';
   if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return 'unsupported';
   if(Notification.permission==='denied') return 'denied';
@@ -11790,12 +11797,47 @@ async function saveReminderSettings(){
     return {ok:true};
   }catch(e){ return {ok:false, why:'save: '+((e && e.message) || e)}; }
 }
+// The store app: each coming day's reminder is a notification scheduled on the phone at the reminder
+// time (ids 7000 + day number, so they're replaced, never doubled). Rescheduled whenever the plan or the
+// time changes; days already past their time today are skipped.
+const NATIVE_REMINDER_ID = 7000;
+let lastNativeSchedule = '';
+async function scheduleNativeReminders(){
+  const LN = nativeNotifications();
+  if(!LN) return;
+  const [h, m] = state.reminderTime.split(':').map(Number);
+  const now = Date.now();
+  const list = !state.notifications ? [] : Object.entries(buildReminderSchedule()).map(([key, r], i)=>{
+    const at = parseDateKey(key); at.setHours(h, m, 0, 0);
+    return {id: NATIVE_REMINDER_ID + Math.round((at - TODAY_DATE)/86400000), title: r.title, body: r.body, at};
+  }).filter(n=> n.at.getTime() > now);
+  const sig = JSON.stringify(list.map(n=>[n.id, n.title, n.body, n.at.getTime()]));
+  if(sig===lastNativeSchedule) return;
+  try{
+    const pending = await LN.getPending();
+    const ours = ((pending && pending.notifications) || []).filter(n=> n.id>=NATIVE_REMINDER_ID && n.id<NATIVE_REMINDER_ID+1000).map(n=>({id:n.id}));
+    if(ours.length) await LN.cancel({notifications: ours});
+    if(list.length) await LN.schedule({notifications: list.map(n=>({
+      id: n.id, title: n.title, body: n.body,
+      schedule: {at: n.at, allowWhileIdle: true},
+      extra: {open: 'today'},
+    }))});
+    lastNativeSchedule = sig;
+  }catch(e){ lastNativeSchedule = ''; }
+}
+// A reminder tapped: the app opens on Today.
+(function(){
+  const LN = nativeNotifications();
+  if(LN && LN.addListener) try{
+    LN.addListener('localNotificationActionPerformed', ()=>{ if(state.signedIn){ closeAllOverlays(); showScreen('home'); } });
+  }catch(e){}
+})();
 // Called whenever the views refresh (plan changes, workouts logged, a new day) -- saves at most once a
 // couple of seconds, and only when something in the schedule actually changed.
 function scheduleReminderSync(){
   if(!state.notifications || !state.userId) return;
   clearTimeout(reminderSyncTimer);
-  reminderSyncTimer = setTimeout(()=>{ saveReminderSettings(); }, 1500);
+  reminderSyncTimer = setTimeout(()=>{ saveReminderSettings(); scheduleNativeReminders(); }, 1500);
 }
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') scheduleReminderSync(); });
 
@@ -11841,6 +11883,14 @@ async function subscribeThisDevice(){
   return {endpoint: j.endpoint};
 }
 async function forgetThisDeviceForReminders(){
+  // The store app: its scheduled reminders go too.
+  const LN = nativeNotifications();
+  if(LN) try{
+    const pending = await LN.getPending();
+    const ours = ((pending && pending.notifications) || []).filter(n=> n.id>=NATIVE_REMINDER_ID && n.id<NATIVE_REMINDER_ID+1000).map(n=>({id:n.id}));
+    if(ours.length) await LN.cancel({notifications: ours});
+    lastNativeSchedule = '';
+  }catch(e){}
   try{
     const reg = swRegistration && await swRegistration;
     const sub = reg && reg.pushManager && await reg.pushManager.getSubscription();
@@ -11857,6 +11907,7 @@ async function loadReminderSettings(){
   lastReminderSave = '';
   // Already allowed on this device: keep its subscription fresh (browsers rotate them now and then).
   if(state.notifications && pushSupport()==='ok' && Notification.permission==='granted') subscribeThisDevice().catch(()=>{});
+  if(pushSupport()==='native') scheduleNativeReminders();
   scheduleReminderSync();
 }
 
@@ -11874,11 +11925,12 @@ function renderReminderSettings(){
   else if(support==='denied') note = L.remindersBlocked;
   else if(support==='unsupported' && !isNativeShell()) note = L.remindersUnsupported;
   else if(state.notifications && support==='ok' && Notification.permission!=='granted') note = L.remindersDeviceNote;
+  else if(support==='native' && nativeReminderDenied) note = L.remindersBlockedNative;
   const noteEl = document.getElementById('reminderNote');
   noteEl.textContent = note;
   noteEl.hidden = !note;
 }
-let reminderBusy = false;
+let reminderBusy = false, nativeReminderDenied = false;
 async function toggleReminders(){
   if(reminderBusy) return;
   const L = STR[state.lang];
@@ -11886,6 +11938,7 @@ async function toggleReminders(){
     state.notifications = false;
     renderReminderSettings();
     await saveReminderSettings();
+    await scheduleNativeReminders();
     showToast(L.remindersOffToast);
     return;
   }
@@ -11894,6 +11947,28 @@ async function toggleReminders(){
   if(support==='ios-install'){ openInstallSheet(); return; }
   if(support==='unsupported'){ showToast(L.remindersUnsupported); return; }
   if(support==='denied'){ renderReminderSettings(); showToast(L.remindersBlocked); return; }
+  if(support==='native'){
+    // The store app: the phone's own permission prompt, then reminders scheduled on the phone.
+    reminderBusy = true;
+    try{
+      const LN = nativeNotifications();
+      let perm = await LN.checkPermissions();
+      if(perm.display!=='granted') perm = await LN.requestPermissions();
+      nativeReminderDenied = perm.display!=='granted';
+      if(nativeReminderDenied){ showToast(L.remindersBlockedNative); return; }
+      state.notifications = true;
+      await saveReminderSettings();
+      await scheduleNativeReminders();
+      showToast(L.remindersOnToast.replace('{time}', fmtReminderTime(state.reminderTime)));
+    }catch(e){
+      state.notifications = false;
+      showToast(`${L.remindersFailed} (${(e && e.message) || e})`);
+    }finally{
+      reminderBusy = false;
+      renderReminderSettings();
+    }
+    return;
+  }
   reminderBusy = true;
   try{
     // Asked straight from the tap -- browsers only show the permission prompt for a user's own action.
@@ -11917,6 +11992,7 @@ document.getElementById('notifToggle').addEventListener('keydown', e=>{ if(e.key
 document.getElementById('reminderTimeSelect').addEventListener('change', async e=>{
   state.reminderTime = e.target.value;
   await saveReminderSettings();
+  await scheduleNativeReminders();
   showToast(STR[state.lang].remindersTimeToast.replace('{time}', fmtReminderTime(state.reminderTime)));
 });
 

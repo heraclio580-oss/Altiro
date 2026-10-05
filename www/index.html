@@ -1089,6 +1089,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 /* ---------- toast ---------- */
 /* Guided tour. The dimming is the spotlight's own shadow; four clear blocks around it (and one over
    it, except where the step lets the user change something) stop taps reaching the app underneath. */
+.live-add{margin-top:10px;}
+.live-add-row{display:flex;gap:8px;margin-top:10px;}
+.live-add-row .text-input{flex:1;min-width:0;}
+.live-add-row .btn{width:auto;flex-shrink:0;padding:0 18px;height:44px;}
+.live-remove{background:none;border:none;color:var(--text-3);font-size:18px;line-height:1;padding:2px 4px;margin-left:4px;cursor:pointer;}
 .legal-links{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:8px;color:var(--text-3);font-size:12px;}
 .delete-account-link{display:block;margin:18px auto 0;color:var(--alert);font-size:12.5px;}
 .delete-account-confirm{background:var(--alert);border-color:var(--alert);box-shadow:none;}
@@ -2126,12 +2131,19 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="iconbtn" id="closeManualEntry"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       </div>
 
+      <div class="sheet-section" id="createLiveSection" hidden>
+        <div class="toggle-row">
+          <div><div class="tt" data-i18n="liveLogTitle"></div><div class="ts" data-i18n="liveLogSub"></div></div>
+          <div class="toggle" id="createLiveToggle" role="switch" tabindex="0"><div class="knob"></div></div>
+        </div>
+      </div>
+
       <div class="sheet-section">
         <div class="st-label" id="createNameLabel" data-i18n="manualNameLabel"></div>
         <input type="text" class="text-input" id="manualNameInput">
       </div>
 
-      <div class="sheet-section">
+      <div class="sheet-section" id="manualTypeSection">
         <div class="st-label" data-i18n="manualTypeLabel"></div>
         <div class="type-select-row" id="manualTypeRow"></div>
       </div>
@@ -2240,6 +2252,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
       <button class="btn-text" id="logPerfChangeExercisesBtn" type="button" data-i18n="changeExercisesBtn" style="padding:0;margin-top:4px;" hidden></button>
       <div id="logPerfExercisesList"></div>
+      <!-- "Log as you go": exercises added while the workout is being done -->
+      <div class="live-add" id="logPerfAddExercise" hidden>
+        <div class="footer-note" id="logPerfLiveEmpty" style="text-align:left;" data-i18n="liveEmptyNote" hidden></div>
+        <div class="live-add-row">
+          <input type="text" class="text-input" id="logPerfAddExerciseInput" list="logPerfExerciseNames" autocomplete="off" enterkeyhint="done">
+          <button type="button" class="btn btn-ghost" id="logPerfAddExerciseBtn" data-i18n="liveAddBtn"></button>
+        </div>
+        <datalist id="logPerfExerciseNames"></datalist>
+      </div>
 
       <div class="sheet-section" id="logPerfWeightSection">
         <div class="st-label" data-i18n="logPerfWeightLabel"></div>
@@ -3181,6 +3202,15 @@ const STR = {
     manualNotesLabel: "Notes (optional)",
     manualNotesPlaceholder: "Anything else worth noting",
     saveWorkoutBtn: "Save Workout",
+    liveLogTitle: "Log as you go",
+    liveLogSub: "Start now and add each exercise, weight and reps as you do it.",
+    liveLogStartBtn: "Start workout",
+    liveLogNamePlaceholder: "Name it (optional), e.g. Push day",
+    liveLogDefaultName: "Workout",
+    liveAddBtn: "Add",
+    liveAddPlaceholder: "Add an exercise, e.g. Bench Press",
+    liveEmptyNote: "Add your first exercise below. Weights and reps save as you type them.",
+    liveRemoveTitle: "Remove exercise",
     workoutLoggedToast: "Workout logged",
     dragHandleHint: "Hold and drag to move this workout to another day",
     planAddWorkoutLabel: "Add",
@@ -3748,6 +3778,15 @@ const STR = {
     manualNotesLabel: "Notas (opcional)",
     manualNotesPlaceholder: "Algo más que quieras anotar",
     saveWorkoutBtn: "Guardar entrenamiento",
+    liveLogTitle: "Registrar sobre la marcha",
+    liveLogSub: "Empieza ya y añade cada ejercicio, peso y repeticiones mientras los haces.",
+    liveLogStartBtn: "Empezar entrenamiento",
+    liveLogNamePlaceholder: "Ponle nombre (opcional), p. ej. Día de empuje",
+    liveLogDefaultName: "Entrenamiento",
+    liveAddBtn: "Añadir",
+    liveAddPlaceholder: "Añade un ejercicio, p. ej. Press de Banca",
+    liveEmptyNote: "Añade tu primer ejercicio abajo. Los pesos y repeticiones se guardan mientras escribes.",
+    liveRemoveTitle: "Quitar ejercicio",
     workoutLoggedToast: "Entrenamiento registrado",
     dragHandleHint: "Mantén presionado y arrastra para mover este entrenamiento a otro día",
     planAddWorkoutLabel: "Añadir",
@@ -4872,6 +4911,8 @@ function plannedExercises(session, date){
 // (session.exercises), else the plan's picks; the user's standing swaps/skips applied either way.
 function exercisesForSession(session, date){
   if(!session || session.t!=='strength') return null;
+  // "Log as you go": a workout started with no exercises yet -- they're added while it's done.
+  if(Array.isArray(session.exercises) && !session.exercises.length) return [];
   if(session.exercises && session.exercises.length) return applyPyramid(applyLiftTargets(applyStandingSwaps(session.exercises.map(localizedExercise))), session, date);
   const planned = plannedExercises(session, date);
   return planned ? applyPyramid(applyLiftTargets(applyStandingSwaps(planned)), session, date) : null;
@@ -5630,6 +5671,7 @@ function planCustomWorkout(key, opts){
   const session = ses(opts.type, opts.title, opts.detail||'', opts.title, opts.detail||'');
   if(opts.interval) session.interval = opts.interval; // {rounds, workSec, restSec} -- read by the interval timer
   if(opts.exercises && opts.exercises.length) session.exercises = opts.exercises; // user-built sets/reps list
+  if(opts.live) session.exercises = []; // "log as you go": exercises are added while it's being done
   // The first custom workout for a day takes the primary slot, and explicitly revising that existing
   // primary (tapping its bubble to edit) keeps updating it in place. Once a day already has a custom
   // primary workout, a newly-added one goes into extraWorkouts instead of replacing it, so adding a
@@ -5637,8 +5679,9 @@ function planCustomWorkout(key, opts){
   // workout" buttons) to a day whose plan has a workout: 50 push-ups added at work sit alongside
   // today's run, and finishing them doesn't finish the run.
   const existing = getRawDaySlot(parseDateKey(key));
+  let where = {kind:'primary', id:null};
   if(existing.isCustom || opts.alongside && existing.p.t!=='rest'){
-    addExtraWorkout(key, session);
+    where = {kind:'extra', id: addExtraWorkout(key, session).id};
   } else {
     // Deliberately always completed:false here, even for a past date -- unlike an extra workout
     // (see addExtraWorkout), the primary slot already has a real, respected "Mark as Completed"
@@ -5655,6 +5698,7 @@ function planCustomWorkout(key, opts){
     state.progression[progressionKey(session)] = target;
     cloudSaveProgressionTarget(session, target);
   }
+  return where; // which workout it became: the day's own, or an additional one
 }
 // A freshly-logged manual entry only ever appends to manualEntries -- it never touched the day's
 // primary session, so logging a real workout on a genuine Rest Day left "Rest Day" sitting as the
@@ -7002,7 +7046,16 @@ function openLogPerformanceFor(logTarget, mode){
   state._pendingSession = eff;
   const perf = mode==='revisit' ? resolved.performance : null;
   const exercises = exercisesForSession(eff, parseDateKey(logTarget.dayKey));
-  document.getElementById('logPerfChangeExercisesBtn').hidden = !(exercises && mode==='record' && logTarget.kind!=='entry');
+  // A workout the user built themselves, being done now: exercises can be added and removed right here
+  // ("log as you go"), and what's typed is kept as it's typed (see saveLogPerfDraft).
+  // (Only a list that's entirely the user's -- a plan workout with a swapped exercise keeps its
+  // Change exercises button instead.)
+  const building = mode==='record' && logTarget.kind!=='entry' && Array.isArray(eff.exercises) && eff.exercises.every(e=>!e.fromPlan);
+  const draft = mode==='record' ? loadLogPerfDraft(logTarget) : null;
+  document.getElementById('logPerfChangeExercisesBtn').hidden = !(exercises && mode==='record' && logTarget.kind!=='entry' && !building);
+  document.getElementById('logPerfAddExercise').hidden = !building;
+  document.getElementById('logPerfLiveEmpty').hidden = !(building && exercises && !exercises.length);
+  if(building){ fillExerciseNameList(); document.getElementById('logPerfAddExerciseInput').placeholder = STR[state.lang].liveAddPlaceholder; }
   const exercisesListEl = document.getElementById('logPerfExercisesList');
   logPerfSetChecks = {};
   logPerfSelectedKey = null;
@@ -7014,10 +7067,13 @@ function openLogPerformanceFor(logTarget, mode){
       // Not logged yet: a lift the user added themselves starts from what they did last time -- every
       // set's weight and reps. (The plan's own lifts start from their progressed target, or their pyramid.)
       const lastSets = !loggedSets && !ex.fromPlan && !ex.pyramid && !ex.bodyweight ? lastLoggedSets(ex.key, dateKey(new Date(parseDateKey(logTarget.dayKey).getTime() - 86400000))) : null;
-      const setCount = loggedSets ? loggedSets.length : lastSets ? Math.min(LOG_PERF_MAX_SETS, lastSets.length) : ((loggedEx && loggedEx.setCount) || ex.sets || 1);
+      // What was already typed for it in this workout (kept through a re-render or the app closing).
+      const draftEx = draft && draft.ex[ex.key];
+      const setCount = draftEx ? Math.max(1, draftEx.done.length) : loggedSets ? loggedSets.length : lastSets ? Math.min(LOG_PERF_MAX_SETS, lastSets.length) : ((loggedEx && loggedEx.setCount) || ex.sets || 1);
       // A workout that's already been logged reopens showing what was actually done -- every set
       // ticked, with its real weight/reps -- instead of the plan's suggested targets.
-      logPerfSetChecks[ex.key] = new Array(setCount).fill(!!loggedEx);
+      logPerfSetChecks[ex.key] = draftEx ? draftEx.done.slice(0, setCount) : new Array(setCount).fill(!!loggedEx);
+      while(logPerfSetChecks[ex.key].length < setCount) logPerfSetChecks[ex.key].push(false);
       const shownEx = {...ex, sets: setCount};
       const stepperHtml = `<span class="set-stepper">
           <button type="button" class="set-stepper-btn" data-step="-1" title="Remove a set">−</button>
@@ -7036,8 +7092,9 @@ function openLogPerformanceFor(logTarget, mode){
         // A pyramid starts each set from its own step of the ladder.
         const step = !loggedSets && ex.pyramid ? ex.pyramid.steps[i] : null;
         const prev = lastSets ? lastSets[i] : null;
-        const w = loggedSets ? loggedSets[i].weight : step ? step.weight : prev ? prev.weight : (t?t.weight:'');
-        const r = loggedSets ? loggedSets[i].reps : step ? step.reps : prev ? prev.reps : (t?t.reps:ex.reps);
+        const typed = draftEx && draftEx.sets[i];
+        const w = typed ? typed.weight : loggedSets ? loggedSets[i].weight : step ? step.weight : prev ? prev.weight : (t?t.weight:'');
+        const r = typed ? typed.reps : loggedSets ? loggedSets[i].reps : step ? step.reps : prev ? prev.reps : (t?t.reps:ex.reps);
         return `
         <div class="set-log-row" data-set-idx="${i}" data-stage="${step ? step.stage : ''}">
           <span class="set-log-num">${i+1}</span>
@@ -7046,8 +7103,9 @@ function openLogPerformanceFor(logTarget, mode){
           <button type="button" class="set-check-dot" data-set-idx="${i}">${i+1}</button>
         </div>`;
       }).join('');
+      const removeHtml = building ? `<button type="button" class="live-remove" data-remove-ex title="${escapeHtml(STR[state.lang].liveRemoveTitle)}" aria-label="${escapeHtml(STR[state.lang].liveRemoveTitle)}">×</button>` : '';
       return `<div class="exercise-log-row" data-exercise-key="${escapeHtml(ex.key)}">
-        <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${escapeHtml(ex.name)}<span>${fmtExercisePrescription(shownEx)}</span>${stepperHtml}</div>
+        <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${escapeHtml(ex.name)}<span>${fmtExercisePrescription(shownEx)}</span>${stepperHtml}${removeHtml}</div>
         <div class="set-rows">${setRows}</div>
         ${ex.pyramid ? `<div class="pyr-actions">
           <button type="button" class="btn-text" data-pyr="fives">${STR[state.lang].pyrFivesBtn}</button>
@@ -7065,6 +7123,8 @@ function openLogPerformanceFor(logTarget, mode){
         });
       });
       if(!ex.bodyweight) rowEl.querySelectorAll('.set-check-dot').forEach(dot=> wireSetCheckDot(dot, rowEl, ex));
+      const rm = rowEl.querySelector('[data-remove-ex]');
+      if(rm) rm.addEventListener('click', e=>{ e.stopPropagation(); removeLiveExercise(ex.key); });
       rowEl.querySelectorAll('[data-pyr]').forEach(btn=> btn.addEventListener('click', e=>{
         e.stopPropagation();
         pyramidAction(rowEl, ex, btn.getAttribute('data-pyr'));
@@ -7154,6 +7214,98 @@ function openLogPerformanceFor(logTarget, mode){
   // one was scrolled to (usually the Save button at the bottom).
   document.querySelector('#logPerfOverlay .sheet-panel').scrollTop = 0;
 }
+// ---- "Log as you go" ----
+// What's been typed into the workout being recorded -- every set's weight and reps, and which are
+// ticked -- kept on this device as it's typed, so re-rendering the sheet (an exercise added) or the
+// app closing mid-workout loses nothing. Cleared once the workout is saved.
+const LOG_DRAFT_KEY = 'altiro_log_draft';
+function logTargetKey(t){ return `${t.dayKey}|${t.kind}|${t.id||''}`; }
+function captureLogPerfDraft(){
+  const t = state._logTarget;
+  if(!t) return null;
+  const ex = {};
+  document.querySelectorAll('#logPerfExercisesList .exercise-log-row').forEach(row=>{
+    const key = row.getAttribute('data-exercise-key');
+    const sets = [...row.querySelectorAll('.set-log-row')].map(r=>({
+      weight: r.querySelector('[data-field="weight"]').value,
+      reps: r.querySelector('[data-field="reps"]').value,
+    }));
+    ex[key] = {sets, done: (logPerfSetChecks[key]||[]).slice()};
+  });
+  return {target: logTargetKey(t), ex};
+}
+function saveLogPerfDraft(){
+  if(state._logMode!=='record' || document.getElementById('logPerfOverlay').hidden) return;
+  const d = captureLogPerfDraft();
+  if(d) try{ localStorage.setItem(LOG_DRAFT_KEY, JSON.stringify(d)); }catch(e){}
+}
+function loadLogPerfDraft(t){
+  try{ const d = JSON.parse(localStorage.getItem(LOG_DRAFT_KEY)||'null'); return d && d.target===logTargetKey(t) ? d : null; }catch(e){ return null; }
+}
+function clearLogPerfDraft(){ try{ localStorage.removeItem(LOG_DRAFT_KEY); }catch(e){} }
+['input','click'].forEach(type=> document.getElementById('logPerfExercisesList').addEventListener(type, ()=> setTimeout(saveLogPerfDraft, 0)));
+// The workout's own exercise list, changed while it's being done (saved with the workout, so it's
+// there on another device or after a restart).
+function setSessionExercises(t, list){
+  if(t.kind==='extra'){
+    const w = resolveLogTarget(t).record;
+    w.session = {...w.session, exercises: list};
+    Promise.resolve(w.saved).then(()=>{ if(w.supabaseId) cloudSetExtraWorkoutExercises(w.supabaseId, w.session.exercises); });
+    return;
+  }
+  const date = parseDateKey(t.dayKey), slot = getRawDaySlot(date);
+  const p = {...slot.p, exercises: list};
+  writeDaySlot(date, {p, c: slot.c, completed: slot.completed, isCustom: true});
+  cloudSavePlannedSession(t.dayKey, p);
+}
+// Exercise names to pick from as they're typed: the app's lifts, and any the user has logged before.
+function fillExerciseNameList(){
+  const names = new Set(Object.values(EXERCISES).map(d=> state.lang==='es' ? d.es : d.en));
+  Object.values(state.dayLog).forEach(log=>{
+    [log.performance, ...(log.extraWorkouts||[]).map(w=>w.performance), ...(log.manualEntries||[]).map(e=>e.performance)].forEach(perf=>{
+      if(perf && Array.isArray(perf.exercises)) perf.exercises.forEach(e=>{ if(e.name) names.add(e.name); });
+    });
+  });
+  document.getElementById('logPerfExerciseNames').innerHTML = [...names].sort().map(n=>`<option value="${escapeHtml(n)}"></option>`).join('');
+}
+function addLiveExercise(){
+  const input = document.getElementById('logPerfAddExerciseInput');
+  const raw = input.value.trim();
+  if(!raw){ input.focus(); return; }
+  const t = state._logTarget, resolved = t && resolveLogTarget(t);
+  if(!resolved) return;
+  // One of the app's lifts (typed in either language) keeps its own name, demo and progression.
+  const low = raw.toLowerCase();
+  const known = Object.keys(EXERCISES).find(k=> [k, EXERCISES[k].en, EXERCISES[k].es].some(n=> String(n).toLowerCase()===low));
+  const key = known || raw;
+  const list = (resolved.session.exercises || []).slice();
+  input.value = '';
+  if(!list.some(e=>e.key===key)){
+    const def = known ? EXERCISES[known] : null;
+    list.push(def ? {key, name: def.en, en: def.en, es: def.es, sets: 1, reps: def.reps || 10} : {key, name: raw, sets: 1, reps: 10});
+    saveLogPerfDraft();
+    setSessionExercises(t, list);
+    openLogPerformanceFor(t, 'record');
+  }
+  // The exercise just added (or picked again) is the one being worked on.
+  logPerfSelectedKey = key;
+  refreshLogPerfCurrentHighlight();
+  const row = [...document.querySelectorAll('#logPerfExercisesList .exercise-log-row')].find(r=>r.getAttribute('data-exercise-key')===key);
+  if(row){
+    if(row.scrollIntoView) row.scrollIntoView({block:'center'});
+    const w = row.querySelector('[data-field="weight"]');
+    if(w && !w.value) w.focus();
+  }
+}
+function removeLiveExercise(key){
+  const t = state._logTarget, resolved = t && resolveLogTarget(t);
+  if(!resolved) return;
+  saveLogPerfDraft();
+  setSessionExercises(t, (resolved.session.exercises || []).filter(e=>e.key!==key));
+  openLogPerformanceFor(t, 'record');
+}
+document.getElementById('logPerfAddExerciseBtn').addEventListener('click', addLiveExercise);
+document.getElementById('logPerfAddExerciseInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addLiveExercise(); } });
 function closeLogPerformance(){
   stopWorkoutClock(); // the start time is kept -- reopening the same workout carries on counting
   document.getElementById('logPerfOverlay').hidden = true;
@@ -7235,6 +7387,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     if(t) logged.time = t;
   }
   stopWorkoutClock();
+  clearLogPerfDraft();
   logged.notes = document.getElementById('logPerfNotesInput').value.trim();
   // Editing a run that came from Strava keeps its link back to Strava.
   const prevPerf = resolved && resolved.performance;
@@ -8655,6 +8808,13 @@ document.getElementById('classKindSelect').addEventListener('change', e=>{
 });
 document.getElementById('classRepeatToggle').addEventListener('click', ()=>{ classRepeat = !classRepeat; renderClassForm(); });
 function updateCreateTargetSections(){
+  renderCreateLive();
+  // "Log as you go": just a name -- everything else is filled in while the workout is being done.
+  if(createLive){
+    ['manualTypeSection','createClassSection','manualNotesSection','manualVolumeSection','cardioLogSection','createCompletedSection','createPaceSection','createIntervalSection','createExercisesSection'].forEach(id=>{ document.getElementById(id).hidden = true; });
+    return;
+  }
+  document.getElementById('manualTypeSection').hidden = false;
   // A class has its own form; the rest (description, notes, done/planned, targets) doesn't apply to it.
   const isClass = manualEntryType==='class';
   document.getElementById('createClassSection').hidden = !isClass;
@@ -8764,7 +8924,31 @@ document.getElementById('createCompletedToggle').addEventListener('click', funct
 // Set when Create Workout was opened from Home's "+ Add a workout": a workout planned there joins today's
 // as an Additional Workout instead of replacing the plan's (see planCustomWorkout).
 let manualEntryAlongside = false;
+// "Log as you go" (today only): start the workout now and add each exercise, weight and reps on the
+// Log Performance sheet while doing it -- no building the whole workout first.
+let createLive = false;
+function renderCreateLive(){
+  const L = STR[state.lang];
+  const isToday = state.openDayKey===dateKey(TODAY_DATE);
+  if(!isToday) createLive = false;
+  document.getElementById('createLiveSection').hidden = !isToday;
+  const t = document.getElementById('createLiveToggle');
+  t.classList.toggle('on', createLive);
+  t.setAttribute('aria-checked', createLive);
+  document.getElementById('saveManualEntry').textContent = createLive ? L.liveLogStartBtn : L.saveWorkoutBtn;
+  document.getElementById('manualNameInput').placeholder = createLive ? L.liveLogNamePlaceholder : L.manualNamePlaceholder;
+}
+function toggleCreateLive(){
+  createLive = !createLive;
+  if(createLive) manualEntryType = 'strength';
+  document.getElementById('manualNameInput').style.borderColor = '';
+  renderManualTypeRow();
+  updateCreateTargetSections();
+}
+document.getElementById('createLiveToggle').addEventListener('click', toggleCreateLive);
+document.getElementById('createLiveToggle').addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleCreateLive(); } });
 function openManualEntry(){
+  createLive = false;
   manualEntryAlongside = false;
   manualEntryType = 'strength';
   // A class starts on the day it was opened for, at 6 PM, for an hour, every week.
@@ -8866,6 +9050,17 @@ function logCompletedEntry(targetDayKey, fields){
 }
 document.getElementById('saveManualEntry').addEventListener('click', ()=>{
   const nameInput = document.getElementById('manualNameInput');
+  if(createLive){
+    // Started now, logged as it goes: today's workout (or an additional one, beside today's plan),
+    // straight into Log Performance with the clock running and no exercises yet.
+    const key = dateKey(TODAY_DATE);
+    const title = nameInput.value.trim() || STR[state.lang].liveLogDefaultName;
+    const where = planCustomWorkout(key, {title, type:'strength', detail:'', live:true, alongside: manualEntryAlongside});
+    closeManualEntry();
+    refreshViews();
+    openLogPerformanceFor({dayKey:key, kind: where.kind, id: where.id}, 'record');
+    return;
+  }
   const name = nameInput.value.trim();
   if(!name || !state.openDayKey){ nameInput.style.borderColor = 'var(--accent)'; nameInput.focus(); return; }
   const notes = document.getElementById('manualNotesInput').value.trim();
@@ -10336,7 +10531,8 @@ async function loadWorkoutDataFromCloud(){
         const customSession = row.planned_type
           ? ses(row.planned_type, row.planned_title, row.planned_detail||'', row.planned_title, row.planned_detail||'')
           : null;
-        if(customSession && Array.isArray(row.planned_exercises) && row.planned_exercises.length) customSession.exercises = row.planned_exercises;
+        // (Kept even when empty: a "log as you go" workout started before its first exercise was added.)
+        if(customSession && Array.isArray(row.planned_exercises) && (row.planned_exercises.length || row.planned_type==='strength')) customSession.exercises = row.planned_exercises;
         if(customSession && row.planned_type==='interval' && row.planned_interval_rounds!=null){
           customSession.interval = {rounds: row.planned_interval_rounds, workSec: row.planned_interval_work_sec, restSec: row.planned_interval_rest_sec};
         }

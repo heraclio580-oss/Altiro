@@ -138,8 +138,8 @@ What the store apps rely on:
 
 `www/audio/ready.wav`, `go.wav` and `stop.wav` are the interval timer's spoken cues. They were made with
 the open-source [Kokoro](https://github.com/hexgrad/kokoro) text-to-speech model (Apache 2.0, free for
-commercial use), voice `am_onyx` at 1.1× speed, then trimmed, compressed and normalized so they're loud and
-punchy. If they ever fail to load, the timer falls back to the phone's own speech voice.
+commercial use), voice `am_michael` lowered 2 semitones for a deeper tone, then trimmed, compressed,
+sped up 1.5× (pitch kept) and normalized so they're quick, loud and punchy. If they ever fail to load, the timer falls back to the phone's own speech voice.
 
 ## Next step
 

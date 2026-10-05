@@ -63,8 +63,9 @@ emails an hour. Strangers signing up won't get their confirmation email until th
 - [ ] **Android app:** Android Studio (free, Windows, Mac or Linux).
 - [ ] In the project folder: `npm install`, then `npm run cap:sync`, then `npx cap open ios` or
   `npx cap open android`. The README has the details. Run `npm run cap:sync` again after every update.
-- [ ] **Generate the app icons and splash screens:** `npx @capacitor/assets generate` (I'm preparing the
-  source images in `resources/`).
+- [ ] **Generate the app icons and splash screens:** `npm run assets` (the source images are in `resources/`).
+- [ ] Optional: get a **1024×1024 original of the logo** from whoever designed it. The current icon is upscaled
+  from 512px. Save it as `resources/icon-only.png` and rerun `npm run assets`.
 - [ ] **Run it on your own phone.** Check sign-up and sign-in, a workout, reminders (allow notifications),
   connecting Strava, and the `altiro://` hand-back after Strava and after confirming an email.
 

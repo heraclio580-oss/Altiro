@@ -114,6 +114,7 @@ npm install
 npx cap add ios         # first time only (needs Xcode + CocoaPods)
 npx cap add android     # first time only (needs Android Studio)
 npm run cap:sync        # copies www/ into both apps, installs plugins, adds the altiro:// link scheme
+npm run assets          # app icons + splash screens for both, from resources/ (first time, or after a new logo)
 npx cap open ios        # or: npx cap open android -- then build/run from Xcode / Android Studio
 ```
 
@@ -127,6 +128,9 @@ What the store apps rely on:
   after updating `@supabase/supabase-js`.
 - **Edge Functions** (deploy from `supabase/functions/`): `strava`, `workout-reminders`, `feedback-alert`,
   `delete-account`.
+- **Icons and splash screens** come from `resources/` (icon-only.png 1024px, Android's adaptive
+  icon-foreground/background, splash and splash-dark 2732px). The icon is upscaled from the 512px logo -- a
+  1024px original would be sharper; drop it in as `resources/icon-only.png` and rerun `npm run assets`.
 - **Legal pages:** `www/privacy.html`, `www/terms.html`, and `www/delete-account.html` (Google Play's
   account-deletion link) -- all served from the live site.
 

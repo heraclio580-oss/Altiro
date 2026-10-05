@@ -2519,7 +2519,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Supabase's client, shipped with the app (not from a CDN) so it opens with no or a weak connection;
+     refreshed from node_modules with `npm run vendor`. -->
+<script src="vendor/supabase.js"></script>
 <script>
 (function(){
 "use strict";
@@ -2549,7 +2551,7 @@ function makeOfflineSupabaseStub(){
     from(){ return chain; },
   };
 }
-// Starts as a harmless offline stub so nothing crashes if the CDN script hasn't executed yet,
+// Starts as a harmless offline stub so nothing crashes if the library script hasn't executed yet,
 // then upgrades to the real client the moment window.supabase becomes available -- polled for a
 // few seconds rather than checked once, since a plain <script src> *should* block the next
 // script until it's loaded, but sandboxed/proxied environments don't always guarantee that

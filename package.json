@@ -10,7 +10,8 @@
     "cap:add:android": "npx cap add android",
     "cap:sync": "npx cap sync",
     "cap:open:ios": "npx cap open ios",
-    "cap:open:android": "npx cap open android"
+    "cap:open:android": "npx cap open android",
+    "vendor": "cp node_modules/@supabase/supabase-js/dist/umd/supabase.js www/vendor/supabase.js"
   },
   "dependencies": {
     "@capacitor/core": "^6.1.2",

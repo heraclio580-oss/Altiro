@@ -21,7 +21,7 @@ Links you'll need:
   first). It needs no secrets.
 - [x] **Test Delete account on a throwaway account,** not your real one: sign up with a second email, then
   Settings → Delete account.
-- [ ] **Rotate the Resend API key** you pasted in chat earlier. Make a new key in Resend, update the
+- [x] **Rotate the Resend API key** you pasted in chat earlier. Make a new key in Resend, update the
   `RESEND_API_KEY` secret in Supabase, then delete the old key.
 - [ ] **Decide on Supabase's plan.** Free projects pause after about a week with no activity, and a paused
   project means nobody can sign in. The Pro plan ($25/month) doesn't pause. Free is fine while testing;

@@ -124,6 +124,9 @@ What the store apps rely on:
 - **Reminders** are scheduled on the phone (`@capacitor/local-notifications`), not sent by web push.
 - **`altiro://` links** (`@capacitor/app` + `scripts/native-config.js`) bring people back into the app after
   Strava's sign-in and after confirming their email on the website.
+- **Sharing a workout card** saves the picture to the app's cache (`@capacitor/filesystem`) and opens the
+  phone's share sheet (`@capacitor/share`). On the website it uses the browser's own share sheet, or saves
+  the picture where sharing isn't available.
 - **Supabase's client ships inside `www/vendor/`**, so the app opens offline. `npm run vendor` refreshes it
   after updating `@supabase/supabase-js`.
 - **Edge Functions** (deploy from `supabase/functions/`): `strava`, `workout-reminders`, `feedback-alert`,

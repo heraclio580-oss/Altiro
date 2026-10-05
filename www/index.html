@@ -1127,6 +1127,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .stats-grid .cell .l{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
 .stats-grid .cell .v{font-family:var(--font-mono);font-weight:600;font-size:19px;color:var(--text);margin-top:5px;}
 
+.share-preview{margin:12px 0 4px;display:flex;justify-content:center;}
+.share-preview img{display:block;max-width:100%;max-height:52vh;width:auto;height:auto;border-radius:14px;border:1px solid var(--border);background:#0A0A0B;}
+.share-preview img:not([src]){width:62%;aspect-ratio:4/5;}
+.share-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
 .summary-note{margin:20px 20px 0;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--r-lg);padding:13px 14px;}
 .summary-note p{font-size:13px;line-height:1.5;color:var(--text-2);margin:0;}
 
@@ -1721,6 +1725,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     <div class="summary-note" id="summaryProgressNote" style="border-left-color:var(--ok-border);" hidden><p id="summaryProgressMsg"></p></div>
     <div class="streak-band"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 2c1 3-3 4-3 7a3 3 0 0 0 6 0c0-1-1-1.5-1-2.5 1.5 1 2 2.8 2 4.5a4 4 0 1 1-8 0C6 7 9 6 10 2z"/></svg><div><div class="v" id="summaryStreakVal"></div><div class="l" data-i18n="streakLine"></div></div></div>
     <div class="footer-cta" style="border-top:none;background:transparent;margin-top:10px;">
+      <button class="btn btn-ghost" id="shareWorkoutBtn" hidden><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V3M6 7l4-4 4 4M4 11v5h12v-5"/></svg><span data-i18n="shareWorkoutBtn"></span></button>
       <button class="btn btn-primary" data-i18n="backToTodayBtn" data-go="home"></button>
     </div>
   </section>
@@ -1794,6 +1799,25 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   </div>
 
   <!-- DELETE ACCOUNT SHEET (overlay) -->
+  <div class="sheet-overlay" id="shareCardOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="shareCardTitle"></span>
+        <button class="iconbtn" id="closeShareCard"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <div class="chip-row share-format" id="shareFormatChips">
+        <div class="chip sel" data-share-format="post" data-i18n="shareFormatPost"></div>
+        <div class="chip" data-share-format="story" data-i18n="shareFormatStory"></div>
+      </div>
+      <div class="share-preview"><img id="shareCardPreview" alt=""></div>
+      <div class="share-actions">
+        <button class="btn btn-primary" id="shareCardShareBtn" data-i18n="shareCardShareBtn"></button>
+        <button class="btn btn-ghost" id="shareCardSaveBtn" data-i18n="shareCardSaveBtn"></button>
+      </div>
+    </div>
+  </div>
+
   <div class="sheet-overlay" id="deleteAccountOverlay" hidden>
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
@@ -2992,6 +3016,12 @@ const STR = {
     toastUpdated: "Plan updated",
     workoutCompleteTitle: "Workout Complete",
     backToTodayBtn: "Back to Today",
+    shareWorkoutBtn: "Share workout", shareCardTitle: "Share your workout", shareFormatPost: "Post", shareFormatStory: "Story",
+    shareCardShareBtn: "Share", shareCardSaveBtn: "Save image", shareCardSaved: "Image saved",
+    shareCardFailed: "Couldn't share it. Try Save image instead.", shareCardNoShare: "Sharing isn't available here, so the image was saved instead.",
+    shareStatSets: "Sets", shareStatReps: "Reps", shareStatVolume: "Volume", shareStatTopSet: "Top set", shareExercisesLabel: "Exercises",
+    shareMore: "+{n} more", shareFooter: "Tracked with Altiro", shareStreak: "{n}-week streak",
+    shareText: "Just finished {title} with Altiro.",
     streakLine: "Current streak — keep it going",
     dayStreakSuffix: "WEEK STREAK",
     statDistance: "Distance", statTime: "Time", statPace: "Pace", statTempoTarget: "Tempo Target",
@@ -3568,6 +3598,12 @@ const STR = {
     toastUpdated: "Plan actualizado",
     workoutCompleteTitle: "Entrenamiento completado",
     backToTodayBtn: "Volver a hoy",
+    shareWorkoutBtn: "Compartir entrenamiento", shareCardTitle: "Comparte tu entrenamiento", shareFormatPost: "Publicación", shareFormatStory: "Historia",
+    shareCardShareBtn: "Compartir", shareCardSaveBtn: "Guardar imagen", shareCardSaved: "Imagen guardada",
+    shareCardFailed: "No se pudo compartir. Prueba Guardar imagen.", shareCardNoShare: "Aquí no se puede compartir, así que se guardó la imagen.",
+    shareStatSets: "Series", shareStatReps: "Reps", shareStatVolume: "Volumen", shareStatTopSet: "Serie máxima", shareExercisesLabel: "Ejercicios",
+    shareMore: "+{n} más", shareFooter: "Registrado con Altiro", shareStreak: "{n} semanas seguidas",
+    shareText: "Acabo de terminar {title} con Altiro.",
     streakLine: "Días activos actuales — sigue así",
     dayStreakSuffix: "SEMANAS SEGUIDAS",
     statDistance: "Distancia", statTime: "Tiempo", statPace: "Ritmo", statTempoTarget: "Objetivo de ritmo",
@@ -9962,11 +9998,13 @@ function getSummaryStats(session, intensityIdx, logged){
     return stats;
   }
   if(session.t==='strength'){
-    const mins = parseFloat(session.en.detail) || 30;
-    const stats = [
-      {l:L.statTotalVolume, v: tier.vol.toLocaleString()+' lb'},
-      {l:L.statTime, v: mins+' min'},
-    ];
+    // What was really lifted and how long it took, once there's a logged exercise list.
+    const realVol = logged && logged.exercises ? loggedLiftVolume(logged) : null;
+    const mins = (logged && Number(logged.time)>=1) ? Math.round(logged.time) : (parseFloat(session.en.detail) || 30);
+    const stats = [];
+    if(realVol==null) stats.push({l:L.statTotalVolume, v: tier.vol.toLocaleString()+' lb'});
+    else if(realVol>0) stats.push({l:L.statTotalVolume, v: realVol.toLocaleString()+' '+state.weightUnit});
+    stats.push({l:L.statTime, v: mins+' min'});
     if(logged && logged.exercises){
       // A structured session's real detail lives in the per-exercise results list, not a single
       // "top set" line -- see getSummaryExercises() / #summaryExercisesList.
@@ -10027,6 +10065,7 @@ function renderSummary(){
   if(exResults) exercisesEl.innerHTML = exResults.map(r=>`<div class="se-row"><span class="se-name">${escapeHtml(r.name)}</span><span class="se-result">${escapeHtml(r.result)}</span></div>`).join('');
   const noteObj = SUMMARY_NOTE[session.t] || SUMMARY_NOTE.run;
   document.getElementById('summaryNote').textContent = noteObj[state.lang];
+  document.getElementById('shareWorkoutBtn').hidden = !logged;
   refreshStreak();
   document.getElementById('summaryStreakVal').textContent = `${state.streak} ${L.dayStreakSuffix}`;
   const progNoteEl = document.getElementById('summaryProgressNote');
@@ -10064,6 +10103,298 @@ function renderSummary(){
     progNoteEl.hidden = true;
   }
 }
+
+/* ---------------- shareable workout card ---------------- */
+// After a workout is saved, the Summary can turn it into an image for social media: what it was, when,
+// the time, sets, reps and weights, and every exercise -- drawn on a canvas in the app's look, as a feed
+// post (4:5) or a story (9:16), then handed to the phone's share sheet (or saved as a picture).
+const SHARE_FORMATS = {post:{w:1080, h:1350}, story:{w:1080, h:1920}};
+let shareFormat = 'post', shareCardBlob = null, shareCardUrl = null, shareCardToken = 0;
+function fmtShareNum(n){ return Math.round(n).toLocaleString(state.lang==='es' ? 'es' : 'en-US'); }
+// Total weight moved (weight × reps over every logged set; bodyweight work doesn't count).
+function loggedLiftVolume(logged){
+  let volume = 0;
+  ((logged && logged.exercises) || []).forEach(e=>{
+    if(e.bodyweight) return;
+    const sets = (e.sets && e.sets.length) ? e.sets : [{weight:e.weight, reps:e.reps}];
+    sets.forEach(x=>{ volume += (Number(x.weight)||0) * (Number(x.reps)||0); });
+  });
+  return volume;
+}
+function shareSetsText(res){
+  const unit = state.weightUnit;
+  if(res.bodyweight) return res.prescription || (res.setCount ? `${res.setCount} x ${res.reps||''}`.trim() : '');
+  const sets = (res.sets && res.sets.length) ? res.sets : [{weight: res.weight, reps: res.reps}];
+  const same = sets.every(x=> Number(x.weight)===Number(sets[0].weight) && Number(x.reps)===Number(sets[0].reps));
+  if(same){
+    const w = Number(sets[0].weight) || 0, r = Number(sets[0].reps) || 0;
+    return `${sets.length} × ${r}${w>0 ? ` @ ${fmtShareNum(w)} ${unit}` : ''}`;
+  }
+  return sets.map(x=> `${fmtShareNum(Number(x.weight)||0)}×${Number(x.reps)||0}`).join(' · ') + ` ${unit}`;
+}
+// Everything the card shows, from the workout just saved.
+function shareCardData(){
+  const L = STR[state.lang];
+  const session = state._lastSession || todaySession();
+  const logged = state._lastLogged || {};
+  const unit = state.weightUnit;
+  const stats = [], rows = [];
+  const min = Number(logged.time) || 0;
+  if(Array.isArray(logged.exercises) && logged.exercises.length){
+    const v = perfVolume(logged), volume = loggedLiftVolume(logged);
+    if(min>=1) stats.push({l:L.statTime, v:fmtActiveTime(min)});
+    stats.push({l:L.shareStatSets, v:fmtShareNum(v.sets)});
+    stats.push({l:L.shareStatReps, v:fmtShareNum(v.reps)});
+    if(volume>0) stats.push({l:L.shareStatVolume, v:`${volume>=100000 ? Math.round(volume/1000)+'k' : fmtShareNum(volume)} ${unit}`});
+    logged.exercises.forEach(e=> rows.push({name: e.name, detail: shareSetsText(e)}));
+  } else if(session.t==='run'){
+    const mi = logged.distance!=null ? Number(logged.distance) : plannedMilesOf(session);
+    if(mi) stats.push({l:L.statDistance, v:`${(+mi).toFixed(1)} mi`});
+    if(min) stats.push({l:L.statTime, v:fmtDurationClock(min)});
+    if(mi && min && !isPaceFree(session)) stats.push({l:L.statPace, v:`${fmtPace(min/mi)}/mi`});
+  } else if(session.t==='interval'){
+    const cfg = session.interval || {rounds:6, workSec:180, restSec:60};
+    const rounds = logged.rounds || cfg.rounds;
+    stats.push({l:L.intervalRoundsLabel, v:String(rounds)});
+    stats.push({l:L.timerWorkShort, v:fmtClock(cfg.workSec)});
+    stats.push({l:L.timerRestShort, v:fmtClock(cfg.restSec)});
+    stats.push({l:L.statTime, v:fmtDurationClock((rounds*cfg.workSec + Math.max(0,rounds-1)*cfg.restSec)/60)});
+  } else {
+    if(min>=1) stats.push({l:L.statTime, v:fmtActiveTime(min)});
+    if(session.t==='strength' && logged.weight>0) stats.push({l:L.shareStatTopSet, v:`${fmtShareNum(logged.weight)} ${unit} × ${logged.reps||0}`});
+  }
+  const sessL = ST(session);
+  const date = TODAY_DATE.toLocaleDateString(state.lang==='es' ? 'es' : 'en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+  return {kicker: L.workoutCompleteTitle, title: sessL.title || L.workoutCompleteTitle, date, stats, rows,
+    streak: state.streak>=1 ? L.shareStreak.replace('{n}', state.streak) : '', footer: L.shareFooter};
+}
+function shareCardAlt(d){
+  return [d.title, d.date, ...d.stats.map(s=>`${s.l}: ${s.v}`), ...d.rows.map(r=>`${r.name}: ${r.detail}`)].join('. ');
+}
+// Shrinks a font size until the text fits, then cuts it with "…" if it still doesn't.
+function fitText(ctx, text, maxW, font, size, minSize){
+  let px = size;
+  for(; px>minSize; px-=2){ ctx.font = font(px); if(ctx.measureText(text).width<=maxW) return {text, px}; }
+  ctx.font = font(minSize);
+  let t = text;
+  while(t.length>1 && ctx.measureText(t+'…').width>maxW) t = t.slice(0,-1);
+  return {text: t===text ? t : t.trimEnd()+'…', px:minSize};
+}
+function wrapLines(ctx, text, maxW, maxLines){
+  const words = String(text).split(/\s+/), lines = [];
+  let cur = '';
+  words.forEach(w=>{
+    const next = cur ? cur+' '+w : w;
+    if(ctx.measureText(next).width<=maxW || !cur) cur = next; else { lines.push(cur); cur = w; }
+  });
+  if(cur) lines.push(cur);
+  if(lines.length<=maxLines) return lines;
+  const kept = lines.slice(0, maxLines);
+  let last = kept[maxLines-1];
+  while(last.length>1 && ctx.measureText(last+'…').width>maxW) last = last.slice(0,-1);
+  kept[maxLines-1] = last.trimEnd()+'…';
+  return kept;
+}
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
+}
+function drawShareCard(canvas, d, format){
+  const {w:W, h:H} = SHARE_FORMATS[format];
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const RED = '#DA1419', RED_B = '#FF5257', GREEN = '#2ECC71', TEXT = '#F5F5F5', TEXT2 = '#A8A8AC', TILE = '#17171A', LINE = '#2C2C30';
+  const DISPLAY = px=> `800 ${px}px Montserrat, "Arial Black", sans-serif`;
+  const DISPLAY6 = px=> `700 ${px}px Montserrat, Arial, sans-serif`;
+  const BODY = px=> `600 ${px}px "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif`;
+  const MONO = px=> `500 ${px}px "IBM Plex Mono", "SF Mono", monospace`;
+  const spacing = (c, on)=>{ if('letterSpacing' in c) c.letterSpacing = on ? '4px' : '0px'; };
+  const story = format==='story';
+  const P = 80, CW = W - 2*P;
+  // Background: near-black with the logo's red and green glowing in from opposite corners.
+  ctx.fillStyle = '#0A0A0B'; ctx.fillRect(0, 0, W, H);
+  let g = ctx.createRadialGradient(W, 0, 0, W, 0, W*0.9);
+  g.addColorStop(0, 'rgba(218,20,25,0.30)'); g.addColorStop(1, 'rgba(218,20,25,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  g = ctx.createRadialGradient(0, H, 0, 0, H, W*0.8);
+  g.addColorStop(0, 'rgba(46,204,113,0.16)'); g.addColorStop(1, 'rgba(46,204,113,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // Instagram/TikTok stories cover the top and bottom ~250px with their own buttons.
+  const top = story ? 230 : 80, footerY = H - (story ? 250 : 80);
+  // Logo top-left (its black backdrop drops out with "lighten"), date top-right.
+  const logo = document.getElementById('brandLogoFull');
+  const logoH = 118, logoW = logo && logo.naturalWidth ? logoH*logo.naturalWidth/logo.naturalHeight : 0;
+  if(logoW){ try{ ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(logo, P-6, top, logoW, logoH); ctx.restore(); }catch(e){} }
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'right'; ctx.fillStyle = TEXT2; spacing(ctx, false);
+  const dateFit = fitText(ctx, d.date.toUpperCase(), CW - logoW - 30, MONO, 30, 20);
+  ctx.font = MONO(dateFit.px); ctx.fillText(dateFit.text, W-P, top+logoH/2+10);
+  ctx.textAlign = 'left';
+  // Footer: a red-to-green rule (the logo's swoosh), "Tracked with Altiro", and the streak.
+  g = ctx.createLinearGradient(P, 0, W-P, 0);
+  g.addColorStop(0, RED); g.addColorStop(1, GREEN);
+  ctx.fillStyle = g; ctx.fillRect(P, footerY-56, CW, 5);
+  ctx.fillStyle = TEXT2; ctx.font = MONO(26); spacing(ctx, true);
+  ctx.fillText(d.footer.toUpperCase(), P, footerY);
+  if(d.streak){ ctx.textAlign = 'right'; ctx.fillStyle = RED_B; ctx.fillText(d.streak.toUpperCase(), W-P, footerY); ctx.textAlign = 'left'; }
+  spacing(ctx, false);
+
+  // The body is drawn on its own layer first, so it can be centred in the space between the logo and
+  // the footer however long the workout was.
+  const areaTop = top + logoH + 40, areaH = footerY - 56 - 40 - areaTop;
+  const layer = document.createElement('canvas');
+  layer.width = W; layer.height = Math.max(1, Math.ceil(areaH));
+  const b = layer.getContext('2d');
+  b.textBaseline = 'alphabetic'; b.textAlign = 'left';
+  let y = 30;
+  // "WORKOUT COMPLETE" and the workout's name.
+  b.fillStyle = RED_B; b.font = DISPLAY6(30); spacing(b, true);
+  b.fillText(d.kicker.toUpperCase(), P, y); spacing(b, false);
+  y += 26;
+  let titlePx = story ? 96 : 84;
+  b.font = DISPLAY(titlePx);
+  let lines = wrapLines(b, d.title, CW, 2);
+  while(titlePx>56 && lines.some(l=> b.measureText(l).width>CW || /…$/.test(l))){ titlePx -= 4; b.font = DISPLAY(titlePx); lines = wrapLines(b, d.title, CW, 2); }
+  b.fillStyle = TEXT;
+  lines.forEach(l=>{ y += titlePx*1.08; b.fillText(l, P, y); });
+  y += story ? 70 : 52;
+  // The numbers: one row of tiles when there's an exercise list below, a big 2-column grid when not.
+  const big = !d.rows.length;
+  const cols = big ? (d.stats.length===1 ? 1 : 2) : Math.max(1, d.stats.length);
+  const gap = 20, tileW = (CW - gap*(cols-1))/cols, tileH = big ? (story ? 250 : 200) : 150;
+  d.stats.forEach((st, i)=>{
+    const cx = P + (i%cols)*(tileW+gap), cy = y + Math.floor(i/cols)*(tileH+gap);
+    roundRect(b, cx, cy, tileW, tileH, 22); b.fillStyle = TILE; b.fill();
+    b.strokeStyle = LINE; b.lineWidth = 2; b.stroke();
+    b.fillStyle = TEXT2; spacing(b, true);
+    const lab = fitText(b, st.l.toUpperCase(), tileW-44, MONO, big ? 26 : 22, 16);
+    b.font = MONO(lab.px); b.fillText(lab.text, cx+22, cy+(big ? 52 : 44)); spacing(b, false);
+    b.fillStyle = TEXT;
+    const val = fitText(b, st.v, tileW-44, DISPLAY, big ? (story ? 104 : 88) : 54, 26);
+    b.font = DISPLAY(val.px); b.fillText(val.text, cx+22, cy+tileH-(big ? 46 : 34));
+  });
+  if(d.stats.length) y += Math.ceil(d.stats.length/cols)*(tileH+gap) - gap;
+  // Each exercise: name on the left, what was lifted on the right.
+  if(d.rows.length){
+    y += 64;
+    b.fillStyle = TEXT2; b.font = MONO(24); spacing(b, true);
+    b.fillText(STR[state.lang].shareExercisesLabel.toUpperCase(), P, y); spacing(b, false);
+    y += 18;
+    const rowH = story ? 76 : 64, nameMax = story ? 36 : 32, detMax = story ? 32 : 30;
+    const room = Math.max(1, Math.floor((areaH - y)/rowH));
+    const shown = d.rows.length>room ? d.rows.slice(0, room-1) : d.rows;
+    shown.forEach(r=>{
+      b.strokeStyle = LINE; b.lineWidth = 2;
+      b.beginPath(); b.moveTo(P, y); b.lineTo(W-P, y); b.stroke();
+      const base = y + rowH/2 + 11;
+      b.textAlign = 'right'; b.fillStyle = '#D4D4D8';
+      const det = fitText(b, r.detail, CW*0.56, MONO, detMax, 20);
+      b.font = MONO(det.px); b.fillText(det.text, W-P, base);
+      const detW = b.measureText(det.text).width;
+      b.textAlign = 'left'; b.fillStyle = TEXT;
+      const nm = fitText(b, r.name, CW - detW - 28, BODY, nameMax, 22);
+      b.font = BODY(nm.px); b.fillText(nm.text, P, base);
+      y += rowH;
+    });
+    if(shown.length<d.rows.length){
+      b.strokeStyle = LINE; b.beginPath(); b.moveTo(P, y); b.lineTo(W-P, y); b.stroke();
+      b.fillStyle = TEXT2; b.font = BODY(28);
+      b.fillText(STR[state.lang].shareMore.replace('{n}', d.rows.length-shown.length), P, y+rowH/2+10);
+      y += rowH;
+    }
+  }
+  const bodyH = Math.min(areaH, y + 10);
+  // A bit above dead centre reads better than exactly centred.
+  const offset = Math.max(0, (areaH - bodyH)*0.42);
+  ctx.drawImage(layer, 0, 0, W, bodyH, 0, areaTop + offset, W, bodyH);
+  return canvas;
+}
+async function shareFontsReady(){
+  try{
+    if(!document.fonts || !document.fonts.load) return;
+    await Promise.race([
+      Promise.all(['800 80px Montserrat','700 30px Montserrat','600 32px "IBM Plex Sans"','500 30px "IBM Plex Mono"'].map(f=> document.fonts.load(f))),
+      new Promise(r=> setTimeout(r, 1500)),
+    ]);
+  }catch(e){}
+}
+// Draws the card for the chosen format and keeps it ready as a PNG, so a tap on Share can hand it over
+// right away (phones only allow sharing straight from the tap).
+async function renderShareCard(){
+  const token = ++shareCardToken;
+  const img = document.getElementById('shareCardPreview');
+  document.querySelectorAll('#shareFormatChips .chip').forEach(c=> c.classList.toggle('sel', c.dataset.shareFormat===shareFormat));
+  shareCardBlob = null;
+  const canvas = document.createElement('canvas');
+  if(!canvas.getContext || !canvas.getContext('2d')) return 'unsupported';
+  await shareFontsReady();
+  if(token!==shareCardToken) return false;
+  const d = shareCardData();
+  drawShareCard(canvas, d, shareFormat);
+  const blob = await new Promise(res=>{ try{ canvas.toBlob(res, 'image/png'); }catch(e){ res(null); } });
+  if(token!==shareCardToken || !blob) return false;
+  shareCardBlob = blob;
+  if(shareCardUrl) URL.revokeObjectURL(shareCardUrl);
+  shareCardUrl = URL.createObjectURL(blob);
+  img.src = shareCardUrl;
+  img.alt = shareCardAlt(d);
+  img.dataset.format = shareFormat;
+  return true;
+}
+function shareCardFileName(){ return `altiro-workout-${dateKey(TODAY_DATE)}${shareFormat==='story' ? '-story' : ''}.png`; }
+function shareCardMessage(){ return STR[state.lang].shareText.replace('{title}', shareCardData().title); }
+function saveShareCardImage(){
+  if(!shareCardBlob) return false;
+  const a = document.createElement('a');
+  a.href = shareCardUrl; a.download = shareCardFileName();
+  document.body.appendChild(a); a.click(); a.remove();
+  return true;
+}
+function blobToBase64(blob){
+  return new Promise((res, rej)=>{ const r = new FileReader(); r.onload = ()=> res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+}
+async function shareShareCard(){
+  const L = STR[state.lang];
+  if(!shareCardBlob) return;
+  const plugins = isNativeShell() && window.Capacitor.Plugins;
+  try{
+    if(plugins && plugins.Share && plugins.Filesystem){
+      // The store app: the picture goes in the app's cache folder and the phone's own share sheet
+      // takes it from there (Instagram, Messages, Save to Photos...).
+      const file = await plugins.Filesystem.writeFile({path: shareCardFileName(), data: await blobToBase64(shareCardBlob), directory: 'CACHE'});
+      await plugins.Share.share({title: L.shareCardTitle, text: shareCardMessage(), files: [file.uri], dialogTitle: L.shareCardTitle});
+      return;
+    }
+    const file = typeof File==='function' ? new File([shareCardBlob], shareCardFileName(), {type:'image/png'}) : null;
+    if(file && navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+      await navigator.share({files:[file], title: L.shareCardTitle, text: shareCardMessage()});
+      return;
+    }
+    if(saveShareCardImage()) showToast(L.shareCardNoShare);
+  }catch(e){
+    if(e && (e.name==='AbortError' || /cancel/i.test(String(e.message||e)))) return; // closed the share sheet
+    showToast(L.shareCardFailed);
+  }
+}
+function openShareCard(){
+  document.getElementById('shareCardOverlay').hidden = false;
+  const img = document.getElementById('shareCardPreview');
+  img.removeAttribute('src');
+  // In the store app the share sheet already has "Save image", so only Share is offered there.
+  document.getElementById('shareCardSaveBtn').hidden = isNativeShell();
+  renderShareCard().then(r=>{ if(r==='unsupported') showToast(STR[state.lang].shareCardFailed); });
+}
+function closeShareCard(){ document.getElementById('shareCardOverlay').hidden = true; shareCardToken++; }
+document.getElementById('shareWorkoutBtn').addEventListener('click', openShareCard);
+document.getElementById('closeShareCard').addEventListener('click', closeShareCard);
+document.getElementById('shareCardOverlay').addEventListener('click', e=>{ if(e.target.id==='shareCardOverlay') closeShareCard(); });
+document.querySelectorAll('#shareFormatChips .chip').forEach(c=> c.addEventListener('click', ()=>{
+  if(shareFormat===c.dataset.shareFormat) return;
+  shareFormat = c.dataset.shareFormat;
+  renderShareCard();
+}));
+document.getElementById('shareCardShareBtn').addEventListener('click', shareShareCard);
+document.getElementById('shareCardSaveBtn').addEventListener('click', ()=>{ if(saveShareCardImage()) showToast(STR[state.lang].shareCardSaved); });
 
 /* ---------------- email confirmation ---------------- */
 // When a new account has to confirm its email first, the answers from setup (goal, days, balance...)

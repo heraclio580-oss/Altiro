@@ -7512,7 +7512,7 @@ function getAudioCtx(){
   }
   return audioCtx;
 }
-function playTone(freq, durationMs){
+function playTone(freq, durationMs, peak){
   try{
     const ctx = getAudioCtx();
     if(!ctx) return;
@@ -7527,8 +7527,9 @@ function playTone(freq, durationMs){
     const durSec = durationMs/1000;
     const decayStart = Math.max(0.015, durSec - 0.06);
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.85, ctx.currentTime+0.015);
-    gain.gain.exponentialRampToValueAtTime(0.85, ctx.currentTime+decayStart);
+    const top = peak || 0.85;
+    gain.gain.exponentialRampToValueAtTime(top, ctx.currentTime+0.015);
+    gain.gain.exponentialRampToValueAtTime(top, ctx.currentTime+decayStart);
     gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+durSec);
     osc.connect(gain); gain.connect(ctx.destination);
     osc.start();
@@ -7536,7 +7537,43 @@ function playTone(freq, durationMs){
   }catch(e){ /* audio is a nice-to-have, never block the timer over it */ }
 }
 function playBeep(){ playTone(880, 140); }
-function playBell(){ playTone(1200, 500); }
+function playBell(peak){ playTone(1200, 500, peak); }
+// "Ready", "Go" and "Stop" are recorded clips (www/audio, a deep male voice made punchy and loud), so
+// every phone hears the same commanding voice instead of whatever text-to-speech voice it has.
+// They're decoded once into the timer's AudioContext when the timer opens; until they're ready (or
+// if they can't load) the cue falls back to the phone's own speech voice below.
+const TIMER_VOICE_CLIPS = {ready:'audio/ready.wav', go:'audio/go.wav', stop:'audio/stop.wav'};
+const voiceClips = {};
+let voiceClipsLoading = null;
+function loadVoiceClips(){
+  const ctx = getAudioCtx();
+  if(voiceClipsLoading || !ctx || typeof fetch!=='function') return;
+  voiceClipsLoading = Promise.all(Object.keys(TIMER_VOICE_CLIPS).map(key=>
+    fetch(TIMER_VOICE_CLIPS[key])
+      .then(r=>{ if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      // the callback form also works on older iPhones, whose decodeAudioData doesn't return a promise
+      .then(data=>new Promise((resolve, reject)=>{ const p = ctx.decodeAudioData(data, resolve, reject); if(p && p.catch) p.catch(()=>{}); }))
+      .then(buf=>{ voiceClips[key] = buf; })
+      .catch(()=>{})));
+}
+// Plays the cue and says whether a recorded clip was used (false means it fell back to speech).
+function playVoiceCue(key){
+  const ctx = audioCtx, buf = voiceClips[key];
+  if(ctx && buf){
+    try{
+      if(ctx.state==='suspended') ctx.resume();
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start();
+      return true;
+    }catch(e){ /* fall through to speech */ }
+  }
+  speakCue(TIMER_VOICE_CUES[key]);
+  return false;
+}
+// The bell under a recorded "Go"/"Stop" is played softer so the word stays clear on top of it.
+function cueWithBell(key){ playBell(playVoiceCue(key) ? 0.3 : undefined); }
 // "Ready"/"Go"/"Stop" are always spoken in English regardless of the app's display language --
 // they're short, universal gym-timer commands, not content that needs translating.
 const TIMER_VOICE_CUES = {ready:'Ready', go:'Go', stop:'Stop'};
@@ -7584,6 +7621,7 @@ function openIntervalTimer(extraId){
   const eff = activeSession();
   const cfg = eff.interval || {rounds:6, workSec:180, restSec:60};
   timerState = defaultTimerState(cfg);
+  loadVoiceClips(); // opening the timer is a tap, so the AudioContext made here is allowed to play
   renderTimerUI();
   document.getElementById('intervalTimerOverlay').hidden = false;
 }
@@ -7642,17 +7680,14 @@ function stopTimerTick(){
 function advanceTimerPhase(){
   const ts = timerState;
   ts.lastBeepSecond = null;
-  // The voice cue is spoken first (before the tone) since text-to-speech engines have a startup
-  // delay before any sound actually comes out -- firing it first, then the near-instant Web Audio
-  // tone, lands the two closer together than the other order would.
+  // The voice cue goes first (before the tone): a recorded clip starts instantly, and the speech
+  // fallback has a startup delay, so firing it first lands the word and the bell close together.
   if(ts.phase==='countdown'){
-    speakCue(TIMER_VOICE_CUES.go);
-    playBell();
+    cueWithBell('go');
     ts.phase = 'work';
     ts.remainingMs = ts.workSec*1000;
   } else if(ts.phase==='work'){
-    speakCue(TIMER_VOICE_CUES.stop);
-    playBell();
+    cueWithBell('stop');
     ts.phase = 'rest';
     ts.remainingMs = ts.restSec*1000;
   } else if(ts.roundNum >= ts.rounds){
@@ -7663,8 +7698,7 @@ function advanceTimerPhase(){
     renderTimerUI();
     return;
   } else {
-    speakCue(TIMER_VOICE_CUES.go);
-    playBell();
+    cueWithBell('go');
     ts.roundNum += 1;
     ts.phase = 'work';
     ts.remainingMs = ts.workSec*1000;
@@ -7675,7 +7709,7 @@ function startTimerTick(){
   const ts = timerState;
   // "Ready" fires once, right when the pre-start countdown first begins -- not on every
   // resume-from-pause, which is why this checks !ts.started before that flips to true below.
-  if(ts.phase==='countdown' && !ts.started) speakCue(TIMER_VOICE_CUES.ready);
+  if(ts.phase==='countdown' && !ts.started) playVoiceCue('ready');
   ts.running = true;
   ts.started = true;
   ts.lastTick = Date.now();
@@ -7697,7 +7731,11 @@ function startTimerTick(){
 document.getElementById('timerStartPauseBtn').addEventListener('click', ()=>{
   if(!timerState) return;
   if(timerState.running){ stopTimerTick(); timerState.running=false; renderTimerUI(); }
-  else{ startTimerTick(); }
+  else{
+    // iPhones start audio paused until a tap resumes it -- this tap is the one that unlocks the voice
+    if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
+    startTimerTick();
+  }
 });
 document.getElementById('timerResetBtn').addEventListener('click', ()=>{
   if(!timerState) return;

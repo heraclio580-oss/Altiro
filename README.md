@@ -134,6 +134,13 @@ What the store apps rely on:
 - **Legal pages:** `www/privacy.html`, `www/terms.html`, and `www/delete-account.html` (Google Play's
   account-deletion link) -- all served from the live site.
 
+## Timer voice
+
+`www/audio/ready.wav`, `go.wav` and `stop.wav` are the interval timer's spoken cues. They were made with
+the open-source [Kokoro](https://github.com/hexgrad/kokoro) text-to-speech model (Apache 2.0, free for
+commercial use), voice `am_onyx` at 1.1× speed, then trimmed, compressed and normalized so they're loud and
+punchy. If they ever fail to load, the timer falls back to the phone's own speech voice.
+
 ## Next step
 
 Build and run each store app on a real device (TestFlight / Play internal testing), then prepare the

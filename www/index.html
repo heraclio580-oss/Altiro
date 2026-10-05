@@ -1131,13 +1131,17 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .share-preview img{display:block;max-width:100%;max-height:52vh;width:auto;height:auto;border-radius:14px;border:1px solid var(--border);background:#0A0A0B;}
 .share-preview img:not([src]){width:62%;aspect-ratio:4/5;}
 .share-preview img[src]{cursor:zoom-in;}
-.share-hint{text-align:center;font-size:12px;color:var(--text-3);margin-top:6px;}
 .share-full{position:fixed;inset:0;z-index:300;background:#0A0A0B;display:flex;align-items:center;justify-content:center;cursor:zoom-out;}
 .share-full[hidden]{display:none;}
 .share-full img{max-width:100%;max-height:100%;width:auto;height:auto;display:block;}
 .share-full .share-full-tip{position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#F5F5F5;font-size:13px;padding:8px 14px;border-radius:999px;white-space:nowrap;transition:opacity .4s;pointer-events:none;}
 .share-full .share-full-tip.gone{opacity:0;}
-.share-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+.share-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;}
+.share-sq{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:76px;padding:10px 4px;background:var(--well);border:1px solid var(--border);border-radius:16px;color:var(--text);font-family:var(--font-body);font-size:11.5px;font-weight:500;line-height:1.2;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.share-sq[hidden]{display:none;}
+.share-sq svg{width:24px;height:24px;flex-shrink:0;}
+.share-sq.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff);}
+.share-sq:active{transform:scale(0.96);}
 .summary-note{margin:20px 20px 0;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--r-lg);padding:13px 14px;}
 .summary-note p{font-size:13px;line-height:1.5;color:var(--text-2);margin:0;}
 
@@ -1819,10 +1823,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="chip" data-share-format="story" data-i18n="shareFormatStory"></div>
       </div>
       <div class="share-preview"><img id="shareCardPreview" alt=""></div>
-      <div class="share-hint" data-i18n="shareCardFullHint"></div>
       <div class="share-actions">
-        <button class="btn btn-primary" id="shareCardShareBtn" data-i18n="shareCardShareBtn"></button>
-        <button class="btn btn-ghost" id="shareCardSaveBtn" data-i18n="shareCardSaveBtn"></button>
+        <button class="share-sq primary" id="shareCardSaveBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg><span data-i18n="shareSaveSquare"></span></button>
+        <button class="share-sq" id="shareCardCopyBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/></svg><span data-i18n="shareCopySquare"></span></button>
+        <button class="share-sq" id="shareCardShareBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4M5 13v6h14v-6"/></svg><span data-i18n="shareCardShareBtn"></span></button>
+        <button class="share-sq" id="shareCardFullBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span data-i18n="shareFullSquare"></span></button>
       </div>
     </div>
   </div>
@@ -3026,7 +3031,7 @@ const STR = {
     workoutCompleteTitle: "Workout Complete",
     backToTodayBtn: "Back to Today",
     shareWorkoutBtn: "Share workout", shareCardTitle: "Share your workout", shareFormatPost: "Post", shareFormatStory: "Story",
-    shareCardShareBtn: "Share", shareCardSaveBtn: "Save image", shareCardSaved: "Image saved", shareCardFullHint: "Tap the picture to see it full screen, ready for a screenshot.", shareCardFullTip: "Take your screenshot · tap to close",
+    shareCardShareBtn: "Share", shareSaveSquare: "Save to Photos", shareCopySquare: "Copy", shareFullSquare: "Full screen", shareCardSaved: "Saved to your photos", shareCardSavedDownload: "Saved. It's in your gallery's Download album.", shareCopied: "Copied. Paste it into a post or message.", shareCopyFailed: "This phone can't copy pictures. Try Save to Photos.", sharePhotosDenied: "Allow Altiro to add photos in your phone's Settings, then try again.", shareCardFullTip: "Take your screenshot · tap to close",
     shareCardFailed: "Couldn't share it. Try Save image instead.", shareCardNoShare: "Sharing isn't available here, so the image was saved instead.",
     shareStatSets: "Sets", shareStatReps: "Reps", shareStatVolume: "Volume", shareStatTopSet: "Top set", shareExercisesLabel: "Exercises",
     shareMore: "+{n} more", shareFooter: "Tracked with Altiro", shareStreak: "{n}-week streak",
@@ -3608,7 +3613,7 @@ const STR = {
     workoutCompleteTitle: "Entrenamiento completado",
     backToTodayBtn: "Volver a hoy",
     shareWorkoutBtn: "Compartir entrenamiento", shareCardTitle: "Comparte tu entrenamiento", shareFormatPost: "Publicación", shareFormatStory: "Historia",
-    shareCardShareBtn: "Compartir", shareCardSaveBtn: "Guardar imagen", shareCardSaved: "Imagen guardada", shareCardFullHint: "Toca la imagen para verla en pantalla completa y hacer una captura.", shareCardFullTip: "Haz tu captura · toca para cerrar",
+    shareCardShareBtn: "Compartir", shareSaveSquare: "Guardar en Fotos", shareCopySquare: "Copiar", shareFullSquare: "Pantalla completa", shareCardSaved: "Guardada en tus fotos", shareCardSavedDownload: "Guardada. Está en el álbum Descargas de tu galería.", shareCopied: "Copiada. Pégala en una publicación o mensaje.", shareCopyFailed: "Este teléfono no puede copiar imágenes. Prueba Guardar en Fotos.", sharePhotosDenied: "Permite que Altiro añada fotos en los Ajustes del teléfono y vuelve a intentarlo.", shareCardFullTip: "Haz tu captura · toca para cerrar",
     shareCardFailed: "No se pudo compartir. Prueba Guardar imagen.", shareCardNoShare: "Aquí no se puede compartir, así que se guardó la imagen.",
     shareStatSets: "Series", shareStatReps: "Reps", shareStatVolume: "Volumen", shareStatTopSet: "Serie máxima", shareExercisesLabel: "Ejercicios",
     shareMore: "+{n} más", shareFooter: "Registrado con Altiro", shareStreak: "{n} semanas seguidas",
@@ -10118,7 +10123,7 @@ function renderSummary(){
 // the time, sets, reps and weights, and every exercise -- drawn on a canvas in the app's look, as a feed
 // post (4:5) or a story (9:16), then handed to the phone's share sheet (or saved as a picture).
 const SHARE_FORMATS = {post:{w:1080, h:1350}, story:{w:1080, h:1920}};
-let shareFormat = 'post', shareCardBlob = null, shareCardUrl = null, shareCardToken = 0;
+let shareFormat = 'post', shareCardBlob = null, shareCardUrl = null, shareCardToken = 0, shareCardCanvas = null;
 function fmtShareNum(n){ return Math.round(n).toLocaleString(state.lang==='es' ? 'es' : 'en-US'); }
 // Total weight moved (weight × reps over every logged set; bodyweight work doesn't count).
 function loggedLiftVolume(logged){
@@ -10343,6 +10348,7 @@ async function renderShareCard(){
   const blob = await new Promise(res=>{ try{ canvas.toBlob(res, 'image/jpeg', 0.9); }catch(e){ res(null); } });
   if(token!==shareCardToken || !blob) return false;
   shareCardBlob = blob;
+  shareCardCanvas = canvas;
   if(shareCardUrl) URL.revokeObjectURL(shareCardUrl);
   shareCardUrl = URL.createObjectURL(blob);
   img.src = shareCardUrl;
@@ -10358,6 +10364,47 @@ function saveShareCardImage(){
   a.href = shareCardUrl; a.download = shareCardFileName();
   document.body.appendChild(a); a.click(); a.remove();
   return true;
+}
+function isIOSDevice(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+}
+// "Save to Photos": straight into the phone's gallery in the store app (an "Altiro" album on Android);
+// on the website, iPhones can only reach Photos through the share sheet ("Save Image"), and other
+// phones save it as a download, which their gallery shows in its Download album.
+async function saveShareCardToPhotos(){
+  const L = STR[state.lang];
+  if(!shareCardBlob) return;
+  const Media = isNativeShell() && window.Capacitor.Plugins && window.Capacitor.Plugins.Media;
+  if(Media){
+    try{
+      const opts = {path: 'data:image/jpeg;base64,' + await blobToBase64(shareCardBlob), fileName: shareCardFileName().replace(/\.jpg$/, '')};
+      if(window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='android'){
+        const {path} = await Media.getAlbumsPath();
+        try{ await Media.createAlbum({name:'Altiro'}); }catch(e){ /* already there */ }
+        opts.albumIdentifier = path.replace(/\/$/, '') + '/Altiro';
+      }
+      await Media.savePhoto(opts);
+      showToast(L.shareCardSaved);
+    }catch(e){
+      showToast((e && e.code==='accessDenied') || /denied|permission/i.test(String(e && e.message || e)) ? L.sharePhotosDenied : L.shareCardFailed);
+    }
+    return;
+  }
+  if(isIOSDevice() && navigator.share){ shareShareCard(); return; }
+  if(saveShareCardImage()) showToast(L.shareCardSavedDownload);
+}
+// "Copy": the picture goes on the clipboard (as PNG -- the one picture type every phone's clipboard
+// takes), ready to paste into a post or a message.
+function canCopyShareCard(){ return !!(navigator.clipboard && navigator.clipboard.write && typeof window.ClipboardItem==='function'); }
+async function copyShareCard(){
+  const L = STR[state.lang];
+  if(!shareCardCanvas || !canCopyShareCard()) return showToast(L.shareCopyFailed);
+  try{
+    // Handing the clipboard a promise keeps Safari's "this came from a tap" permission while the PNG is made.
+    const png = new Promise((res, rej)=> shareCardCanvas.toBlob(b=> b ? res(b) : rej(new Error('no image')), 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({'image/png': png})]);
+    showToast(L.shareCopied);
+  }catch(e){ showToast(L.shareCopyFailed); }
 }
 function blobToBase64(blob){
   return new Promise((res, rej)=>{ const r = new FileReader(); r.onload = ()=> res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
@@ -10389,8 +10436,7 @@ function openShareCard(){
   document.getElementById('shareCardOverlay').hidden = false;
   const img = document.getElementById('shareCardPreview');
   img.removeAttribute('src');
-  // In the store app the share sheet already has "Save image", so only Share is offered there.
-  document.getElementById('shareCardSaveBtn').hidden = isNativeShell();
+  document.getElementById('shareCardCopyBtn').hidden = !canCopyShareCard();
   renderShareCard().then(r=>{ if(r==='unsupported') showToast(STR[state.lang].shareCardFailed); });
 }
 // Full screen: just the picture, edge to edge, for anyone who'd rather take a screenshot of it.
@@ -10417,7 +10463,9 @@ document.querySelectorAll('#shareFormatChips .chip').forEach(c=> c.addEventListe
   renderShareCard();
 }));
 document.getElementById('shareCardShareBtn').addEventListener('click', shareShareCard);
-document.getElementById('shareCardSaveBtn').addEventListener('click', ()=>{ if(saveShareCardImage()) showToast(STR[state.lang].shareCardSaved); });
+document.getElementById('shareCardSaveBtn').addEventListener('click', saveShareCardToPhotos);
+document.getElementById('shareCardCopyBtn').addEventListener('click', copyShareCard);
+document.getElementById('shareCardFullBtn').addEventListener('click', openShareFull);
 
 /* ---------------- email confirmation ---------------- */
 // When a new account has to confirm its email first, the answers from setup (goal, days, balance...)

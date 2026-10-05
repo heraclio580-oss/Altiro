@@ -125,8 +125,10 @@ What the store apps rely on:
 - **`altiro://` links** (`@capacitor/app` + `scripts/native-config.js`) bring people back into the app after
   Strava's sign-in and after confirming their email on the website.
 - **Sharing a workout card** saves the picture to the app's cache (`@capacitor/filesystem`) and opens the
-  phone's share sheet (`@capacitor/share`). On the website it uses the browser's own share sheet, or saves
-  the picture where sharing isn't available.
+  phone's share sheet (`@capacitor/share`). **Save to Photos** puts it straight in the gallery
+  (`@capacitor-community/media`; an "Altiro" album on Android, Photos on iPhone -- `scripts/native-config.js`
+  adds the iOS permission text). On the website it uses the browser's own share sheet, or saves the picture
+  as a download where that isn't available.
 - **Supabase's client ships inside `www/vendor/`**, so the app opens offline. `npm run vendor` refreshes it
   after updating `@supabase/supabase-js`.
 - **Edge Functions** (deploy from `supabase/functions/`): `strava`, `workout-reminders`, `feedback-alert`,

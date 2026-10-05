@@ -4,6 +4,7 @@
 //
 //   altiro:// links open the app -- how Strava's sign-in, and the "Open Altiro" button shown after
 //   confirming an email, hand the user back to the store app (see handleAppLink in www/index.html).
+//   iOS's Photos permission text -- for saving a workout card straight to Photos.
 const fs = require('fs');
 const path = require('path');
 const root = process.env.ALTIRO_NATIVE_ROOT || path.join(__dirname, '..');
@@ -19,6 +20,20 @@ if(fs.existsSync(plist)){
     fs.writeFileSync(plist, s); changed++;
     console.log('iOS: added the altiro:// URL scheme to Info.plist');
   } else console.log('iOS: altiro:// URL scheme already set');
+  // "Save to Photos" on the workout card (@capacitor-community/media) asks to add a picture to Photos;
+  // iOS shows these lines in that permission prompt, and the App Store requires them.
+  const PHOTO_KEYS = {
+    NSPhotoLibraryAddUsageDescription: 'Altiro saves your workout cards to Photos so you can share them.',
+    NSPhotoLibraryUsageDescription: 'Altiro saves your workout cards to Photos so you can share them.',
+  };
+  s = fs.readFileSync(plist, 'utf8');
+  const missing = Object.keys(PHOTO_KEYS).filter(k=> !s.includes(`<key>${k}</key>`));
+  if(missing.length){
+    const entry = missing.map(k=> `\t<key>${k}</key>\n\t<string>${PHOTO_KEYS[k]}</string>\n`).join('');
+    s = s.replace(/<\/dict>\s*<\/plist>\s*$/, entry + '</dict>\n</plist>\n');
+    fs.writeFileSync(plist, s); changed++;
+    console.log('iOS: added the Photos permission text to Info.plist');
+  } else console.log('iOS: Photos permission text already set');
 } else console.log('iOS: no ios/ project here (run `npx cap add ios` first) -- skipped');
 
 const manifest = path.join(root, 'android', 'app', 'src', 'main', 'AndroidManifest.xml');

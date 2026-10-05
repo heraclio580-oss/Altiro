@@ -32,18 +32,30 @@ const outDir = process.env.SHARE_CARD_OUT;
   const base = `http://127.0.0.1:${server.address().port}/`;
   const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : {}), args: ['--autoplay-policy=no-user-gesture-required'] });
 
-  async function openApp(lang){
+  // native: 'android' or 'ios' pretends to be the store app, with stand-ins for its plugins.
+  async function openApp(lang, native){
     const ctx = await browser.newContext({ viewport: {width:390, height:844}, isMobile:true, hasTouch:true, acceptDownloads:true });
     const page = await ctx.newPage();
     const errors = [];
     page.on('pageerror', e=> errors.push(e.message));
     await page.route(u=> !u.href.startsWith(base), r=> r.abort());
+    if(native) await page.addInitScript(platform=>{
+      window.__native = [];
+      const rec = (name, ret)=> async (o)=>{ window.__native.push({name, o: JSON.parse(JSON.stringify(o||{}, (k,v)=> typeof v==='string' && v.length>200 ? v.slice(0,40)+'…'+v.length : v))}); return typeof ret==='function' ? ret(o) : ret; };
+      window.Capacitor = { isNativePlatform: ()=> true, getPlatform: ()=> platform, Plugins: {
+        Media: { getAlbumsPath: rec('getAlbumsPath', {path:'/storage/emulated/0/Android/media/com.altiro.app'}), createAlbum: rec('createAlbum', {}), savePhoto: rec('savePhoto', {}) },
+        Filesystem: { writeFile: rec('writeFile', o=> ({uri:'file:///cache/'+o.path})) },
+        Share: { share: rec('share', {}) },
+      } };
+    }, native);
     await page.addInitScript(l=>{
       window.__ALTIRO_TEST_TODAY__ = '2026-09-19'; // a Saturday: a rest day on the default plan
       if(l) try{ localStorage.setItem('altiro_lang', l); }catch(e){}
       window.__shared = [];
       navigator.canShare = d=> !!(d && d.files && d.files.length);
       navigator.share = async d=>{ const f = d.files[0]; window.__shared.push({name:f.name, type:f.type, size:f.size, text:d.text}); };
+      window.__copied = [];
+      Object.defineProperty(navigator, 'clipboard', {configurable:true, value:{ write: async items=>{ for(const it of items){ for(const t of it.types){ const b = await it.getType(t); window.__copied.push({type:t, size:b.size}); } } } }});
     }, lang || null);
     await page.goto(base + 'index.html?proto');
     await sleep(500);
@@ -52,18 +64,7 @@ const outDir = process.env.SHARE_CARD_OUT;
     await sleep(200);
     return {page, errors};
   }
-  const preview = page => page.evaluate(()=>{ const i = document.getElementById('shareCardPreview'); return {w:i.naturalWidth, h:i.naturalHeight, alt:i.alt, src:!!i.getAttribute('src'), complete:i.complete}; });
-  const waitPreview = async (page, h) => { for(let i=0; i<40; i++){ const p = await preview(page); if(p.complete && p.h===h) return p; await sleep(100); } return preview(page); };
-  async function keep(page, name){
-    if(!outDir) return;
-    fs.mkdirSync(outDir, {recursive:true});
-    const b64 = await page.evaluate(async ()=>{ const r = await fetch(document.getElementById('shareCardPreview').src); const b = await r.blob(); return await new Promise(res=>{ const fr = new FileReader(); fr.onload = ()=> res(String(fr.result).split(',')[1]); fr.readAsDataURL(b); }); });
-    fs.writeFileSync(path.join(outDir, name), Buffer.from(b64, 'base64'));
-  }
-
-  // ---- A lifting workout logged as it was done ----
-  {
-    const {page, errors} = await openApp();
+  async function logPushDay(page){
     await page.evaluate(async ()=>{
       const doc = document, wait = ms=> new Promise(r=>setTimeout(r,ms));
       const type = (el, v)=>{ el.value = v; el.dispatchEvent(new Event('input', {bubbles:true})); };
@@ -87,6 +88,20 @@ const outDir = process.env.SHARE_CARD_OUT;
       type(doc.getElementById('logPerfTimeMInput'), '52'); type(doc.getElementById('logPerfTimeSInput'), '0'); type(doc.getElementById('logPerfTimeHInput'), '0');
       doc.getElementById('saveLogPerf').click(); await wait(80);
     });
+  }
+  const preview = page => page.evaluate(()=>{ const i = document.getElementById('shareCardPreview'); return {w:i.naturalWidth, h:i.naturalHeight, alt:i.alt, src:!!i.getAttribute('src'), complete:i.complete}; });
+  const waitPreview = async (page, h) => { for(let i=0; i<40; i++){ const p = await preview(page); if(p.complete && p.h===h) return p; await sleep(100); } return preview(page); };
+  async function keep(page, name){
+    if(!outDir) return;
+    fs.mkdirSync(outDir, {recursive:true});
+    const b64 = await page.evaluate(async ()=>{ const r = await fetch(document.getElementById('shareCardPreview').src); const b = await r.blob(); return await new Promise(res=>{ const fr = new FileReader(); fr.onload = ()=> res(String(fr.result).split(',')[1]); fr.readAsDataURL(b); }); });
+    fs.writeFileSync(path.join(outDir, name), Buffer.from(b64, 'base64'));
+  }
+
+  // ---- A lifting workout logged as it was done ----
+  {
+    const {page, errors} = await openApp();
+    await logPushDay(page);
     await sleep(200);
     check('(set-up) the workout is saved and the Summary is showing', await page.evaluate(()=> !document.getElementById('screen-summary').hidden));
     const summaryStats = await page.evaluate(()=> document.getElementById('summaryStats').textContent);
@@ -121,23 +136,58 @@ const outDir = process.env.SHARE_CARD_OUT;
     await page.tap('#shareCardShareBtn');
     const download = await dl;
     check('Can\'t share here? The picture is saved instead', !!download && download.suggestedFilename()==='altiro-workout-2026-09-19-story.jpg', download && download.suggestedFilename());
+    check('Four squares under the picture: Save to Photos, Copy, Share, Full screen', await page.evaluate(()=> [...document.querySelectorAll('.share-actions .share-sq')].filter(b=>!b.hidden).map(b=>b.textContent.trim()).join('|'))==='Save to Photos|Copy|Share|Full screen');
     const dl2 = page.waitForEvent('download', {timeout: 3000}).catch(()=> null);
     await page.tap('#shareCardSaveBtn');
-    check('Save image saves it', !!(await dl2));
+    check('Save to Photos, on the website (not an iPhone): saved where the gallery shows it', !!(await dl2) && /Download album/.test(await page.evaluate(()=> document.getElementById('toastMsg').textContent)));
+    await page.tap('#shareCardCopyBtn');
+    await sleep(400);
+    const copied = await page.evaluate(()=> window.__copied);
+    check('Copy puts the picture on the clipboard, ready to paste', copied.length===1 && copied[0].type==='image/png' && copied[0].size>20000, JSON.stringify(copied));
+    check('...and says so', /Copied/.test(await page.evaluate(()=> document.getElementById('toastMsg').textContent)));
     // Full screen, for a screenshot instead of a saved file.
-    await page.tap('#shareCardPreview');
+    await page.tap('#shareCardFullBtn');
     await sleep(200);
     const full = await page.evaluate(()=>{ const f = document.getElementById('shareCardFull'), i = document.getElementById('shareCardFullImg'), r = i.getBoundingClientRect();
       return {shown: !f.hidden, loaded: i.complete && i.naturalHeight===1920, w: r.width, h: r.height, tip: !document.getElementById('shareCardFullTip').classList.contains('gone')}; });
-    check('Tapping the preview shows the picture full screen, ready for a screenshot', full.shown && full.loaded && (Math.round(full.w)===390 || Math.round(full.h)===844), JSON.stringify(full));
+    check('Full screen shows just the picture, ready for a screenshot', full.shown && full.loaded && (Math.round(full.w)===390 || Math.round(full.h)===844), JSON.stringify(full));
     check('...with a short tip', full.tip);
     await sleep(2600);
     check('...that fades away before the screenshot', await page.evaluate(()=> document.getElementById('shareCardFullTip').classList.contains('gone')));
     await page.tap('#shareCardFull');
     await sleep(150);
     check('A tap closes full screen, back to the preview', await page.evaluate(()=> document.getElementById('shareCardFull').hidden && !document.getElementById('shareCardOverlay').hidden));
+    await page.tap('#shareCardPreview');
+    await sleep(150);
+    check('Tapping the preview opens full screen too', await page.evaluate(()=> !document.getElementById('shareCardFull').hidden));
+    await page.tap('#shareCardFull');
+    await sleep(150);
     await page.tap('#closeShareCard');
     check('The preview closes', await page.evaluate(()=> document.getElementById('shareCardOverlay').hidden));
+    check('No page errors', errors.length===0, errors.join(' | '));
+    await page.context().close();
+  }
+
+  // ---- The store app: Save to Photos goes straight into the gallery ----
+  for(const platform of ['android', 'ios']){
+    const {page, errors} = await openApp(null, platform);
+    await logPushDay(page);
+    await sleep(200);
+    await page.tap('#shareWorkoutBtn');
+    await waitPreview(page, 1350);
+    await page.tap('#shareCardSaveBtn');
+    await sleep(500);
+    const calls = await page.evaluate(()=> window.__native);
+    const save = calls.find(c=> c.name==='savePhoto');
+    check(`${platform} app: Save to Photos saves the picture straight to the gallery`, !!save && /^data:image\/jpeg;base64,/.test(save.o.path) && save.o.fileName==='altiro-workout-2026-09-19', JSON.stringify(calls));
+    if(platform==='android') check('...into an "Altiro" album', save && save.o.albumIdentifier==='/storage/emulated/0/Android/media/com.altiro.app/Altiro' && calls.some(c=> c.name==='createAlbum' && c.o.name==='Altiro'), JSON.stringify(calls));
+    else check('...(iPhone: just Photos, which only asks to add pictures)', save && !save.o.albumIdentifier, JSON.stringify(calls));
+    check('...and says so', /Saved to your photos/.test(await page.evaluate(()=> document.getElementById('toastMsg').textContent)));
+    await page.tap('#shareCardShareBtn');
+    await sleep(500);
+    const calls2 = await page.evaluate(()=> window.__native);
+    const sh = calls2.find(c=> c.name==='share');
+    check(`${platform} app: Share opens the phone's share sheet with the picture`, !!sh && sh.o.files && sh.o.files[0]==='file:///cache/altiro-workout-2026-09-19.jpg', JSON.stringify(calls2));
     check('No page errors', errors.length===0, errors.join(' | '));
     await page.context().close();
   }

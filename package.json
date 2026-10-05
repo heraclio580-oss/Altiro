@@ -17,6 +17,7 @@
     "store-screenshots": "node scripts/store-screenshots/demo-data.js && node scripts/store-screenshots/capture.js && LANG_CODE=es node scripts/store-screenshots/capture.js && node scripts/store-screenshots/compose.js"
   },
   "dependencies": {
+    "@capacitor-community/media": "^7.0.1",
     "@capacitor/app": "^6.0.3",
     "@capacitor/core": "^6.1.2",
     "@capacitor/filesystem": "^6.0.4",

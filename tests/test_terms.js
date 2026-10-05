@@ -33,6 +33,13 @@ function check(label, ok, detail){
   go('settings'); await wait(10);
   doc.querySelector('.lang-btn[data-lang="es"]').click(); await wait(20);
   check('In Spanish, they go to the Spanish terms', termsIn('screen-settings').textContent==='Términos de uso' && termsIn('screen-settings').getAttribute('href')==='terms.html#es' && termsIn('screen-onb-account').getAttribute('href')==='terms.html#es');
+  // The support page (the App Store's Support URL), linked from Settings -> Help.
+  const sup = new JSDOM(fs.readFileSync(path.join(www, 'support.html'), 'utf8')).window.document;
+  check('Support page: contact email and answers, in English and Spanish', /altiro580@gmail\.com/.test(sup.getElementById('en').textContent) && sup.querySelectorAll('#en details').length>=6 && sup.querySelectorAll('#es details').length===sup.querySelectorAll('#en details').length);
+  const supLinks = [...sup.querySelectorAll('a[href]')].map(a=>a.getAttribute('href').split(/[#?]/)[0]).filter(h=>/\.html$/.test(h));
+  check('...its links go to pages that exist', supLinks.every(h=> fs.existsSync(path.join(www, h))), supLinks.join(', '));
+  check('Settings -> Help links to it (Spanish part in Spanish)', doc.getElementById('settingsSupportLink').getAttribute('href')==='support.html#es' && doc.getElementById('settingsSupportLink').textContent.trim()==='Ayuda y soporte');
+  check('The privacy policy no longer lists a CDN the app doesn\'t use', !/jsDelivr/.test(fs.readFileSync(path.join(www, 'privacy.html'), 'utf8')));
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(0);
 })().catch(e => { console.log('TEST THREW:', e.stack || e); process.exit(1); });

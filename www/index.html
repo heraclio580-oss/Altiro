@@ -1680,6 +1680,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
           <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 4.5v11l9-5.5z"/></svg></span>
           <span data-i18n="seeHowItWorks"></span>
         </button>
+        <a class="how-it-works-btn support-link" id="settingsSupportLink" href="support.html" target="_blank" rel="noopener" style="margin-top:8px;text-decoration:none;">
+          <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M7.8 7.8a2.3 2.3 0 0 1 4.4.9c0 1.5-2.2 1.9-2.2 3.1M10 14.4v.1"/></svg></span>
+          <span data-i18n="supportLink"></span>
+        </a>
         <button class="how-it-works-btn" id="settingsTourBtn" type="button" style="margin-top:8px;">
           <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.2" fill="currentColor"/></svg></span>
           <span data-i18n="tourReplayBtn"></span>
@@ -3064,6 +3068,7 @@ const STR = {
     stravaPrivacyLink: "How Altiro uses your Strava data",
     privacyPolicyLink: "Privacy policy",
     termsLink: "Terms of use",
+    supportLink: "Help & support",
     agreeTermsNote: "By creating an account, you agree to Altiro's Terms of Use, including its health disclaimer.",
     viewOnStrava: "View on Strava",
     stravaDisconnectBtn: "Disconnect Strava",
@@ -3624,6 +3629,7 @@ const STR = {
     stravaPrivacyLink: "Cómo usa Altiro tus datos de Strava",
     privacyPolicyLink: "Política de privacidad",
     termsLink: "Términos de uso",
+    supportLink: "Ayuda y soporte",
     agreeTermsNote: "Al crear una cuenta, aceptas los Términos de uso de Altiro, incluido su aviso de salud.",
     viewOnStrava: "View on Strava",
     stravaConnectSub: "Importa tus carreras del reloj automáticamente",
@@ -5854,6 +5860,7 @@ function applyLang(){
     b.classList.toggle('active', b.getAttribute('data-lang')===state.lang);
   });
   document.querySelectorAll('.terms-link').forEach(a=> a.setAttribute('href', state.lang==='es' ? 'terms.html#es' : 'terms.html'));
+  document.querySelectorAll('.support-link').forEach(a=> a.setAttribute('href', state.lang==='es' ? 'support.html#es' : 'support.html'));
   renderOptionList('goalList', GOALS, state.goal, selectGoal);
   renderOptionList('levelList', LEVELS, state.level, selectLevel);
   renderIntensityList();

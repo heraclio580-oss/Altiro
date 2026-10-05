@@ -7,3 +7,5 @@ dist/
 .env
 .env.local
 supabase/.temp/
+scripts/store-screenshots/.raw/
+scripts/store-screenshots/.demo-data.json

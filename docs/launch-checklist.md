@@ -71,7 +71,8 @@ emails an hour. Strangers signing up won't get their confirmation email until th
 
 ## 5. Store listings
 
-I'm drafting the text, screenshots and form answers in `docs/store/`. You'll copy them in.
+The text, form answers and reviewer notes are ready in `docs/store/` (`listing.md`, `privacy-answers.md`,
+`review-notes.md`), with screenshots to follow. Copy them in.
 
 - [ ] **App Store Connect:** create the app with bundle ID `com.altiro.app`, then fill in the name,
   subtitle, description, keywords, screenshots, support URL, privacy policy URL, age rating questionnaire

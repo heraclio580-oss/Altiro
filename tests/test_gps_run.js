@@ -190,6 +190,54 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195; // metres to degrees o
     await page.context().close();
   }
 
+  // ---- With a real map whose tiles keep loading as it follows the runner, only the map draws the route ----
+  // (A map reports "not loaded" while tiles come in; that once drew the stand-in route over the map, as a
+  // second, bigger copy of the route that popped in and out.)
+  {
+    const ctx = await browser.newContext({ viewport: {width:390, height:844}, isMobile:true, hasTouch:true });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e=> errors.push(e.message));
+    await page.route(u=> !u.href.startsWith(base), r=> r.abort());
+    await page.clock.install({time: new Date('2026-09-19T08:00:00')});
+    await page.addInitScript(()=>{
+      window.__ALTIRO_TEST_TODAY__ = '2026-09-19';
+      window.speechSynthesis.speak = ()=>{};
+      window.__geo = {cb:null};
+      navigator.geolocation.watchPosition = cb=>{ window.__geo.cb = cb; return 7; };
+      navigator.geolocation.clearWatch = ()=>{};
+      window.__fix = (lat, lng)=>{ if(window.__geo.cb) window.__geo.cb({coords:{latitude:lat, longitude:lng, accuracy:6}, timestamp: Date.now()}); };
+      window.__svgSeen = 0;
+      // A stand-in for MapLibre: loads at once, then says "not loaded" every other time it's asked.
+      window.maplibregl = { Map: class {
+        constructor(){ this.ls = {}; this.src = {}; this.n = 0; Promise.resolve().then(()=> (this.ls.load || []).forEach(f=> f())); }
+        on(e, f){ (this.ls[e] = this.ls[e] || []).push(f); } once(e, f){ this.on(e, f); }
+        addSource(id, o){ const self = this; this.src[id] = {setData(d){ if(id==='route') window.__routeData = d; }}; }
+        getSource(id){ return this.src[id]; } addLayer(){} setPaintProperty(){} fitBounds(){} easeTo(){} getZoom(){ return 15; }
+        loaded(){ return (this.n++)%2===0; } remove(){} getCanvas(){ return document.createElement('canvas'); }
+      } };
+    });
+    await page.goto(base + 'index.html?proto');
+    await sleep(400);
+    await page.clock.pauseAt(new Date('2026-09-19T08:05:00'));
+    await page.evaluate(()=>{ [...document.querySelectorAll('.proto-pill')].find(p=>p.dataset.navId==='home').click(); document.documentElement.classList.remove('proto-on'); });
+    await sleep(200);
+    await page.tap('#trackRunBtn');
+    await sleep(100);
+    await fix(page, 0);
+    await page.tap('#gpsStartBtn');
+    let svgSeen = 0;
+    for(let i=1; i<=30; i++){
+      await page.clock.fastForward(2000);
+      await fix(page, i*10);
+      svgSeen += await page.evaluate(()=> document.querySelectorAll('#gpsMap svg.route-svg').length);
+    }
+    const pts = await page.evaluate(()=> window.__routeData ? window.__routeData.features[0].geometry.coordinates.flat().length : 0);
+    check('A map whose tiles are still loading: the route is drawn on the map only, never a second copy over it', svgSeen===0 && pts===30, `stand-in drawn ${svgSeen} times; ${pts} points on the map`);
+    check('No page errors', errors.length===0, errors.join(' | '));
+    await ctx.close();
+  }
+
   // ---- The map itself loads (MapLibre) without errors ----
   {
     const {page, errors} = await openApp({withMapLib: true});

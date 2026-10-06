@@ -10943,7 +10943,7 @@ function drawRouteSvg(el, segs){
 // ---- the tracker ----
 let gps = null;          // the run being tracked (see newGpsRun)
 let gpsWatch = null;     // {kind:'web', id} | {kind:'native', id}
-let gpsMap = null, gpsMapFollow = true, gpsTick = null, gpsWakeLock = null, gpsLastFix = null, gpsSaveAt = 0;
+let gpsMap = null, gpsMapReady = false, gpsMapFollow = true, gpsTick = null, gpsWakeLock = null, gpsLastFix = null, gpsSaveAt = 0;
 function newGpsRun(target){
   return {target: target || null, status:'idle', segs:[], distM:0, movingMs:0, runningSince:null, startedAt:null, splits:[], lastPt:null, newSeg:true, splitM: unitMeters(), splitUnit: distUnit(),
     elevGain:0, elevLoss:0, elevSm:null, elevAnchor:null, elevSeen:false};
@@ -11087,11 +11087,17 @@ function openGpsTracker(target){
   gpsTick = setInterval(renderGps, 1000);
   const mapEl = document.getElementById('gpsMap');
   if(gpsMap){ try{ gpsMap.remove(); }catch(e){} gpsMap = null; }
+  gpsMapReady = false;
   showRouteMap(mapEl, gps.segs, {interactive: true, live: true}).then(m=>{
     gpsMap = m;
     if(!m){ renderGps(); return; }
     m.on('dragstart', ()=>{ gpsMapFollow = false; renderGps(); });
-    m.on('load', ()=> renderGps());
+    // Ready once its style has loaded and the route layer is on it -- from then on the route is only ever
+    // drawn on the map. (Not map.loaded(): that is false whenever tiles are still coming in, e.g. while it
+    // pans to follow the runner, and treating that as "no map" drew the stand-in route over the map.)
+    const ready = ()=>{ gpsMapReady = true; renderGps(); };
+    m.on('load', ready);
+    try{ if(m.getSource('route')) ready(); }catch(e){}
   });
   renderGps(); // (after the map box is set up, so the route shows straight away)
 }
@@ -11100,6 +11106,7 @@ function closeGpsTracker(){
   gpsKeepAwake(false);
   clearInterval(gpsTick); gpsTick = null;
   if(gpsMap){ try{ gpsMap.remove(); }catch(e){} gpsMap = null; }
+  gpsMapReady = false;
   document.getElementById('gpsOverlay').hidden = true;
   document.getElementById('recordBtn').classList.remove('recording');
 }
@@ -11139,7 +11146,8 @@ function renderGps(){
   document.getElementById('gpsStatus').textContent = gps.status==='paused' ? L.gpsPausedLabel : '';
   const mapEl = document.getElementById('gpsMap');
   mapEl.querySelectorAll('svg.route-svg').forEach(s=> s.remove());
-  const mapReady = !!(gpsMap && gpsMap.loaded && gpsMap.loaded() && gpsMap.getSource('route'));
+  let mapReady = false;
+  try{ mapReady = !!(gpsMapReady && gpsMap && gpsMap.getSource('route')); }catch(e){}
   document.getElementById('gpsRecenter').hidden = !mapReady || gpsMapFollow;
   if(mapReady){
     setRouteData(gpsMap, gps.segs);

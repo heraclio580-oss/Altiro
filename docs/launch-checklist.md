@@ -50,13 +50,15 @@ Done: sign-up emails now go out through Resend from `no-reply@getaltiro.app`, so
   few days.
 - [ ] **Google's testing rule for new personal accounts:** before the app can go public, you must run a
   *closed test* with **at least 12 testers opted in for 14 days in a row**. Start lining up 12+ people with
-  Android phones (friends, family, gym or club members) and their Gmail addresses.
+  Android phones (friends, family, gym or club members) and their Gmail addresses. These are Play Store
+  testers: Altiro accounts on the website don't count, and each tester must join through Google Play's test
+  link and install the app from Play. Use real people (Google checks), and a few extra in case some drop out.
 
 ## 4. Build the apps on your computer
 
-- [ ] **iPhone app:** you need a Mac with Xcode (free from the Mac App Store), plus CocoaPods. No Mac?
-  Options are borrowing one, renting a cloud Mac (MacinCloud, about $1/hour), or a build service like
-  Ionic Appflow or Codemagic. Tell me which and I'll write exact steps.
+- [ ] **iPhone app:** no Mac, so build it in the cloud with **Codemagic** (free tier: 500 build minutes a
+  month on their Macs). It builds straight from the GitHub repo and can upload to App Store Connect. Do the
+  Android app first; set this up once the Apple Developer account is approved.
 - [ ] **Android app:** Android Studio (free, Windows, Mac or Linux).
 - [ ] In the project folder: `npm install`, then `npm run cap:sync`, then `npx cap open ios` or
   `npx cap open android`. The README has the details. Run `npm run cap:sync` again after every update.

@@ -1251,6 +1251,43 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .act-tile{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;}
 .act-tile .l{font-family:var(--font-mono);font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);}
 .act-tile .v{font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--text);margin-top:4px;white-space:nowrap;}
+/* lift progress: a row per lift on Progress, and a sheet with its chart, bests and history */
+.lift-row{display:flex;align-items:center;gap:10px;width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;margin-top:8px;color:var(--text);font-family:var(--font-body);text-align:left;cursor:pointer;}
+.lift-row .lr-main{flex:1;min-width:0;}
+.lift-row .lr-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lift-row .lr-sub{font-family:var(--font-mono);font-size:11px;color:var(--text-2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lift-row .lr-spark{width:56px;height:26px;flex-shrink:0;}
+.lr-spark polyline{fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round;}
+.lr-spark circle{fill:var(--accent);}
+.lift-change{font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--text-2);min-width:44px;text-align:right;white-space:nowrap;}
+.lift-change.up{color:var(--ok-icon);}
+.lift-row .chev{width:14px;height:14px;color:var(--text-3);flex-shrink:0;}
+.lift-more{margin-top:10px;width:100%;}
+.lift-hero{margin-top:8px;}
+.lift-hero .l{font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);}
+.lift-hero .v{font-family:var(--font-mono);font-size:30px;font-weight:600;color:var(--text);margin-top:4px;}
+.lift-hero .v em{font-style:normal;font-size:14px;color:var(--text-2);margin-left:4px;}
+.lift-hero .d{font-family:var(--font-mono);font-size:12px;color:var(--text-2);margin-top:3px;}
+.lift-hero .d.up{color:var(--ok-icon);}
+.lift-chart{width:100%;height:auto;display:block;margin-top:12px;overflow:visible;}
+.lift-chart .grid{stroke:var(--divider);stroke-width:1;}
+.lift-chart .axis{font-family:var(--font-mono);font-size:9.5px;fill:var(--text-3);}
+.lift-chart .area{fill:var(--accent-tint);stroke:none;}
+.lift-chart .line{fill:none;stroke:var(--accent);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round;}
+.lift-chart .dot{fill:var(--sheet-bg);stroke:var(--accent);stroke-width:2;}
+.lift-chart .dot.sel{fill:var(--accent);}
+.lift-chart .hit{fill:transparent;cursor:pointer;}
+.lift-chart .cursor{stroke:var(--text-3);stroke-width:1;stroke-dasharray:3 3;}
+.lift-readout{font-family:var(--font-mono);font-size:12px;color:var(--text);background:var(--well);border:1px solid var(--divider);border-radius:var(--r-md);padding:9px 12px;margin-top:8px;}
+.lift-readout .sub{color:var(--text-2);margin-top:2px;}
+.lift-bests{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.lift-bests .act-tile .v{font-size:15px;}
+.lift-bests .act-tile .s{font-family:var(--font-mono);font-size:10px;color:var(--text-3);margin-top:3px;white-space:nowrap;}
+.lift-hist{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--divider-soft);}
+.lift-hist .dt{font-family:var(--font-mono);font-size:11px;color:var(--text-3);width:58px;flex-shrink:0;}
+.lift-hist .st{flex:1;min-width:0;font-family:var(--font-mono);font-size:12px;color:var(--text);overflow-wrap:anywhere;}
+.lift-hist .e{font-family:var(--font-mono);font-size:11px;color:var(--text-2);white-space:nowrap;}
+.lift-note{font-size:12px;line-height:1.5;color:var(--text-3);margin-top:12px;}
 .act-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:112px;margin-top:14px;padding-bottom:2px;border-bottom:1px solid var(--divider);}
 .act-day{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .act-day .min{font-family:var(--font-mono);font-size:9px;color:var(--text-3);white-space:nowrap;}
@@ -1670,6 +1707,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div id="progActivity"></div>
       </div>
       <div class="sheet-section" style="margin-top:26px;">
+        <div class="st-label" data-i18n="liftProgressLabel"></div>
+        <div id="liftProgress"></div>
+      </div>
+      <div class="sheet-section" style="margin-top:26px;">
         <div class="st-label" data-i18n="prSectionLabel"></div>
         <div id="prList"></div>
         <div style="display:flex;gap:8px;margin-top:10px;">
@@ -2034,6 +2075,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     </div>
   </div>
 
+  <div class="sheet-overlay" id="liftDetailOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" id="liftDetailName"></span>
+        <button class="iconbtn" id="closeLiftDetail"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <div id="liftDetailBody"></div>
+    </div>
+  </div>
   <div class="sheet-overlay" id="feedbackOverlay" hidden>
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
@@ -3283,6 +3334,22 @@ const STR = {
     addPrBtn: "+ Add a PR",
     noPrsLoggedLabel: "No PRs logged yet — add your first lift below.",
     prBestBadge: "PR",
+    liftProgressLabel: "Your lifts",
+    liftProgressEmpty: "Log a workout with its weights and each lift shows up here, with a chart of your progress.",
+    liftEstMaxShort: "Est. max",
+    liftNew: "New",
+    liftShowAll: "Show all {n} lifts", liftShowFewer: "Show fewer",
+    liftMetricE1rm: "Est. max", liftMetricTop: "Heaviest set", liftMetricVolume: "Volume",
+    liftHeroE1rm: "Estimated 1-rep max", liftHeroTop: "Heaviest set", liftHeroVolume: "Volume per workout",
+    liftRangeAll: "All", liftRange3: "3M", liftRange6: "6M", liftRange12: "1Y",
+    liftSince: "{d} since {date}",
+    liftOnePoint: "Log this lift again to see your trend.",
+    liftNoneInRange: "No workouts with this lift in this time. Pick a longer range.",
+    liftBestsLabel: "Bests", liftHistoryLabel: "History",
+    liftBestTop: "Heaviest", liftBestE1rm: "Est. max", liftBestVolume: "Volume",
+    liftPointBest: "best set {set}",
+    liftShowAllHistory: "Show all {n}",
+    liftEstNote: "Est. max is worked out from your sets of 12 reps or fewer (the Epley formula). It's a guide to how your strength is moving, not a number to test.",
     prAddedToast: "PR saved",
     barLabel3: "3 Wk Ago", barLabel2: "2 Wk Ago", barLabel1: "Last Wk", barLabelNow: "Now",
     barLabelNAgo: "{n} Wk Ago",
@@ -3882,6 +3949,22 @@ const STR = {
     addPrBtn: "+ Agregar un récord",
     noPrsLoggedLabel: "Aún no hay récords registrados — agrega tu primero abajo.",
     prBestBadge: "RP",
+    liftProgressLabel: "Tus levantamientos",
+    liftProgressEmpty: "Registra un entrenamiento con sus pesos y cada levantamiento aparecerá aquí, con una gráfica de tu progreso.",
+    liftEstMaxShort: "Máx. est.",
+    liftNew: "Nuevo",
+    liftShowAll: "Ver los {n} levantamientos", liftShowFewer: "Ver menos",
+    liftMetricE1rm: "Máx. est.", liftMetricTop: "Serie más pesada", liftMetricVolume: "Volumen",
+    liftHeroE1rm: "Máximo estimado a 1 repetición", liftHeroTop: "Serie más pesada", liftHeroVolume: "Volumen por entrenamiento",
+    liftRangeAll: "Todo", liftRange3: "3M", liftRange6: "6M", liftRange12: "1A",
+    liftSince: "{d} desde el {date}",
+    liftOnePoint: "Registra este levantamiento otra vez para ver tu tendencia.",
+    liftNoneInRange: "No hay entrenamientos con este levantamiento en este periodo. Elige uno más largo.",
+    liftBestsLabel: "Mejores marcas", liftHistoryLabel: "Historial",
+    liftBestTop: "Más pesada", liftBestE1rm: "Máx. est.", liftBestVolume: "Volumen",
+    liftPointBest: "mejor serie {set}",
+    liftShowAllHistory: "Ver las {n}",
+    liftEstNote: "El máximo estimado se calcula con tus series de 12 repeticiones o menos (fórmula de Epley). Es una guía de cómo avanza tu fuerza, no un número para probar.",
     prAddedToast: "Récord guardado",
     barLabel3: "Hace 3 sem", barLabel2: "Hace 2 sem", barLabel1: "Sem pasada", barLabelNow: "Ahora",
     barLabelNAgo: "Hace {n} sem",
@@ -9706,6 +9789,7 @@ function renderProgress(){
       <div class="wd-stat"><div class="l">${L.weekDetailDistanceLabel}</div><div class="v">${sel.distance.toFixed(1)} mi</div></div>
     </div>`;
   renderActivity();
+  renderLiftProgress();
   renderPRs();
 }
 
@@ -9812,6 +9896,191 @@ function renderActivity(){
     </div>
     <div class="act-note">${L.activityNote}</div>`;
   el.querySelectorAll('[data-act-day]').forEach(b=> b.addEventListener('click', ()=>{ state.progActivityDay = b.dataset.actDay; renderActivity(); }));
+}
+
+/* ---------------- lift progress ---------------- */
+// Every weighted lift the user has logged, set by set, gathered from the planned workout, Additional
+// Workouts and logged entries of every day: one point per day the lift was done. A lift is known by
+// its key, so the same lift done in different workouts shares one history. Weights are in the
+// user's own unit, as they were typed.
+const LIFT_E1RM_MAX_REPS = 12;
+// Estimated 1-rep max (Epley). Past 12 reps the formula drifts, so a long set counts as 12.
+function estimatedMax(weight, reps){
+  const r = Math.min(reps, LIFT_E1RM_MAX_REPS);
+  return weight>0 && r>0 ? (r===1 ? weight : weight * (1 + r/30)) : 0;
+}
+function liftDisplayName(key, fallback){
+  const def = exerciseDef(key);
+  return def && def.en ? (state.lang==='es' ? def.es : def.en) : (fallback || key);
+}
+function liftHistory(){
+  const byKey = {};
+  Object.keys(state.dayLog).sort().forEach(k=>{
+    const log = state.dayLog[k];
+    const perfs = [log.performance, ...(log.extraWorkouts||[]).map(w=>w.performance), ...(log.manualEntries||[]).map(e=>e.performance)];
+    perfs.forEach(perf=>{
+      if(!perf || !Array.isArray(perf.exercises)) return;
+      perf.exercises.forEach(e=>{
+        if(!e || e.bodyweight || !e.key) return;
+        const sets = (Array.isArray(e.sets) && e.sets.length ? e.sets : [{weight:e.weight, reps:e.reps}])
+          .map(x=>({weight:Number(x.weight)||0, reps:Number(x.reps)||0})).filter(x=>x.weight>0 && x.reps>0);
+        if(!sets.length) return;
+        const lift = byKey[e.key] || (byKey[e.key] = {key:e.key, name:e.name, days:[]});
+        let day = lift.days.find(d=>d.key===k);
+        if(!day){ day = {key:k, sets:[]}; lift.days.push(day); }
+        day.sets.push(...sets);
+      });
+    });
+  });
+  return Object.values(byKey).map(lift=>{
+    lift.name = liftDisplayName(lift.key, lift.name);
+    lift.days.forEach(d=>{
+      d.top = d.sets.reduce((b,x)=> x.weight>b.weight || (x.weight===b.weight && x.reps>b.reps) ? x : b);
+      d.best = d.sets.reduce((b,x)=> estimatedMax(x.weight,x.reps)>estimatedMax(b.weight,b.reps) ? x : b);
+      d.e1rm = estimatedMax(d.best.weight, d.best.reps);
+      d.volume = d.sets.reduce((a,x)=> a + x.weight*x.reps, 0);
+    });
+    lift.last = lift.days[lift.days.length-1].key;
+    return lift;
+  }).sort((a,b)=> a.last<b.last ? 1 : a.last>b.last ? -1 : a.name.localeCompare(b.name));
+}
+const LIFT_METRICS = {e1rm: d=>d.e1rm, top: d=>d.top.weight, volume: d=>d.volume};
+function fmtLiftNum(n){ return Math.round(n).toLocaleString(state.lang==='es' ? 'es' : 'en-US'); }
+function fmtLiftDate(key, withYear){
+  const d = parseDateKey(key);
+  const s = `${MONTHS_SHORT[state.lang][d.getMonth()]} ${d.getDate()}`;
+  return withYear || d.getFullYear()!==TODAY_DATE.getFullYear() ? `${s}, ${d.getFullYear()}` : s;
+}
+function fmtSignedLift(n){ const v = Math.round(n); return (v>0 ? '+' : v<0 ? '−' : '±') + fmtLiftNum(Math.abs(v)); }
+function liftSetsText(sets){ return sets.map(x=> `${fmtLiftNum(x.weight)}×${x.reps}`).join(' · '); }
+function liftSparkSvg(values){
+  const W = 64, H = 26, pad = 3;
+  if(values.length<2) return `<svg class="lr-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><circle cx="${W/2}" cy="${H/2}" r="2.6"/></svg>`;
+  const lo = Math.min(...values), hi = Math.max(...values), span = hi-lo || 1;
+  const pts = values.map((v,i)=> [pad + i*(W-2*pad)/(values.length-1), H-pad - (v-lo)/span*(H-2*pad)]);
+  const last = pts[pts.length-1];
+  return `<svg class="lr-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${pts.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ')}"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.4"/></svg>`;
+}
+let liftsShowAll = false;
+const LIFTS_SHOWN = 5;
+function renderLiftProgress(){
+  const L = STR[state.lang], el = document.getElementById('liftProgress');
+  if(!el) return;
+  const lifts = liftHistory();
+  if(!lifts.length){ el.innerHTML = `<div class="footer-note" style="text-align:left;padding:2px 0;">${L.liftProgressEmpty}</div>`; return; }
+  const shown = liftsShowAll ? lifts : lifts.slice(0, LIFTS_SHOWN);
+  el.innerHTML = shown.map(lift=>{
+    const first = lift.days[0], last = lift.days[lift.days.length-1];
+    const change = lift.days.length>1 ? last.e1rm - first.e1rm : null;
+    return `<button class="lift-row" type="button" data-lift="${escapeHtml(lift.key)}">
+      <div class="lr-main"><div class="lr-name">${escapeHtml(lift.name)}</div>
+        <div class="lr-sub">${L.liftEstMaxShort} ${fmtLiftNum(last.e1rm)} ${state.weightUnit} · ${fmtLiftDate(last.key)}</div></div>
+      ${liftSparkSvg(lift.days.slice(-10).map(d=>d.e1rm))}
+      <div class="lift-change${change>0.5 ? ' up' : ''}">${change==null ? L.liftNew : fmtSignedLift(change)}</div>
+      <svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M8 4l6 6-6 6"/></svg>
+    </button>`;
+  }).join('') + (lifts.length>LIFTS_SHOWN ? `<button class="btn btn-ghost lift-more" type="button" id="liftsMoreBtn">${liftsShowAll ? L.liftShowFewer : L.liftShowAll.replace('{n}', lifts.length)}</button>` : '');
+  el.querySelectorAll('[data-lift]').forEach(b=> b.addEventListener('click', ()=> openLiftDetail(b.dataset.lift)));
+  const more = document.getElementById('liftsMoreBtn');
+  if(more) more.addEventListener('click', ()=>{ liftsShowAll = !liftsShowAll; renderLiftProgress(); });
+}
+
+// The lift sheet: its chart (est. max, heaviest set or volume over a chosen time), bests and history.
+const liftView = {key:null, metric:'e1rm', range:'all', sel:null, allHistory:false};
+const LIFT_RANGES = [['3','liftRange3',3],['6','liftRange6',6],['12','liftRange12',12],['all','liftRangeAll',null]];
+function openLiftDetail(key){
+  Object.assign(liftView, {key, metric:'e1rm', range:'all', sel:null, allHistory:false});
+  renderLiftDetail();
+  document.getElementById('liftDetailOverlay').hidden = false;
+}
+function closeLiftDetail(){ document.getElementById('liftDetailOverlay').hidden = true; }
+document.getElementById('closeLiftDetail').addEventListener('click', closeLiftDetail);
+document.getElementById('liftDetailOverlay').addEventListener('click', e=>{ if(e.target.id==='liftDetailOverlay') closeLiftDetail(); });
+function liftChartSvg(days, metric, selIdx){
+  const W = 320, H = 168, padL = 38, padR = 12, padT = 10, padB = 22;
+  const val = LIFT_METRICS[metric];
+  const t0 = parseDateKey(days[0].key).getTime(), t1 = parseDateKey(days[days.length-1].key).getTime();
+  const vals = days.map(val);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if(hi-lo < hi*0.08){ const mid = (hi+lo)/2, half = Math.max(hi*0.04, 5); lo = mid-half; hi = mid+half; }
+  const step = niceStep((hi-lo)/3);
+  lo = Math.max(0, Math.floor(lo/step)*step); hi = Math.ceil(hi/step)*step;
+  const x = t=> days.length===1 ? padL + (W-padL-padR)/2 : padL + (t-t0)/(t1-t0 || 1)*(W-padL-padR);
+  const y = v=> padT + (1-(v-lo)/(hi-lo || 1))*(H-padT-padB);
+  const pts = days.map((d,i)=> [x(parseDateKey(d.key).getTime()), y(vals[i])]);
+  let grid = '';
+  for(let v=lo; v<=hi+step/2; v+=step){
+    grid += `<line class="grid" x1="${padL}" x2="${W-padR}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`
+      + `<text class="axis" x="${padL-6}" y="${(y(v)+3).toFixed(1)}" text-anchor="end">${fmtLiftNum(v)}</text>`;
+  }
+  const xl = [`<text class="axis" x="${pts[0][0].toFixed(1)}" y="${H-6}" text-anchor="${days.length===1 ? 'middle' : 'start'}">${fmtLiftDate(days[0].key)}</text>`];
+  if(days.length>1) xl.push(`<text class="axis" x="${pts[pts.length-1][0].toFixed(1)}" y="${H-6}" text-anchor="end">${fmtLiftDate(days[days.length-1].key)}</text>`);
+  const line = pts.map(p=> p.map(n=>n.toFixed(1)).join(',')).join(' ');
+  const area = days.length>1 ? `<polygon class="area" points="${pts[0][0].toFixed(1)},${(H-padB).toFixed(1)} ${line} ${pts[pts.length-1][0].toFixed(1)},${(H-padB).toFixed(1)}"/>` : '';
+  const sel = pts[selIdx];
+  return `<svg class="lift-chart" viewBox="0 0 ${W} ${H}" role="img">
+    ${grid}${area}
+    ${days.length>1 ? `<polyline class="line" points="${line}"/>` : ''}
+    ${sel ? `<line class="cursor" x1="${sel[0].toFixed(1)}" x2="${sel[0].toFixed(1)}" y1="${padT}" y2="${H-padB}"/>` : ''}
+    ${pts.map((p,i)=> `<circle class="dot${i===selIdx ? ' sel' : ''}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i===selIdx ? 4.5 : days.length>24 ? 2.4 : 3.4}"/>`).join('')}
+    ${xl.join('')}
+    ${pts.map((p,i)=> `<circle class="hit" data-lift-pt="${i}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="13"/>`).join('')}
+  </svg>`;
+}
+function niceStep(raw){
+  const r = Math.max(raw, 1), mag = Math.pow(10, Math.floor(Math.log10(r)));
+  return [1,2,2.5,5,10].map(m=>m*mag).find(s=> s>=r) || 10*mag;
+}
+function renderLiftDetail(){
+  const L = STR[state.lang], unit = state.weightUnit;
+  const lift = liftHistory().find(l=>l.key===liftView.key);
+  const body = document.getElementById('liftDetailBody');
+  if(!lift){ closeLiftDetail(); return; }
+  document.getElementById('liftDetailName').textContent = lift.name;
+  const months = (LIFT_RANGES.find(r=>r[0]===liftView.range) || [])[2];
+  let from = null;
+  if(months){ const d = new Date(TODAY_DATE); d.setMonth(d.getMonth()-months); from = dateKey(d); }
+  const days = lift.days.filter(d=> !from || d.key>=from);
+  const val = LIFT_METRICS[liftView.metric];
+  const heroLabel = {e1rm:L.liftHeroE1rm, top:L.liftHeroTop, volume:L.liftHeroVolume}[liftView.metric];
+  const latest = lift.days[lift.days.length-1];
+  let heroDelta = '';
+  if(days.length>1){
+    const dv = val(days[days.length-1]) - val(days[0]);
+    heroDelta = `<div class="d${dv>0.5 ? ' up' : ''}">${L.liftSince.replace('{d}', `${fmtSignedLift(dv)} ${unit}`).replace('{date}', fmtLiftDate(days[0].key))}</div>`;
+  }
+  const heroVal = liftView.metric==='top' ? `${fmtLiftNum(latest.top.weight)}<em>${unit} × ${latest.top.reps}</em>` : `${fmtLiftNum(val(latest))}<em>${unit}</em>`;
+  if(liftView.sel==null || liftView.sel>=days.length) liftView.sel = days.length-1;
+  const selDay = days[liftView.sel];
+  const bestOf = f=> lift.days.reduce((b,d)=> f(d)>f(b) ? d : b);
+  const bTop = bestOf(d=>d.top.weight*1000 + d.top.reps), bE = bestOf(d=>d.e1rm), bV = bestOf(d=>d.volume);
+  const hist = lift.days.slice().reverse();
+  const histShown = liftView.allHistory ? hist : hist.slice(0, 8);
+  const chips = (items, cur, attr)=> `<div class="chip-row">${items.map(([k,label])=> `<button class="chip${k===cur ? ' sel' : ''}" type="button" ${attr}="${k}">${label}</button>`).join('')}</div>`;
+  body.innerHTML = `
+    <div class="lift-hero"><div class="l">${heroLabel}</div><div class="v">${heroVal}</div>${heroDelta}</div>
+    ${chips([['e1rm',L.liftMetricE1rm],['top',L.liftMetricTop],['volume',L.liftMetricVolume]], liftView.metric, 'data-lift-metric')}
+    ${days.length ? liftChartSvg(days, liftView.metric, liftView.sel) : `<div class="lift-readout">${L.liftNoneInRange}</div>`}
+    ${selDay ? `<div class="lift-readout" id="liftReadout"><div>${fmtLiftDate(selDay.key, true)} · ${fmtLiftNum(val(selDay))} ${unit}</div>
+      <div class="sub">${L.liftPointBest.replace('{set}', `${fmtLiftNum(selDay.top.weight)} ${unit} × ${selDay.top.reps}`)} · ${liftSetsText(selDay.sets)}</div></div>` : ''}
+    ${days.length===1 && lift.days.length===1 ? `<div class="lift-note">${L.liftOnePoint}</div>` : ''}
+    ${chips(LIFT_RANGES.map(([k,s])=>[k, L[s]]), liftView.range, 'data-lift-range')}
+    <div class="sheet-section"><div class="st-label">${L.liftBestsLabel}</div>
+      <div class="lift-bests">
+        <div class="act-tile"><div class="l">${L.liftBestTop}</div><div class="v">${fmtLiftNum(bTop.top.weight)} ${unit}</div><div class="s">× ${bTop.top.reps} · ${fmtLiftDate(bTop.key)}</div></div>
+        <div class="act-tile"><div class="l">${L.liftBestE1rm}</div><div class="v">${fmtLiftNum(bE.e1rm)} ${unit}</div><div class="s">${fmtLiftDate(bE.key)}</div></div>
+        <div class="act-tile"><div class="l">${L.liftBestVolume}</div><div class="v">${bV.volume>=100000 ? Math.round(bV.volume/1000)+'k' : fmtLiftNum(bV.volume)}</div><div class="s">${fmtLiftDate(bV.key)}</div></div>
+      </div></div>
+    <div class="sheet-section"><div class="st-label">${L.liftHistoryLabel}</div>
+      ${histShown.map(d=> `<div class="lift-hist"><span class="dt">${fmtLiftDate(d.key)}</span><span class="st">${liftSetsText(d.sets)} ${unit}</span><span class="e">${L.liftEstMaxShort} ${fmtLiftNum(d.e1rm)}</span></div>`).join('')}
+      ${hist.length>histShown.length ? `<button class="btn btn-ghost lift-more" type="button" id="liftHistMore">${L.liftShowAllHistory.replace('{n}', hist.length)}</button>` : ''}
+    </div>
+    <div class="lift-note">${L.liftEstNote}</div>`;
+  body.querySelectorAll('[data-lift-metric]').forEach(b=> b.addEventListener('click', ()=>{ liftView.metric = b.dataset.liftMetric; renderLiftDetail(); }));
+  body.querySelectorAll('[data-lift-range]').forEach(b=> b.addEventListener('click', ()=>{ liftView.range = b.dataset.liftRange; liftView.sel = null; renderLiftDetail(); }));
+  body.querySelectorAll('[data-lift-pt]').forEach(c=> c.addEventListener('click', ()=>{ liftView.sel = +c.dataset.liftPt; renderLiftDetail(); }));
+  const more = document.getElementById('liftHistMore');
+  if(more) more.addEventListener('click', ()=>{ liftView.allHistory = true; renderLiftDetail(); });
 }
 
 /* ---------------- personal records (lift PRs) ---------------- */

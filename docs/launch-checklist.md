@@ -38,7 +38,7 @@ Done: sign-up emails now go out through Resend from `no-reply@getaltiro.app`, so
   `no-reply@getaltiro.app`, name `Altiro`.
 - [x] **Raise the email rate limit** to something like 30/hour (Authentication → Rate Limits).
 - [x] **Send yourself a test sign-up** and check the email arrives and isn't in spam.
-- [ ] Optional: set `FEEDBACK_ALERT_FROM` to `Altiro Feedback <feedback@getaltiro.app>`, so feedback alerts can go to any
+- [x] Feedback alerts come from `Altiro Feedback <feedback@getaltiro.app>` (`FEEDBACK_ALERT_FROM`) and can go to any
   inbox.
 
 ## 3. Developer accounts (start early, verification takes days)

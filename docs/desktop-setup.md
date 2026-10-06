@@ -3,6 +3,9 @@
 These two commands get the store apps (iPhone and Android) ready to build. You only need them for the
 store apps. The website updates by itself whenever code is pushed.
 
+> **Before your very first build:** ask Claude to **"set up watches and health"** first (Capacitor 8 upgrade,
+> Apple Health / Health Connect for watches and steps). See section 4 of `docs/launch-checklist.md`.
+
 ## 1. Install the tools (first time only)
 
 | Tool | Where | Notes |

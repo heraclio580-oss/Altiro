@@ -56,6 +56,21 @@ Done: sign-up emails now go out through Resend from `no-reply@getaltiro.app`, so
 
 ## 4. Build the apps on your computer
 
+> **Before the first build, tell Claude: "set up watches and health".** That's the step below marked ⌚; doing
+> it before the first build means nothing has to be rebuilt.
+
+- [ ] ⌚ **Watches, steps and health (with Claude, before the first build):**
+  1. Upgrade the app framework from Capacitor 6 to **Capacitor 8** (needed for the health plugins).
+  2. Add **Apple Health** (iPhone) and **Google Health Connect** (Android): runs and workouts from almost any
+     watch (Apple Watch, Garmin via Garmin Connect, Samsung, Fitbit, Coros, Polar...) without Strava, plus
+     **daily steps**. Claude updates the privacy policy and the store privacy forms for health data.
+  3. Meanwhile, **apply to the Garmin Connect Developer Program** (free, reviewed by Garmin, can take weeks):
+     developer.garmin.com → Connect Developer Program. Have the website, privacy policy
+     (https://heraclio580-oss.github.io/Altiro/privacy.html) and a short description of Altiro ready. Once
+     approved, Claude adds direct Garmin sync and **sending Altiro's planned workouts to the watch**.
+  4. Later, only if users ask: a watch app of its own (Apple Watch, Wear OS, Garmin Connect IQ).
+  (Until then, watches already work through Strava: watch → Garmin Connect/Strava → Altiro.)
+
 - [ ] **iPhone app:** no Mac, so build it in the cloud with **Codemagic** (free tier: 500 build minutes a
   month on their Macs). It builds straight from the GitHub repo and can upload to App Store Connect. Do the
   Android app first; set this up once the Apple Developer account is approved.

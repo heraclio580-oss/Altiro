@@ -4809,7 +4809,8 @@ function plannedSessionFor(date){
 // for progression and Personal Records -- the same lift appearing in several workouts shares one
 // progression trail. seedFactor scales the intensity tier's starting weight ([95,135,195] lb) so a
 // heavy compound lift and a light accessory don't start at the same load; bodyweight moves have none.
-// minLevel keeps technical lifts out of a beginner's plan.
+// minLevel keeps technical lifts out of a beginner's plan; beginnerOnly keeps the easiest versions
+// (knee and wall push-ups) out of everyone else's.
 const EXERCISES = {
   'Back Squat': {en:'Back Squat', es:'Sentadilla con Barra', sets:4, reps:8, seedFactor:1.0},
   'Front Squat': {en:'Front Squat', es:'Sentadilla Frontal', sets:4, reps:8, seedFactor:0.85, minLevel:'intermediate'},
@@ -4826,10 +4827,10 @@ const EXERCISES = {
   'Reverse Lunge': {en:'Reverse Lunge', es:'Zancada Inversa', sets:3, reps:12, bodyweight:true},
   'Bodyweight Split Squat': {en:'Bodyweight Split Squat', es:'Sentadilla Dividida', sets:3, reps:10, bodyweight:true},
   'Bodyweight Step-Up': {en:'Bodyweight Step-Up', es:'Subida al Escalón', sets:3, reps:12, bodyweight:true},
-  'Deadlift': {en:'Deadlift', es:'Peso Muerto', sets:4, reps:6, seedFactor:1.2},
+  'Deadlift': {en:'Deadlift', es:'Peso Muerto', sets:4, reps:6, seedFactor:1.2, minLevel:'intermediate'},
   'Trap Bar Deadlift': {en:'Trap Bar Deadlift', es:'Peso Muerto con Barra Hexagonal', sets:4, reps:6, seedFactor:1.1},
   'Rack Pull': {en:'Rack Pull', es:'Peso Muerto Parcial', sets:4, reps:6, seedFactor:1.1, minLevel:'intermediate'},
-  'Romanian Deadlift': {en:'Romanian Deadlift', es:'Peso Muerto Rumano', sets:3, reps:10, seedFactor:0.8},
+  'Romanian Deadlift': {en:'Romanian Deadlift', es:'Peso Muerto Rumano', sets:3, reps:10, seedFactor:0.8, minLevel:'intermediate'},
   'Hip Thrust': {en:'Hip Thrust', es:'Empuje de Cadera', sets:3, reps:10, seedFactor:0.9},
   'Good Morning': {en:'Good Morning', es:'Buenos Días', sets:3, reps:10, seedFactor:0.5, minLevel:'intermediate'},
   'Dumbbell Romanian Deadlift': {en:'Dumbbell Romanian Deadlift', es:'Peso Muerto Rumano con Mancuernas', sets:3, reps:10, seedFactor:0.4},
@@ -4846,16 +4847,18 @@ const EXERCISES = {
   'Chest Fly': {en:'Chest Fly', es:'Aperturas de Pecho', sets:3, reps:12, seedFactor:0.2},
   'Cable Fly': {en:'Cable Fly', es:'Aperturas en Polea', sets:3, reps:12, seedFactor:0.25},
   'Dumbbell Floor Fly': {en:'Dumbbell Floor Fly', es:'Aperturas en el Suelo', sets:3, reps:12, seedFactor:0.2},
-  'Push-Up': {en:'Push-Up', es:'Flexión de Pecho', sets:3, reps:12, bodyweight:true},
+  'Push-Up': {en:'Push-Up', es:'Flexión de Pecho', sets:3, reps:12, bodyweight:true, minLevel:'intermediate'},
   'Incline Push-Up': {en:'Incline Push-Up', es:'Flexión Inclinada', sets:3, reps:12, bodyweight:true},
+  'Knee Push-Up': {en:'Knee Push-Up', es:'Flexión de Rodillas', sets:3, reps:10, bodyweight:true, beginnerOnly:true},
+  'Wall Push-Up': {en:'Wall Push-Up', es:'Flexión en Pared', sets:3, reps:15, bodyweight:true, beginnerOnly:true},
   'Decline Push-Up': {en:'Decline Push-Up', es:'Flexión Declinada', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
-  'Diamond Push-Up': {en:'Diamond Push-Up', es:'Flexión Diamante', sets:3, reps:10, bodyweight:true},
+  'Diamond Push-Up': {en:'Diamond Push-Up', es:'Flexión Diamante', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
   'Overhead Press': {en:'Overhead Press', es:'Press Militar', sets:3, reps:10, seedFactor:0.5},
   'Push Press': {en:'Push Press', es:'Press de Empuje', sets:3, reps:8, seedFactor:0.55, minLevel:'intermediate'},
-  'Arnold Press': {en:'Arnold Press', es:'Press Arnold', sets:3, reps:10, seedFactor:0.2},
+  'Arnold Press': {en:'Arnold Press', es:'Press Arnold', sets:3, reps:10, seedFactor:0.2, minLevel:'intermediate'},
   'Dumbbell Shoulder Press': {en:'Dumbbell Shoulder Press', es:'Press de Hombro con Mancuernas', sets:3, reps:10, seedFactor:0.2},
-  'Pike Push-Up': {en:'Pike Push-Up', es:'Flexión en Pica', sets:3, reps:10, bodyweight:true},
-  'Bent-Over Row': {en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:3, reps:10, seedFactor:0.6},
+  'Pike Push-Up': {en:'Pike Push-Up', es:'Flexión en Pica', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
+  'Bent-Over Row': {en:'Bent-Over Row', es:'Remo con Torso Inclinado', sets:3, reps:10, seedFactor:0.6, minLevel:'intermediate'},
   'Seated Cable Row': {en:'Seated Cable Row', es:'Remo Sentado en Polea', sets:3, reps:10, seedFactor:0.6},
   'T-Bar Row': {en:'T-Bar Row', es:'Remo en T', sets:3, reps:10, seedFactor:0.6},
   'Dumbbell Row': {en:'Dumbbell Row', es:'Remo con Mancuerna', sets:3, reps:10, seedFactor:0.3},
@@ -4865,8 +4868,8 @@ const EXERCISES = {
   'Pull-Up': {en:'Pull-Up', es:'Dominada', sets:3, reps:8, bodyweight:true, minLevel:'intermediate'},
   'Chin-Up': {en:'Chin-Up', es:'Dominada Supina', sets:3, reps:8, bodyweight:true, minLevel:'intermediate'},
   'Lat Pulldown': {en:'Lat Pulldown', es:'Jalón al Pecho', sets:3, reps:10, seedFactor:0.6},
-  'Dumbbell Pullover': {en:'Dumbbell Pullover', es:'Pullover con Mancuerna', sets:3, reps:12, seedFactor:0.2},
-  'Prone Y-T-W Raise': {en:'Prone Y-T-W Raise', es:'Elevaciones Y-T-W Boca Abajo', sets:3, reps:10, bodyweight:true},
+  'Dumbbell Pullover': {en:'Dumbbell Pullover', es:'Pullover con Mancuerna', sets:3, reps:12, seedFactor:0.2, minLevel:'intermediate'},
+  'Prone Y-T-W Raise': {en:'Prone Y-T-W Raise', es:'Elevaciones Y-T-W Boca Abajo', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
   'Bicep Curl': {en:'Bicep Curl', es:'Curl de Bíceps', sets:3, reps:12, seedFactor:0.15},
   'Hammer Curl': {en:'Hammer Curl', es:'Curl Martillo', sets:3, reps:12, seedFactor:0.15},
   'Triceps Pushdown': {en:'Triceps Pushdown', es:'Extensión de Tríceps en Polea', sets:3, reps:12, seedFactor:0.25},
@@ -4877,9 +4880,9 @@ const EXERCISES = {
   'Reverse Fly': {en:'Reverse Fly', es:'Aperturas Invertidas', sets:3, reps:15, seedFactor:0.1},
   'Band Pull-Apart': {en:'Band Pull-Apart', es:'Apertura de Banda', sets:3, reps:15, bodyweight:true},
   'Calf Raise': {en:'Calf Raise', es:'Elevación de Talones', sets:3, reps:15, bodyweight:true},
-  'Single-Leg Calf Raise': {en:'Single-Leg Calf Raise', es:'Elevación de Talón a Una Pierna', sets:3, reps:12, bodyweight:true},
+  'Single-Leg Calf Raise': {en:'Single-Leg Calf Raise', es:'Elevación de Talón a Una Pierna', sets:3, reps:12, bodyweight:true, minLevel:'intermediate'},
   'Plank': {en:'Plank', es:'Plancha', sets:3, durationSec:45, bodyweight:true},
-  'Dead Bug': {en:'Dead Bug', es:'Dead Bug', sets:3, reps:10, bodyweight:true},
+  'Dead Bug': {en:'Dead Bug', es:'Dead Bug', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
   'Side Plank': {en:'Side Plank', es:'Plancha Lateral', sets:2, durationSec:30, bodyweight:true},
   'Bicycle Crunch': {en:'Bicycle Crunch', es:'Crunch de Bicicleta', sets:3, reps:20, bodyweight:true},
   'Kettlebell Front Squat': {en:'Kettlebell Front Squat', es:'Sentadilla Frontal con Pesa Rusa', sets:3, reps:10, seedFactor:0.3},
@@ -4887,15 +4890,15 @@ const EXERCISES = {
   'Kettlebell Split Squat': {en:'Kettlebell Split Squat', es:'Sentadilla Dividida con Pesa Rusa', sets:3, reps:10, seedFactor:0.2},
   'Kettlebell Deadlift': {en:'Kettlebell Deadlift', es:'Peso Muerto con Pesa Rusa', sets:3, reps:10, seedFactor:0.4},
   'Single-Leg Kettlebell Deadlift': {en:'Single-Leg Kettlebell Deadlift', es:'Peso Muerto a Una Pierna con Pesa Rusa', sets:3, reps:8, seedFactor:0.25},
-  'Kettlebell Clean': {en:'Kettlebell Clean', es:'Cargada con Pesa Rusa', sets:3, reps:8, seedFactor:0.25, minLevel:'intermediate'},
-  'Kettlebell Floor Press': {en:'Kettlebell Floor Press', es:'Press de Suelo con Pesa Rusa', sets:3, reps:10, seedFactor:0.25},
+  'Kettlebell Clean': {en:'Kettlebell Clean', es:'Cargada con Pesa Rusa', sets:3, reps:8, seedFactor:0.25},
+  'Kettlebell Floor Press': {en:'Kettlebell Floor Press', es:'Press de Suelo con Pesa Rusa', sets:3, reps:10, seedFactor:0.25, minLevel:'intermediate'},
   'Kettlebell Overhead Press': {en:'Kettlebell Overhead Press', es:'Press sobre la Cabeza con Pesa Rusa', sets:3, reps:8, seedFactor:0.2},
   'Kettlebell Push Press': {en:'Kettlebell Push Press', es:'Press de Empuje con Pesa Rusa', sets:3, reps:8, seedFactor:0.25, minLevel:'intermediate'},
   'Kettlebell Halo': {en:'Kettlebell Halo', es:'Halo con Pesa Rusa', sets:3, reps:8, seedFactor:0.1},
   'Kettlebell Row': {en:'Kettlebell Row', es:'Remo con Pesa Rusa', sets:3, reps:10, seedFactor:0.3},
-  'Kettlebell Gorilla Row': {en:'Kettlebell Gorilla Row', es:'Remo Gorila con Pesa Rusa', sets:3, reps:8, seedFactor:0.3, minLevel:'intermediate'},
+  'Kettlebell Gorilla Row': {en:'Kettlebell Gorilla Row', es:'Remo Gorila con Pesa Rusa', sets:3, reps:8, seedFactor:0.3},
   'Kettlebell High Pull': {en:'Kettlebell High Pull', es:'Jalón Alto con Pesa Rusa', sets:3, reps:10, seedFactor:0.25},
-  'Kettlebell Pullover': {en:'Kettlebell Pullover', es:'Pullover con Pesa Rusa', sets:3, reps:12, seedFactor:0.2},
+  'Kettlebell Pullover': {en:'Kettlebell Pullover', es:'Pullover con Pesa Rusa', sets:3, reps:12, seedFactor:0.2, minLevel:'intermediate'},
   'Kettlebell Curl': {en:'Kettlebell Curl', es:'Curl con Pesa Rusa', sets:3, reps:12, seedFactor:0.15},
   'Kettlebell Overhead Triceps Extension': {en:'Kettlebell Overhead Triceps Extension', es:'Extensión de Tríceps con Pesa Rusa', sets:3, reps:12, seedFactor:0.15},
   'Turkish Get-Up': {en:'Turkish Get-Up', es:'Levantamiento Turco', sets:3, reps:3, seedFactor:0.15, minLevel:'intermediate'},
@@ -4907,16 +4910,23 @@ const EXERCISES = {
   'Reverse Curl': {en:'Reverse Curl', es:'Curl Inverso', sets:3, reps:12, seedFactor:0.12},
   'Preacher Curl': {en:'Preacher Curl', es:'Curl Predicador', sets:3, reps:10, seedFactor:0.15},
   'Concentration Curl': {en:'Concentration Curl', es:'Curl Concentrado', sets:3, reps:12, seedFactor:0.1},
-  'Skull Crusher': {en:'Skull Crusher', es:'Rompecráneos', sets:3, reps:10, seedFactor:0.2},
+  'Skull Crusher': {en:'Skull Crusher', es:'Rompecráneos', sets:3, reps:10, seedFactor:0.2, minLevel:'intermediate'},
   'Lateral Raise': {en:'Lateral Raise', es:'Elevación Lateral', sets:3, reps:15, seedFactor:0.08},
   'Cable Lateral Raise': {en:'Cable Lateral Raise', es:'Elevación Lateral en Polea', sets:3, reps:15, seedFactor:0.08},
   'Front Raise': {en:'Front Raise', es:'Elevación Frontal', sets:3, reps:12, seedFactor:0.08},
   'Rear Delt Raise': {en:'Rear Delt Raise', es:'Elevación para Deltoides Posterior', sets:3, reps:15, seedFactor:0.08},
   'Upright Row': {en:'Upright Row', es:'Remo al Mentón', sets:3, reps:12, seedFactor:0.3},
   'Wrist Curl': {en:'Wrist Curl', es:'Curl de Muñeca', sets:3, reps:15, seedFactor:0.1},
-  'Dead Hang': {en:'Dead Hang', es:'Colgado en Barra', sets:3, durationSec:30, bodyweight:true},
+  'Dead Hang': {en:'Dead Hang', es:'Colgado en Barra', sets:3, durationSec:30, bodyweight:true, minLevel:'intermediate'},
   'Ab Wheel Rollout': {en:'Ab Wheel Rollout', es:'Rueda Abdominal', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
 };
+// Where a move belongs, as sorted by hand: HOME_ONLY moves feel out of place on a public gym floor, so a
+// gym plan never suggests them; GYM_ONLY ones need a gym's equipment, so a plan at home never does.
+// Everything else is fine anywhere.
+const HOME_ONLY = new Set(['Dumbbell Floor Press','Dumbbell Floor Fly','Superman','Prone Y-T-W Raise','Dead Bug','Towel Row',
+  'Wall Angel','Bird Dog','Hollow Body Hold','Cat-Cow','Thoracic Rotation','Reverse Crunch','Clamshell']);
+const GYM_ONLY = new Set(['Back Squat','Front Squat','Leg Press','Inverted Row','Triceps Pushdown','Triceps Dip']);
+function fitsVenue(key, equipment){ return equipment==='gym' ? !HOME_ONLY.has(key) : !GYM_ONLY.has(key); }
 // Each movement pattern's options by the equipment the user has. A workout slot cycles through the
 // options its equipment allows -- the first two slots of a workout (its main lifts) once per 4-week
 // block, so they can actually be progressed; the rest every week, for variety.
@@ -4925,8 +4935,8 @@ const MOVEMENTS = {
   lunge:    {gym:['Walking Lunge','Bulgarian Split Squat','Step-Up'], kettlebells:['Kettlebell Reverse Lunge','Kettlebell Split Squat'], dumbbells:['Walking Lunge','Bulgarian Split Squat','Step-Up'], bodyweight:['Reverse Lunge','Bodyweight Split Squat','Bodyweight Step-Up']},
   hinge:    {gym:['Romanian Deadlift','Hip Thrust','Kettlebell Swing','Good Morning'], kettlebells:['Kettlebell Swing','Single-Leg Kettlebell Deadlift','Kettlebell Deadlift'], dumbbells:['Dumbbell Romanian Deadlift','Kettlebell Swing','Dumbbell Hip Thrust'], bodyweight:['Single-Leg Romanian Deadlift','Single-Leg Glute Bridge','Glute Bridge']},
   deadlift: {gym:['Deadlift','Trap Bar Deadlift','Rack Pull'], kettlebells:['Kettlebell Deadlift','Kettlebell Swing','Kettlebell Clean'], dumbbells:['Dumbbell Romanian Deadlift','Kettlebell Swing'], bodyweight:['Single-Leg Romanian Deadlift','Single-Leg Glute Bridge']},
-  hpush:    {gym:['Bench Press','Dumbbell Bench Press','Incline Barbell Press'], kettlebells:['Kettlebell Floor Press','Push-Up'], dumbbells:['Dumbbell Floor Press','Push-Up'], bodyweight:['Push-Up','Incline Push-Up','Decline Push-Up']},
-  chest2:   {gym:['Incline Dumbbell Press','Chest Fly','Cable Fly'], kettlebells:['Push-Up','Kettlebell Floor Press'], dumbbells:['Dumbbell Floor Fly','Push-Up'], bodyweight:['Incline Push-Up','Diamond Push-Up']},
+  hpush:    {gym:['Bench Press','Dumbbell Bench Press','Incline Barbell Press'], kettlebells:['Kettlebell Floor Press','Push-Up'], dumbbells:['Dumbbell Floor Press','Push-Up'], bodyweight:['Push-Up','Incline Push-Up','Decline Push-Up','Knee Push-Up']},
+  chest2:   {gym:['Incline Dumbbell Press','Chest Fly','Cable Fly'], kettlebells:['Push-Up','Kettlebell Floor Press'], dumbbells:['Dumbbell Floor Fly','Push-Up'], bodyweight:['Incline Push-Up','Diamond Push-Up','Wall Push-Up']},
   vpush:    {gym:['Overhead Press','Arnold Press','Push Press'], kettlebells:['Kettlebell Overhead Press','Kettlebell Push Press','Kettlebell Halo'], dumbbells:['Dumbbell Shoulder Press','Arnold Press'], bodyweight:['Pike Push-Up']},
   hpull:    {gym:['Bent-Over Row','Seated Cable Row','T-Bar Row'], kettlebells:['Kettlebell Row','Kettlebell Gorilla Row'], dumbbells:['Dumbbell Row','Resistance Band Row'], bodyweight:['Inverted Row','Towel Row','Superman']},
   vpull:    {gym:['Lat Pulldown','Pull-Up','Chin-Up'], kettlebells:['Kettlebell High Pull','Kettlebell Pullover'], dumbbells:['Dumbbell Pullover'], bodyweight:['Prone Y-T-W Raise','Superman','Wall Angel']},
@@ -4968,16 +4978,35 @@ const LIFT_TEMPLATES = {
   'Legs & Shoulders Day': [{m:'squat', sets:4, reps:8}, {m:'hinge'}, {m:'vpush'}, {m:'lateral'}],
 };
 const LEVEL_RANK = {beginner:0, intermediate:1, advanced:2};
-function movementOptions(movement, equipment, level){
+function fitsLevel(key, level){
+  const def = exerciseDef(key);
+  if(!def) return true;
+  if(def.beginnerOnly) return level==='beginner';
+  return !def.minLevel || LEVEL_RANK[level] >= LEVEL_RANK[def.minLevel];
+}
+function fitsUser(key, equipment, level){ return fitsVenue(key, equipment) && fitsLevel(key, level); }
+// When a movement has nothing that fits (say, a beginner's only bodyweight overhead press is the pike
+// push-up), the slot borrows from a close movement instead.
+const BACKUP_MOVEMENT = {vpush:'hpush', frontraise:'lateral', vpull:'reardelt', chest2:'hpush', reardelt:'hpull', lateral:'reardelt', triceps:'hpush'};
+function movementOptions(movement, equipment, level, borrowed){
   const all = (MOVEMENTS[movement][equipment] || MOVEMENTS[movement].gym);
-  const fit = all.filter(k=> !EXERCISES[k].minLevel || LEVEL_RANK[level] >= LEVEL_RANK[EXERCISES[k].minLevel]);
-  return fit.length ? fit : all;
+  const fit = all.filter(k=> fitsUser(k, equipment, level));
+  if(fit.length) return fit;
+  // The other equipment the user can reach (a kettlebell user can always do bodyweight moves).
+  for(const tier of (EQUIP_ACCESS[equipment] || []).slice(1)){
+    const more = (MOVEMENTS[movement][tier] || []).filter(k=> fitsUser(k, equipment, level));
+    if(more.length) return more;
+  }
+  if(!borrowed && BACKUP_MOVEMENT[movement]) return movementOptions(BACKUP_MOVEMENT[movement], equipment, level, true);
+  const anyLevel = all.filter(k=> fitsVenue(k, equipment));
+  return anyLevel.length ? anyLevel : all;
 }
 // Short bodyweight add-ons (activation, mobility, cooldown) -- the same fixed option lists for everyone.
 const MOBILITY_TEMPLATES = {
   'Core Activation': [
     [ {key:'Dead Bug', en:'Dead Bug', es:'Dead Bug', sets:3, reps:10, bodyweight:true},
-      {key:'Hollow Body Hold', en:'Hollow Body Hold', es:'Sostén de Cuerpo Hueco', sets:3, durationSec:20, bodyweight:true} ],
+      {key:'Hollow Body Hold', en:'Hollow Body Hold', es:'Sostén de Cuerpo Hueco', sets:3, durationSec:20, bodyweight:true, minLevel:'intermediate'},
+      {key:'Bicycle Crunch', en:'Bicycle Crunch', es:'Crunch de Bicicleta', sets:3, reps:20, bodyweight:true} ],
     [ {key:'Bird Dog', en:'Bird Dog', es:'Bird Dog', sets:3, reps:10, bodyweight:true},
       {key:'Side Plank', en:'Side Plank', es:'Plancha Lateral', sets:2, durationSec:30, bodyweight:true} ],
     [ {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:30, bodyweight:true},
@@ -4987,7 +5016,8 @@ const MOBILITY_TEMPLATES = {
     [ {key:'Plank', en:'Plank', es:'Plancha', sets:3, durationSec:30, bodyweight:true},
       {key:'Side Plank', en:'Side Plank', es:'Plancha Lateral', sets:2, durationSec:30, bodyweight:true} ],
     [ {key:'Cat-Cow', en:'Cat-Cow', es:'Gato-Vaca', sets:2, reps:10, bodyweight:true},
-      {key:'Thoracic Rotation', en:'Thoracic Rotation', es:'Rotación Torácica', sets:2, reps:8, bodyweight:true} ],
+      {key:'Thoracic Rotation', en:'Thoracic Rotation', es:'Rotación Torácica', sets:2, reps:8, bodyweight:true},
+      {key:'Thread the Needle', en:'Thread the Needle', es:'Enhebrar la Aguja', sets:2, reps:8, bodyweight:true} ],
     [ {key:"World's Greatest Stretch", en:"World's Greatest Stretch", es:'Estiramiento del Mundo', sets:2, reps:6, bodyweight:true},
       {key:'Hip Flexor Stretch', en:'Hip Flexor Stretch', es:'Estiramiento de Flexores de Cadera', sets:2, durationSec:30, bodyweight:true} ],
   ],
@@ -5056,7 +5086,7 @@ function exerciseFromKey(key, like){
     ex.sets = like.sets;
     if(like.reps && !like.bodyweight && !base.bodyweight && base.durationSec==null) ex.reps = like.reps;
   }
-  delete ex.minLevel;
+  delete ex.minLevel; delete ex.beginnerOnly;
   return localizedExercise(ex);
 }
 // The user's standing ("every workout") changes: {exerciseKey: replacementKey | 'skip'}. They apply to
@@ -5080,18 +5110,17 @@ function applyStandingSwaps(list){
 // What an exercise could be swapped for: the other moves for the same movement that fit the user's
 // equipment and level (their own equipment first), or for a mobility move, the others in its slot.
 function exerciseAlternatives(key){
-  const level = planLevel(), tiers = EQUIP_ACCESS[planEquipment()];
+  const equipment = planEquipment(), level = planLevel(), tiers = EQUIP_ACCESS[equipment];
   const found = [];
   Object.values(MOVEMENTS).forEach(byEquip=>{
     if(!Object.values(byEquip).some(list=>list.includes(key))) return;
     tiers.forEach(tier=> (byEquip[tier]||[]).forEach(k=>{
-      const def = EXERCISES[k];
-      if(k!==key && !found.includes(k) && (!def.minLevel || LEVEL_RANK[level] >= LEVEL_RANK[def.minLevel])) found.push(k);
+      if(k!==key && !found.includes(k) && fitsUser(k, equipment, level)) found.push(k);
     }));
   });
   if(found.length) return found;
   for(const slots of Object.values(MOBILITY_TEMPLATES)){
-    for(const opts of slots) if(opts.some(o=>o.key===key)) return opts.filter(o=>o.key!==key).map(o=>o.key);
+    for(const opts of slots) if(opts.some(o=>o.key===key)) return opts.filter(o=>o.key!==key && fitsUser(o.key, equipment, level)).map(o=>o.key);
   }
   return [];
 }
@@ -5105,7 +5134,12 @@ function plannedExercises(session, date){
   const seed = weekSeedForDate(d);
   const mobility = MOBILITY_TEMPLATES[title];
   if(mobility){
-    return mobility.map((options, i)=> localizedExercise({...options[(seed + i) % options.length], fromPlan:true}));
+    const equipment = planEquipment(), level = planLevel();
+    return mobility.map(opts=> opts.filter(o=> fitsUser(o.key, equipment, level))).filter(opts=> opts.length).map((options, i)=>{
+      const ex = {...options[(seed + i) % options.length], fromPlan:true};
+      delete ex.minLevel; delete ex.beginnerOnly;
+      return localizedExercise(ex);
+    });
   }
   const isB = !LIFT_TEMPLATES[title] && / B$/.test(title);
   let slots = liftTemplateFor(title);
@@ -5123,12 +5157,22 @@ function plannedExercises(session, date){
   // Short and efficient: with a pyramid on the main lift, a workout is 4 lifts (3 when an arm & grip
   // focus adds its grip work to an upper-body day).
   if(equipment!=='bodyweight') slots = slots.slice(0, 4);
+  // A workout that trains a movement twice (Arm Day's two curls) takes the next option the second
+  // time, or a close movement's, rather than repeating the same exercise.
+  const used = new Set();
+  const unused = (options, start)=>{
+    for(let j=0; j<options.length; j++){ const k = options[(start + j) % options.length]; if(!used.has(k)) return k; }
+    return null;
+  };
   const list = slots.map((slot, i)=>{
     const options = movementOptions(slot.m, equipment, level);
     // Main lifts change with each of the plan's 4-week cycles; the rest every week. The peak lift is
     // the week's own variation of the focus.
     const rotation = slot.focus ? focus.variant : (i<2 ? Math.floor(planWeek/4) : seed) + i + (isB ? 1 : 0);
-    const key = options[rotation % options.length];
+    const key = unused(options, rotation)
+      || (BACKUP_MOVEMENT[slot.m] && unused(movementOptions(BACKUP_MOVEMENT[slot.m], equipment, level, true), rotation))
+      || options[rotation % options.length];
+    used.add(key);
     const base = EXERCISES[key];
     let sets = slot.sets || base.sets;
     if(level==='beginner') sets -= 1;
@@ -5137,7 +5181,7 @@ function plannedExercises(session, date){
     if(recovery) sets -= 1;
     const ex = {...base, key, sets: Math.max(2, sets), fromPlan:true};
     if(slot.reps && !base.bodyweight) ex.reps = slot.reps; // a bodyweight move keeps its own rep count
-    delete ex.minLevel;
+    delete ex.minLevel; delete ex.beginnerOnly;
     return localizedExercise(ex);
   });
   // The focus lift can land on a move another slot also picked -- keep the first.

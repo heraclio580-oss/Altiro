@@ -42,6 +42,7 @@ alter table profiles add column if not exists lift_intensity_idx int;   -- lifti
 alter table profiles add column if not exists lift_split text;   -- how lifting days are split: auto | full | ppl (push/pull/legs) | bodypart (one muscle group a day)
 alter table profiles add column if not exists classes jsonb not null default '[]'::jsonb; -- weekly classes: [{id, kind, name, days (0=Mon), time 'HH:MM', minutes, from, skips}]
 alter table profiles add column if not exists own_since date; -- "Create my own workouts": from this day on no generated plan, every day open for the user's own (null = plan on)
+alter table profiles add column if not exists distance_unit text; -- 'mi' | 'km': how distances are shown and typed (null = by the phone's region); everything is stored in miles
 
 -- ---------------------------------------------------------------------------
 -- workout_logs: one row per (user, calendar day) -- mirrors state.dayLog[dateKey]

@@ -1132,6 +1132,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .gps-top{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;}
 .gps-top .label{flex:1;}
 .gps-top .iconbtn[hidden]{visibility:hidden;display:inline-flex;}
+.gps-voice svg{width:20px;height:20px;}
+.gps-voice .mute{display:none;}
+.gps-voice[aria-pressed="false"] .wave{display:none;}
+.gps-voice[aria-pressed="false"] .mute{display:inline;}
+.gps-voice[aria-pressed="false"]{color:var(--text-3);}
 .gps-signal{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;padding:5px 10px;border-radius:999px;background:var(--well);color:var(--text-2);}
 .gps-signal::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px;background:var(--warn);}
 .gps-signal.good::before{background:var(--ok-icon);}
@@ -1178,6 +1183,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .loc-prompt-ic svg{width:28px;height:28px;}
 .loc-prompt-title{font-family:var(--font-display);font-weight:700;font-size:19px;text-align:center;color:var(--text);margin-top:12px;}
 .maplibregl-ctrl-attrib{font-size:10px;}
+.rest-bar{position:sticky;bottom:8px;z-index:5;display:flex;align-items:center;gap:6px;margin:12px 0 4px;padding:10px 10px 10px 14px;border-radius:16px;background:var(--card-2);border:1px solid var(--accent);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.35);}
+.rest-bar[hidden]{display:none;}
+.rest-fill{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--accent-tint);transform-origin:left;pointer-events:none;}
+.rest-main{position:relative;flex:1;min-width:0;}
+.rest-label{font-family:var(--font-mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-3);}
+.rest-time{font-family:var(--font-mono);font-weight:700;font-size:24px;color:var(--text);line-height:1.1;}
+.rest-bar.done .rest-time{color:var(--ok-icon);}
+.rest-btn{position:relative;height:36px;min-width:46px;padding:0 10px;border-radius:999px;border:1px solid var(--border);background:var(--well);color:var(--text);font-family:var(--font-mono);font-size:12px;cursor:pointer;}
+.rest-btn.skip{font-family:var(--font-body);font-weight:600;}
 .share-preview{margin:12px 0 4px;display:flex;justify-content:center;}
 .share-preview img{display:block;max-width:100%;max-height:52vh;width:auto;height:auto;border-radius:14px;border:1px solid var(--border);background:#0A0A0B;}
 .share-preview img:not([src]){width:62%;aspect-ratio:4/5;}
@@ -1668,6 +1682,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section">
         <div class="st-label" data-i18n="languageLabel"></div>
         <div class="lang-toggle"><button class="lang-btn" data-lang="en">EN</button><button class="lang-btn" data-lang="es">ES</button></div>
+      </div>
+
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="distanceUnitLabel"></div>
+        <div class="lang-toggle" id="distUnitToggle"><button class="lang-btn" data-dist="mi" type="button">MI</button><button class="lang-btn" data-dist="km" type="button">KM</button></div>
+        <div class="footer-note" style="text-align:left;margin-top:6px;" data-i18n="distanceUnitNote"></div>
       </div>
 
       <div class="sheet-section">
@@ -2409,6 +2429,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <a class="strava-view-link" id="logPerfStravaLink" target="_blank" rel="noopener" data-i18n="viewOnStrava" hidden></a>
       </div>
 
+      <div class="rest-bar" id="restBar" hidden>
+        <div class="rest-fill" id="restFill"></div>
+        <div class="rest-main"><div class="rest-label" id="restLabel" data-i18n="restLabel"></div><div class="rest-time" id="restTime">1:30</div></div>
+        <button class="rest-btn" id="restMinus" type="button">−15</button>
+        <button class="rest-btn" id="restPlus" type="button">+15</button>
+        <button class="rest-btn skip" id="restSkip" type="button" data-i18n="restSkip"></button>
+      </div>
       <button class="btn btn-primary sheet-apply" id="saveLogPerf" data-i18n="saveWorkoutBtn"></button>
     </div>
   </div>
@@ -2419,6 +2446,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     <div class="gps-top">
       <button class="iconbtn" id="gpsClose" type="button" aria-label="Close"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       <span class="label" data-i18n="gpsTitle"></span>
+      <button class="iconbtn gps-voice" id="gpsVoiceBtn" type="button" aria-pressed="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8v4h3l4 3V5L6 8H3z"/><path class="wave" d="M13 7.5a3.5 3.5 0 0 1 0 5M15.2 5.5a6.5 6.5 0 0 1 0 9"/><path class="mute" d="M13 8l4 4M17 8l-4 4"/></svg></button>
       <span class="gps-signal finding" id="gpsSignal"></span>
     </div>
     <div class="gps-map route-map" id="gpsMap"></div>
@@ -3142,6 +3170,9 @@ const STR = {
     locPromptTitle: "Track your runs with GPS",
     locPromptBody: "Allow location so Altiro can map and measure your runs, and show your local weather. It's only used while you track a run or check the weather.",
     locPromptAllow: "Allow location", locPromptLater: "Not now", locAllowed: "Location is on. You're ready to track runs.",
+    restLabel: "Rest", restSkip: "Skip", restGo: "Go!", restNotifTitle: "Rest's over", restNotifBody: "Time for your next set.",
+    distanceUnitLabel: "Distance", distanceUnitNote: "Miles or kilometers, everywhere in the app.",
+    gpsVoiceOn: "Voice on", gpsVoiceOff: "Voice off",
     shareCardShareBtn: "Share", shareSaveSquare: "Save to Photos", shareCopySquare: "Copy", shareFullSquare: "Full screen", shareCardSaved: "Saved to your photos", shareCardSavedDownload: "Saved. It's in your gallery's Download album.", shareCopied: "Copied. Paste it into a post or message.", shareCopyFailed: "This phone can't copy pictures. Try Save to Photos.", sharePhotosDenied: "Allow Altiro to add photos in your phone's Settings, then try again.", shareCardFullTip: "Take your screenshot · tap to close",
     shareCardFailed: "Couldn't share it. Try Save image instead.", shareCardNoShare: "Sharing isn't available here, so the image was saved instead.",
     shareStatSets: "Sets", shareStatReps: "Reps", shareStatVolume: "Volume", shareStatTopSet: "Top set", shareExercisesLabel: "Exercises",
@@ -3737,6 +3768,9 @@ const STR = {
     locPromptTitle: "Registra tus carreras con GPS",
     locPromptBody: "Permite la ubicación para que Altiro mida tus carreras, las muestre en un mapa y te dé el clima local. Solo se usa mientras registras una carrera o consultas el clima.",
     locPromptAllow: "Permitir ubicación", locPromptLater: "Ahora no", locAllowed: "Ubicación activada. Ya puedes registrar carreras.",
+    restLabel: "Descanso", restSkip: "Saltar", restGo: "¡Vamos!", restNotifTitle: "Se acabó el descanso", restNotifBody: "Toca tu siguiente serie.",
+    distanceUnitLabel: "Distancia", distanceUnitNote: "Millas o kilómetros, en toda la app.",
+    gpsVoiceOn: "Voz activada", gpsVoiceOff: "Voz desactivada",
     shareCardShareBtn: "Compartir", shareSaveSquare: "Guardar en Fotos", shareCopySquare: "Copiar", shareFullSquare: "Pantalla completa", shareCardSaved: "Guardada en tus fotos", shareCardSavedDownload: "Guardada. Está en el álbum Descargas de tu galería.", shareCopied: "Copiada. Pégala en una publicación o mensaje.", shareCopyFailed: "Este teléfono no puede copiar imágenes. Prueba Guardar en Fotos.", sharePhotosDenied: "Permite que Altiro añada fotos en los Ajustes del teléfono y vuelve a intentarlo.", shareCardFullTip: "Haz tu captura · toca para cerrar",
     shareCardFailed: "No se pudo compartir. Prueba Guardar imagen.", shareCardNoShare: "Aquí no se puede compartir, así que se guardó la imagen.",
     shareStatSets: "Series", shareStatReps: "Reps", shareStatVolume: "Volumen", shareStatTopSet: "Serie máxima", shareExercisesLabel: "Ejercicios",
@@ -5253,6 +5287,7 @@ const defaultState = () => ({
 });
 let state = defaultState();
 state.lang = loadLang();
+state.distUnit = loadDistUnit();
 state.theme = loadTheme();
 applyTheme(state.theme);
 
@@ -6058,6 +6093,8 @@ document.addEventListener('click', (e)=>{
   if(openAdj){ openAdjustSheet(); }
   const langEl = e.target.closest('[data-lang]');
   if(langEl){ setLang(langEl.getAttribute('data-lang')); }
+  const distEl = e.target.closest('[data-dist]');
+  if(distEl){ setDistUnit(distEl.getAttribute('data-dist')); }
 });
 
 /* ---------------- language ---------------- */
@@ -6068,14 +6105,18 @@ function setLang(lang){
   applyLang();
 }
 function applyLang(){
+  applyUnitStrings();
   const L = STR[state.lang];
   if(mdKey) renderMoveDemo();
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     const key = el.getAttribute('data-i18n');
     if(L[key]!==undefined) el.textContent = L[key];
   });
-  document.querySelectorAll('.lang-btn').forEach(b=>{
+  document.querySelectorAll('.lang-btn[data-lang]').forEach(b=>{
     b.classList.toggle('active', b.getAttribute('data-lang')===state.lang);
+  });
+  document.querySelectorAll('.lang-btn[data-dist]').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('data-dist')===distUnit());
   });
   document.querySelectorAll('.terms-link').forEach(a=> a.setAttribute('href', state.lang==='es' ? 'terms.html#es' : 'terms.html'));
   document.querySelectorAll('.support-link').forEach(a=> a.setAttribute('href', state.lang==='es' ? 'support.html#es' : 'support.html'));
@@ -6414,7 +6455,7 @@ function milesOptionKey(miles){
 function renderBaselineChips(prefix, holder, onChange){
   document.getElementById(prefix+'MilesSection').hidden = holder.focusRatio>=4;
   document.getElementById(prefix+'EquipSection').hidden = holder.focusRatio<=0;
-  renderChipRow(prefix+'MilesChips', MILES_OPTIONS, milesOptionKey(holder.weeklyMiles), k=>{ holder.weeklyMiles = Number(k); onChange(); });
+  renderChipRow(prefix+'MilesChips', milesOptionsShown(), milesOptionKey(holder.weeklyMiles), k=>{ holder.weeklyMiles = Number(k); onChange(); });
   renderChipRow(prefix+'EquipChips', EQUIPMENT_OPTIONS, holder.equipment, k=>{ holder.equipment = k; onChange(); });
   renderMileSection(prefix, holder);
   renderChipRow(prefix+'LiftSplitChips', LIFT_SPLIT_OPTIONS, holder.liftSplit || 'auto', k=>{ holder.liftSplit = k; onChange(); });
@@ -6673,7 +6714,7 @@ function renderHome(){
   const byTime = week.plannedDistance<=0 && week.plannedMinutes>0;
   document.getElementById('ovDistanceLabel').textContent = byTime ? L.statTime : L.statDistance;
   if(byTime) dPct = Math.min(100, Math.round((week.minutes/week.plannedMinutes)*100));
-  document.getElementById('ovDistanceVal').textContent = byTime ? `${Math.round(week.minutes)}/${week.plannedMinutes} min` : `${weekMileage.toFixed(1)}/${distanceGoal} mi`;
+  document.getElementById('ovDistanceVal').textContent = byTime ? `${Math.round(week.minutes)}/${week.plannedMinutes} min` : (useKm() ? `${toDispDist(weekMileage).toFixed(1)}/${+toDispDist(distanceGoal).toFixed(1)} km` : `${weekMileage.toFixed(1)}/${distanceGoal} mi`);
   document.getElementById('ovDistanceBar').style.width = dPct+'%';
 
   const todayKey = dateKey(TODAY_DATE);
@@ -6810,8 +6851,8 @@ function readMileInputs(prefix){
   const sRaw = document.getElementById(prefix+'MileSecInput').value;
   const sec = sRaw==='' ? 0 : parseInt(sRaw, 10);
   if(isNaN(m) || isNaN(sec) || sec<0 || sec>59) return null;
-  const total = m*60 + sec;
-  return total>=180 && total<=1500 ? total : null; // 3:00 to 25:00
+  const total = Math.round(fromDispPace(m + sec/60)*60); // a 1 km time, in km mode, becomes its mile time
+  return total>=180 && total<=1500 ? total : null; // a 3:00 to 25:00 mile
 }
 // The mile-time boxes and the paces they give (under them), for `holder` (state or the Adjust draft).
 function renderMileSection(prefix, holder){
@@ -6821,8 +6862,9 @@ function renderMileSection(prefix, holder){
   section.hidden = holder.focusRatio>=4 || !(holder.weeklyMiles>0);
   const minEl = document.getElementById(prefix+'MileMinInput'), secEl = document.getElementById(prefix+'MileSecInput');
   if(document.activeElement!==minEl && document.activeElement!==secEl){
-    minEl.value = holder.mileTime ? Math.floor(holder.mileTime/60) : '';
-    secEl.value = holder.mileTime ? String(holder.mileTime%60).padStart(2,'0') : '';
+    const shown = holder.mileTime ? Math.round(toDispPace(holder.mileTime/60)*60) : null;
+    minEl.value = shown ? Math.floor(shown/60) : '';
+    secEl.value = shown ? String(shown%60).padStart(2,'0') : '';
   }
   const paces = mileTimePaces(holder.mileTime);
   document.getElementById(prefix+'MilePaces').textContent = paces
@@ -6982,6 +7024,11 @@ function wireSetCheckDot(dot, rowEl, ex){
     checks[idx] = !checks[idx];
     refreshLogPerfRowState(rowEl, ex);
     refreshLogPerfCurrentHighlight();
+    // A set just done: rest before the next one -- none after the very last set of the workout.
+    // (Unticking a set leaves a running rest alone.)
+    if(checks[idx]){
+      if(Object.values(logPerfSetChecks).every(c=> c.every(Boolean))) stopRest(); else startRest();
+    }
   });
 }
 function refreshLogPerfRowState(rowEl, ex){
@@ -7370,7 +7417,7 @@ function openLogPerformanceFor(logTarget, mode){
     // time at the target pace -- except for someone going by feel, who never gets a pace-based guess.
     const planned = plannedMilesOf(eff);
     const dist = knownDist!=null ? knownDist : (planned || (plannedMinutesOf(eff)!=null ? '' : 3));
-    document.getElementById('logPerfDistanceInput').value = dist;
+    document.getElementById('logPerfDistanceInput').value = dist==='' || dist==null ? '' : +toDispDist(dist).toFixed(2);
     const knownTime = (perf && perf.time!=null) ? perf.time
       : (mode==='revisit' && logTarget.kind==='entry' && rec.durationMin!=null) ? rec.durationMin
       : null;
@@ -7483,6 +7530,7 @@ function removeLiveExercise(key){
 document.getElementById('logPerfAddExerciseBtn').addEventListener('click', addLiveExercise);
 document.getElementById('logPerfAddExerciseInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addLiveExercise(); } });
 function closeLogPerformance(){
+  stopRest();
   stopWorkoutClock(); // the start time is kept -- reopening the same workout carries on counting
   document.getElementById('logPerfOverlay').hidden = true;
   document.getElementById('recordBtn').classList.remove('recording');
@@ -7549,7 +7597,8 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   }
   if(eff.t==='run'){
     const plannedDist = plannedMilesOf(eff) || (plannedMinutesOf(eff)!=null ? null : 3);
-    logged.distance = parseFloat(document.getElementById('logPerfDistanceInput').value) || plannedDist;
+    const typedDist = parseFloat(document.getElementById('logPerfDistanceInput').value);
+    logged.distance = typedDist>0 ? +fromDispDist(typedDist).toFixed(2) : plannedDist;
     const jogBlock = plannedJogBlock(eff);
     if(jogBlock!=null){
       const jog = parseFloat(document.getElementById('logPerfJogInput').value);
@@ -7563,6 +7612,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     if(t) logged.time = t;
   }
   stopWorkoutClock();
+  stopRest();
   clearLogPerfDraft();
   logged.notes = document.getElementById('logPerfNotesInput').value.trim();
   // Editing a run that came from Strava keeps its link back to Strava.
@@ -7574,6 +7624,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   if(routeFrom){
     logged.route = routeFrom.route; logged.splits = routeFrom.splits || [];
     if(routeFrom.lastSplit) logged.lastSplit = routeFrom.lastSplit;
+    if(routeFrom.splitUnit) logged.splitUnit = routeFrom.splitUnit;
     if(!logged.source) logged.source = 'gps';
   }
   if(gpsRes) setGpsHandoff(null);
@@ -9078,7 +9129,7 @@ function updateCreateTargetSections(){
 // two helpers are the only place that conversion happens.
 function updateManualPaceDisplay(){
   const dur = readHmsMinutes('manualDuration');
-  const dist = parseFloat(document.getElementById('manualDistanceInput').value);
+  const dist = fromDispDist(parseFloat(document.getElementById('manualDistanceInput').value));
   const paceEl = document.getElementById('manualPaceDisplay');
   paceEl.textContent = (dur>0 && dist>0) ? fmtPace(dur/dist)+'/mi' : '-:--/mi';
 }
@@ -9191,6 +9242,7 @@ function openManualEntry(){
   document.getElementById('manualNotesInput').value = '';
   document.getElementById('manualNotesInput').placeholder = L.manualNotesPlaceholder;
   document.getElementById('createPaceInput').value = '';
+  document.getElementById('createPaceInput').placeholder = useKm() ? '5:54' : '9:30';
   document.getElementById('createRoundsInput').value = '6';
   document.getElementById('createWorkDurationInput').value = '';
   document.getElementById('createWorkDurationInput').placeholder = '3:00';
@@ -9224,7 +9276,7 @@ document.getElementById('closeManualEntry').addEventListener('click', closeManua
 function readCreateTarget(){
   if(manualEntryType==='run'){
     const m = document.getElementById('createPaceInput').value.trim().match(/^(\d+):(\d\d)$/);
-    return m ? {pace: parseInt(m[1],10) + parseInt(m[2],10)/60} : null;
+    return m ? {pace: fromDispPace(parseInt(m[1],10) + parseInt(m[2],10)/60)} : null;
   }
   return null;
 }
@@ -9292,6 +9344,7 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
   let cardioDistance = null, cardioDuration = null;
   if(isCardioLog){
     cardioDistance = parseFloat(document.getElementById('manualDistanceInput').value);
+    if(cardioDistance>0) cardioDistance = +fromDispDist(cardioDistance).toFixed(2);
     cardioDuration = readHmsMinutes('manualDuration');
     cardioDistance = isNaN(cardioDistance) ? null : cardioDistance;
     // Derives the same free-text display shown everywhere else (bubbles, Home, Plan rows) from the
@@ -10325,6 +10378,7 @@ function shareCardData(){
   }
   const sessL = ST(session);
   const date = TODAY_DATE.toLocaleDateString(state.lang==='es' ? 'es' : 'en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+  stats.forEach(st=>{ st.v = kmText(st.v); }); // the card is drawn, not on the page, so it's converted here
   return {kicker: L.workoutCompleteTitle, title: sessL.title || L.workoutCompleteTitle, date, stats, rows,
     streak: state.streak>=1 ? L.shareStreak.replace('{n}', state.streak) : '', footer: L.shareFooter,
     routeSegs: session.t==='run' && logged.route ? routeSegments(logged.route) : null};
@@ -10852,7 +10906,7 @@ let gps = null;          // the run being tracked (see newGpsRun)
 let gpsWatch = null;     // {kind:'web', id} | {kind:'native', id}
 let gpsMap = null, gpsMapFollow = true, gpsTick = null, gpsWakeLock = null, gpsLastFix = null, gpsSaveAt = 0;
 function newGpsRun(target){
-  return {target: target || null, status:'idle', segs:[], distM:0, movingMs:0, runningSince:null, startedAt:null, splits:[], lastPt:null, newSeg:true};
+  return {target: target || null, status:'idle', segs:[], distM:0, movingMs:0, runningSince:null, startedAt:null, splits:[], lastPt:null, newSeg:true, splitM: unitMeters(), splitUnit: distUnit()};
 }
 function gpsElapsedMs(){ return gps ? gps.movingMs + (gps.status==='running' && gps.runningSince ? Date.now()-gps.runningSince : 0) : 0; }
 function saveGpsRun(force){
@@ -10872,6 +10926,7 @@ function loadGpsRun(){
     g.segs = g.segs.map((s, i)=> decodePolyline(s).map((p, j)=> [p[0], p[1], (g.segTimes && g.segTimes[i] && g.segTimes[i][j]) || 0]));
     delete g.segTimes;
     g.newSeg = true; g.lastPt = null; g.status = g.status==='idle' ? 'idle' : 'paused'; g.runningSince = null;
+    if(!g.splitM){ g.splitM = MI_M; g.splitUnit = 'mi'; }
     return g;
   }catch(e){ return null; }
 }
@@ -10898,13 +10953,14 @@ function onGpsFix(lat, lng, acc, time){
         gps.distM += d;
         gps.segs[gps.segs.length-1].push(p);
         gps.lastPt = p;
-        // A split for every mile passed: the run time at the moment the mile was crossed.
+        // A split for every mile (or km) passed: the run time at the moment it was crossed.
         const now = gpsElapsedMs();
-        while(gps.distM >= (gps.splits.length+1)*MI_M){
-          const mark = (gps.splits.length+1)*MI_M, frac = d ? (mark-before)/d : 1;
+        while(gps.distM >= (gps.splits.length+1)*gps.splitM){
+          const mark = (gps.splits.length+1)*gps.splitM, frac = d ? (mark-before)/d : 1;
           const atMs = now - (1-frac)*dt*1000;
           const prev = gps.splits.reduce((a,b)=> a+b, 0);
           gps.splits.push(Math.max(1, Math.round(atMs/1000 - prev)));
+          announceSplit(gps.splits.length, atMs, gps.splits[gps.splits.length-1], gps.splitUnit);
         }
       }
     }
@@ -11003,10 +11059,13 @@ function closeGpsTracker(){
 function renderGps(){
   if(!gps || document.getElementById('gpsOverlay').hidden) return;
   const L = STR[state.lang];
-  const ms = gpsElapsedMs(), mi = gps.distM/MI_M;
+  const ms = gpsElapsedMs(), units = gps.distM/unitMeters();
   document.getElementById('gpsTime').textContent = fmtRunClock(ms);
-  document.getElementById('gpsDist').textContent = mi.toFixed(2);
-  document.getElementById('gpsAvgPace').textContent = mi >= 0.05 ? fmtPaceSec(ms/1000/mi) : '--:--';
+  document.getElementById('gpsDist').textContent = units.toFixed(2);
+  document.getElementById('gpsAvgPace').textContent = units >= 0.05 ? fmtPaceSec(ms/1000/units) : '--:--';
+  const vb = document.getElementById('gpsVoiceBtn');
+  vb.setAttribute('aria-pressed', gpsVoiceOn() ? 'true' : 'false');
+  vb.setAttribute('aria-label', gpsVoiceOn() ? L.gpsVoiceOn : L.gpsVoiceOff);
   // Pace right now: over the last ~30 seconds of the current stretch.
   let cur = '--:--';
   const seg = gps.segs[gps.segs.length-1];
@@ -11015,7 +11074,7 @@ function renderGps(){
     let i = seg.length-1, d = 0;
     while(i>0 && end[2]-seg[i-1][2] <= 30000){ d += haversineM(seg[i-1], seg[i]); i--; }
     const dt = (end[2]-seg[i][2])/1000;
-    if(d >= 20 && dt > 0) cur = fmtPaceSec(dt/(d/MI_M));
+    if(d >= 20 && dt > 0) cur = fmtPaceSec(dt/(d/unitMeters()));
   }
   document.getElementById('gpsPace').textContent = cur;
   const sig = gpsSignalState(), sigEl = document.getElementById('gpsSignal');
@@ -11043,7 +11102,9 @@ document.getElementById('gpsStartBtn').addEventListener('click', ()=>{
   if(gps.status==='running'){
     gps.movingMs = gpsElapsedMs(); gps.runningSince = null; gps.status = 'paused';
     gpsKeepAwake(false);
+    announceRun('paused');
   } else {
+    announceRun(gps.status==='idle' ? 'started' : 'resumed');
     if(gps.status==='idle') gps.startedAt = Date.now();
     gps.status = 'running'; gps.runningSince = Date.now(); gps.newSeg = true; gps.lastPt = null;
     gpsMapFollow = true;
@@ -11060,6 +11121,74 @@ document.getElementById('gpsClose').addEventListener('click', ()=>{
 document.getElementById('gpsDiscardKeep').addEventListener('click', ()=>{ document.getElementById('gpsDiscardConfirm').hidden = true; });
 document.getElementById('gpsDiscardYes').addEventListener('click', ()=>{ clearGpsRun(); gps = null; closeGpsTracker(); });
 document.getElementById('gpsRecenter').addEventListener('click', ()=>{ gpsMapFollow = true; renderGps(); });
+document.getElementById('gpsVoiceBtn').addEventListener('click', ()=>{
+  const on = !gpsVoiceOn();
+  try{ localStorage.setItem(GPS_VOICE_KEY, on ? '1' : '0'); }catch(e){}
+  renderGps();
+  if(on) speakRun(state.lang==='es' ? 'Voz activada' : 'Voice on');
+});
+// ---- spoken updates during a run: each mile (or km) with the time and that split's pace, and when
+// the run starts, pauses, resumes and finishes. In the app's language; the phone's own speech engine
+// (in the store app, the native one, which keeps talking with the screen locked). On by default.
+const GPS_VOICE_KEY = 'altiro_gps_voice';
+function gpsVoiceOn(){ try{ return localStorage.getItem(GPS_VOICE_KEY)!=='0'; }catch(e){ return true; } }
+function spokenDuration(sec, es){
+  sec = Math.max(0, Math.round(sec));
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  const w = (n, one, many)=> `${n} ${n===1 ? one : many}`;
+  const parts = [];
+  if(h) parts.push(es ? w(h,'hora','horas') : w(h,'hour','hours'));
+  if(m || h) parts.push(es ? w(m,'minuto','minutos') : w(m,'minute','minutes'));
+  if(s || (!m && !h)) parts.push(es ? w(s,'segundo','segundos') : w(s,'second','seconds'));
+  return parts.join(' ');
+}
+function spokenPace(sec, es){
+  sec = Math.round(sec);
+  const m = Math.floor(sec/60), s = sec%60;
+  return es ? `${m} ${m===1 ? 'minuto' : 'minutos'}${s ? ' '+s : ''}` : `${m} ${m===1 ? 'minute' : 'minutes'}${s ? ' '+s : ''}`;
+}
+function speakRun(text){
+  const es = state.lang==='es', lang = es ? 'es-MX' : 'en-US';
+  const TTS = isNativeShell() && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+  if(TTS){ TTS.speak({text, lang, rate: 1.0, pitch: 0.9, volume: 1.0, category: 'playback', queueStrategy: 1}).catch(()=>{}); return; }
+  try{
+    if(!window.speechSynthesis || typeof SpeechSynthesisUtterance==='undefined') return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang; u.rate = 1.0; u.pitch = 0.85; u.volume = 1;
+    const v = pickRunVoice(es ? 'es' : 'en');
+    if(v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+function pickRunVoice(prefix){
+  try{
+    const voices = (window.speechSynthesis.getVoices() || []).filter(v=> v.lang && v.lang.toLowerCase().startsWith(prefix));
+    if(!voices.length) return null;
+    const male = /\bmale\b|david|daniel|alex\b|fred|george|james|mark\b|tom\b|guy|ryan|brian|aaron|arthur|gordon|oliver|thomas|jorge|diego|juan|carlos|pablo|enrique|miguel|rodrigo|alvaro|raul/i;
+    const female = /\bfemale\b|samantha|victoria|karen|susan|zira|siri|fiona|moira|tessa|kate\b|amy\b|emma\b|joanna|salli|kimberly|allison|ava\b|monica|paulina|lucia|helena|laura|conchita|penelope|esperanza|sabina|marisol|elvira|dalia/i;
+    return voices.find(v=> male.test(v.name)) || voices.find(v=> !female.test(v.name)) || voices[0];
+  }catch(e){ return null; }
+}
+function announceSplit(n, atMs, splitSec, unit){
+  if(!gpsVoiceOn()) return;
+  const es = state.lang==='es';
+  const name = unit==='km' ? (es ? `Kilómetro ${n}` : `Kilometer ${n}`) : (es ? `Milla ${n}` : `Mile ${n}`);
+  const last = unit==='km' ? (es ? 'Último kilómetro' : 'Last kilometer') : (es ? 'Última milla' : 'Last mile');
+  speakRun(es ? `${name}. Tiempo, ${spokenDuration(atMs/1000, true)}. ${last}, ${spokenPace(splitSec, true)}.`
+              : `${name}. Time, ${spokenDuration(atMs/1000, false)}. ${last}, ${spokenPace(splitSec, false)}.`);
+}
+function announceRun(what, info){
+  if(!gpsVoiceOn()) return;
+  const es = state.lang==='es';
+  if(what==='started') speakRun(es ? 'Carrera iniciada' : 'Run started');
+  else if(what==='paused') speakRun(es ? 'Carrera en pausa' : 'Run paused');
+  else if(what==='resumed') speakRun(es ? 'Seguimos' : 'Run resumed');
+  else if(what==='finished' && info){
+    const units = info.meters/unitMeters(), d = units.toFixed(2);
+    const uw = useKm() ? (es ? 'kilómetros' : 'kilometers') : (es ? 'millas' : 'miles');
+    speakRun(es ? `Carrera terminada. ${d} ${uw} en ${spokenDuration(info.ms/1000, true)}.` : `Run complete. ${d} ${uw} in ${spokenDuration(info.ms/1000, false)}.`);
+  }
+}
 // Finishing takes a press-and-hold, like ending an interval workout, so a bump can't end a run.
 (function(){
   const btn = document.getElementById('gpsHoldFinish'), fill = btn.querySelector('.hold-end-fill');
@@ -11075,13 +11204,14 @@ function finishGpsRun(msAtPress){
   // The run's time stops when Finish is pressed, not when the hold completes.
   const ms = msAtPress || gpsElapsedMs(), mi = gps.distM/MI_M;
   if(mi < 0.01){ showToast(L.gpsTooShort); return; }
-  const lastMile = mi - gps.splits.length;
+  const lastPart = gps.distM/gps.splitM - gps.splits.length;
   const result = {
     distance: Math.round(mi*100)/100,
     time: Math.round(ms/1000)/60,
     route: gps.segs.filter(s=> s.length>1).map(s=> encodePolyline(s)),
     splits: gps.splits.slice(),
-    lastSplit: lastMile>0.01 ? {mi: Math.round(lastMile*100)/100, sec: Math.max(1, Math.round(ms/1000 - gps.splits.reduce((a,b)=>a+b,0)))} : null,
+    splitUnit: gps.splitUnit,
+    lastSplit: lastPart>0.01 ? {dist: Math.round(lastPart*100)/100, sec: Math.max(1, Math.round(ms/1000 - gps.splits.reduce((a,b)=>a+b,0)))} : null,
     startedAt: gps.startedAt,
   };
   let target = gps.target;
@@ -11091,6 +11221,7 @@ function finishGpsRun(msAtPress){
     const where = planCustomWorkout(key, {title: L.gpsRunTitle, type:'run', detail: `${result.distance} mi`, alongside: true});
     target = {dayKey: key, kind: where.kind, id: where.id};
   }
+  announceRun('finished', {meters: gps.distM, ms});
   setGpsHandoff({target, result});
   clearGpsRun(); gps = null;
   closeGpsTracker();
@@ -11146,11 +11277,17 @@ function renderSummaryRoute(logged){
   if(summaryMap){ try{ summaryMap.remove(); }catch(e){} summaryMap = null; }
   card.hidden = !segs.length;
   if(!segs.length) return;
-  const splits = (logged.splits || []).map((s, i)=> ({label: L.gpsMileN.replace('{n}', i+1), sec: s, pace: s}));
-  if(logged.lastSplit) splits.push({label: `${logged.lastSplit.mi} mi`, sec: logged.lastSplit.sec, pace: logged.lastSplit.sec/logged.lastSplit.mi});
+  // Splits stay in the unit the run was tracked in (labelled so), whatever the setting is now.
+  const unit = logged.splitUnit==='km' ? 'km' : 'mi';
+  const label = n=> unit==='km' ? `Km ${n}` : (state.lang==='es' ? `Milla ${n}` : `Mile ${n}`);
+  const splits = (logged.splits || []).map((s, i)=> ({label: label(i+1), sec: s, pace: s}));
+  const ls = logged.lastSplit, lsDist = ls ? (ls.dist!=null ? ls.dist : ls.mi) : 0;
+  if(ls && lsDist>0) splits.push({label: `${lsDist} ${unit}`, sec: ls.sec, pace: ls.sec/lsDist});
   const best = splits.length>1 ? Math.min(...splits.map(s=> s.pace)) : null;
-  document.getElementById('summarySplits').innerHTML = splits.length ? `<div class="st-label">${L.gpsSplitsLabel}</div>` + splits.map(s=>
-    `<div class="split-row${s.pace===best ? ' best' : ''}"><span>${escapeHtml(s.label)}</span><span>${fmtPaceSec(s.pace)}/mi</span></div>`).join('') : '';
+  const box = document.getElementById('summarySplits');
+  box.setAttribute('data-keep-units', '');
+  box.innerHTML = splits.length ? `<div class="st-label">${L.gpsSplitsLabel}</div>` + splits.map(s=>
+    `<div class="split-row${s.pace===best ? ' best' : ''}"><span>${escapeHtml(s.label)}</span><span>${fmtPaceSec(s.pace)}/${unit}</span></div>`).join('') : '';
   showRouteMap(document.getElementById('summaryRouteMap'), segs, {interactive: false}).then(m=>{ summaryMap = m; });
 }
 
@@ -11207,12 +11344,212 @@ function resumeGpsIfAny(){
   if(saved && saved.status!=='idle' && (saved.distM>0 || saved.movingMs>0) && document.getElementById('gpsOverlay').hidden) openGpsTracker(saved.target);
 }
 
+/* ---------------- rest timer between sets ---------------- */
+// Checking off a set starts a rest countdown at the bottom of Log Performance: -15/+15 to change it (the
+// new length is remembered for next time), Skip to end it. The last 3 seconds beep, and the end says
+// "Go" in the timer's voice with a buzz. In the store app a notification is also scheduled for the end,
+// so it still comes through with the phone locked.
+const REST_KEY = 'altiro_rest_sec', REST_NOTIF_ID = 7100;
+let restDefaultSec = 90, rest = null;
+try{ const v = parseInt(localStorage.getItem(REST_KEY), 10); if(v>=15 && v<=600) restDefaultSec = v; }catch(e){}
+function restRemainingMs(){ return rest ? Math.max(0, rest.endAt - Date.now()) : 0; }
+function scheduleRestNotification(){
+  const LN = nativeNotifications();
+  if(!LN || !rest) return;
+  const L = STR[state.lang];
+  LN.cancel({notifications:[{id: REST_NOTIF_ID}]}).catch(()=>{}).then(()=>
+    LN.schedule({notifications:[{id: REST_NOTIF_ID, title: L.restNotifTitle, body: L.restNotifBody, schedule:{at: new Date(rest.endAt), allowWhileIdle: true}}]})).catch(()=>{});
+}
+function cancelRestNotification(){
+  const LN = nativeNotifications();
+  if(LN) LN.cancel({notifications:[{id: REST_NOTIF_ID}]}).catch(()=>{});
+}
+function startRest(){
+  stopRest();
+  const ctx = getAudioCtx(); // this tap lets the beeps and the voice play
+  if(ctx && ctx.state==='suspended') ctx.resume();
+  loadVoiceClips();
+  rest = {total: restDefaultSec, endAt: Date.now() + restDefaultSec*1000, beeped: null, tick: null};
+  const bar = document.getElementById('restBar');
+  bar.classList.remove('done');
+  bar.hidden = false;
+  rest.tick = setInterval(renderRest, 200);
+  renderRest();
+  scheduleRestNotification();
+}
+function stopRest(){
+  if(!rest) return;
+  clearInterval(rest.tick);
+  clearTimeout(rest.hideT);
+  rest = null;
+  document.getElementById('restBar').hidden = true;
+  cancelRestNotification();
+}
+function renderRest(){
+  if(!rest) return;
+  const L = STR[state.lang];
+  const ms = restRemainingMs(), sec = Math.ceil(ms/1000);
+  document.getElementById('restTime').textContent = fmtClock(sec);
+  document.getElementById('restLabel').textContent = L.restLabel;
+  document.getElementById('restFill').style.transform = `scaleX(${rest.total ? ms/(rest.total*1000) : 0})`;
+  if(sec<=3 && sec>=1 && rest.beeped!==sec){ rest.beeped = sec; playBeep(); }
+  if(ms<=0 && !rest.finished){
+    rest.finished = true;
+    clearInterval(rest.tick);
+    playVoiceCue('go');
+    try{ if(navigator.vibrate) navigator.vibrate([200, 100, 200]); }catch(e){}
+    const bar = document.getElementById('restBar');
+    bar.classList.add('done');
+    document.getElementById('restTime').textContent = L.restGo;
+    rest.hideT = setTimeout(()=>{ if(rest && rest.finished) stopRest(); }, 2500);
+  }
+}
+function adjustRest(deltaSec){
+  if(!rest || rest.finished) return;
+  const left = restRemainingMs()/1000;
+  const nextLeft = Math.max(5, left + deltaSec);
+  rest.endAt = Date.now() + nextLeft*1000;
+  rest.total = Math.max(15, Math.min(600, Math.round((rest.total + deltaSec)/5)*5));
+  restDefaultSec = rest.total;
+  try{ localStorage.setItem(REST_KEY, String(restDefaultSec)); }catch(e){}
+  rest.beeped = null;
+  renderRest();
+  scheduleRestNotification();
+}
+document.getElementById('restMinus').addEventListener('click', ()=> adjustRest(-15));
+document.getElementById('restPlus').addEventListener('click', ()=> adjustRest(15));
+document.getElementById('restSkip').addEventListener('click', stopRest);
+
+/* ---------------- distance units: miles or kilometres ---------------- */
+// Everything is kept in miles (the plan, logs, Strava, mileage totals); kilometres are only how it's
+// shown and typed. The choice is each person's (Settings), and until they choose it follows the
+// phone's region: miles in the US, UK, Liberia and Myanmar, kilometres everywhere else.
+// What's on screen is converted as it's drawn: any "4 mi" or "9:30/mi" written into the page becomes
+// km (unitObserver below), labels that name the unit swap in applyUnitStrings, and numbers shown or
+// typed without a unit (fields, the GPS screen, the share card) convert through toDisp*/fromDisp*.
+function loadDistUnit(){
+  try{ const v = localStorage.getItem('altiro_dist_unit'); if(v==='mi' || v==='km') return v; }catch(e){}
+  return null;
+}
+function defaultDistUnit(){
+  const langs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || 'en-US'];
+  for(const l of langs){
+    const m = String(l).match(/^([a-z]{2,3})(?:[-_]([a-z]{2}))?\b/i);
+    if(!m) continue;
+    if(m[2]) return ['US','GB','LR','MM'].includes(m[2].toUpperCase()) ? 'mi' : 'km';
+    return m[1].toLowerCase()==='en' ? 'mi' : 'km';
+  }
+  return 'mi';
+}
+function distUnit(){ return (state && state.distUnit) || defaultDistUnit(); }
+function useKm(){ return distUnit()==='km'; }
+function toDispDist(mi){ const v = Number(mi); return useKm() ? v*1.609344 : v; }
+function fromDispDist(x){ const v = Number(x); return useKm() ? v/1.609344 : v; }
+function toDispPace(minPerMi){ const v = Number(minPerMi); return useKm() ? v/1.609344 : v; }
+function fromDispPace(minPerUnit){ const v = Number(minPerUnit); return useKm() ? v*1.609344 : v; }
+function unitMeters(){ return useKm() ? 1000 : 1609.344; }
+function setDistUnit(u){
+  if(u!=='mi' && u!=='km') return;
+  state.distUnit = u;
+  try{ localStorage.setItem('altiro_dist_unit', u); }catch(e){}
+  saveProfileToCloud();
+  applyLang();
+}
+// Text written in miles, as km: "4 mi" -> "6.4 km", "9:30/mi" -> "5:54/km", "8:45–9:20/mi" -> both ends.
+function kmText(str){
+  if(str==null || !useKm()) return str;
+  const per = (m, sec)=> fmtPace((Number(m) + Number(sec)/60)/1.609344);
+  const dist = v=>{ const dp = Math.max(1, Math.min(2, ((String(v).split('.')[1]) || '').length)); return String(+(Number(v)*1.609344).toFixed(dp)); };
+  return String(str)
+    .replace(/(\d+):(\d{2})(\s*[–-]\s*)(\d+):(\d{2})\s*\/\s*mi\b/g, (x, a, b, sep, c, d)=> `${per(a, b)}${sep}${per(c, d)}/km`)
+    .replace(/(\d+):(\d{2})\s*\/\s*mi\b/g, (x, a, b)=> `${per(a, b)}/km`)
+    .replace(/(\d+(?:\.\d+)?)(\s*[–-]\s*)(\d+(?:\.\d+)?)\s*(?:miles?|millas?|mi)\b/gi, (x, a, sep, c)=> `${dist(a)}${sep}${dist(c)} km`)
+    .replace(/(\d+(?:\.\d+)?)\s*(?:miles?|millas?|mi)\b/gi, (x, v)=> `${dist(v)} km`)
+    .replace(/min\/mi\b/g, 'min/km')
+    .replace(/\/mi\b/g, '/km');
+}
+// The page's own text, kept in the chosen unit as it's drawn. Inside [data-keep-units] (a run's mile
+// splits, say) text is left as written.
+function unitConvertNode(node){
+  if(!useKm()) return;
+  if(node.nodeType===3){
+    const p = node.parentNode;
+    if(!p || /^(SCRIPT|STYLE|TEXTAREA)$/.test(p.nodeName) || (p.closest && p.closest('[data-keep-units]'))) return;
+    const v = node.nodeValue;
+    if(!/mi\b|milla|mile/i.test(v)) return;
+    const k = kmText(v);
+    if(k!==v) node.nodeValue = k;
+    return;
+  }
+  if(node.nodeType!==1 || /^(SCRIPT|STYLE|TEXTAREA|INPUT)$/.test(node.nodeName) || (node.closest && node.closest('[data-keep-units]'))) return;
+  if(node.hasAttribute && node.hasAttribute('placeholder')){ const ph = node.getAttribute('placeholder'), k = kmText(ph); if(k!==ph) node.setAttribute('placeholder', k); }
+  const w = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+  const list = [];
+  while(w.nextNode()) list.push(w.currentNode);
+  list.forEach(unitConvertNode);
+}
+if(typeof MutationObserver==='function'){
+  new MutationObserver(records=>{
+    if(!useKm()) return;
+    records.forEach(r=>{
+      if(r.type==='characterData') unitConvertNode(r.target);
+      else r.addedNodes.forEach(unitConvertNode);
+    });
+  }).observe(document.body, {childList:true, subtree:true, characterData:true});
+}
+// Interface text that names the unit, in the chosen one. Kept as the original miles wording too, so
+// switching back restores it exactly.
+function applyUnitStrings(){
+  const KM = {
+    en: {weeklyMilesLabel:'Kilometers you run a week now', weeklyMilesNote:'Changing this restarts your distance build-up from this week.',
+      mileTimeLabel:'Your 1 km time (optional)', mileTimeHint:'Your fastest recent kilometer, or a hard all-out kilometer. Your paces are based on it.',
+      gpsStatDistance:'Kilometers', gpsMileN:'Km {n}', planPaceLabel:'Target Pace (min/km, e.g. 5:54)',
+      feedbackTooHardOffer:'Sounds like your plan is too much right now. You can ease it off — lower the intensity, drop a training day, or lower your weekly kilometers.',
+      feedbackTooEasyOffer:'Ready for more? You can raise the intensity, add a training day, or raise your weekly kilometers.',
+      tour_start_b:"Tap it when you're ready. It times the workout and lets you log your sets, weights or kilometers, which is how your plan learns and progresses.",
+      tour_week_b:'Workouts and kilometers done so far, out of what this week has planned.',
+      tour_miles_t:'Weekly kilometers', tour_miles_b:'About how many kilometers you run a week now. Your plan starts there and builds up gradually.',
+      tour_mile_t:'1 km time', tour_mile_b:'Optional: a recent 1 km time sets your paces for easy, tempo and fast runs.',
+      tour_progress_b:'Workouts and kilometers week by week, plus your time, sets and reps, and personal records below.',
+      tourProgressB:'Progress shows your weeks, kilometers and PRs. On the Calendar, swipe left or right to change months, and tap any day to see or log a workout.',
+      tourNavB:'Tap the wrench at the top of Today, Plan, Progress or Calendar anytime to change your days, intensity, lifting split, 1 km time or start date. Connect Strava in Settings to bring in runs from your watch.'},
+    es: {weeklyMilesLabel:'Kilómetros que corres por semana ahora', weeklyMilesNote:'Cambiar esto reinicia el aumento de kilómetros desde esta semana.',
+      mileTimeLabel:'Tu tiempo en 1 km (opcional)', mileTimeHint:'Tu kilómetro más rápido reciente, o un kilómetro a tope. Tus ritmos se basan en él.',
+      gpsStatDistance:'Kilómetros', gpsMileN:'Km {n}', planPaceLabel:'Ritmo objetivo (min/km, ej. 5:54)',
+      feedbackTooHardOffer:'Parece que tu plan es demasiado ahora mismo. Puedes aligerarlo — baja la intensidad, quita un día de entrenamiento o baja tus kilómetros semanales.',
+      feedbackTooEasyOffer:'¿Listo para más? Puedes subir la intensidad, añadir un día de entrenamiento o subir tus kilómetros semanales.',
+      tour_start_b:'Tócalo cuando estés listo. Cronometra el entrenamiento y te deja registrar series, pesos o kilómetros, y así tu plan aprende y progresa.',
+      tour_week_b:'Entrenamientos y kilómetros hechos hasta ahora, de lo que tiene planeado esta semana.',
+      tour_miles_t:'Kilómetros por semana', tour_miles_b:'Cuántos kilómetros corres ahora por semana, más o menos. Tu plan empieza ahí y sube poco a poco.',
+      tour_mile_t:'Tiempo en 1 km', tour_mile_b:'Opcional: un tiempo reciente en 1 km fija tus ritmos para carreras suaves, de tempo y rápidas.',
+      tour_progress_b:'Entrenamientos y kilómetros semana a semana, más tu tiempo, series y repeticiones, y récords personales abajo.',
+      tourProgressB:'Progreso muestra tus semanas, kilómetros y récords. En el Calendario, desliza a la izquierda o derecha para cambiar de mes, y toca cualquier día para ver o registrar un entrenamiento.',
+      tourNavB:'Toca la llave arriba en Hoy, Plan, Progreso o Calendario cuando quieras para cambiar tus días, intensidad, división de pesas, tiempo en 1 km o fecha de inicio. Conecta Strava en Ajustes para traer las carreras de tu reloj.'},
+  };
+  const orig = applyUnitStrings.orig || (applyUnitStrings.orig = {en:{...STR.en}, es:{...STR.es}});
+  const km = useKm();
+  ['en','es'].forEach(lang=>{
+    Object.keys(orig[lang]).forEach(key=>{
+      const o = orig[lang][key];
+      if(typeof o!=='string') return;
+      STR[lang][key] = !km ? o : (KM[lang][key]!=null ? KM[lang][key]
+        : o.replace(/\(mi\)/g, '(km)').replace(/min\/mi\b/g, 'min/km').replace(/\/mi\b/g, '/km').replace(/\} mi\b/g, '} km').replace(/(\d) mi\b/g, '$1 km'));
+    });
+  });
+}
+// The "how much do you run a week" choices, labelled in the chosen unit (the keys stay miles).
+function milesOptionsShown(){
+  if(!useKm()) return MILES_OPTIONS;
+  const KM_LABEL = {'4':'2–8', '8':'10–16', '15':'18–32', '25':'34–48', '35':'50–64', '45':'64+'};
+  return MILES_OPTIONS.map(o=> KM_LABEL[o.key] ? {...o, en:{t:KM_LABEL[o.key]}, es:{t:KM_LABEL[o.key]}} : o);
+}
+
 /* ---------------- email confirmation ---------------- */
 // When a new account has to confirm its email first, the answers from setup (goal, days, balance...)
 // are kept on this device until the link is tapped, so the account comes back with the plan it chose
 // instead of a default one. The link usually opens in the same browser (or one that shares it).
 const PENDING_SIGNUP_KEY = 'altiro_pending_signup';
-const SIGNUP_FIELDS = ['goal','level','trainingDays','focusRatio','intensityIdx','liftIntensityIdx','age','gender','weight','weightUnit',
+const SIGNUP_FIELDS = ['goal','level','trainingDays','focusRatio','intensityIdx','liftIntensityIdx','age','gender','weight','weightUnit','distUnit',
   'weeklyMiles','equipment','liftSplit','mileTime','jogBaseline','startChoice','startPick','lang','ownWorkouts','ownSince'];
 function savePendingSignup(email){
   const fields = {};
@@ -11377,6 +11714,7 @@ async function loadProfileFromCloud(){
   if(data.gender) state.gender = data.gender;
   if(data.weight!=null) state.weight = data.weight;
   if(data.weight_unit) state.weightUnit = data.weight_unit;
+  if(data.distance_unit==='mi' || data.distance_unit==='km'){ state.distUnit = data.distance_unit; try{ localStorage.setItem('altiro_dist_unit', data.distance_unit); }catch(e){} }
   if(data.full_name) state.userName = data.full_name;
   if(data.streak!=null) state.streak = data.streak;
   if(data.best_streak!=null) state.bestStreak = data.best_streak;
@@ -11416,6 +11754,7 @@ async function saveProfileToCloud(){
       gender: state.gender,
       weight: state.weight,
       weight_unit: state.weightUnit,
+      distance_unit: state.distUnit || null,
       streak: state.streak,
       best_streak: state.bestStreak,
       total_workouts: state.totalWorkouts,
@@ -11438,7 +11777,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes','own_since'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes','own_since','distance_unit'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }

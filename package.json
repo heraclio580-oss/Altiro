@@ -19,6 +19,7 @@
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
     "@capacitor-community/media": "^7.0.1",
+    "@capacitor-community/text-to-speech": "^4.1.1",
     "@capacitor/app": "^6.0.3",
     "@capacitor/core": "^6.1.2",
     "@capacitor/filesystem": "^6.0.4",

@@ -134,6 +134,8 @@ What the store apps rely on:
   `android.useLegacyBridge` so Android doesn't cut it off after 5 minutes, and `scripts/native-config.js`
   adds the iOS location text and background mode. Maps are MapLibre (`www/vendor/`, loaded only when a map
   is shown) with free OpenFreeMap tiles -- no API key.
+- **Spoken run updates** (each mile or km during a GPS run) use `@capacitor-community/text-to-speech` in the
+  store app, so they keep talking with the screen locked; the website uses the browser's own speech.
 - **Supabase's client ships inside `www/vendor/`**, so the app opens offline. `npm run vendor` refreshes it (and MapLibre)
   after updating `@supabase/supabase-js` or `maplibre-gl`.
 - **Edge Functions** (deploy from `supabase/functions/`): `strava`, `workout-reminders`, `feedback-alert`,

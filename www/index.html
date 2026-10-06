@@ -1183,6 +1183,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .loc-prompt-ic svg{width:28px;height:28px;}
 .loc-prompt-title{font-family:var(--font-display);font-weight:700;font-size:19px;text-align:center;color:var(--text);margin-top:12px;}
 .maplibregl-ctrl-attrib{font-size:10px;}
+.st-label-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.st-label-row .st-label{margin-bottom:0;}
+.unit-mini .lang-btn{padding:5px 9px;}
 .rest-bar{position:sticky;bottom:8px;z-index:5;display:flex;align-items:center;gap:6px;margin:12px 0 4px;padding:10px 10px 10px 14px;border-radius:16px;background:var(--card-2);border:1px solid var(--accent);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.35);}
 .rest-bar[hidden]{display:none;}
 .rest-fill{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--accent-tint);transform-origin:left;pointer-events:none;}
@@ -1467,7 +1470,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="footer-note" style="text-align:left;margin-top:8px;" data-i18n="liftIntensityNote"></div>
       </div>
       <div class="sheet-section" id="onbMilesSection">
-        <div class="st-label" data-i18n="weeklyMilesLabel"></div>
+        <div class="st-label-row"><div class="st-label" data-i18n="weeklyMilesLabel"></div><div class="lang-toggle unit-mini"><button class="lang-btn" data-dist="mi" type="button">MI</button><button class="lang-btn" data-dist="km" type="button">KM</button></div></div>
         <div class="chip-row" id="onbMilesChips"></div>
       </div>
       <div class="sheet-section" id="onbMileSection">
@@ -2097,7 +2100,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <div class="sheet-section" id="adjMilesSection">
-        <div class="st-label" data-i18n="weeklyMilesLabel"></div>
+        <div class="st-label-row"><div class="st-label" data-i18n="weeklyMilesLabel"></div><div class="lang-toggle unit-mini"><button class="lang-btn" data-dist="mi" type="button">MI</button><button class="lang-btn" data-dist="km" type="button">KM</button></div></div>
         <div class="chip-row" id="adjMilesChips"></div>
         <div class="footer-note" style="text-align:left;margin-top:8px;" data-i18n="weeklyMilesNote"></div>
       </div>
@@ -11454,6 +11457,8 @@ function setDistUnit(u){
   try{ localStorage.setItem('altiro_dist_unit', u); }catch(e){}
   saveProfileToCloud();
   applyLang();
+  renderOnbBaseline();
+  if(state.adjustDraft && !document.getElementById('adjustOverlay').hidden) renderAdjBaseline();
 }
 // Text written in miles, as km: "4 mi" -> "6.4 km", "9:30/mi" -> "5:54/km", "8:45–9:20/mi" -> both ends.
 function kmText(str){

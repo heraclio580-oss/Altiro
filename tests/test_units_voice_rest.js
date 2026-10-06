@@ -84,7 +84,7 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195;
     const plan = await txt(page, '#screen-week');
     check('In km, the Plan shows km (and no miles)', /\d km\b/.test(plan) && !milesShown.test(plan), plan.slice(0, 200));
     await goto(page, 'settings'); await sleep(150);
-    check('Settings has a Distance switch, set to KM', await page.evaluate(()=> document.querySelector('[data-dist="km"]').classList.contains('active') && !document.querySelector('[data-dist="mi"]').classList.contains('active')));
+    check('Settings has a Distance switch, set to KM', await page.evaluate(()=> document.querySelector('#screen-settings [data-dist="km"]').classList.contains('active') && !document.querySelector('#screen-settings [data-dist="mi"]').classList.contains('active')));
     // Log a run: the field is in km, and what's saved is miles.
     await goto(page, 'home'); await sleep(150);
     await page.evaluate(()=>{
@@ -112,11 +112,32 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195;
     check('...and the pace question asks for a 1 km time', await page.evaluate(()=> [...document.querySelectorAll('[data-i18n="mileTimeLabel"]')].some(e=> /1 km time/.test(e.textContent))));
     // Back to miles: everything flips back.
     await goto(page, 'settings'); await sleep(100);
-    await page.tap('[data-dist="mi"]'); await sleep(200);
+    await page.tap('#screen-settings [data-dist="mi"]'); await sleep(200);
     await goto(page, 'week'); await sleep(150);
     const plan2 = await txt(page, '#screen-week');
     check('Switching to MI: the Plan is in miles again', /\d(\.\d)? mi\b/.test(plan2) && !/\d km\b/.test(plan2), plan2.slice(0, 200));
     check('...and it\'s remembered', await page.evaluate(()=> localStorage.getItem('altiro_dist_unit'))==='mi');
+    check('No page errors', errors.length===0, errors.join(' | '));
+    await page.context().close();
+  }
+
+  // ---- The MI | KM switch beside "how far do you run a week" in Adjust ----
+  {
+    const {page, errors} = await openApp();
+    await page.evaluate(()=> document.querySelector('[data-open-adjust]').click());
+    await sleep(150);
+    const chipsNow = ()=> page.evaluate(()=> [...document.querySelectorAll('#adjMilesChips .chip')].map(c=> c.textContent));
+    const sel = ()=> page.evaluate(()=> (document.querySelector('#adjMilesChips .chip.sel') || {}).textContent || null);
+    check('Adjust has a MI | KM switch beside the weekly distance question, on MI', await shown(page, '#adjMilesSection [data-dist="km"]') && await page.evaluate(()=> document.querySelector('#adjMilesSection [data-dist="mi"]').classList.contains('active')));
+    await page.evaluate(()=> [...document.querySelectorAll('#adjMilesChips .chip')].find(c=> c.textContent==='6–10').click());
+    await sleep(100);
+    const before = await sel();
+    await page.tap('#adjMilesSection [data-dist="km"]'); await sleep(150);
+    check('Tapping KM: the question and its choices switch to km, Adjust stays open', await shown(page, '#adjustOverlay') && (await chipsNow()).includes('10–16') && /Kilometers you run a week/.test(await txt(page, '#adjMilesSection')), JSON.stringify(await chipsNow()));
+    check('...the same choice stays picked: 6–10 mi shows as 10–16 km', before==='6–10' && (await sel())==='10–16', `${before} -> ${await sel()}`);
+    check('...and the whole app follows (Settings shows KM too)', await page.evaluate(()=> document.querySelector('#screen-settings [data-dist="km"]').classList.contains('active')));
+    await page.tap('#adjMilesSection [data-dist="mi"]'); await sleep(150);
+    check('Tapping MI switches back', (await chipsNow()).includes('6–10') && /Miles you run a week/.test(await txt(page, '#adjMilesSection')) && await page.evaluate(()=> localStorage.getItem('altiro_dist_unit'))==='mi');
     check('No page errors', errors.length===0, errors.join(' | '));
     await page.context().close();
   }

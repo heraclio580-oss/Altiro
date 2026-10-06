@@ -1186,6 +1186,18 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .st-label-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .st-label-row .st-label{margin-bottom:0;}
 .unit-mini .lang-btn{padding:5px 9px;}
+.elev-row{display:flex;align-items:center;gap:8px;}
+.elev-row .text-input{flex:1;min-width:0;}
+.elev-ic{font-family:var(--font-mono);font-weight:700;font-size:16px;}
+.elev-ic.up{color:var(--ok-icon);} .elev-ic.down{color:var(--accent-hover);}
+.gps-elev{font-family:var(--font-mono);font-size:13px;color:var(--text-2);margin:-6px 0 12px;}
+.gps-elev b{color:var(--text);font-weight:600;}
+.elev-profile{padding:4px 14px 12px;}
+.elev-profile[hidden]{display:none;}
+.elev-profile svg{display:block;width:100%;height:84px;}
+.elev-profile .ep-area{fill:var(--accent-tint);}
+.elev-profile .ep-line{fill:none;stroke:var(--accent-hover);stroke-width:2;stroke-linejoin:round;}
+.elev-profile .ep-meta{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--text-3);margin-top:4px;}
 .rest-bar{position:sticky;bottom:8px;z-index:5;display:flex;align-items:center;gap:6px;margin:12px 0 4px;padding:10px 10px 10px 14px;border-radius:16px;background:var(--card-2);border:1px solid var(--accent);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.35);}
 .rest-bar[hidden]{display:none;}
 .rest-fill{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--accent-tint);transform-origin:left;pointer-events:none;}
@@ -1800,6 +1812,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     <div class="stats-grid" id="summaryStats"></div>
     <div class="route-card" id="summaryRouteCard" hidden>
       <div class="route-map" id="summaryRouteMap"></div>
+      <div class="elev-profile" id="summaryElevProfile" hidden></div>
       <div class="splits" id="summarySplits"></div>
     </div>
     <div id="summaryExercisesList" class="summary-exercises" hidden></div>
@@ -2414,6 +2427,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <input type="number" inputmode="decimal" step="0.01" class="text-input" id="logPerfDistanceInput">
       </div>
 
+      <div class="sheet-section" id="logPerfElevSection" hidden>
+        <div class="st-label" id="logPerfElevLabel"></div>
+        <div class="elev-row">
+          <span class="elev-ic up">↑</span><input type="number" inputmode="numeric" min="0" step="1" class="text-input" id="logPerfElevGainInput">
+          <span class="elev-ic down">↓</span><input type="number" inputmode="numeric" min="0" step="1" class="text-input" id="logPerfElevLossInput">
+        </div>
+        <div class="footer-note" id="logPerfElevNote" style="text-align:left;margin-top:6px;" hidden></div>
+      </div>
+
       <div class="sheet-section" id="logPerfTimeSection">
         <div class="st-label" id="logPerfTimeLabelEl" data-i18n="logPerfTimeLabel"></div>
         <div class="hms-row">
@@ -2462,6 +2484,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div><div class="v" id="gpsPace">--:--</div><div class="l" data-i18n="gpsStatPace"></div></div>
         <div><div class="v" id="gpsAvgPace">--:--</div><div class="l" data-i18n="gpsStatAvgPace"></div></div>
       </div>
+      <div class="gps-elev" id="gpsElev" hidden></div>
       <div class="gps-note" id="gpsNote" hidden></div>
       <button class="btn btn-primary" id="gpsStartBtn" type="button"></button>
       <button class="hold-end-btn" id="gpsHoldFinish" type="button" style="margin-top:10px;" hidden><span class="hold-end-fill"></span><span class="hold-end-label" data-i18n="gpsHoldFinish"></span></button>
@@ -3174,7 +3197,8 @@ const STR = {
     locPromptBody: "Allow location so Altiro can map and measure your runs, and show your local weather. It's only used while you track a run or check the weather.",
     locPromptAllow: "Allow location", locPromptLater: "Not now", locAllowed: "Location is on. You're ready to track runs.",
     restLabel: "Rest", restSkip: "Skip", restGo: "Go!", restNotifTitle: "Rest's over", restNotifBody: "Time for your next set.",
-    distanceUnitLabel: "Distance", distanceUnitNote: "Miles or kilometers, everywhere in the app.",
+    distanceUnitLabel: "Distance", distanceUnitNote: "Miles or kilometers, everywhere in the app. Elevation follows: feet with miles, meters with kilometers.",
+    logPerfElevLabel: "Elevation gain / loss ({u})", elevGainPh: "Gain", elevLossPh: "Loss", statElevLoss: "Elevation Loss", gpsElevLabel: "Elevation", gpsElevFromMap: "Elevation checked against terrain data.",
     gpsVoiceOn: "Voice on", gpsVoiceOff: "Voice off",
     shareCardShareBtn: "Share", shareSaveSquare: "Save to Photos", shareCopySquare: "Copy", shareFullSquare: "Full screen", shareCardSaved: "Saved to your photos", shareCardSavedDownload: "Saved. It's in your gallery's Download album.", shareCopied: "Copied. Paste it into a post or message.", shareCopyFailed: "This phone can't copy pictures. Try Save to Photos.", sharePhotosDenied: "Allow Altiro to add photos in your phone's Settings, then try again.", shareCardFullTip: "Take your screenshot · tap to close",
     shareCardFailed: "Couldn't share it. Try Save image instead.", shareCardNoShare: "Sharing isn't available here, so the image was saved instead.",
@@ -3772,7 +3796,8 @@ const STR = {
     locPromptBody: "Permite la ubicación para que Altiro mida tus carreras, las muestre en un mapa y te dé el clima local. Solo se usa mientras registras una carrera o consultas el clima.",
     locPromptAllow: "Permitir ubicación", locPromptLater: "Ahora no", locAllowed: "Ubicación activada. Ya puedes registrar carreras.",
     restLabel: "Descanso", restSkip: "Saltar", restGo: "¡Vamos!", restNotifTitle: "Se acabó el descanso", restNotifBody: "Toca tu siguiente serie.",
-    distanceUnitLabel: "Distancia", distanceUnitNote: "Millas o kilómetros, en toda la app.",
+    distanceUnitLabel: "Distancia", distanceUnitNote: "Millas o kilómetros, en toda la app. La elevación va igual: pies con millas, metros con kilómetros.",
+    logPerfElevLabel: "Desnivel positivo / negativo ({u})", elevGainPh: "Subida", elevLossPh: "Bajada", statElevLoss: "Desnivel negativo", gpsElevLabel: "Elevación", gpsElevFromMap: "Elevación comprobada con datos del terreno.",
     gpsVoiceOn: "Voz activada", gpsVoiceOff: "Voz desactivada",
     shareCardShareBtn: "Compartir", shareSaveSquare: "Guardar en Fotos", shareCopySquare: "Copiar", shareFullSquare: "Pantalla completa", shareCardSaved: "Guardada en tus fotos", shareCardSavedDownload: "Guardada. Está en el álbum Descargas de tu galería.", shareCopied: "Copiada. Pégala en una publicación o mensaje.", shareCopyFailed: "Este teléfono no puede copiar imágenes. Prueba Guardar en Fotos.", sharePhotosDenied: "Permite que Altiro añada fotos en los Ajustes del teléfono y vuelve a intentarlo.", shareCardFullTip: "Haz tu captura · toca para cerrar",
     shareCardFailed: "No se pudo compartir. Prueba Guardar imagen.", shareCardNoShare: "Aquí no se puede compartir, así que se guardó la imagen.",
@@ -7630,6 +7655,13 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     if(routeFrom.splitUnit) logged.splitUnit = routeFrom.splitUnit;
     if(!logged.source) logged.source = 'gps';
   }
+  if(routeFrom && routeFrom.elevProfile) logged.elevProfile = routeFrom.elevProfile;
+  if(eff.t==='run'){
+    const g = parseFloat(document.getElementById('logPerfElevGainInput').value), l = parseFloat(document.getElementById('logPerfElevLossInput').value);
+    if(g>=0) logged.elevGain = Math.round(fromDispElev(g)*10)/10;
+    if(l>=0) logged.elevLoss = Math.round(fromDispElev(l)*10)/10;
+    if(logged.elevGain==null && logged.elevLoss==null) delete logged.elevProfile;
+  }
   if(gpsRes) setGpsHandoff(null);
   document.getElementById('logPerfOverlay').hidden = true;
   if(!resolved){ startWorkout(logged); return; }
@@ -10184,6 +10216,7 @@ function getSummaryStats(session, intensityIdx, logged){
       if(min) stats.push({l:L.statTime, v:fmtDurationClock(min)});
       if(mi) stats.push({l:L.statDistance, v:mi.toFixed(1)+' mi'});
       stats.push({l:L.effortLabel, v:L.effortEasy});
+      stats.push(...elevStats(logged));
       return stats;
     }
     const dist = (logged && logged.distance!=null) ? logged.distance : (plannedMilesOf(session) || 3);
@@ -10196,6 +10229,7 @@ function getSummaryStats(session, intensityIdx, logged){
         {l:L.statDistance, v:(+dist).toFixed(2)+' mi'},
         {l:L.statTime, v:fmtDurationClock(totalMin)},
         {l:L.statPace, v:paceStr},
+        ...elevStats(logged),
         ...(getProgressionTarget(session, intensityIdx) && state._reviewSubmitted ? [{l:L.statProgress, v:fmtPace(getProgressionTarget(session, intensityIdx).pace)+'/mi'}] : []),
       ];
     }
@@ -10207,6 +10241,7 @@ function getSummaryStats(session, intensityIdx, logged){
       {l:L.statTime, v:fmtTime(totalMin)},
       {l:L.statPace, v:paceStr},
       {l:L.statTempoTarget, v:tgt},
+      ...elevStats(logged),
     ];
     if(target && state._reviewSubmitted) stats.push({l:L.statProgress, v:fmtPace(target.pace)+'/mi'});
     return stats;
@@ -10368,6 +10403,7 @@ function shareCardData(){
     if(mi) stats.push({l:L.statDistance, v:`${(+mi).toFixed(gpsRun ? 2 : 1)} mi`});
     if(min) stats.push({l:L.statTime, v:fmtDurationClock(min)});
     if(mi && min && (gpsRun || !isPaceFree(session))) stats.push({l:L.statPace, v:`${fmtPace(min/mi)}/mi`});
+    if(logged.elevGain!=null && logged.elevGain>=1) stats.push({l:L.statElevGain, v:`↑ ${fmtElev(logged.elevGain)}`});
   } else if(session.t==='interval'){
     const cfg = session.interval || {rounds:6, workSec:180, restSec:60};
     const rounds = logged.rounds || cfg.rounds;
@@ -10909,7 +10945,8 @@ let gps = null;          // the run being tracked (see newGpsRun)
 let gpsWatch = null;     // {kind:'web', id} | {kind:'native', id}
 let gpsMap = null, gpsMapFollow = true, gpsTick = null, gpsWakeLock = null, gpsLastFix = null, gpsSaveAt = 0;
 function newGpsRun(target){
-  return {target: target || null, status:'idle', segs:[], distM:0, movingMs:0, runningSince:null, startedAt:null, splits:[], lastPt:null, newSeg:true, splitM: unitMeters(), splitUnit: distUnit()};
+  return {target: target || null, status:'idle', segs:[], distM:0, movingMs:0, runningSince:null, startedAt:null, splits:[], lastPt:null, newSeg:true, splitM: unitMeters(), splitUnit: distUnit(),
+    elevGain:0, elevLoss:0, elevSm:null, elevAnchor:null, elevSeen:false};
 }
 function gpsElapsedMs(){ return gps ? gps.movingMs + (gps.status==='running' && gps.runningSince ? Date.now()-gps.runningSince : 0) : 0; }
 function saveGpsRun(force){
@@ -10918,7 +10955,8 @@ function saveGpsRun(force){
   gpsSaveAt = Date.now();
   try{
     localStorage.setItem(GPS_KEY, JSON.stringify({...gps, movingMs: gpsElapsedMs(), runningSince:null, status: gps.status==='running' ? 'paused' : gps.status,
-      segs: gps.segs.map(s=> encodePolyline(s.map(p=> [p[0], p[1]]))), segTimes: gps.segs.map(s=> s.map(p=> p[2]||0))}));
+      segs: gps.segs.map(s=> encodePolyline(s.map(p=> [p[0], p[1]]))), segTimes: gps.segs.map(s=> s.map(p=> p[2]||0)),
+      segAlts: gps.segs.map(s=> s.map(p=> p[3]==null ? null : Math.round(p[3]*10)/10))}));
   }catch(e){}
 }
 function clearGpsRun(){ try{ localStorage.removeItem(GPS_KEY); }catch(e){} }
@@ -10926,8 +10964,12 @@ function loadGpsRun(){
   try{
     const g = JSON.parse(localStorage.getItem(GPS_KEY) || 'null');
     if(!g || !Array.isArray(g.segs)) return null;
-    g.segs = g.segs.map((s, i)=> decodePolyline(s).map((p, j)=> [p[0], p[1], (g.segTimes && g.segTimes[i] && g.segTimes[i][j]) || 0]));
-    delete g.segTimes;
+    g.segs = g.segs.map((s, i)=> decodePolyline(s).map((p, j)=> {
+      const a = g.segAlts && g.segAlts[i] ? g.segAlts[i][j] : null;
+      return a==null ? [p[0], p[1], (g.segTimes && g.segTimes[i] && g.segTimes[i][j]) || 0] : [p[0], p[1], (g.segTimes && g.segTimes[i] && g.segTimes[i][j]) || 0, a];
+    }));
+    delete g.segTimes; delete g.segAlts;
+    g.elevGain = g.elevGain || 0; g.elevLoss = g.elevLoss || 0; g.elevSm = null; g.elevAnchor = null;
     g.newSeg = true; g.lastPt = null; g.status = g.status==='idle' ? 'idle' : 'paused'; g.runningSince = null;
     if(!g.splitM){ g.splitM = MI_M; g.splitUnit = 'mi'; }
     return g;
@@ -10941,19 +10983,21 @@ function gpsSignalState(){
 }
 // Every GPS fix: kept only if it's accurate enough, isn't a jump no runner could make, and has really
 // moved (standing still shouldn't add distance from GPS wobble).
-function onGpsFix(lat, lng, acc, time){
+function onGpsFix(lat, lng, acc, time, alt, altAcc){
   if(!isFinite(lat) || !isFinite(lng)) return;
   gpsLastFix = {lat, lng, acc: acc || 0, at: Date.now()};
   if(gps && gps.status==='running' && (acc || 0) <= GPS_MAX_ACCURACY_M){
     const t = time || Date.now();
     const p = [lat, lng, t];
     if(gps.newSeg || !gps.lastPt){
+      trackElevation(p, alt, altAcc, true);
       gps.segs.push([p]); gps.newSeg = false; gps.lastPt = p;
     } else {
       const d = haversineM(gps.lastPt, p), dt = (t - gps.lastPt[2])/1000;
       if(dt > 0 && d/dt <= GPS_MAX_SPEED_MS && d >= Math.max(4, (acc || 0)*0.5)){
         const before = gps.distM;
         gps.distM += d;
+        trackElevation(p, alt, altAcc, false);
         gps.segs[gps.segs.length-1].push(p);
         gps.lastPt = p;
         // A split for every mile (or km) passed: the run time at the moment it was crossed.
@@ -10992,7 +11036,7 @@ async function startGpsWatch(){
       const id = await BG.addWatcher({backgroundTitle: L.gpsNotifTitle, backgroundMessage: L.gpsNotifMsg, requestPermissions: true, stale: false, distanceFilter: 0},
         (loc, err)=>{
           if(err){ onGpsError(err.code==='NOT_AUTHORIZED' ? 'denied' : 'error'); return; }
-          if(loc) onGpsFix(loc.latitude, loc.longitude, loc.accuracy, loc.time);
+          if(loc) onGpsFix(loc.latitude, loc.longitude, loc.accuracy, loc.time, loc.altitude, loc.altitudeAccuracy);
         });
       if(gpsWatch) gpsWatch.id = id; else BG.removeWatcher({id}).catch(()=>{});
     }catch(e){ gpsWatch = null; onGpsError('error'); }
@@ -11000,7 +11044,7 @@ async function startGpsWatch(){
   }
   if(!navigator.geolocation){ onGpsError('unsupported'); return; }
   const id = navigator.geolocation.watchPosition(
-    pos=> onGpsFix(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, pos.timestamp),
+    pos=> onGpsFix(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, pos.timestamp, pos.coords.altitude, pos.coords.altitudeAccuracy),
     err=>{ if(err && err.code===1) onGpsError('denied'); },
     {enableHighAccuracy: true, maximumAge: 0, timeout: 30000});
   gpsWatch = {kind:'web', id};
@@ -11066,6 +11110,9 @@ function renderGps(){
   document.getElementById('gpsTime').textContent = fmtRunClock(ms);
   document.getElementById('gpsDist').textContent = units.toFixed(2);
   document.getElementById('gpsAvgPace').textContent = units >= 0.05 ? fmtPaceSec(ms/1000/units) : '--:--';
+  const ev = document.getElementById('gpsElev');
+  ev.hidden = !gps.elevSeen;
+  if(gps.elevSeen) ev.innerHTML = `${L.gpsElevLabel}: <b>↑ ${fmtElev(gps.elevGain)}</b> · <b>↓ ${fmtElev(gps.elevLoss)}</b>`;
   const vb = document.getElementById('gpsVoiceBtn');
   vb.setAttribute('aria-pressed', gpsVoiceOn() ? 'true' : 'false');
   vb.setAttribute('aria-label', gpsVoiceOn() ? L.gpsVoiceOn : L.gpsVoiceOff);
@@ -11189,7 +11236,10 @@ function announceRun(what, info){
   else if(what==='finished' && info){
     const units = info.meters/unitMeters(), d = units.toFixed(2);
     const uw = useKm() ? (es ? 'kilómetros' : 'kilometers') : (es ? 'millas' : 'miles');
-    speakRun(es ? `Carrera terminada. ${d} ${uw} en ${spokenDuration(info.ms/1000, true)}.` : `Run complete. ${d} ${uw} in ${spokenDuration(info.ms/1000, false)}.`);
+    const up = info.elevGain>=1 ? Math.round(toDispElev(info.elevGain)) : null;
+    const eu = useKm() ? (es ? 'metros' : 'meters') : (es ? 'pies' : 'feet');
+    speakRun(es ? `Carrera terminada. ${d} ${uw} en ${spokenDuration(info.ms/1000, true)}.${up!=null ? ` Desnivel positivo, ${up} ${eu}.` : ''}`
+                : `Run complete. ${d} ${uw} in ${spokenDuration(info.ms/1000, false)}.${up!=null ? ` Elevation gain, ${up} ${eu}.` : ''}`);
   }
 }
 // Finishing takes a press-and-hold, like ending an interval workout, so a bump can't end a run.
@@ -11214,6 +11264,7 @@ function finishGpsRun(msAtPress){
     route: gps.segs.filter(s=> s.length>1).map(s=> encodePolyline(s)),
     splits: gps.splits.slice(),
     splitUnit: gps.splitUnit,
+    ...(gps.elevSeen ? {elevGain: Math.round(gps.elevGain*10)/10, elevLoss: Math.round(gps.elevLoss*10)/10, elevProfile: elevProfileFrom(gps.segs, p=> p[3])} : {}),
     lastSplit: lastPart>0.01 ? {dist: Math.round(lastPart*100)/100, sec: Math.max(1, Math.round(ms/1000 - gps.splits.reduce((a,b)=>a+b,0)))} : null,
     startedAt: gps.startedAt,
   };
@@ -11224,8 +11275,9 @@ function finishGpsRun(msAtPress){
     const where = planCustomWorkout(key, {title: L.gpsRunTitle, type:'run', detail: `${result.distance} mi`, alongside: true});
     target = {dayKey: key, kind: where.kind, id: where.id};
   }
-  announceRun('finished', {meters: gps.distM, ms});
+  announceRun('finished', {meters: gps.distM, ms, elevGain: gps.elevSeen ? gps.elevGain : null});
   setGpsHandoff({target, result});
+  refineElevation(target, gps.segs);
   clearGpsRun(); gps = null;
   closeGpsTracker();
   refreshViews();
@@ -11248,6 +11300,7 @@ function applyGpsToLogPerf(logTarget, mode, eff, perf){
   const isRun = eff && eff.t==='run';
   const res = isRun ? gpsHandoffFor(logTarget) : null;
   document.getElementById('logPerfGpsBtn').hidden = !(isRun && mode==='record' && !res);
+  renderLogPerfElevation(isRun, res, perf);
   const route = res ? res.route : (perf && perf.route) || null;
   const box = document.getElementById('logPerfRoute');
   box.hidden = !(isRun && route);
@@ -11291,6 +11344,7 @@ function renderSummaryRoute(logged){
   box.setAttribute('data-keep-units', '');
   box.innerHTML = splits.length ? `<div class="st-label">${L.gpsSplitsLabel}</div>` + splits.map(s=>
     `<div class="split-row${s.pace===best ? ' best' : ''}"><span>${escapeHtml(s.label)}</span><span>${fmtPaceSec(s.pace)}/${unit}</span></div>`).join('') : '';
+  renderElevProfile(document.getElementById('summaryElevProfile'), logged.elevProfile);
   showRouteMap(document.getElementById('summaryRouteMap'), segs, {interactive: false}).then(m=>{ summaryMap = m; });
 }
 
@@ -11541,6 +11595,136 @@ function applyUnitStrings(){
         : o.replace(/\(mi\)/g, '(km)').replace(/min\/mi\b/g, 'min/km').replace(/\/mi\b/g, '/km').replace(/\} mi\b/g, '} km').replace(/(\d) mi\b/g, '$1 km'));
     });
   });
+}
+// ---- elevation: feet with miles, meters with kilometers (kept in meters) ----
+function elevUnit(){ return useKm() ? 'm' : 'ft'; }
+function toDispElev(m){ return useKm() ? Number(m) : Number(m)*3.28084; }
+function fromDispElev(x){ return useKm() ? Number(x) : Number(x)/3.28084; }
+function fmtElev(m){ return `${Math.round(toDispElev(m)).toLocaleString(state.lang==='es' ? 'es' : 'en-US')} ${elevUnit()}`; }
+function elevStats(logged){
+  const L = STR[state.lang];
+  if(!logged || logged.elevGain==null) return [];
+  return [{l:L.statElevGain, v:fmtElev(logged.elevGain)}, ...(logged.elevLoss!=null ? [{l:L.statElevLoss, v:fmtElev(logged.elevLoss)}] : [])];
+}
+// Climbing and descending during a GPS run, from the phone's altitude: smoothed, and only counted once
+// it has moved 4 m from the last counted level, so GPS wobble on the flat doesn't add up to a hill.
+// A new stretch (after a pause) starts its own level, so nothing counts across a pause.
+function trackElevation(p, alt, altAcc, newSeg){
+  if(alt==null || !isFinite(alt) || (altAcc!=null && altAcc>30)) return;
+  gps.elevSeen = true;
+  if(newSeg || gps.elevSm==null){ gps.elevSm = alt; gps.elevAnchor = alt; p[3] = Math.round(alt*10)/10; return; }
+  gps.elevSm += 0.3*(alt - gps.elevSm);
+  p[3] = Math.round(gps.elevSm*10)/10;
+  const diff = gps.elevSm - gps.elevAnchor;
+  if(diff >= 4){ gps.elevGain += diff; gps.elevAnchor = gps.elevSm; }
+  else if(diff <= -4){ gps.elevLoss += -diff; gps.elevAnchor = gps.elevSm; }
+}
+// The run's height along its distance, for the profile under the map: {d: meters along, a: meters up},
+// at most 150 points.
+function elevProfileFrom(segs, altOf){
+  const pts = [];
+  let cum = 0;
+  segs.forEach(sg=> sg.forEach((p, i)=>{
+    if(i) cum += haversineM(sg[i-1], p);
+    const a = altOf(p);
+    if(a!=null && isFinite(a)) pts.push([Math.round(cum), Math.round(a*10)/10]);
+  }));
+  if(pts.length<2) return null;
+  const every = Math.ceil(pts.length/150), keep = pts.filter((x, i)=> i%every===0 || i===pts.length-1);
+  return {d: keep.map(x=> x[0]), a: keep.map(x=> x[1])};
+}
+// After a GPS run: the route checked against terrain data (Open-Meteo's free elevation service, the same
+// provider as the weather -- it gets sample points along the route, nothing else), which is far steadier
+// than a phone's altitude. If it answers, its gain, loss and profile replace the GPS ones in the run
+// waiting to be saved (and in Log Performance, unless they've been typed over); if not, the GPS ones stay.
+async function refineElevation(target, segs){
+  try{
+    let total = 0;
+    segs.forEach(sg=>{ for(let i=1; i<sg.length; i++) total += haversineM(sg[i-1], sg[i]); });
+    if(total < 100 || typeof fetch!=='function') return;
+    const step = Math.max(20, total/400), pts = [];
+    let cum = 0;
+    segs.forEach((sg, si)=>{
+      if(!sg.length) return;
+      pts.push({lat: sg[0][0], lng: sg[0][1], d: cum, seg: si});
+      let next = cum + step;
+      for(let i=1; i<sg.length; i++){
+        const a = sg[i-1], b = sg[i], d = haversineM(a, b);
+        while(d>0 && next <= cum + d){ const f = (next-cum)/d; pts.push({lat: a[0]+(b[0]-a[0])*f, lng: a[1]+(b[1]-a[1])*f, d: next, seg: si}); next += step; }
+        cum += d;
+      }
+      const z = sg[sg.length-1];
+      pts.push({lat: z[0], lng: z[1], d: cum, seg: si});
+    });
+    const heights = [];
+    for(let i=0; i<pts.length; i+=100){
+      const batch = pts.slice(i, i+100);
+      const url = 'https://api.open-meteo.com/v1/elevation?latitude=' + batch.map(p=> p.lat.toFixed(5)).join(',') + '&longitude=' + batch.map(p=> p.lng.toFixed(5)).join(',');
+      const ctl = typeof AbortController==='function' ? new AbortController() : null;
+      const timer = ctl ? setTimeout(()=> ctl.abort(), 8000) : null;
+      const res = await fetch(url, ctl ? {signal: ctl.signal} : undefined);
+      if(timer) clearTimeout(timer);
+      if(!res.ok) return;
+      const data = await res.json();
+      if(!data || !Array.isArray(data.elevation) || data.elevation.length!==batch.length) return;
+      heights.push(...data.elevation);
+    }
+    // Terrain data is smooth, so a 1 m step is enough to count, and whatever is left at the end of each
+    // stretch is counted too.
+    let gain = 0, loss = 0, anchor = null, seg = -1, last = null;
+    const settle = ()=>{ if(anchor!=null && last!=null){ if(last>anchor) gain += last-anchor; else loss += anchor-last; } };
+    pts.forEach((p, i)=>{
+      const h = heights[i];
+      if(!isFinite(h)) return;
+      if(p.seg!==seg || anchor==null){ settle(); anchor = h; last = h; seg = p.seg; return; }
+      last = h;
+      if(h - anchor >= 1){ gain += h - anchor; anchor = h; }
+      else if(anchor - h >= 1){ loss += anchor - h; anchor = h; }
+    });
+    settle();
+    const every = Math.ceil(pts.length/150);
+    const prof = {d: [], a: []};
+    pts.forEach((p, i)=>{ if((i%every===0 || i===pts.length-1) && isFinite(heights[i])){ prof.d.push(Math.round(p.d)); prof.a.push(Math.round(heights[i]*10)/10); } });
+    const h = gpsHandoff;
+    if(!h || !sameLogTarget(h.target, target)) return;
+    Object.assign(h.result, {elevGain: Math.round(gain*10)/10, elevLoss: Math.round(loss*10)/10, elevProfile: prof, elevSource: 'dem'});
+    setGpsHandoff(h);
+    const sheetOpen = !document.getElementById('logPerfOverlay').hidden && sameLogTarget(state._logTarget, target);
+    if(sheetOpen) renderLogPerfElevation(true, h.result, null, true);
+  }catch(e){ /* offline or no answer: the GPS numbers stay */ }
+}
+// Log Performance's elevation fields (runs only): from the GPS run just finished, or what was saved.
+function renderLogPerfElevation(isRun, res, perf, keepTyped){
+  const L = STR[state.lang];
+  const sec = document.getElementById('logPerfElevSection');
+  sec.hidden = !isRun;
+  if(!isRun) return;
+  document.getElementById('logPerfElevLabel').textContent = L.logPerfElevLabel.replace('{u}', elevUnit());
+  const src = res || perf || {};
+  [['logPerfElevGainInput', 'elevGain', L.elevGainPh], ['logPerfElevLossInput', 'elevLoss', L.elevLossPh]].forEach(([id, key, ph])=>{
+    const el = document.getElementById(id);
+    el.placeholder = ph;
+    if(keepTyped && el.dataset.touched) return;
+    el.value = src[key]!=null ? Math.round(toDispElev(src[key])) : '';
+    if(!keepTyped) delete el.dataset.touched;
+  });
+  const note = document.getElementById('logPerfElevNote');
+  note.hidden = !(res && res.elevSource==='dem');
+  note.textContent = L.gpsElevFromMap;
+}
+['logPerfElevGainInput', 'logPerfElevLossInput'].forEach(id=> document.getElementById(id).addEventListener('input', e=>{ e.target.dataset.touched = '1'; }));
+// The elevation profile under the route map: height along the run, with its low and high points.
+function renderElevProfile(el, prof){
+  const L = STR[state.lang];
+  if(!prof || !prof.d || prof.d.length<2){ el.hidden = true; el.innerHTML = ''; return; }
+  const W = 300, H = 80, maxD = prof.d[prof.d.length-1] || 1;
+  const lo = Math.min(...prof.a), hi = Math.max(...prof.a), span = Math.max(hi-lo, 10);
+  const x = d=> (d/maxD*W).toFixed(1), y = a=> (H - 6 - (a-lo)/span*(H-14)).toFixed(1);
+  const line = prof.d.map((d, i)=> `${x(d)},${y(prof.a[i])}`).join(' ');
+  el.innerHTML = `<div class="st-label">${L.gpsElevLabel}</div>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polygon class="ep-area" points="0,${H} ${line} ${W},${H}"/><polyline class="ep-line" points="${line}" vector-effect="non-scaling-stroke"/></svg>
+    <div class="ep-meta"><span>${state.lang==='es' ? 'Mín' : 'Low'} ${fmtElev(lo)}</span><span>${state.lang==='es' ? 'Máx' : 'High'} ${fmtElev(hi)}</span></div>`;
+  el.hidden = false;
 }
 // The "how much do you run a week" choices, labelled in the chosen unit (the keys stay miles).
 function milesOptionsShown(){

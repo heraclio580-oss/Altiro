@@ -63,7 +63,8 @@ a{color:var(--text);text-underline-offset:3px;}
       phone's precise location to measure the distance, pace and mile splits and to draw the route. The route is
       saved with that run in your account so you can see its map again and share it. Location is only used
       while a run is being tracked (and, in the Altiro phone app, it keeps tracking that run while your screen
-      is locked, with a notification showing); it isn't collected at any other time. You can delete a run, or
+      is locked, with a notification showing); it isn't collected at any other time. The
+      run's elevation gain and loss are saved with it too. You can delete a run, or
       your whole account, at any time.</li>
     <li><b>Your location, for the weather, only if you allow it:</b> when you tap the weather on Today,
       your approximate location (rounded to about a kilometer) is sent to Open-Meteo to get the forecast. Altiro
@@ -122,7 +123,9 @@ a{color:var(--text);text-underline-offset:3px;}
       receives requests for the map area being shown (and your IP address); it doesn't receive your route or
       your account.</li>
     <li><b>Open-Meteo</b> provides the weather forecast, only if you allow location for it. It receives your
-      rounded location and returns the forecast.</li>
+      rounded location and returns the forecast. When you finish a run tracked with GPS, it also receives sample
+      points along that route (not your account) and returns the terrain height there, for the run's elevation
+      gain and loss.</li>
     <li><b>Your browser's push service</b> (Google for Chrome, Apple for Safari, Mozilla for Firefox), only if
       you turn on workout reminders on the website or home-screen app. It delivers each reminder to your
       device; the message is encrypted so only your device can read it. In the App Store and Google Play apps,

@@ -38,7 +38,7 @@ a{color:var(--text);text-underline-offset:3px;}
 <main>
   <div class="brand">Altiro</div>
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated October 5, 2026</p>
+  <p class="updated">Last updated October 6, 2026</p>
 
   <p>Altiro builds you a running and strength training plan and keeps track of the workouts you do. This page
   explains what information Altiro keeps, why, who else handles it, and how to remove it.</p>
@@ -59,6 +59,12 @@ a{color:var(--text);text-underline-offset:3px;}
     <li><b>Workout reminders, if you turn them on:</b> your reminder time and time zone, the names of your
       next few weeks of workouts (so a reminder can say what's planned), and a push address for each device
       you allowed notifications on. Turning reminders off stops them; signing out removes that device.</li>
+    <li><b>Your runs' routes, if you track a run with GPS:</b> while you're tracking a run, Altiro uses your
+      phone's precise location to measure the distance, pace and mile splits and to draw the route. The route is
+      saved with that run in your account so you can see its map again and share it. Location is only used
+      while a run is being tracked (and, in the Altiro phone app, it keeps tracking that run while your screen
+      is locked, with a notification showing); it isn't collected at any other time. You can delete a run, or
+      your whole account, at any time.</li>
     <li><b>Your location, for the weather, only if you allow it:</b> when you tap the weather on Today,
       your approximate location (rounded to about a kilometer) is sent to Open-Meteo to get the forecast. Altiro
       doesn't save your location on its servers; the last forecast is kept on your device for half an hour.</li>
@@ -112,6 +118,9 @@ a{color:var(--text);text-underline-offset:3px;}
     <li><b>Supabase</b> hosts Altiro's database, sign-in and server functions.</li>
     <li><b>Strava</b>, only if you connect it, as described above.</li>
     <li><b>Resend</b> delivers the email that lets the Altiro team know you sent feedback.</li>
+    <li><b>OpenFreeMap</b> provides the street maps shown under your runs' routes. Like any map service it
+      receives requests for the map area being shown (and your IP address); it doesn't receive your route or
+      your account.</li>
     <li><b>Open-Meteo</b> provides the weather forecast, only if you allow location for it. It receives your
       rounded location and returns the forecast.</li>
     <li><b>Your browser's push service</b> (Google for Chrome, Apple for Safari, Mozilla for Firefox), only if

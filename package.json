@@ -11,12 +11,13 @@
     "cap:sync": "npx cap sync && node scripts/native-config.js",
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
-    "vendor": "cp node_modules/@supabase/supabase-js/dist/umd/supabase.js www/vendor/supabase.js",
+    "vendor": "cp node_modules/@supabase/supabase-js/dist/umd/supabase.js www/vendor/supabase.js && cp node_modules/maplibre-gl/dist/maplibre-gl.js node_modules/maplibre-gl/dist/maplibre-gl.css www/vendor/",
     "native-config": "node scripts/native-config.js",
     "assets": "capacitor-assets generate --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000' --splashBackgroundColor '#0a0a0a' --splashBackgroundColorDark '#0a0a0a'",
     "store-screenshots": "node scripts/store-screenshots/demo-data.js && node scripts/store-screenshots/capture.js && LANG_CODE=es node scripts/store-screenshots/capture.js && node scripts/store-screenshots/compose.js"
   },
   "dependencies": {
+    "@capacitor-community/background-geolocation": "^1.2.26",
     "@capacitor-community/media": "^7.0.1",
     "@capacitor/app": "^6.0.3",
     "@capacitor/core": "^6.1.2",
@@ -33,6 +34,7 @@
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
     "@fontsource/montserrat": "^5.3.0",
-    "jsdom": "^30.1.0"
+    "jsdom": "^30.1.0",
+    "maplibre-gl": "^5.24.0"
   }
 }

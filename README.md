@@ -129,8 +129,13 @@ What the store apps rely on:
   (`@capacitor-community/media`; an "Altiro" album on Android, Photos on iPhone -- `scripts/native-config.js`
   adds the iOS permission text). On the website it uses the browser's own share sheet, or saves the picture
   as a download where that isn't available.
-- **Supabase's client ships inside `www/vendor/`**, so the app opens offline. `npm run vendor` refreshes it
-  after updating `@supabase/supabase-js`.
+- **GPS run tracking** uses `@capacitor-community/background-geolocation`, which keeps tracking a run with
+  the screen locked (Android shows a notification while it does). `capacitor.config.json` sets
+  `android.useLegacyBridge` so Android doesn't cut it off after 5 minutes, and `scripts/native-config.js`
+  adds the iOS location text and background mode. Maps are MapLibre (`www/vendor/`, loaded only when a map
+  is shown) with free OpenFreeMap tiles -- no API key.
+- **Supabase's client ships inside `www/vendor/`**, so the app opens offline. `npm run vendor` refreshes it (and MapLibre)
+  after updating `@supabase/supabase-js` or `maplibre-gl`.
 - **Edge Functions** (deploy from `supabase/functions/`): `strava`, `workout-reminders`, `feedback-alert`,
   `delete-account`.
 - **Icons and splash screens** come from `resources/` (icon-only.png 1024px, Android's adaptive

@@ -65,6 +65,8 @@ Done: sign-up emails now go out through Resend from `no-reply@getaltiro.app`, so
 - [ ] **Generate the app icons and splash screens:** `npm run assets` (the source images are in `resources/`).
 - [ ] Optional: get a **1024×1024 original of the logo** from whoever designed it. The current icon is upscaled
   from 512px. Save it as `resources/icon-only.png` and rerun `npm run assets`.
+- [ ] **Track a short GPS run on your phone** (Today → Track a run with GPS): allow location, start, lock the
+  phone for a minute, unlock, finish. Check the distance, the map, and the share card.
 - [ ] **Run it on your own phone.** Check sign-up and sign-in, a workout, reminders (allow notifications),
   connecting Strava, and the `altiro://` hand-back after Strava and after confirming an email.
 
@@ -80,6 +82,9 @@ Everything to paste in is ready in `docs/store/`: `listing.md` (text, English an
 - [ ] **Google Play Console:** create the app with package `com.altiro.app`, then fill in the store
   listing, screenshots, the **Data safety** form, content rating questionnaire, target audience (13+), and the
   **account deletion URL** above.
+- [ ] **Google Play: Foreground service permissions** (App content). Altiro's GPS run tracking uses the
+  location foreground service; the description to paste and the short video Google asks for are in
+  `docs/store/privacy-answers.md`.
 - [ ] Both stores want a **demo account for reviewers** (an email and password that works). Make one, fill
   it with a week of workouts, and put the login in the review notes.
 

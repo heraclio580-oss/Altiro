@@ -25,11 +25,12 @@ For every data type below: **Used for tracking? No.** **Linked to the user? Yes*
 | User Content → **Customer Support** | feedback messages sent from the app | Customer Support |
 | User Content → **Other User Content** | workout notes, missed-workout notes, classes | App Functionality |
 | Identifiers → **User ID** | the account's internal ID | App Functionality |
+| Location → **Precise Location** | the route of a run the user tracks with GPS, saved with that run | App Functionality |
 | Location → **Coarse Location** | rounded location sent to the weather service when the user taps the weather; not stored on our servers. **Linked: No** | App Functionality |
 | Diagnostics → **Other Diagnostic Data** | device type, included with feedback the user sends | Customer Support |
 
 Don't select: Financial Info, Browsing History, Search History, Purchases, Contacts, Photos or Videos, Audio,
-Gameplay, Precise Location, Sensitive Info, Usage Data, Crash Data, Performance Data, Advertising Data, Device ID.
+Gameplay, Sensitive Info, Usage Data, Crash Data, Performance Data, Advertising Data, Device ID.
 
 ## Google Play Console → App content → Data safety
 
@@ -45,12 +46,13 @@ Gameplay, Precise Location, Sensitive Info, Usage Data, Crash Data, Performance 
 | Health and fitness → **Health info** (body weight) | Yes | No | No | Optional | App functionality |
 | Health and fitness → **Fitness info** | Yes | No | No | Required | App functionality |
 | App activity → **Other user-generated content** (notes, classes, feedback) | Yes | No | No | Optional | App functionality |
-| Location → **Approximate location** | Yes | No | **Yes** (not stored) | Optional | App functionality |
+| Location → **Precise location** (routes of runs tracked with GPS) | Yes | No | No | Optional | App functionality |
+| Location → **Approximate location** (weather) | Yes | No | **Yes** (not stored) | Optional | App functionality |
 | App info and performance → **Other app performance data** (device type with feedback) | Yes | No | No | Optional | App functionality |
 | Device or other IDs | **No** | | | | |
 
 "Shared" means given to another company for its own use. Supabase, Resend, Open-Meteo and Strava act as
-service providers processing data on Altiro's behalf (or at the user's request), which Google doesn't
+service providers processing data on Altiro's behalf (OpenFreeMap too, for the map tiles) (or at the user's request), which Google doesn't
 count as sharing.
 
 ## Ratings
@@ -68,3 +70,22 @@ user-to-user communication, sharing location with other users and digital purcha
 - App access: **Some functionality is restricted** → give the reviewer the demo account (see review-notes.md).
 - Health apps declaration: **Fitness** (activity and exercise tracking). Not a medical device.
 - Government app: No. Financial features: None. News app: No.
+
+## Location permissions (GPS run tracking)
+
+**Google Play Console → App content → Foreground service permissions:** Altiro uses
+`FOREGROUND_SERVICE_LOCATION`. Choose **Location** → "User-initiated location sharing / fitness tracking"
+(the wording varies). Description to paste:
+
+> When the user starts tracking a run, Altiro shows a "tracking your run" notification and keeps measuring
+> the run's distance, pace and route with GPS until the user finishes it, including while the screen is
+> locked. Location is not used at any other time.
+
+Google asks for a short video link: record the phone screen while you start a GPS run, lock the phone, unlock
+it, and finish the run. Upload it to YouTube as **Unlisted** and paste the link.
+
+Altiro does **not** request `ACCESS_BACKGROUND_LOCATION`, so the separate background-location declaration
+doesn't apply.
+
+**Apple (App Review notes):** see `review-notes.md`. The app uses the "location" background mode only
+while a run the user started is being tracked.

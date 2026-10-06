@@ -22,6 +22,7 @@ run();
 const p1 = fs.readFileSync(plist, 'utf8'), m1 = fs.readFileSync(manifest, 'utf8');
 check('iOS: the altiro URL scheme is registered', /<key>CFBundleURLSchemes<\/key>\s*<array>\s*<string>altiro<\/string>/.test(p1) && /<\/dict>\s*<\/plist>\s*$/.test(p1));
 check('Android: MainActivity opens altiro:// links', /<activity[\s\S]*<data android:scheme="altiro" \/>[\s\S]*<\/activity>/.test(m1) && /android\.intent\.action\.VIEW/.test(m1) && /category\.BROWSABLE/.test(m1));
+check('iOS: location permission text, and location allowed in the background, for GPS runs', /<key>NSLocationWhenInUseUsageDescription<\/key>\s*<string>[^<]+<\/string>/.test(p1) && /<key>NSLocationAlwaysAndWhenInUseUsageDescription<\/key>/.test(p1) && /<key>UIBackgroundModes<\/key>\s*<array>\s*<string>location<\/string>\s*<\/array>/.test(p1));
 check('iOS: Photos permission text is there, for saving workout cards', /<key>NSPhotoLibraryAddUsageDescription<\/key>\s*<string>[^<]+<\/string>/.test(p1) && /<key>NSPhotoLibraryUsageDescription<\/key>/.test(p1) && /<\/dict>\s*<\/plist>\s*$/.test(p1));
 run();
 check('Running it again changes nothing', fs.readFileSync(plist, 'utf8')===p1 && fs.readFileSync(manifest, 'utf8')===m1);

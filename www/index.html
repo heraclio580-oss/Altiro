@@ -1127,6 +1127,57 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .stats-grid .cell .l{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
 .stats-grid .cell .v{font-family:var(--font-mono);font-weight:600;font-size:19px;color:var(--text);margin-top:5px;}
 
+.gps-overlay{position:absolute;inset:0;z-index:95;background:var(--screen-bg);display:flex;flex-direction:column;}
+.gps-overlay[hidden]{display:none;}
+.gps-top{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;}
+.gps-top .label{flex:1;}
+.gps-top .iconbtn[hidden]{visibility:hidden;display:inline-flex;}
+.gps-signal{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;padding:5px 10px;border-radius:999px;background:var(--well);color:var(--text-2);}
+.gps-signal::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px;background:var(--warn);}
+.gps-signal.good::before{background:var(--ok-icon);}
+.gps-signal.weak::before{background:var(--alert);}
+.gps-map{position:relative;flex:1;min-height:200px;margin:0 16px;border-radius:20px;overflow:hidden;border:1px solid var(--border);}
+.gps-recenter{position:absolute;right:28px;margin-top:-52px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid var(--border);background:var(--sheet-bg);color:var(--text);font-size:12px;cursor:pointer;z-index:2;}
+.gps-recenter[hidden]{display:none;}
+.gps-recenter svg{width:14px;height:14px;}
+.gps-panel{padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));text-align:center;}
+.gps-status{font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--warn);min-height:14px;}
+.gps-time{font-family:var(--font-mono);font-weight:700;font-size:54px;line-height:1.05;color:var(--text);letter-spacing:0.02em;}
+.gps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 14px;}
+.gps-grid .v{font-family:var(--font-display);font-weight:800;font-size:24px;color:var(--text);}
+.gps-grid .l{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);margin-top:2px;}
+.gps-note{font-size:12px;line-height:1.45;color:var(--text-2);background:var(--well);border-radius:12px;padding:9px 12px;margin-bottom:12px;text-align:left;}
+.gps-note.alert{color:var(--alert);}
+.gps-note .link-btn{background:none;border:none;color:var(--accent-hover);font-weight:600;padding:0;cursor:pointer;}
+.gps-panel .btn{width:100%;}
+.gps-confirm{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--text);}
+.gps-confirm[hidden]{display:none;}
+.gps-confirm span{flex:1;text-align:left;}
+.gps-confirm .btn{width:auto;flex:0 0 auto;padding:0 16px;height:38px;}
+.gps-track-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:6px 0 4px;padding:13px;border-radius:16px;border:1px solid var(--accent);background:var(--accent-tint);color:var(--text);font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;}
+.gps-track-btn[hidden]{display:none;}
+.gps-track-btn svg{width:18px;height:18px;color:var(--accent-hover);}
+.route-map{position:relative;background:#121214;}
+.route-map .route-map-gl{position:absolute;inset:0;}
+.route-svg{position:absolute;inset:0;width:100%;height:100%;z-index:1;}
+.route-svg polyline{fill:none;stroke-linejoin:round;stroke-linecap:round;}
+.route-svg .rs-casing polyline{stroke:#FFFFFF;stroke-width:6;opacity:0.85;}
+.route-svg .rs-line polyline{stroke:#DA1419;stroke-width:3.5;}
+.route-svg .rs-start{fill:#2ECC71;stroke:#fff;stroke-width:2;}
+.route-svg .rs-end{fill:#DA1419;stroke:#fff;stroke-width:2;}
+.route-mini{position:relative;height:150px;border-radius:14px;overflow:hidden;background:#121214;border:1px solid var(--border);}
+.route-card{flex-shrink:0;margin:6px 20px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
+.route-card[hidden]{display:none;}
+.route-card .route-map{height:230px;}
+.route-card .splits{padding:10px 14px 12px;}
+.route-card .splits:empty{display:none;}
+.split-row{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12.5px;color:var(--text-2);padding:5px 0;}
+.split-row+.split-row{border-top:1px solid var(--divider-soft);}
+.split-row.best{color:var(--ok-icon);}
+.loc-prompt-ic{width:56px;height:56px;margin:8px auto 0;border-radius:50%;background:var(--accent-tint);display:flex;align-items:center;justify-content:center;color:var(--accent-hover);}
+.loc-prompt-ic svg{width:28px;height:28px;}
+.loc-prompt-title{font-family:var(--font-display);font-weight:700;font-size:19px;text-align:center;color:var(--text);margin-top:12px;}
+.maplibregl-ctrl-attrib{font-size:10px;}
 .share-preview{margin:12px 0 4px;display:flex;justify-content:center;}
 .share-preview img{display:block;max-width:100%;max-height:52vh;width:auto;height:auto;border-radius:14px;border:1px solid var(--border);background:#0A0A0B;}
 .share-preview img:not([src]){width:62%;aspect-ratio:4/5;}
@@ -1724,6 +1775,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sess" id="summarySessTitle"></div>
     </div>
     <div class="stats-grid" id="summaryStats"></div>
+    <div class="route-card" id="summaryRouteCard" hidden>
+      <div class="route-map" id="summaryRouteMap"></div>
+      <div class="splits" id="summarySplits"></div>
+    </div>
     <div id="summaryExercisesList" class="summary-exercises" hidden></div>
     <div class="summary-note" id="summaryReviewCard" hidden>
       <div class="st-label" data-i18n="rateWorkoutLabel"></div>
@@ -1810,6 +1865,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   </div>
 
   <!-- DELETE ACCOUNT SHEET (overlay) -->
+  <div class="sheet-overlay" id="locPromptOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="loc-prompt-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18s5.5-5.2 5.5-9.5a5.5 5.5 0 0 0-11 0C4.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg></div>
+      <div class="loc-prompt-title" data-i18n="locPromptTitle"></div>
+      <p class="fb-sub" style="text-align:center;" data-i18n="locPromptBody"></p>
+      <button class="btn btn-primary" id="locPromptAllow" type="button" style="width:100%;margin-top:14px;" data-i18n="locPromptAllow"></button>
+      <button class="btn btn-ghost" id="locPromptLater" type="button" style="width:100%;margin-top:8px;" data-i18n="locPromptLater"></button>
+    </div>
+  </div>
   <div class="share-full" id="shareCardFull" hidden><img id="shareCardFullImg" alt=""><div class="share-full-tip" id="shareCardFullTip" data-i18n="shareCardFullTip"></div></div>
   <div class="sheet-overlay" id="shareCardOverlay" hidden>
     <div class="sheet-panel">
@@ -2288,6 +2353,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="iconbtn" id="closeLogPerf"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       </div>
 
+      <button class="gps-track-btn" id="logPerfGpsBtn" type="button" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18s5.5-5.2 5.5-9.5a5.5 5.5 0 0 0-11 0C4.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg><span data-i18n="gpsTrackInLog"></span></button>
+      <div class="sheet-section" id="logPerfRoute" hidden>
+        <div class="route-mini" id="logPerfRouteMap"></div>
+        <div class="footer-note" id="logPerfRouteNote" style="text-align:left;margin-top:6px;"></div>
+      </div>
       <button class="btn-text" id="logPerfChangeExercisesBtn" type="button" data-i18n="changeExercisesBtn" style="padding:0;margin-top:4px;" hidden></button>
       <div id="logPerfExercisesList"></div>
       <!-- "Log as you go": exercises added while the workout is being done -->
@@ -2344,6 +2414,34 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   </div>
 
   <!-- INTERVAL TIMER (centered overlay) -->
+  <!-- GPS run tracker: time, distance and pace from the phone's GPS, with the route on a map -->
+  <div class="gps-overlay" id="gpsOverlay" hidden>
+    <div class="gps-top">
+      <button class="iconbtn" id="gpsClose" type="button" aria-label="Close"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      <span class="label" data-i18n="gpsTitle"></span>
+      <span class="gps-signal finding" id="gpsSignal"></span>
+    </div>
+    <div class="gps-map route-map" id="gpsMap"></div>
+    <button class="gps-recenter" id="gpsRecenter" type="button" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18s5.5-5.2 5.5-9.5a5.5 5.5 0 0 0-11 0C4.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg><span data-i18n="gpsRecenter"></span></button>
+    <div class="gps-panel">
+      <div class="gps-status" id="gpsStatus"></div>
+      <div class="gps-time" id="gpsTime">0:00</div>
+      <div class="gps-grid">
+        <div><div class="v" id="gpsDist">0.00</div><div class="l" data-i18n="gpsStatDistance"></div></div>
+        <div><div class="v" id="gpsPace">--:--</div><div class="l" data-i18n="gpsStatPace"></div></div>
+        <div><div class="v" id="gpsAvgPace">--:--</div><div class="l" data-i18n="gpsStatAvgPace"></div></div>
+      </div>
+      <div class="gps-note" id="gpsNote" hidden></div>
+      <button class="btn btn-primary" id="gpsStartBtn" type="button"></button>
+      <button class="hold-end-btn" id="gpsHoldFinish" type="button" style="margin-top:10px;" hidden><span class="hold-end-fill"></span><span class="hold-end-label" data-i18n="gpsHoldFinish"></span></button>
+      <div class="gps-confirm" id="gpsDiscardConfirm" hidden>
+        <span data-i18n="gpsDiscardQ"></span>
+        <button class="btn btn-ghost" id="gpsDiscardKeep" type="button" data-i18n="gpsDiscardKeep"></button>
+        <button class="btn btn-primary" id="gpsDiscardYes" type="button" data-i18n="gpsDiscardYes"></button>
+      </div>
+    </div>
+  </div>
+
   <div class="timer-overlay" id="intervalTimerOverlay" hidden>
     <div class="timer-modal">
       <button class="iconbtn timer-close" id="closeIntervalTimer"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
@@ -3031,6 +3129,19 @@ const STR = {
     workoutCompleteTitle: "Workout Complete",
     backToTodayBtn: "Back to Today",
     shareWorkoutBtn: "Share workout", shareCardTitle: "Share your workout", shareFormatPost: "Post", shareFormatStory: "Story",
+    gpsTrackBtn: "Track a run with GPS", gpsTrackInLog: "Track this run with GPS", gpsTitle: "GPS run",
+    gpsFinding: "Finding GPS…", gpsGood: "GPS ready", gpsWeak: "Weak GPS signal", gpsPausedLabel: "Paused",
+    gpsStart: "Start", gpsPause: "Pause", gpsResume: "Resume", gpsHoldFinish: "Hold to finish",
+    gpsStatTime: "Time", gpsStatDistance: "Miles", gpsStatPace: "Pace /mi", gpsStatAvgPace: "Avg pace",
+    gpsWebNote: "Keep Altiro open with the screen on while you run: browsers pause GPS when the screen turns off. The Altiro phone app keeps tracking with the screen locked.",
+    gpsDenied: "Altiro can't use your location. Allow it in your phone's settings to track runs.", gpsUnsupported: "This device can't share its location.",
+    gpsOpenSettings: "Open settings", gpsDiscardQ: "Discard this run?", gpsDiscardYes: "Discard", gpsDiscardKeep: "Keep it",
+    gpsResumedToast: "Your run was paused. Tap Resume to carry on.", gpsTooShort: "Run a little farther first. There's nothing to save yet.",
+    gpsNotifTitle: "Altiro is tracking your run", gpsNotifMsg: "Tap to go back to your run.", gpsRunTitle: "Run",
+    gpsFromTracker: "From your GPS run. Check it and save.", gpsSplitsLabel: "Splits", gpsMileN: "Mile {n}", gpsRouteLabel: "Route", gpsRecenter: "Re-center",
+    locPromptTitle: "Track your runs with GPS",
+    locPromptBody: "Allow location so Altiro can map and measure your runs, and show your local weather. It's only used while you track a run or check the weather.",
+    locPromptAllow: "Allow location", locPromptLater: "Not now", locAllowed: "Location is on. You're ready to track runs.",
     shareCardShareBtn: "Share", shareSaveSquare: "Save to Photos", shareCopySquare: "Copy", shareFullSquare: "Full screen", shareCardSaved: "Saved to your photos", shareCardSavedDownload: "Saved. It's in your gallery's Download album.", shareCopied: "Copied. Paste it into a post or message.", shareCopyFailed: "This phone can't copy pictures. Try Save to Photos.", sharePhotosDenied: "Allow Altiro to add photos in your phone's Settings, then try again.", shareCardFullTip: "Take your screenshot · tap to close",
     shareCardFailed: "Couldn't share it. Try Save image instead.", shareCardNoShare: "Sharing isn't available here, so the image was saved instead.",
     shareStatSets: "Sets", shareStatReps: "Reps", shareStatVolume: "Volume", shareStatTopSet: "Top set", shareExercisesLabel: "Exercises",
@@ -3613,6 +3724,19 @@ const STR = {
     workoutCompleteTitle: "Entrenamiento completado",
     backToTodayBtn: "Volver a hoy",
     shareWorkoutBtn: "Compartir entrenamiento", shareCardTitle: "Comparte tu entrenamiento", shareFormatPost: "Publicación", shareFormatStory: "Historia",
+    gpsTrackBtn: "Registrar carrera con GPS", gpsTrackInLog: "Registrar esta carrera con GPS", gpsTitle: "Carrera con GPS",
+    gpsFinding: "Buscando GPS…", gpsGood: "GPS listo", gpsWeak: "Señal de GPS débil", gpsPausedLabel: "En pausa",
+    gpsStart: "Empezar", gpsPause: "Pausa", gpsResume: "Seguir", gpsHoldFinish: "Mantén para terminar",
+    gpsStatTime: "Tiempo", gpsStatDistance: "Millas", gpsStatPace: "Ritmo /mi", gpsStatAvgPace: "Ritmo medio",
+    gpsWebNote: "Deja Altiro abierta con la pantalla encendida mientras corres: los navegadores pausan el GPS cuando se apaga la pantalla. La app de Altiro sigue registrando con la pantalla bloqueada.",
+    gpsDenied: "Altiro no puede usar tu ubicación. Permítela en los ajustes del teléfono para registrar carreras.", gpsUnsupported: "Este dispositivo no puede compartir su ubicación.",
+    gpsOpenSettings: "Abrir ajustes", gpsDiscardQ: "¿Descartar esta carrera?", gpsDiscardYes: "Descartar", gpsDiscardKeep: "Conservarla",
+    gpsResumedToast: "Tu carrera quedó en pausa. Toca Seguir para continuar.", gpsTooShort: "Corre un poco más primero. Aún no hay nada que guardar.",
+    gpsNotifTitle: "Altiro está registrando tu carrera", gpsNotifMsg: "Toca para volver a tu carrera.", gpsRunTitle: "Carrera",
+    gpsFromTracker: "De tu carrera con GPS. Revísala y guárdala.", gpsSplitsLabel: "Parciales", gpsMileN: "Milla {n}", gpsRouteLabel: "Ruta", gpsRecenter: "Centrar",
+    locPromptTitle: "Registra tus carreras con GPS",
+    locPromptBody: "Permite la ubicación para que Altiro mida tus carreras, las muestre en un mapa y te dé el clima local. Solo se usa mientras registras una carrera o consultas el clima.",
+    locPromptAllow: "Permitir ubicación", locPromptLater: "Ahora no", locAllowed: "Ubicación activada. Ya puedes registrar carreras.",
     shareCardShareBtn: "Compartir", shareSaveSquare: "Guardar en Fotos", shareCopySquare: "Copiar", shareFullSquare: "Pantalla completa", shareCardSaved: "Guardada en tus fotos", shareCardSavedDownload: "Guardada. Está en el álbum Descargas de tu galería.", shareCopied: "Copiada. Pégala en una publicación o mensaje.", shareCopyFailed: "Este teléfono no puede copiar imágenes. Prueba Guardar en Fotos.", sharePhotosDenied: "Permite que Altiro añada fotos en los Ajustes del teléfono y vuelve a intentarlo.", shareCardFullTip: "Haz tu captura · toca para cerrar",
     shareCardFailed: "No se pudo compartir. Prueba Guardar imagen.", shareCardNoShare: "Aquí no se puede compartir, así que se guardó la imagen.",
     shareStatSets: "Series", shareStatReps: "Reps", shareStatVolume: "Volumen", shareStatTopSet: "Serie máxima", shareExercisesLabel: "Ejercicios",
@@ -5912,7 +6036,7 @@ function showScreen(id){
   bn.hidden = !TAB_SCREENS.includes(id);
   bn.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===id));
   if(id==='loading') runLoading();
-  if(id==='home'){ renderHome(); if(state.tourPending) maybeStartTour(); }
+  if(id==='home'){ renderHome(); if(state.tourPending) maybeStartTour(); else { maybeAskLocation(); resumeGpsIfAny(); } }
   if(id==='week'){ renderWeek(); scrollPlanToToday(); }
   if(id==='calendar') renderCalendar();
   if(id==='progress') renderProgress();
@@ -6574,6 +6698,7 @@ function renderHome(){
     ${eff.t!=='rest' ? `<button class="watch-demo-btn" id="watchDemoBtn" type="button">${ICONS.play}${L.watchDemoBtn}</button>` : ''}
     ${exercisesForSession(eff) && !isTodayDone() ? `<button class="watch-demo-btn" id="changeExercisesBtn" type="button">${ICONS.swap}${L.changeExercisesBtn}</button>` : ''}
     <button class="watch-demo-btn" id="addTodayWorkoutBtn" type="button">${L.addWorkoutBtn}</button>
+    <button class="watch-demo-btn" id="trackRunBtn" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18s5.5-5.2 5.5-9.5a5.5 5.5 0 0 0-11 0C4.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg>${L.gpsTrackBtn}</button>
     ${eff.t!=='rest' ? `
     <div class="toggle-row" style="margin-top:14px;">
       <div>
@@ -7259,6 +7384,7 @@ function openLogPerformanceFor(logTarget, mode){
   const notesInput = document.getElementById('logPerfNotesInput');
   notesInput.value = (perf && perf.notes) || (mode==='revisit' && logTarget.kind==='entry' ? (resolved.record.notes || '') : '');
   notesInput.placeholder = STR[state.lang].workoutNotesPlaceholder;
+  applyGpsToLogPerf(logTarget, mode, eff, perf);
   document.getElementById('logPerfOverlay').hidden = false;
   // The panel is reused for every workout now -- start each one at the top, not wherever the last
   // one was scrolled to (usually the Save button at the bottom).
@@ -7442,6 +7568,15 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   // Editing a run that came from Strava keeps its link back to Strava.
   const prevPerf = resolved && resolved.performance;
   if(prevPerf && prevPerf.source==='strava' && prevPerf.stravaId){ logged.source = 'strava'; logged.stravaId = prevPerf.stravaId; }
+  // A run tracked with GPS keeps its route and splits -- fresh from the tracker, or from when it was saved.
+  const gpsRes = eff.t==='run' ? gpsHandoffFor(logTarget) : null;
+  const routeFrom = gpsRes || (eff.t==='run' && prevPerf && prevPerf.route ? prevPerf : null);
+  if(routeFrom){
+    logged.route = routeFrom.route; logged.splits = routeFrom.splits || [];
+    if(routeFrom.lastSplit) logged.lastSplit = routeFrom.lastSplit;
+    if(!logged.source) logged.source = 'gps';
+  }
+  if(gpsRes) setGpsHandoff(null);
   document.getElementById('logPerfOverlay').hidden = true;
   if(!resolved){ startWorkout(logged); return; }
   storeLoggedPerformance(logTarget, resolved, logged);
@@ -9999,6 +10134,15 @@ function getSummaryStats(session, intensityIdx, logged){
     const totalMin = (logged && logged.time) ? logged.time : dist*tier.pace;
     const paceMin = dist>0 ? totalMin/dist : tier.pace;
     const paceStr = fmtPace(paceMin)+'/mi';
+    if(logged && logged.route && logged.route.length){
+      // Tracked with GPS: the exact distance and time, to the second.
+      return [
+        {l:L.statDistance, v:(+dist).toFixed(2)+' mi'},
+        {l:L.statTime, v:fmtDurationClock(totalMin)},
+        {l:L.statPace, v:paceStr},
+        ...(getProgressionTarget(session, intensityIdx) && state._reviewSubmitted ? [{l:L.statProgress, v:fmtPace(getProgressionTarget(session, intensityIdx).pace)+'/mi'}] : []),
+      ];
+    }
     const lo = tier.pace+0.4, hi = tier.pace-0.2;
     const tgt = `${fmtPace(hi)}–${fmtPace(lo)}/mi`;
     const target = getProgressionTarget(session, intensityIdx);
@@ -10076,6 +10220,7 @@ function renderSummary(){
   const exercisesEl = document.getElementById('summaryExercisesList');
   const exResults = getSummaryExercises(logged);
   exercisesEl.hidden = !exResults;
+  renderSummaryRoute(logged);
   if(exResults) exercisesEl.innerHTML = exResults.map(r=>`<div class="se-row"><span class="se-name">${escapeHtml(r.name)}</span><span class="se-result">${escapeHtml(r.result)}</span></div>`).join('');
   const noteObj = SUMMARY_NOTE[session.t] || SUMMARY_NOTE.run;
   document.getElementById('summaryNote').textContent = noteObj[state.lang];
@@ -10163,9 +10308,10 @@ function shareCardData(){
     logged.exercises.forEach(e=> rows.push({name: e.name, detail: shareSetsText(e)}));
   } else if(session.t==='run'){
     const mi = logged.distance!=null ? Number(logged.distance) : plannedMilesOf(session);
-    if(mi) stats.push({l:L.statDistance, v:`${(+mi).toFixed(1)} mi`});
+    const gpsRun = !!(logged.route && logged.route.length);
+    if(mi) stats.push({l:L.statDistance, v:`${(+mi).toFixed(gpsRun ? 2 : 1)} mi`});
     if(min) stats.push({l:L.statTime, v:fmtDurationClock(min)});
-    if(mi && min && !isPaceFree(session)) stats.push({l:L.statPace, v:`${fmtPace(min/mi)}/mi`});
+    if(mi && min && (gpsRun || !isPaceFree(session))) stats.push({l:L.statPace, v:`${fmtPace(min/mi)}/mi`});
   } else if(session.t==='interval'){
     const cfg = session.interval || {rounds:6, workSec:180, restSec:60};
     const rounds = logged.rounds || cfg.rounds;
@@ -10180,7 +10326,8 @@ function shareCardData(){
   const sessL = ST(session);
   const date = TODAY_DATE.toLocaleDateString(state.lang==='es' ? 'es' : 'en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
   return {kicker: L.workoutCompleteTitle, title: sessL.title || L.workoutCompleteTitle, date, stats, rows,
-    streak: state.streak>=1 ? L.shareStreak.replace('{n}', state.streak) : '', footer: L.shareFooter};
+    streak: state.streak>=1 ? L.shareStreak.replace('{n}', state.streak) : '', footer: L.shareFooter,
+    routeSegs: session.t==='run' && logged.route ? routeSegments(logged.route) : null};
 }
 function shareCardAlt(d){
   return [d.title, d.date, ...d.stats.map(s=>`${s.l}: ${s.v}`), ...d.rows.map(r=>`${r.name}: ${r.detail}`)].join('. ');
@@ -10272,8 +10419,25 @@ function drawShareCard(canvas, d, format){
   b.fillStyle = TEXT;
   lines.forEach(l=>{ y += titlePx*1.08; b.fillText(l, P, y); });
   y += story ? 70 : 52;
-  // The numbers: one row of tiles when there's an exercise list below, a big 2-column grid when not.
-  const big = !d.rows.length;
+  // A GPS run: its route on a map (or just the route, without a map) between the name and the numbers.
+  const hasRoute = !!(d.routeSegs && d.routeSegs.length);
+  if(hasRoute){
+    const mapH = Math.max(260, Math.min(story ? 820 : 560, areaH - y - 150 - 40));
+    b.save();
+    roundRect(b, P, y, CW, mapH, 26); b.clip();
+    if(d.routeImg){
+      const ir = d.routeImg.width/d.routeImg.height, br = CW/mapH;
+      const sw = ir>br ? d.routeImg.height*br : d.routeImg.width, sh = ir>br ? d.routeImg.height : d.routeImg.width/br;
+      b.drawImage(d.routeImg, (d.routeImg.width-sw)/2, (d.routeImg.height-sh)/2, sw, sh, P, y, CW, mapH);
+      b.fillStyle = 'rgba(255,255,255,0.6)'; b.font = MONO(16); b.textAlign = 'right';
+      b.fillText('© OpenStreetMap', W-P-16, y+mapH-14); b.textAlign = 'left';
+    } else drawRouteOnCanvas(b, d.routeSegs, P, y, CW, mapH);
+    b.restore();
+    roundRect(b, P, y, CW, mapH, 26); b.strokeStyle = LINE; b.lineWidth = 2; b.stroke();
+    y += mapH + 24;
+  }
+  // The numbers: one row of tiles when there's an exercise list (or a map) with them, a big 2-column grid when not.
+  const big = !d.rows.length && !hasRoute;
   const cols = big ? (d.stats.length===1 ? 1 : 2) : Math.max(1, d.stats.length);
   const gap = 20, tileW = (CW - gap*(cols-1))/cols, tileH = big ? (story ? 250 : 200) : 150;
   d.stats.forEach((st, i)=>{
@@ -10334,6 +10498,74 @@ async function shareFontsReady(){
 }
 // Draws the card for the chosen format and keeps it ready as a JPEG (about 100 KB -- a tenth of a PNG), so a tap on Share can hand it over
 // right away (phones only allow sharing straight from the tap).
+// A GPS run's route on real streets, for the share card: drawn by MapLibre off-screen, then copied.
+// Null when there's no map to be had (offline, no WebGL) -- the card then draws just the route.
+let shareRouteImg = null;
+async function routeMapImage(segs, w, h){
+  if(!supportsWebGL()) return null;
+  let ml;
+  try{ ml = await loadMapLib(); }catch(e){ return null; }
+  return new Promise(resolve=>{
+    const box = document.createElement('div');
+    box.style.cssText = `position:fixed;left:-${w+100}px;top:0;width:${w}px;height:${h}px;pointer-events:none;`;
+    document.body.appendChild(box);
+    let map = null, done = false;
+    const finish = img=>{ if(done) return; done = true; try{ if(map) map.remove(); }catch(e){} box.remove(); resolve(img); };
+    setTimeout(()=> finish(null), 7000);
+    try{
+      map = new ml.Map({container: box, style: mapStyleUrl(true), interactive: false, attributionControl: false, preserveDrawingBuffer: true,
+        pixelRatio: 1, fadeDuration: 0, center: [segs[0][0][1], segs[0][0][0]], zoom: 13});
+    }catch(e){ return finish(null); }
+    map.on('load', ()=>{
+      try{
+        addRouteLayers(map);
+        map.setPaintProperty('route-casing', 'line-width', 15);
+        map.setPaintProperty('route-line', 'line-width', 9);
+        map.setPaintProperty('route-ends', 'circle-radius', 11);
+        map.setPaintProperty('route-ends', 'circle-stroke-width', 4);
+        setRouteData(map, segs);
+        map.fitBounds(routeBounds(segs), {padding: 70, duration: 0, maxZoom: 16});
+      }catch(e){ return finish(null); }
+      map.once('idle', ()=>{
+        try{
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(map.getCanvas(), 0, 0, w, h);
+          finish(c);
+        }catch(e){ finish(null); }
+      });
+    });
+  });
+}
+// The route by itself, for a card with no map: a red line (white edge) on a dark panel, start in green.
+function drawRouteOnCanvas(ctx, segs, x, y, w, h){
+  const g = ctx.createLinearGradient(x, y, x, y+h);
+  g.addColorStop(0, '#1A1A1E'); g.addColorStop(1, '#121214');
+  ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+  for(let gx = x+40; gx < x+w; gx += 60){ ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx, y+h); ctx.stroke(); }
+  for(let gy = y+40; gy < y+h; gy += 60){ ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x+w, gy); ctx.stroke(); }
+  const all = segs.flat();
+  if(!all.length) return;
+  const lat0 = all.reduce((a,p)=> a+p[0], 0)/all.length, k = Math.cos(lat0*Math.PI/180);
+  const xs = all.map(p=> p[1]*k), ys = all.map(p=> -p[0]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const pad = 60, sw = maxX-minX, sh = maxY-minY;
+  let sc = Math.min(sw>0 ? (w-2*pad)/sw : Infinity, sh>0 ? (h-2*pad)/sh : Infinity);
+  if(!isFinite(sc)) sc = 1;
+  const ox = x + (w - sw*sc)/2, oy = y + (h - sh*sc)/2;
+  const px = p=> [ox + (p[1]*k-minX)*sc, oy + (-p[0]-minY)*sc];
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  [['#FFFFFF', 15], ['#DA1419', 9]].forEach(([col, lw])=>{
+    ctx.strokeStyle = col; ctx.lineWidth = lw;
+    segs.forEach(sg=>{ ctx.beginPath(); sg.forEach((p, i)=>{ const [a, c] = px(p); i ? ctx.lineTo(a, c) : ctx.moveTo(a, c); }); ctx.stroke(); });
+  });
+  [[all[0], '#2ECC71'], [all[all.length-1], '#DA1419']].forEach(([p, col])=>{
+    const [a, c] = px(p);
+    ctx.beginPath(); ctx.arc(a, c, 11, 0, Math.PI*2); ctx.fillStyle = col; ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = '#FFFFFF'; ctx.stroke();
+  });
+}
 async function renderShareCard(){
   const token = ++shareCardToken;
   const img = document.getElementById('shareCardPreview');
@@ -10344,6 +10576,12 @@ async function renderShareCard(){
   await shareFontsReady();
   if(token!==shareCardToken) return false;
   const d = shareCardData();
+  if(d.routeSegs && d.routeSegs.length){
+    const key = shareFormat + '|' + (state._lastLogged && state._lastLogged.route || []).join('');
+    if(!shareRouteImg || shareRouteImg.key!==key) shareRouteImg = {key, img: await routeMapImage(d.routeSegs, 920, shareFormat==='story' ? 820 : 520)};
+    if(token!==shareCardToken) return false;
+    d.routeImg = shareRouteImg.img;
+  }
   drawShareCard(canvas, d, shareFormat);
   const blob = await new Promise(res=>{ try{ canvas.toBlob(res, 'image/jpeg', 0.9); }catch(e){ res(null); } });
   if(token!==shareCardToken || !blob) return false;
@@ -10466,6 +10704,508 @@ document.getElementById('shareCardShareBtn').addEventListener('click', shareShar
 document.getElementById('shareCardSaveBtn').addEventListener('click', saveShareCardToPhotos);
 document.getElementById('shareCardCopyBtn').addEventListener('click', copyShareCard);
 document.getElementById('shareCardFullBtn').addEventListener('click', openShareFull);
+
+/* ---------------- GPS run tracking ---------------- */
+// Runs can be tracked right in the app (no Strava needed): time, distance, pace and mile splits from the
+// phone's GPS, with the route drawn on a map. In the store app the tracking keeps going with the screen
+// locked (the BackgroundGeolocation plugin, which shows its own "tracking your run" notification on
+// Android); in a browser it only runs while Altiro is open with the screen on, so the screen is kept
+// awake. Finishing hands the run to Log Performance, filled in, with its route attached -- saving it is
+// the normal Record flow (Summary, streak, progression). The route is kept with the run's logged
+// performance as encoded polylines, one per stretch between pauses.
+const MI_M = 1609.344;
+const GPS_KEY = 'altiro_gps_run', GPS_DONE_KEY = 'altiro_gps_done';
+const GPS_MAX_ACCURACY_M = 35, GPS_MAX_SPEED_MS = 12;
+const PROTO_MODE = /[?&]proto\b/.test(location.search);
+function haversineM(a, b){
+  const R = 6371008.8, toR = x=> x*Math.PI/180;
+  const dLat = toR(b[0]-a[0]), dLng = toR(b[1]-a[1]);
+  const h = Math.sin(dLat/2)**2 + Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.min(1, Math.sqrt(h)));
+}
+// Google's encoded polyline format (precision 5, about a metre) -- compact enough to keep a long run
+// inside the workout's saved performance.
+function encodePolyline(pts){
+  let out = '', pLat = 0, pLng = 0;
+  const enc = v=>{ v = v<0 ? ~(v<<1) : (v<<1); let s = ''; while(v>=0x20){ s += String.fromCharCode((0x20|(v&0x1f))+63); v >>= 5; } return s + String.fromCharCode(v+63); };
+  pts.forEach(([lat, lng])=>{
+    const a = Math.round(lat*1e5), b = Math.round(lng*1e5);
+    out += enc(a-pLat) + enc(b-pLng); pLat = a; pLng = b;
+  });
+  return out;
+}
+function decodePolyline(str){
+  const pts = []; let i = 0, lat = 0, lng = 0;
+  const next = ()=>{ let r = 0, s = 0, b; do{ b = str.charCodeAt(i++)-63; r |= (b&0x1f)<<s; s += 5; }while(b>=0x20); return (r&1) ? ~(r>>1) : (r>>1); };
+  while(i < str.length){ lat += next(); lng += next(); pts.push([lat/1e5, lng/1e5]); }
+  return pts;
+}
+function routeSegments(route){ return (Array.isArray(route) ? route : []).map(r=> typeof r==='string' ? decodePolyline(r) : r).filter(s=> s.length>1); }
+function fmtPaceSec(secPerMi){
+  if(!isFinite(secPerMi) || secPerMi<=0 || secPerMi>60*60) return '--:--';
+  const s = Math.round(secPerMi);
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+function fmtRunClock(ms){
+  const t = Math.max(0, Math.floor(ms/1000)), h = Math.floor(t/3600), m = Math.floor((t%3600)/60), s = t%60;
+  return h ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+}
+
+// ---- the map (MapLibre, loaded only when a map is shown; OpenFreeMap's free tiles) ----
+let mapLibPromise = null;
+function loadMapLib(){
+  if(window.maplibregl) return Promise.resolve(window.maplibregl);
+  if(mapLibPromise) return mapLibPromise;
+  mapLibPromise = new Promise((resolve, reject)=>{
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = 'vendor/maplibre-gl.css';
+    document.head.appendChild(css);
+    const s = document.createElement('script');
+    s.src = 'vendor/maplibre-gl.js';
+    s.onload = ()=> window.maplibregl ? resolve(window.maplibregl) : reject(new Error('no maplibre'));
+    s.onerror = ()=>{ mapLibPromise = null; reject(new Error('maplibre failed to load')); };
+    document.head.appendChild(s);
+  });
+  return mapLibPromise;
+}
+function mapStyleUrl(dark){ return `https://tiles.openfreemap.org/styles/${dark ? 'dark' : 'positron'}`; }
+function appIsDark(){
+  const t = document.documentElement.getAttribute('data-theme');
+  if(t) return t!=='light';
+  return !(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+}
+function supportsWebGL(){
+  try{ const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); }catch(e){ return false; }
+}
+function routeBounds(segs){
+  let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+  segs.forEach(s=> s.forEach(([la, ln])=>{ minLat = Math.min(minLat, la); maxLat = Math.max(maxLat, la); minLng = Math.min(minLng, ln); maxLng = Math.max(maxLng, ln); }));
+  return [[minLng, minLat], [maxLng, maxLat]];
+}
+function routeGeoJSON(segs){
+  return {type:'FeatureCollection', features:[{type:'Feature', properties:{}, geometry:{type:'MultiLineString', coordinates: segs.map(s=> s.map(([la, ln])=> [ln, la]))}}]};
+}
+function endsGeoJSON(segs){
+  const all = segs.flat();
+  if(!all.length) return {type:'FeatureCollection', features:[]};
+  const f = (p, kind)=> ({type:'Feature', properties:{kind}, geometry:{type:'Point', coordinates:[p[1], p[0]]}});
+  return {type:'FeatureCollection', features: all.length>1 ? [f(all[0], 'start'), f(all[all.length-1], 'end')] : [f(all[0], 'start')]};
+}
+function addRouteLayers(map){
+  map.addSource('route', {type:'geojson', data: routeGeoJSON([])});
+  map.addSource('ends', {type:'geojson', data: endsGeoJSON([])});
+  map.addLayer({id:'route-casing', type:'line', source:'route', layout:{'line-join':'round', 'line-cap':'round'}, paint:{'line-color':'#FFFFFF', 'line-width':8, 'line-opacity':0.9}});
+  map.addLayer({id:'route-line', type:'line', source:'route', layout:{'line-join':'round', 'line-cap':'round'}, paint:{'line-color':'#DA1419', 'line-width':5}});
+  map.addLayer({id:'route-ends', type:'circle', source:'ends', paint:{'circle-radius':7, 'circle-color':['match', ['get','kind'], 'start', '#2ECC71', '#DA1419'], 'circle-stroke-color':'#FFFFFF', 'circle-stroke-width':2.5}});
+}
+function setRouteData(map, segs){
+  const r = map.getSource('route'), e = map.getSource('ends');
+  if(r) r.setData(routeGeoJSON(segs));
+  if(e) e.setData(endsGeoJSON(segs));
+}
+// A map of a route in an element: MapLibre with real streets when it can load, otherwise just the route
+// drawn as a line (no network, no WebGL, or the map library couldn't load).
+async function showRouteMap(el, segs, opts){
+  opts = opts || {};
+  el.innerHTML = '';
+  el.classList.remove('route-fallback');
+  if(segs.length && !opts.live) drawRouteSvg(el, segs);
+  if(!supportsWebGL()) return null;
+  let maplibregl;
+  try{ maplibregl = await loadMapLib(); }catch(e){ return null; }
+  try{
+    const box = document.createElement('div');
+    box.className = 'route-map-gl';
+    el.appendChild(box);
+    const map = new maplibregl.Map({container: box, style: mapStyleUrl(opts.dark!=null ? opts.dark : appIsDark()), attributionControl:{compact:true},
+      interactive: !!opts.interactive, center: segs.length ? [segs[0][0][1], segs[0][0][0]] : [-98.5, 39.8], zoom: segs.length ? 14 : 3, preserveDrawingBuffer: !!opts.capture});
+    map.on('load', ()=>{
+      addRouteLayers(map);
+      setRouteData(map, segs);
+      if(segs.length && !opts.live) map.fitBounds(routeBounds(segs), {padding: opts.padding || 36, duration:0, maxZoom:16});
+      const svg = el.querySelector('svg.route-svg');
+      if(svg) svg.remove();
+    });
+    return map;
+  }catch(e){ return null; }
+}
+// The route as a plain line in the element's own colours -- the no-map fallback, and for small previews.
+function drawRouteSvg(el, segs){
+  const all = segs.flat();
+  if(!all.length) return;
+  const lat0 = all.reduce((a,p)=> a+p[0], 0)/all.length, k = Math.cos(lat0*Math.PI/180);
+  const xs = all.map(p=> p[1]*k), ys = all.map(p=> -p[0]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const W = 300, H = 180, pad = 16, w = maxX-minX, h = maxY-minY;
+  const sc = Math.min(w>0 ? (W-2*pad)/w : Infinity, h>0 ? (H-2*pad)/h : Infinity);
+  const k2 = isFinite(sc) ? sc : 1;
+  const ox = (W - w*k2)/2, oy = (H - h*k2)/2;
+  const pt = p=> `${(ox + (p[1]*k-minX)*k2).toFixed(1)},${(oy + (-p[0]-minY)*k2).toFixed(1)}`;
+  const lines = segs.map(s=> `<polyline points="${s.map(pt).join(' ')}"/>`).join('');
+  const a = all[0], z = all[all.length-1];
+  el.classList.add('route-fallback');
+  el.insertAdjacentHTML('afterbegin', `<svg class="route-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><g class="rs-casing">${lines}</g><g class="rs-line">${lines}</g><circle class="rs-start" cx="${pt(a).split(',')[0]}" cy="${pt(a).split(',')[1]}" r="5"/><circle class="rs-end" cx="${pt(z).split(',')[0]}" cy="${pt(z).split(',')[1]}" r="5"/></svg>`);
+}
+
+// ---- the tracker ----
+let gps = null;          // the run being tracked (see newGpsRun)
+let gpsWatch = null;     // {kind:'web', id} | {kind:'native', id}
+let gpsMap = null, gpsMapFollow = true, gpsTick = null, gpsWakeLock = null, gpsLastFix = null, gpsSaveAt = 0;
+function newGpsRun(target){
+  return {target: target || null, status:'idle', segs:[], distM:0, movingMs:0, runningSince:null, startedAt:null, splits:[], lastPt:null, newSeg:true};
+}
+function gpsElapsedMs(){ return gps ? gps.movingMs + (gps.status==='running' && gps.runningSince ? Date.now()-gps.runningSince : 0) : 0; }
+function saveGpsRun(force){
+  if(!gps) return;
+  if(!force && Date.now()-gpsSaveAt < 4000) return;
+  gpsSaveAt = Date.now();
+  try{
+    localStorage.setItem(GPS_KEY, JSON.stringify({...gps, movingMs: gpsElapsedMs(), runningSince:null, status: gps.status==='running' ? 'paused' : gps.status,
+      segs: gps.segs.map(s=> encodePolyline(s.map(p=> [p[0], p[1]]))), segTimes: gps.segs.map(s=> s.map(p=> p[2]||0))}));
+  }catch(e){}
+}
+function clearGpsRun(){ try{ localStorage.removeItem(GPS_KEY); }catch(e){} }
+function loadGpsRun(){
+  try{
+    const g = JSON.parse(localStorage.getItem(GPS_KEY) || 'null');
+    if(!g || !Array.isArray(g.segs)) return null;
+    g.segs = g.segs.map((s, i)=> decodePolyline(s).map((p, j)=> [p[0], p[1], (g.segTimes && g.segTimes[i] && g.segTimes[i][j]) || 0]));
+    delete g.segTimes;
+    g.newSeg = true; g.lastPt = null; g.status = g.status==='idle' ? 'idle' : 'paused'; g.runningSince = null;
+    return g;
+  }catch(e){ return null; }
+}
+function nativeGeo(){ return isNativeShell() && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation || null; }
+function gpsSignalState(){
+  if(!gpsLastFix) return 'finding';
+  if(Date.now()-gpsLastFix.at > 20000) return 'finding';
+  return gpsLastFix.acc > GPS_MAX_ACCURACY_M ? 'weak' : 'good';
+}
+// Every GPS fix: kept only if it's accurate enough, isn't a jump no runner could make, and has really
+// moved (standing still shouldn't add distance from GPS wobble).
+function onGpsFix(lat, lng, acc, time){
+  if(!isFinite(lat) || !isFinite(lng)) return;
+  gpsLastFix = {lat, lng, acc: acc || 0, at: Date.now()};
+  if(gps && gps.status==='running' && (acc || 0) <= GPS_MAX_ACCURACY_M){
+    const t = time || Date.now();
+    const p = [lat, lng, t];
+    if(gps.newSeg || !gps.lastPt){
+      gps.segs.push([p]); gps.newSeg = false; gps.lastPt = p;
+    } else {
+      const d = haversineM(gps.lastPt, p), dt = (t - gps.lastPt[2])/1000;
+      if(dt > 0 && d/dt <= GPS_MAX_SPEED_MS && d >= Math.max(4, (acc || 0)*0.5)){
+        const before = gps.distM;
+        gps.distM += d;
+        gps.segs[gps.segs.length-1].push(p);
+        gps.lastPt = p;
+        // A split for every mile passed: the run time at the moment the mile was crossed.
+        const now = gpsElapsedMs();
+        while(gps.distM >= (gps.splits.length+1)*MI_M){
+          const mark = (gps.splits.length+1)*MI_M, frac = d ? (mark-before)/d : 1;
+          const atMs = now - (1-frac)*dt*1000;
+          const prev = gps.splits.reduce((a,b)=> a+b, 0);
+          gps.splits.push(Math.max(1, Math.round(atMs/1000 - prev)));
+        }
+      }
+    }
+    saveGpsRun();
+  }
+  renderGps();
+}
+function onGpsError(code){
+  const L = STR[state.lang];
+  const note = document.getElementById('gpsNote');
+  if(code==='denied'){
+    note.innerHTML = `${escapeHtml(L.gpsDenied)}${nativeGeo() ? ` <button type="button" class="link-btn" id="gpsOpenSettings">${L.gpsOpenSettings}</button>` : ''}`;
+    const b = document.getElementById('gpsOpenSettings');
+    if(b) b.addEventListener('click', ()=>{ try{ nativeGeo().openSettings(); }catch(e){} });
+  } else if(code==='unsupported') note.textContent = L.gpsUnsupported;
+  note.hidden = false;
+  note.classList.add('alert');
+}
+async function startGpsWatch(){
+  if(gpsWatch) return;
+  const L = STR[state.lang];
+  const BG = nativeGeo();
+  if(BG){
+    gpsWatch = {kind:'native', id:null};
+    try{
+      const id = await BG.addWatcher({backgroundTitle: L.gpsNotifTitle, backgroundMessage: L.gpsNotifMsg, requestPermissions: true, stale: false, distanceFilter: 0},
+        (loc, err)=>{
+          if(err){ onGpsError(err.code==='NOT_AUTHORIZED' ? 'denied' : 'error'); return; }
+          if(loc) onGpsFix(loc.latitude, loc.longitude, loc.accuracy, loc.time);
+        });
+      if(gpsWatch) gpsWatch.id = id; else BG.removeWatcher({id}).catch(()=>{});
+    }catch(e){ gpsWatch = null; onGpsError('error'); }
+    return;
+  }
+  if(!navigator.geolocation){ onGpsError('unsupported'); return; }
+  const id = navigator.geolocation.watchPosition(
+    pos=> onGpsFix(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, pos.timestamp),
+    err=>{ if(err && err.code===1) onGpsError('denied'); },
+    {enableHighAccuracy: true, maximumAge: 0, timeout: 30000});
+  gpsWatch = {kind:'web', id};
+}
+function stopGpsWatch(){
+  if(!gpsWatch) return;
+  const w = gpsWatch; gpsWatch = null;
+  if(w.kind==='web'){ try{ navigator.geolocation.clearWatch(w.id); }catch(e){} }
+  else { const BG = nativeGeo(); if(BG && w.id!=null) BG.removeWatcher({id: w.id}).catch(()=>{}); }
+}
+// In a browser the screen has to stay on for GPS to keep coming in, so it's kept awake while running.
+async function gpsKeepAwake(on){
+  try{
+    if(on && !gpsWakeLock && navigator.wakeLock) gpsWakeLock = await navigator.wakeLock.request('screen');
+    if(!on && gpsWakeLock){ const w = gpsWakeLock; gpsWakeLock = null; await w.release(); }
+  }catch(e){ gpsWakeLock = null; }
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible' && gps && gps.status==='running'){ gpsWakeLock = null; gpsKeepAwake(true); }
+});
+// target: the workout being recorded ({dayKey, kind, id}), or none -- a run nobody planned, which
+// becomes today's added "Run" when it's finished.
+function openGpsTracker(target){
+  const L = STR[state.lang];
+  const saved = loadGpsRun();
+  if(saved && saved.status!=='idle' && (saved.distM>0 || saved.movingMs>0)){
+    gps = saved;                                   // a run that was under way when the app closed
+    showToast(L.gpsResumedToast);
+  } else gps = newGpsRun(target);
+  gpsMapFollow = true;
+  document.getElementById('gpsOverlay').hidden = false;
+  document.getElementById('gpsDiscardConfirm').hidden = true;
+  const note = document.getElementById('gpsNote');
+  note.classList.remove('alert');
+  note.textContent = nativeGeo() ? '' : L.gpsWebNote;
+  note.hidden = !!nativeGeo();
+  renderGps();
+  startGpsWatch();
+  clearInterval(gpsTick);
+  gpsTick = setInterval(renderGps, 1000);
+  const mapEl = document.getElementById('gpsMap');
+  if(gpsMap){ try{ gpsMap.remove(); }catch(e){} gpsMap = null; }
+  showRouteMap(mapEl, gps.segs, {interactive: true, live: true}).then(m=>{
+    gpsMap = m;
+    if(!m){ renderGps(); return; }
+    m.on('dragstart', ()=>{ gpsMapFollow = false; renderGps(); });
+    m.on('load', ()=> renderGps());
+  });
+  renderGps(); // (after the map box is set up, so the route shows straight away)
+}
+function closeGpsTracker(){
+  stopGpsWatch();
+  gpsKeepAwake(false);
+  clearInterval(gpsTick); gpsTick = null;
+  if(gpsMap){ try{ gpsMap.remove(); }catch(e){} gpsMap = null; }
+  document.getElementById('gpsOverlay').hidden = true;
+  document.getElementById('recordBtn').classList.remove('recording');
+}
+function renderGps(){
+  if(!gps || document.getElementById('gpsOverlay').hidden) return;
+  const L = STR[state.lang];
+  const ms = gpsElapsedMs(), mi = gps.distM/MI_M;
+  document.getElementById('gpsTime').textContent = fmtRunClock(ms);
+  document.getElementById('gpsDist').textContent = mi.toFixed(2);
+  document.getElementById('gpsAvgPace').textContent = mi >= 0.05 ? fmtPaceSec(ms/1000/mi) : '--:--';
+  // Pace right now: over the last ~30 seconds of the current stretch.
+  let cur = '--:--';
+  const seg = gps.segs[gps.segs.length-1];
+  if(gps.status==='running' && seg && seg.length>1){
+    const end = seg[seg.length-1];
+    let i = seg.length-1, d = 0;
+    while(i>0 && end[2]-seg[i-1][2] <= 30000){ d += haversineM(seg[i-1], seg[i]); i--; }
+    const dt = (end[2]-seg[i][2])/1000;
+    if(d >= 20 && dt > 0) cur = fmtPaceSec(dt/(d/MI_M));
+  }
+  document.getElementById('gpsPace').textContent = cur;
+  const sig = gpsSignalState(), sigEl = document.getElementById('gpsSignal');
+  sigEl.className = 'gps-signal ' + sig;
+  sigEl.textContent = sig==='good' ? L.gpsGood : sig==='weak' ? L.gpsWeak : L.gpsFinding;
+  const btn = document.getElementById('gpsStartBtn');
+  btn.textContent = gps.status==='running' ? L.gpsPause : gps.status==='paused' ? L.gpsResume : L.gpsStart;
+  btn.classList.toggle('btn-primary', gps.status!=='running');
+  btn.classList.toggle('btn-ghost', gps.status==='running');
+  document.getElementById('gpsHoldFinish').hidden = gps.status==='idle';
+  document.getElementById('gpsClose').hidden = gps.status==='running';
+  document.getElementById('gpsStatus').textContent = gps.status==='paused' ? L.gpsPausedLabel : '';
+  const mapEl = document.getElementById('gpsMap');
+  mapEl.querySelectorAll('svg.route-svg').forEach(s=> s.remove());
+  const mapReady = !!(gpsMap && gpsMap.loaded && gpsMap.loaded() && gpsMap.getSource('route'));
+  document.getElementById('gpsRecenter').hidden = !mapReady || gpsMapFollow;
+  if(mapReady){
+    setRouteData(gpsMap, gps.segs);
+    const here = gps.lastPt || (gpsLastFix && [gpsLastFix.lat, gpsLastFix.lng]);
+    if(here && gpsMapFollow) gpsMap.easeTo({center:[here[1], here[0]], zoom: Math.max(gpsMap.getZoom(), 15), duration: 600});
+  } else if(gps.segs.flat().length>1) drawRouteSvg(mapEl, gps.segs); // no map (yet): the route by itself
+}
+document.getElementById('gpsStartBtn').addEventListener('click', ()=>{
+  if(!gps) return;
+  if(gps.status==='running'){
+    gps.movingMs = gpsElapsedMs(); gps.runningSince = null; gps.status = 'paused';
+    gpsKeepAwake(false);
+  } else {
+    if(gps.status==='idle') gps.startedAt = Date.now();
+    gps.status = 'running'; gps.runningSince = Date.now(); gps.newSeg = true; gps.lastPt = null;
+    gpsMapFollow = true;
+    gpsKeepAwake(true);
+    startGpsWatch();
+  }
+  saveGpsRun(true);
+  renderGps();
+});
+document.getElementById('gpsClose').addEventListener('click', ()=>{
+  if(gps && (gps.distM>0 || gpsElapsedMs()>5000)){ document.getElementById('gpsDiscardConfirm').hidden = false; return; }
+  clearGpsRun(); gps = null; closeGpsTracker();
+});
+document.getElementById('gpsDiscardKeep').addEventListener('click', ()=>{ document.getElementById('gpsDiscardConfirm').hidden = true; });
+document.getElementById('gpsDiscardYes').addEventListener('click', ()=>{ clearGpsRun(); gps = null; closeGpsTracker(); });
+document.getElementById('gpsRecenter').addEventListener('click', ()=>{ gpsMapFollow = true; renderGps(); });
+// Finishing takes a press-and-hold, like ending an interval workout, so a bump can't end a run.
+(function(){
+  const btn = document.getElementById('gpsHoldFinish'), fill = btn.querySelector('.hold-end-fill');
+  let start = 0, raf = null, done = null, msAtPress = 0;
+  const stop = ()=>{ if(raf) cancelAnimationFrame(raf); raf = null; clearTimeout(done); done = null; fill.style.width = '0%'; };
+  const step = ()=>{ fill.style.width = Math.min(100, (Date.now()-start)/HOLD_END_MS*100)+'%'; raf = requestAnimationFrame(step); };
+  btn.addEventListener('pointerdown', e=>{ e.preventDefault(); start = Date.now(); msAtPress = gpsElapsedMs(); step(); done = setTimeout(()=>{ stop(); finishGpsRun(msAtPress); }, HOLD_END_MS); });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=> btn.addEventListener(ev, stop));
+})();
+function finishGpsRun(msAtPress){
+  const L = STR[state.lang];
+  if(!gps) return;
+  // The run's time stops when Finish is pressed, not when the hold completes.
+  const ms = msAtPress || gpsElapsedMs(), mi = gps.distM/MI_M;
+  if(mi < 0.01){ showToast(L.gpsTooShort); return; }
+  const lastMile = mi - gps.splits.length;
+  const result = {
+    distance: Math.round(mi*100)/100,
+    time: Math.round(ms/1000)/60,
+    route: gps.segs.filter(s=> s.length>1).map(s=> encodePolyline(s)),
+    splits: gps.splits.slice(),
+    lastSplit: lastMile>0.01 ? {mi: Math.round(lastMile*100)/100, sec: Math.max(1, Math.round(ms/1000 - gps.splits.reduce((a,b)=>a+b,0)))} : null,
+    startedAt: gps.startedAt,
+  };
+  let target = gps.target;
+  if(!target){
+    // A run nobody planned: it's added to today as "Run".
+    const key = dateKey(TODAY_DATE);
+    const where = planCustomWorkout(key, {title: L.gpsRunTitle, type:'run', detail: `${result.distance} mi`, alongside: true});
+    target = {dayKey: key, kind: where.kind, id: where.id};
+  }
+  setGpsHandoff({target, result});
+  clearGpsRun(); gps = null;
+  closeGpsTracker();
+  refreshViews();
+  openLogPerformanceFor(target, 'record');
+}
+// A finished GPS run waiting to be saved in Log Performance -- kept on the phone until it is, so
+// closing Log Performance doesn't lose it (reopening that workout brings it back).
+let gpsHandoff = null;
+try{ gpsHandoff = JSON.parse(localStorage.getItem(GPS_DONE_KEY) || 'null'); }catch(e){}
+function setGpsHandoff(h){
+  gpsHandoff = h;
+  try{ h ? localStorage.setItem(GPS_DONE_KEY, JSON.stringify(h)) : localStorage.removeItem(GPS_DONE_KEY); }catch(e){}
+}
+const sameLogTarget = (a, b)=> !!(a && b && a.dayKey===b.dayKey && a.kind===b.kind && (a.id||null)===(b.id||null));
+function gpsHandoffFor(target){ return gpsHandoff && sameLogTarget(gpsHandoff.target, target) ? gpsHandoff.result : null; }
+// Log Performance for a run: a "Track this run with GPS" button while recording, and a finished GPS
+// run's numbers and route filled in.
+function applyGpsToLogPerf(logTarget, mode, eff, perf){
+  const L = STR[state.lang];
+  const isRun = eff && eff.t==='run';
+  const res = isRun ? gpsHandoffFor(logTarget) : null;
+  document.getElementById('logPerfGpsBtn').hidden = !(isRun && mode==='record' && !res);
+  const route = res ? res.route : (perf && perf.route) || null;
+  const box = document.getElementById('logPerfRoute');
+  box.hidden = !(isRun && route);
+  if(box.hidden) return;
+  if(res){
+    document.getElementById('logPerfDistanceInput').value = res.distance;
+    writeHmsMinutes('logPerfTime', res.time);
+  }
+  const note = document.getElementById('logPerfRouteNote');
+  note.textContent = res ? L.gpsFromTracker : '';
+  note.hidden = !res;
+  const mapEl = document.getElementById('logPerfRouteMap');
+  mapEl.innerHTML = '';
+  drawRouteSvg(mapEl, routeSegments(route));
+}
+document.getElementById('logPerfGpsBtn').addEventListener('click', ()=>{
+  const target = state._logTarget;
+  document.getElementById('logPerfOverlay').hidden = true;
+  stopWorkoutClock();
+  openGpsTracker(target);
+});
+document.addEventListener('click', e=>{ if(e.target.closest && e.target.closest('#trackRunBtn')) openGpsTracker(null); }); // Today's button is re-drawn with the page
+
+// ---- the route after the run: Summary map + splits ----
+let summaryMap = null;
+function renderSummaryRoute(logged){
+  const L = STR[state.lang];
+  const card = document.getElementById('summaryRouteCard');
+  const segs = logged && logged.route ? routeSegments(logged.route) : [];
+  if(summaryMap){ try{ summaryMap.remove(); }catch(e){} summaryMap = null; }
+  card.hidden = !segs.length;
+  if(!segs.length) return;
+  const splits = (logged.splits || []).map((s, i)=> ({label: L.gpsMileN.replace('{n}', i+1), sec: s, pace: s}));
+  if(logged.lastSplit) splits.push({label: `${logged.lastSplit.mi} mi`, sec: logged.lastSplit.sec, pace: logged.lastSplit.sec/logged.lastSplit.mi});
+  const best = splits.length>1 ? Math.min(...splits.map(s=> s.pace)) : null;
+  document.getElementById('summarySplits').innerHTML = splits.length ? `<div class="st-label">${L.gpsSplitsLabel}</div>` + splits.map(s=>
+    `<div class="split-row${s.pace===best ? ' best' : ''}"><span>${escapeHtml(s.label)}</span><span>${fmtPaceSec(s.pace)}/mi</span></div>`).join('') : '';
+  showRouteMap(document.getElementById('summaryRouteMap'), segs, {interactive: false}).then(m=>{ summaryMap = m; });
+}
+
+// ---- asking for location once, when someone first gets into the app ----
+const LOC_ASKED_KEY = 'altiro_loc_asked';
+async function locationAlreadyAllowed(){
+  const BG = nativeGeo();
+  if(BG) return false; // the store app's own prompt says whether it's allowed; ask through ours first
+  try{
+    if(navigator.permissions && navigator.permissions.query){
+      const p = await navigator.permissions.query({name:'geolocation'});
+      return p.state==='granted';
+    }
+  }catch(e){}
+  return false;
+}
+async function maybeAskLocation(){
+  if((PROTO_MODE && !window.__ALTIRO_ASK_LOCATION__) || tour.on) return;
+  if(!nativeGeo() && !navigator.geolocation) return;
+  try{ if(localStorage.getItem(LOC_ASKED_KEY)) return; }catch(e){ return; }
+  if(await locationAlreadyAllowed()){ try{ localStorage.setItem(LOC_ASKED_KEY, 'granted'); }catch(e){} return; }
+  setTimeout(()=>{ if(!elFor('home').hidden && !tour.on) document.getElementById('locPromptOverlay').hidden = false; }, 900);
+}
+function requestLocationNow(){
+  return new Promise(resolve=>{
+    const BG = nativeGeo();
+    if(BG){
+      // The store app: a short foreground watch is what triggers the phone's own permission prompt.
+      let id = null, done = false;
+      const finish = ok=>{ if(done) return; done = true; if(id!=null) BG.removeWatcher({id}).catch(()=>{}); resolve(ok); };
+      BG.addWatcher({requestPermissions: true, stale: true}, (loc, err)=> finish(!err))
+        .then(x=>{ id = x; if(done) BG.removeWatcher({id}).catch(()=>{}); }).catch(()=> finish(false));
+      setTimeout(()=> finish(false), 30000);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(()=> resolve(true), err=> resolve(!(err && err.code===1)), {enableHighAccuracy:false, maximumAge: 10*60*1000, timeout: 20000});
+  });
+}
+document.getElementById('locPromptAllow').addEventListener('click', async ()=>{
+  const L = STR[state.lang];
+  document.getElementById('locPromptOverlay').hidden = true;
+  try{ localStorage.setItem(LOC_ASKED_KEY, '1'); }catch(e){}
+  const ok = await requestLocationNow();
+  showToast(ok ? L.locAllowed : L.gpsDenied);
+  if(ok){ try{ localStorage.setItem(WEATHER_OK_KEY, '1'); }catch(e){} loadWeather(); }
+});
+document.getElementById('locPromptLater').addEventListener('click', ()=>{
+  document.getElementById('locPromptOverlay').hidden = true;
+  try{ localStorage.setItem(LOC_ASKED_KEY, 'later'); }catch(e){}
+});
+// A run that was being tracked when the app was closed comes back on Today.
+function resumeGpsIfAny(){
+  const saved = loadGpsRun();
+  if(saved && saved.status!=='idle' && (saved.distM>0 || saved.movingMs>0) && document.getElementById('gpsOverlay').hidden) openGpsTracker(saved.target);
+}
 
 /* ---------------- email confirmation ---------------- */
 // When a new account has to confirm its email first, the answers from setup (goal, days, balance...)
@@ -11951,6 +12691,7 @@ function endTour(){
   document.getElementById('tourOverlay').hidden = true;
   if(tourAdjustOpen()) closeAdjustSheet();
   try{ localStorage.setItem(TOUR_DONE_KEY, '1'); }catch(e){}
+  setTimeout(maybeAskLocation, 600);
 }
 // To stop i, skipping (in the direction of travel) any stop that isn't there for this user.
 function tourGo(i, dir){

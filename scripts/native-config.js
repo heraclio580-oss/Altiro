@@ -4,7 +4,7 @@
 //
 //   altiro:// links open the app -- how Strava's sign-in, and the "Open Altiro" button shown after
 //   confirming an email, hand the user back to the store app (see handleAppLink in www/index.html).
-//   iOS's Photos permission text -- for saving a workout card straight to Photos.
+//   iOS permission text (Photos, for saving workout cards; location, for GPS runs) and background location.
 const fs = require('fs');
 const path = require('path');
 const root = process.env.ALTIRO_NATIVE_ROOT || path.join(__dirname, '..');
@@ -20,20 +20,31 @@ if(fs.existsSync(plist)){
     fs.writeFileSync(plist, s); changed++;
     console.log('iOS: added the altiro:// URL scheme to Info.plist');
   } else console.log('iOS: altiro:// URL scheme already set');
-  // "Save to Photos" on the workout card (@capacitor-community/media) asks to add a picture to Photos;
-  // iOS shows these lines in that permission prompt, and the App Store requires them.
-  const PHOTO_KEYS = {
+  // Permission text iOS shows in its prompts (the App Store requires each one): Photos, for "Save to
+  // Photos" on the workout card (@capacitor-community/media); location, for tracking runs with GPS
+  // (@capacitor-community/background-geolocation).
+  const TEXT_KEYS = {
     NSPhotoLibraryAddUsageDescription: 'Altiro saves your workout cards to Photos so you can share them.',
     NSPhotoLibraryUsageDescription: 'Altiro saves your workout cards to Photos so you can share them.',
+    NSLocationWhenInUseUsageDescription: 'Altiro uses your location to map and measure your runs, and for your local weather.',
+    NSLocationAlwaysAndWhenInUseUsageDescription: 'Altiro keeps tracking a run you started while your phone is locked, so the whole run is measured.',
   };
   s = fs.readFileSync(plist, 'utf8');
-  const missing = Object.keys(PHOTO_KEYS).filter(k=> !s.includes(`<key>${k}</key>`));
+  const missing = Object.keys(TEXT_KEYS).filter(k=> !s.includes(`<key>${k}</key>`));
   if(missing.length){
-    const entry = missing.map(k=> `\t<key>${k}</key>\n\t<string>${PHOTO_KEYS[k]}</string>\n`).join('');
+    const entry = missing.map(k=> `\t<key>${k}</key>\n\t<string>${TEXT_KEYS[k]}</string>\n`).join('');
     s = s.replace(/<\/dict>\s*<\/plist>\s*$/, entry + '</dict>\n</plist>\n');
     fs.writeFileSync(plist, s); changed++;
-    console.log('iOS: added the Photos permission text to Info.plist');
-  } else console.log('iOS: Photos permission text already set');
+    console.log('iOS: added permission text to Info.plist: ' + missing.join(', '));
+  } else console.log('iOS: permission text already set');
+  // GPS keeps coming in with the screen locked during a run.
+  s = fs.readFileSync(plist, 'utf8');
+  if(!/<key>UIBackgroundModes<\/key>\s*<array>[\s\S]*?<string>location<\/string>/.test(s)){
+    if(/<key>UIBackgroundModes<\/key>\s*<array>/.test(s)) s = s.replace(/(<key>UIBackgroundModes<\/key>\s*<array>)/, '$1\n\t\t<string>location</string>');
+    else s = s.replace(/<\/dict>\s*<\/plist>\s*$/, '\t<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>location</string>\n\t</array>\n</dict>\n</plist>\n');
+    fs.writeFileSync(plist, s); changed++;
+    console.log('iOS: allowed location in the background (for runs being tracked)');
+  } else console.log('iOS: background location already allowed');
 } else console.log('iOS: no ios/ project here (run `npx cap add ios` first) -- skipped');
 
 const manifest = path.join(root, 'android', 'app', 'src', 'main', 'AndroidManifest.xml');

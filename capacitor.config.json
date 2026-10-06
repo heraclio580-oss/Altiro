@@ -10,5 +10,8 @@
     "LocalNotifications": {
       "iconColor": "#DA1419"
     }
+  },
+  "android": {
+    "useLegacyBridge": true
   }
 }

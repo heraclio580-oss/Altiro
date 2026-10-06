@@ -19,22 +19,24 @@ const extraRows = [
    performance:{exercises:[{key:'Bench Press', name:'Bench Press', weight:155, reps:5, sets:[{weight:135,reps:8},{weight:155,reps:5}]}]}},
 ];
 function makeBackend(){
+  const profileSaves = [];
   function from(table){
-    let op = 'select';
+    let op = 'select', payload = null;
     const api = {
       select(){ return api; }, eq(){ return api; }, is(){ return api; }, order(){ return api; }, gte(){ return api; }, not(){ return api; },
-      insert(){ op = 'insert'; return api; }, delete(){ return api; }, update(){ op = 'update'; return api; }, upsert(){ op = 'upsert'; return api; },
+      insert(){ op = 'insert'; return api; }, delete(){ return api; }, update(p){ op = 'update'; payload = p; return api; }, upsert(){ op = 'upsert'; return api; },
       maybeSingle(){
         return Promise.resolve({data: table==='profiles' ? {id:'u1', training_days:[0,2,4], focus_ratio:4, intensity_idx:1, level:'intermediate', equipment:'gym', plan_start:'2026-05-25'} : null, error:null});
       },
       then(res, rej){
+        if(op==='update' && table==='profiles') profileSaves.push(payload);
         const data = op==='select' ? (table==='workout_logs' ? logRows : table==='planned_workouts' ? extraRows : []) : null;
         return Promise.resolve({data, error:null}).then(res, rej);
       },
     };
     return api;
   }
-  return { createClient: () => ({
+  return { profileSaves, createClient: () => ({
     auth: {
       onAuthStateChange(){ return {data:{subscription:{unsubscribe(){}}}}; },
       async getSession(){ return {data:{session:{user:{id:'u1', email:'lifter@example.com'}}}}; },
@@ -92,6 +94,26 @@ function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok
   check('History lists every workout, newest first', hist.join('|')==='Sep 14|Jul 15|Jun 1', hist.join('|'));
   doc.getElementById('closeLiftDetail').click();
   check('Closing the sheet', ov.hidden);
+
+  // The trash can: the lift leaves the list (its workouts stay), and can be brought back.
+  const profileSaves = backend.profileSaves.length;
+  doc.querySelector('#liftProgress [data-lift="Back Squat"] [data-lift-hide]').click();
+  await wait(20);
+  const shownNow = () => [...doc.querySelectorAll('#liftProgress .lift-row:not(.hidden-lift) .lr-name')].map(e=>e.textContent);
+  check('The trash can takes the squat off the list', shownNow().join('|')==='Bench Press', shownNow().join('|'));
+  check('...without opening its sheet', doc.getElementById('liftDetailOverlay').hidden);
+  check('...says its workouts stay saved', /Back Squat removed from your lifts\. Its workouts stay saved\./.test(doc.getElementById('toastMsg').textContent), doc.getElementById('toastMsg').textContent);
+  const savedHidden = backend.profileSaves.slice(profileSaves).pop();
+  check('...and remembers it with the profile', savedHidden && JSON.stringify(savedHidden.hidden_lifts)==='["Back Squat"]', savedHidden && JSON.stringify(savedHidden.hidden_lifts));
+  const hidBtn = doc.getElementById('liftsHiddenBtn');
+  check('A "1 hidden lift" line appears under the list', hidBtn && /1 hidden lift · Show/.test(hidBtn.textContent), hidBtn && hidBtn.textContent);
+  hidBtn.click();
+  await wait(10);
+  check('Showing hidden lifts lists the squat with a button to bring it back', !!doc.querySelector('#liftProgress .lift-row.hidden-lift [data-lift-restore="Back Squat"]'));
+  doc.querySelector('[data-lift-restore="Back Squat"]').click();
+  await wait(20);
+  check('Bringing it back puts it in the list again', shownNow().join('|')==='Bench Press|Back Squat' && !doc.getElementById('liftsHiddenBtn'), shownNow().join('|'));
+  check('...and saves that', JSON.stringify(backend.profileSaves[backend.profileSaves.length-1].hidden_lifts)==='[]');
 
   rows[0].click();
   await wait(10);

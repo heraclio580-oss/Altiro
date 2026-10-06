@@ -1261,7 +1261,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .lr-spark circle{fill:var(--accent);}
 .lift-change{font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--text-2);min-width:44px;text-align:right;white-space:nowrap;}
 .lift-change.up{color:var(--ok-icon);}
-.lift-row .chev{width:14px;height:14px;color:var(--text-3);flex-shrink:0;}
+.lift-row .lr-del{margin-right:-6px;}
+.lift-row .lr-del svg{width:17px;height:17px;display:block;}
+.lift-row.hidden-lift{opacity:0.6;}
+.lift-row .lr-restore{color:var(--accent);}
+.lift-hidden-toggle{display:block;margin-top:10px;background:none;border:none;padding:4px 0;font-family:var(--font-mono);font-size:11.5px;color:var(--text-2);cursor:pointer;}
+.lift-hidden-toggle b{color:var(--accent);font-weight:600;}
 .lift-more{margin-top:10px;width:100%;}
 .lift-hero{margin-top:8px;}
 .lift-hero .l{font-family:var(--font-mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);}
@@ -3338,6 +3343,11 @@ const STR = {
     liftProgressEmpty: "Log a workout with its weights and each lift shows up here, with a chart of your progress.",
     liftEstMaxShort: "Est. max",
     liftNew: "New",
+    liftHideAria: "Stop tracking {name}", liftRestoreAria: "Track {name} again",
+    liftHiddenToast: "{name} removed from your lifts. Its workouts stay saved.",
+    liftRestoredToast: "{name} is back in your lifts.",
+    liftHiddenCount: "{n} hidden lifts", liftHiddenCount1: "1 hidden lift", liftHiddenShow: "Show", liftHiddenHide: "Hide",
+    liftAllHidden: "You've hidden all your lifts. Bring one back below.",
     liftShowAll: "Show all {n} lifts", liftShowFewer: "Show fewer",
     liftMetricE1rm: "Est. max", liftMetricTop: "Heaviest set", liftMetricVolume: "Volume",
     liftHeroE1rm: "Estimated 1-rep max", liftHeroTop: "Heaviest set", liftHeroVolume: "Volume per workout",
@@ -3953,6 +3963,11 @@ const STR = {
     liftProgressEmpty: "Registra un entrenamiento con sus pesos y cada levantamiento aparecerá aquí, con una gráfica de tu progreso.",
     liftEstMaxShort: "Máx. est.",
     liftNew: "Nuevo",
+    liftHideAria: "Dejar de seguir {name}", liftRestoreAria: "Volver a seguir {name}",
+    liftHiddenToast: "{name} se quitó de tus levantamientos. Sus entrenamientos siguen guardados.",
+    liftRestoredToast: "{name} volvió a tus levantamientos.",
+    liftHiddenCount: "{n} levantamientos ocultos", liftHiddenCount1: "1 levantamiento oculto", liftHiddenShow: "Ver", liftHiddenHide: "Ocultar",
+    liftAllHidden: "Ocultaste todos tus levantamientos. Recupera uno abajo.",
     liftShowAll: "Ver los {n} levantamientos", liftShowFewer: "Ver menos",
     liftMetricE1rm: "Máx. est.", liftMetricTop: "Serie más pesada", liftMetricVolume: "Volumen",
     liftHeroE1rm: "Máximo estimado a 1 repetición", liftHeroTop: "Serie más pesada", liftHeroVolume: "Volumen por entrenamiento",
@@ -5411,6 +5426,7 @@ const defaultState = () => ({
   mileTime:null, // seconds -- a recent mile time the run paces are based on (see mileTimePaces)
   jogBaseline:null, // a new runner's latest longest steady jog {min, week, held} -- see recordJogBaseline()
   classes:[], // recurring classes {id, kind, name, days (0 = Mon), time 'HH:MM', minutes, from, skips} -- see classItemsFor()
+  hiddenLifts:[], // lift keys taken off Progress -> Your lifts; their logged workouts stay
   exerciseSwaps:{}, // "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'} -- see applyStandingSwaps()
   week:null,
   todayCompleted:false,
@@ -9961,28 +9977,62 @@ function liftSparkSvg(values){
   const last = pts[pts.length-1];
   return `<svg class="lr-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${pts.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ')}"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.4"/></svg>`;
 }
-let liftsShowAll = false;
+let liftsShowAll = false, liftsShowHidden = false;
 const LIFTS_SHOWN = 5;
-function renderLiftProgress(){
-  const L = STR[state.lang], el = document.getElementById('liftProgress');
-  if(!el) return;
-  const lifts = liftHistory();
-  if(!lifts.length){ el.innerHTML = `<div class="footer-note" style="text-align:left;padding:2px 0;">${L.liftProgressEmpty}</div>`; return; }
-  const shown = liftsShowAll ? lifts : lifts.slice(0, LIFTS_SHOWN);
-  el.innerHTML = shown.map(lift=>{
-    const first = lift.days[0], last = lift.days[lift.days.length-1];
-    const change = lift.days.length>1 ? last.e1rm - first.e1rm : null;
-    return `<button class="lift-row" type="button" data-lift="${escapeHtml(lift.key)}">
-      <div class="lr-main"><div class="lr-name">${escapeHtml(lift.name)}</div>
+// The trash can on a lift takes it off this list (and its chart) without touching its logged workouts;
+// hidden lifts can be brought back from the "hidden lifts" line under the list. Kept with the profile,
+// and in the browser for someone not signed in.
+try{ const saved = JSON.parse(localStorage.getItem('altiro_hidden_lifts')||'null'); if(Array.isArray(saved)) state.hiddenLifts = saved; }catch(e){}
+function setLiftHidden(key, hidden){
+  const list = (state.hiddenLifts||[]).filter(k=>k!==key);
+  if(hidden) list.push(key);
+  state.hiddenLifts = list;
+  try{ localStorage.setItem('altiro_hidden_lifts', JSON.stringify(list)); }catch(e){}
+  saveProfileToCloud();
+}
+const LIFT_RESTORE_ICON = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 4.5v11M4.5 10h11"/></svg>';
+function liftRowHtml(lift, L, hidden){
+  const first = lift.days[0], last = lift.days[lift.days.length-1];
+  const change = lift.days.length>1 ? last.e1rm - first.e1rm : null;
+  const name = escapeHtml(lift.name);
+  return `<div class="lift-row${hidden ? ' hidden-lift' : ''}" role="button" tabindex="0" data-lift="${escapeHtml(lift.key)}">
+      <div class="lr-main"><div class="lr-name">${name}</div>
         <div class="lr-sub">${L.liftEstMaxShort} ${fmtLiftNum(last.e1rm)} ${state.weightUnit} · ${fmtLiftDate(last.key)}</div></div>
       ${liftSparkSvg(lift.days.slice(-10).map(d=>d.e1rm))}
       <div class="lift-change${change>0.5 ? ' up' : ''}">${change==null ? L.liftNew : fmtSignedLift(change)}</div>
-      <svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M8 4l6 6-6 6"/></svg>
-    </button>`;
-  }).join('') + (lifts.length>LIFTS_SHOWN ? `<button class="btn btn-ghost lift-more" type="button" id="liftsMoreBtn">${liftsShowAll ? L.liftShowFewer : L.liftShowAll.replace('{n}', lifts.length)}</button>` : '');
-  el.querySelectorAll('[data-lift]').forEach(b=> b.addEventListener('click', ()=> openLiftDetail(b.dataset.lift)));
+      ${hidden
+        ? `<button class="del lr-del lr-restore" type="button" data-lift-restore="${escapeHtml(lift.key)}" aria-label="${escapeHtml(L.liftRestoreAria.replace('{name}', lift.name))}">${LIFT_RESTORE_ICON}</button>`
+        : `<button class="del lr-del" type="button" data-lift-hide="${escapeHtml(lift.key)}" aria-label="${escapeHtml(L.liftHideAria.replace('{name}', lift.name))}">${ICONS.trash}</button>`}
+    </div>`;
+}
+function renderLiftProgress(){
+  const L = STR[state.lang], el = document.getElementById('liftProgress');
+  if(!el) return;
+  const all = liftHistory();
+  if(!all.length){ el.innerHTML = `<div class="footer-note" style="text-align:left;padding:2px 0;">${L.liftProgressEmpty}</div>`; return; }
+  const hiddenKeys = state.hiddenLifts || [];
+  const lifts = all.filter(l=> !hiddenKeys.includes(l.key)), hidden = all.filter(l=> hiddenKeys.includes(l.key));
+  if(!hidden.length) liftsShowHidden = false;
+  const shown = liftsShowAll ? lifts : lifts.slice(0, LIFTS_SHOWN);
+  el.innerHTML = (lifts.length ? shown.map(l=> liftRowHtml(l, L, false)).join('') : `<div class="footer-note" style="text-align:left;padding:2px 0;">${L.liftAllHidden}</div>`)
+    + (lifts.length>LIFTS_SHOWN ? `<button class="btn btn-ghost lift-more" type="button" id="liftsMoreBtn">${liftsShowAll ? L.liftShowFewer : L.liftShowAll.replace('{n}', lifts.length)}</button>` : '')
+    + (hidden.length ? `<button class="lift-hidden-toggle" type="button" id="liftsHiddenBtn">${(hidden.length===1 ? L.liftHiddenCount1 : L.liftHiddenCount).replace('{n}', hidden.length)} · <b>${liftsShowHidden ? L.liftHiddenHide : L.liftHiddenShow}</b></button>` : '')
+    + (liftsShowHidden ? hidden.map(l=> liftRowHtml(l, L, true)).join('') : '');
+  el.querySelectorAll('[data-lift]').forEach(row=>{
+    const open = ()=> openLiftDetail(row.dataset.lift);
+    row.addEventListener('click', e=>{
+      const hide = e.target.closest('[data-lift-hide]'), restore = e.target.closest('[data-lift-restore]');
+      const lift = all.find(l=>l.key===row.dataset.lift);
+      if(hide){ setLiftHidden(lift.key, true); renderLiftProgress(); showToast(L.liftHiddenToast.replace('{name}', lift.name)); return; }
+      if(restore){ setLiftHidden(lift.key, false); renderLiftProgress(); showToast(L.liftRestoredToast.replace('{name}', lift.name)); return; }
+      open();
+    });
+    row.addEventListener('keydown', e=>{ if((e.key==='Enter' || e.key===' ') && e.target===row){ e.preventDefault(); open(); } });
+  });
   const more = document.getElementById('liftsMoreBtn');
   if(more) more.addEventListener('click', ()=>{ liftsShowAll = !liftsShowAll; renderLiftProgress(); });
+  const hid = document.getElementById('liftsHiddenBtn');
+  if(hid) hid.addEventListener('click', ()=>{ liftsShowHidden = !liftsShowHidden; renderLiftProgress(); });
 }
 
 // The lift sheet: its chart (est. max, heaviest set or volume over a chosen time), bests and history.
@@ -12237,6 +12287,10 @@ async function loadProfileFromCloud(){
   if(data.mile_time_sec) state.mileTime = Number(data.mile_time_sec);
   if(data.jog_baseline && typeof data.jog_baseline==='object') state.jogBaseline = data.jog_baseline;
   if(data.exercise_swaps && typeof data.exercise_swaps==='object') state.exerciseSwaps = data.exercise_swaps;
+  if('hidden_lifts' in data){
+    state.hiddenLifts = Array.isArray(data.hidden_lifts) ? data.hidden_lifts : [];
+    try{ localStorage.setItem('altiro_hidden_lifts', JSON.stringify(state.hiddenLifts)); }catch(e){}
+  }
   if(Array.isArray(data.classes)) state.classes = data.classes;
   if('own_since' in data){ state.ownSince = data.own_since || null; state.ownWorkouts = !!state.ownSince; }
   if(data.plan_start) state.planStart = data.plan_start;
@@ -12275,6 +12329,7 @@ async function saveProfileToCloud(){
       plan_start: state.planStart,
       plan_start_date: state.planStartDate,
       exercise_swaps: state.exerciseSwaps,
+      hidden_lifts: state.hiddenLifts,
       lift_split: state.liftSplit,
       jog_baseline: state.jogBaseline,
       mile_time_sec: state.mileTime,
@@ -12287,7 +12342,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes','own_since','distance_unit'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes','own_since','distance_unit','hidden_lifts'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }

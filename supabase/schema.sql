@@ -355,3 +355,4 @@ create policy "own push subscriptions" on push_subscriptions
 --       body := '{}'::jsonb
 --     );
 --   $$);
+alter table profiles add column if not exists hidden_lifts jsonb;     -- lift keys taken off Progress -> Your lifts (their workouts stay logged)

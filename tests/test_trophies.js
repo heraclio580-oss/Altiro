@@ -65,6 +65,22 @@ function makeBackend(){
   await wait(30);
   const tc = doc.getElementById('trophyCase');
   check('Progress has a trophy case with the count', /10 badges earned/.test(flat(tc)), flat(tc).slice(0,40));
+  const body = () => doc.getElementById('trophyBody'), toggle = () => doc.getElementById('trophyToggle');
+  check('...closed to one row at first: the count, the latest three badges, no "new" dot', body().hidden && toggle().getAttribute('aria-expanded')==='false' && toggle().querySelectorAll('.badge-svg').length===3 && !toggle().querySelector('.tt-new'));
+  toggle().click();
+  check('...tapping it opens the full case', !body().hidden && toggle().getAttribute('aria-expanded')==='true' && dom.window.localStorage.getItem('altiro_trophies_open')==='1');
+  toggle().click();
+  check('...and again closes it (remembered)', body().hidden && dom.window.localStorage.getItem('altiro_trophies_open')==='0');
+  // A badge earned since they last looked: a dot on the closed row, gone once they open it.
+  const seenRec = JSON.parse(dom.window.localStorage.getItem('altiro_trophies_seen'));
+  dom.window.localStorage.setItem('altiro_trophies_seen', JSON.stringify({uid: seenRec.uid, ids: seenRec.ids.filter(id=> id!=='comeback')}));
+  [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click();
+  await wait(20);
+  [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'progress').click();
+  await wait(30);
+  check('A badge they haven\'t looked at yet puts a dot on the closed row', !!toggle().querySelector('.tt-new'));
+  toggle().click();
+  check('...gone once they open it', !toggle().querySelector('.tt-new') && JSON.parse(dom.window.localStorage.getItem('altiro_trophies_seen')).ids.includes('comeback'));
   const tile = id => tc.querySelector(`[data-badge="${id}"]`);
   check('...earned badges in colour with their date, locked ones grey with progress', !tile('first_run').querySelector('.badge-svg.locked') && /Aug 3/.test(flat(tile('first_run'))) && !!tile('streak_4').querySelector('.badge-svg.locked') && /of 4 weeks/.test(flat(tile('streak_4'))) && /5 of 10/.test(flat(tile('workouts_10'))), flat(tile('workouts_10')));
   const efforts = [...tc.querySelectorAll('.effort-row')].map(flat);
@@ -95,6 +111,13 @@ function makeBackend(){
   await wait(1800);
   check('...and nothing else pops up after it', ov.hidden);
 
+  // "See trophies" on a badge moment opens the case, even if they'd closed it.
+  if(!doc.getElementById('trophyBody').hidden) doc.getElementById('trophyToggle').click();
+  check('(the case is closed before)', doc.getElementById('trophyBody').hidden);
+  doc.getElementById('badgeSeeAllBtn').hidden = false;
+  doc.getElementById('badgeSeeAllBtn').click();
+  await wait(80);
+  check('"See trophies" takes them to the case, opened', !doc.getElementById('screen-progress').hidden && !doc.getElementById('trophyBody').hidden);
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(failures ? 1 : 0);
 })().catch(e => { console.log('TEST THREW:', e.stack || e); process.exit(1); });

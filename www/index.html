@@ -439,7 +439,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .week-btns{display:inline-flex;gap:6px;flex-shrink:0;}
 #confirmDeleteOverlay{z-index:95;}
 /* trophies: badges (a shield with the A) and best efforts */
-.trophy-head{font-family:var(--font-mono);font-size:12px;color:var(--text-2);margin:-2px 0 4px;}
+.trophy-toggle{display:flex;align-items:center;gap:10px;width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:var(--font-body);text-align:left;cursor:pointer;}
+.trophy-toggle .tt-main{flex:1;min-width:0;}
+.trophy-toggle .tt-count{font-size:14px;font-weight:600;display:flex;align-items:center;gap:7px;}
+.trophy-toggle .tt-sub{font-family:var(--font-mono);font-size:11px;color:var(--text-2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.trophy-toggle .tt-recent{display:flex;gap:2px;flex-shrink:0;}
+.trophy-toggle .tt-new{width:8px;height:8px;border-radius:50%;background:var(--accent,#DA1419);flex-shrink:0;}
+.trophy-toggle .tt-chev{width:16px;height:16px;flex-shrink:0;color:var(--text-3);transition:transform .2s ease;}
+.trophy-toggle[aria-expanded="true"] .tt-chev{transform:rotate(180deg);}
+.trophy-body{padding-top:4px;}
 .trophy-group{margin-top:14px;}
 .trophy-group-label{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;}
 .trophy-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 6px;}
@@ -3419,7 +3427,7 @@ const STR = {
     greetingRest: "Rest up, {name}.",
     greetingActive: "Today's the day, {name}.",
     weatherConditionClear: "Clear",
-    trophiesLabel: "Trophies", trophiesCount: "{n} badges earned", trophiesCount1: "1 badge earned",
+    trophiesLabel: "Trophies", trophiesCount: "{n} badges earned", trophiesCount1: "1 badge earned", trophiesSub: "Badges and best efforts", trophiesNew: "New badge",
     trophyFirsts: "Firsts", trophyStreaks: "Weeks in a row", trophyMilestones: "Milestones", trophyMonths: "Months",
     bestEffortsLabel: "Best efforts", bestNone: "No run this far yet", bestNote: "Best efforts use each run's average pace.",
     badgeDistName: "{n} {u}", badgeDistDesc: "{n} {u} run in total.",
@@ -4081,7 +4089,7 @@ const STR = {
     greetingRest: "Descansa, {name}.",
     greetingActive: "Hoy es el día, {name}.",
     weatherConditionClear: "Despejado",
-    trophiesLabel: "Trofeos", trophiesCount: "{n} insignias ganadas", trophiesCount1: "1 insignia ganada",
+    trophiesLabel: "Trofeos", trophiesCount: "{n} insignias ganadas", trophiesCount1: "1 insignia ganada", trophiesSub: "Insignias y mejores marcas", trophiesNew: "Insignia nueva",
     trophyFirsts: "Primeras veces", trophyStreaks: "Semanas seguidas", trophyMilestones: "Hitos", trophyMonths: "Meses",
     bestEffortsLabel: "Mejores marcas", bestNone: "Aún sin una carrera tan larga", bestNote: "Las mejores marcas usan el ritmo promedio de cada carrera.",
     badgeDistName: "{n} {u}", badgeDistDesc: "{n} {u} corridas en total.",
@@ -10778,6 +10786,8 @@ function checkBadges(){
   fresh.forEach(id=>{ next[id] = earned[id]; });
   state.badges = next;
   saveBadges();
+  // The trophy row's "new" dot: what they'd already had (or, the first time, what the summary showed) counts as seen.
+  if(!loadTrophiesSeen()) saveTrophiesSeen(firstTime ? fresh : Object.keys(stored).filter(k=> !k.startsWith('best_')));
   if(firstTime){
     // Someone just joined: Day One is their welcome. Anyone with history gets one summary of it all.
     if(fresh.length===1 && fresh[0]==='day_one') badgeQueue.push({type:'badge', id:'day_one', welcome:true});
@@ -10857,10 +10867,24 @@ document.getElementById('badgeSeeAllBtn').addEventListener('click', ()=>{
   badgeQueue = [];
   document.getElementById('badgeOverlay').hidden = true;
   showScreen('progress');
+  setTrophiesOpen(true);
   setTimeout(()=>{ const t = document.getElementById('trophyCase'); if(t && t.scrollIntoView) t.scrollIntoView({block:'start'}); }, 50);
 });
 
 // ---- the trophy case (Progress) ----
+// Open or closed is remembered on this device; which badges they've seen, per account.
+let trophiesOpen = (()=>{ try{ return localStorage.getItem('altiro_trophies_open')==='1'; }catch(e){ return false; } })();
+function setTrophiesOpen(open){
+  trophiesOpen = !!open;
+  try{ localStorage.setItem('altiro_trophies_open', trophiesOpen ? '1' : '0'); }catch(e){}
+  renderTrophyCase();
+}
+function loadTrophiesSeen(){
+  try{ const s = JSON.parse(localStorage.getItem('altiro_trophies_seen')||'null'); return s && s.uid===(state.userId||'') && Array.isArray(s.ids) ? s.ids : null; }catch(e){ return null; }
+}
+function saveTrophiesSeen(ids){
+  try{ localStorage.setItem('altiro_trophies_seen', JSON.stringify({uid: state.userId||'', ids})); }catch(e){}
+}
 function renderTrophyCase(){
   const el = document.getElementById('trophyCase');
   if(!el) return;
@@ -10891,12 +10915,26 @@ function renderTrophyCase(){
       ? list.map((r, i)=> `<span class="effort"><span class="effort-medal ${['gold','silver','bronze'][i]}">${i+1}</span><b>${fmtEffortTime(r.sec)}</b><em>${fmtTrophyDate(r.key).replace(/, \d{4}$/, '')}</em></span>`).join('')
       : `<span class="effort-none">${L.bestNone}</span>`}</span></div>`;
   }).join('');
-  el.innerHTML = `<div class="trophy-head">${all===1 ? L.trophiesCount1 : L.trophiesCount.replace('{n}', all)}</div>
+  // Closed, it's one row: the count, the latest three and a dot when there's one they haven't seen.
+  const earnedIds = [...BADGES.filter(b=> have(b.id)).map(b=> b.id), ...monthIds];
+  const recent = earnedIds.slice().sort((a, c)=> have(c)>have(a) ? 1 : have(c)<have(a) ? -1 : 0).slice(0, 3);
+  let seen = loadTrophiesSeen();
+  if(badgesReady && (!seen || trophiesOpen)){ seen = earnedIds; saveTrophiesSeen(seen); }
+  const hasNew = !!seen && earnedIds.some(id=> !seen.includes(id));
+  el.innerHTML = `<button class="trophy-toggle" type="button" id="trophyToggle" aria-expanded="${trophiesOpen}" aria-controls="trophyBody">
+      <span class="tt-main"><span class="tt-count">${all===1 ? L.trophiesCount1 : L.trophiesCount.replace('{n}', all)}${hasNew ? `<span class="tt-new" title="${L.trophiesNew}" aria-label="${L.trophiesNew}"></span>` : ''}</span>
+      <span class="tt-sub">${L.trophiesSub}</span></span>
+      <span class="tt-recent">${recent.map(id=> badgeSvg(badgeDef(id), false, 26)).join('')}</span>
+      <svg class="tt-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+    </button>
+    <div class="trophy-body" id="trophyBody"${trophiesOpen ? '' : ' hidden'}>
+    <div class="trophy-group"><div class="trophy-group-label">${L.bestEffortsLabel}</div>${efforts}<div class="lift-note">${L.bestNote}</div></div>
     ${group(L.trophyFirsts, BADGES.filter(b=>b.g==='firsts'))}
     ${group(L.trophyStreaks, BADGES.filter(b=>b.g==='streaks'))}
     ${group(L.trophyMilestones, BADGES.filter(b=>b.g==='totals'))}
     ${group(L.trophyMonths, monthDefs)}
-    <div class="trophy-group"><div class="trophy-group-label">${L.bestEffortsLabel}</div>${efforts}<div class="lift-note">${L.bestNote}</div></div>`;
+    </div>`;
+  el.querySelector('#trophyToggle').addEventListener('click', ()=> setTrophiesOpen(!trophiesOpen));
   el.querySelectorAll('[data-badge]').forEach(b=> b.addEventListener('click', ()=>{
     const id = b.dataset.badge;
     openBadgeMoment({type:'badge', id, detail:true, progress: b.dataset.progress});

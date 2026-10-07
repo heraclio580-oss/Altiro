@@ -48,8 +48,12 @@ function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok
   await wait(20);
   check('(set-up) repeated into weeks 2-5', title(2,0)==='Push Day' && title(3,2)==='Pull Day' && title(3,1)==='Rest Day', [title(2,0), title(3,2), title(3,1)].join(','));
 
-  check('Weeks with planned workouts get a Clear button', !!doc.querySelector('[data-clear-week="2"]') && doc.querySelector('[data-clear-week="2"]').getAttribute('aria-label')==='Clear planned workouts');
-  check('...not this week, where the only one is already done', !doc.querySelector('[data-clear-week="0"]'));
+  check('Weeks get a Clear (trash) button', !!doc.querySelector('[data-clear-week="2"]') && doc.querySelector('[data-clear-week="2"]').getAttribute('aria-label')==='Clear workouts');
+  click(doc.querySelector('[data-clear-week="2"]'));
+  await wait(10);
+  check('A week with only my own workouts on it doesn\'t ask what to clear', doc.getElementById('clearWhatSection').hidden && doc.querySelector('#clearWhatChips .chip.sel').textContent==='My workouts');
+  click(doc.getElementById('closeClearWeeks'));
+  await wait(5);
 
   click(doc.querySelector('[data-clear-week="2"]'));
   await wait(10);
@@ -103,6 +107,35 @@ function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok
   await wait(5);
   check('"All weeks after" picks up the rest (Oct 12 - Oct 21)', /4 days will be cleared, Oct 12 to Oct 21\./.test(doc.getElementById('repeatClearNote').textContent), doc.getElementById('repeatClearNote').textContent);
   click(doc.getElementById('closeRepeat'));
+
+  // ---- Altiro's plan ----
+  const planRow = (w, d) => title(w, d);
+  const genDay = [0,1,2,3,4,5,6].find(d=> !/Rest Day|Push Day|Pull Day/.test(title(2, d)));
+  check('(set-up) week 3 of the plan still has a generated workout', genDay!==undefined, [0,1,2,3,4,5,6].map(d=>title(2,d)).join(','));
+  const genTitle = title(2, genDay);
+  click(doc.querySelector('[data-clear-week="2"]'));
+  await wait(10);
+  const whats = [...doc.querySelectorAll('#clearWhatChips .chip')].map(c=>c.textContent);
+  check('With Altiro\'s workouts there too, it asks what to clear: mine, Altiro\'s plan, or both', !doc.getElementById('clearWhatSection').hidden && whats.join()==="My workouts,Altiro's plan,Both", whats.join());
+  [...doc.querySelectorAll('#clearWhatChips .chip')].find(c=>c.textContent==="Altiro's plan").click();
+  await wait(5);
+  check('Altiro\'s plan, just this week: says those days become rest days', /Altiro's generated workouts come off and those days become rest days\./.test(doc.getElementById('clearNote').textContent), doc.getElementById('clearNote').textContent);
+  click(doc.getElementById('applyClearBtn'));
+  await wait(30);
+  check('...and they do, keeping the week\'s own workouts', title(2, genDay)==='Rest Day' && title(1,0)==='Push Day', genTitle+' -> '+title(2, genDay));
+  const nextGen = [0,1,2,3,4,5,6].find(d=> !/Rest Day|Push Day|Pull Day/.test(title(3, d)));
+  check('...other weeks keep Altiro\'s plan', nextGen!==undefined);
+  click(doc.querySelector('[data-clear-week="3"]'));
+  await wait(10);
+  [...doc.querySelectorAll('#clearWhatChips .chip')].find(c=>c.textContent==="Altiro's plan").click();
+  [...doc.querySelectorAll('#clearScopeChips .chip')].find(c=>/every week after/.test(c.textContent)).click();
+  await wait(5);
+  check('Altiro\'s plan from a week on: the plan stops from that date', /Altiro's plan stops from Oct 5/.test(doc.getElementById('clearNote').textContent), doc.getElementById('clearNote').textContent);
+  click(doc.getElementById('applyClearBtn'));
+  await wait(30);
+  check('...every day from then on is open (rest days), weeks before keep theirs', [3].every(w=>[0,1,2,3,4,5,6].every(d=>title(w,d)==='Rest Day')) && title(1,0)==='Push Day' && title(1,2)==='Pull Day', [0,1,2,3,4,5,6].map(d=>title(3,d)).join(','));
+  go('settings');
+  await wait(10);
 
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(failures ? 1 : 0);

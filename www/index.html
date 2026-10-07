@@ -2082,6 +2082,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="iconbtn" id="closeClearWeeks"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       </div>
       <p class="fb-sub" id="clearSub"></p>
+      <div class="sheet-section" id="clearWhatSection">
+        <div class="st-label" data-i18n="clearWhatLabel"></div>
+        <div class="chip-row" id="clearWhatChips"></div>
+      </div>
       <div class="sheet-section">
         <div class="st-label" data-i18n="clearScopeLabel"></div>
         <div class="chip-row" id="clearScopeChips"></div>
@@ -3272,8 +3276,14 @@ const STR = {
     repeatClearSub: "Changed your mind? Take your planned and repeated workouts off the weeks after this one. Done and logged workouts stay.",
     repeatClearSpanAll: "All weeks after",
     repeatClearBtn: "Clear weeks",
-    clearTitle: "Clear planned workouts",
-    clearSub: "Take the workouts you planned or repeated off these days. Each day goes back to Altiro's plan, or a rest day if you plan your own workouts. Workouts you've already done or logged stay.",
+    clearTitle: "Clear workouts",
+    clearSub: "Take workouts off your calendar from this week on. Workouts you've already done or logged always stay.",
+    clearWhatLabel: "What to clear",
+    clearWhatMine: "My workouts", clearWhatPlan: "Altiro's plan", clearWhatAll: "Both",
+    clearMineHelp: "The workouts you created or repeated come off. Those days go back to Altiro's plan, or rest days if you plan your own.",
+    clearPlanHelp: "Altiro's generated workouts come off and those days become rest days.",
+    clearPlanOnwardHelp: "Altiro's plan stops from {date}: every day after that is open for your own workouts. You can turn the plan back on in Adjust your plan.",
+    clearAllHelp: "Every workout comes off and those days become rest days.",
     clearScopeLabel: "Clear",
     clearScopeWeek: "Just this week ({range})", clearScopeOnward: "This week and every week after",
     clearNote: "{n} days will be cleared, {from} to {to}.", clearNote1: "1 day will be cleared: {from}.",
@@ -3913,8 +3923,14 @@ const STR = {
     repeatClearSub: "¿Cambiaste de idea? Quita tus entrenamientos planeados y repetidos de las semanas después de esta. Los que hiciste o registraste se quedan.",
     repeatClearSpanAll: "Todas las semanas siguientes",
     repeatClearBtn: "Borrar semanas",
-    clearTitle: "Borrar entrenamientos planeados",
-    clearSub: "Quita de estos días los entrenamientos que planeaste o repetiste. Cada día vuelve al plan de Altiro, o a un día de descanso si planeas tus propios entrenamientos. Los que ya hiciste o registraste se quedan.",
+    clearTitle: "Borrar entrenamientos",
+    clearSub: "Quita entrenamientos de tu calendario a partir de esta semana. Los que ya hiciste o registraste siempre se quedan.",
+    clearWhatLabel: "Qué borrar",
+    clearWhatMine: "Mis entrenamientos", clearWhatPlan: "El plan de Altiro", clearWhatAll: "Ambos",
+    clearMineHelp: "Se quitan los entrenamientos que creaste o repetiste. Esos días vuelven al plan de Altiro, o a días de descanso si planeas los tuyos.",
+    clearPlanHelp: "Se quitan los entrenamientos generados por Altiro y esos días quedan de descanso.",
+    clearPlanOnwardHelp: "El plan de Altiro se detiene desde el {date}: cada día después queda libre para tus propios entrenamientos. Puedes volver a activar el plan en Ajustar tu plan.",
+    clearAllHelp: "Se quitan todos los entrenamientos y esos días quedan de descanso.",
     clearScopeLabel: "Borrar",
     clearScopeWeek: "Solo esta semana ({range})", clearScopeOnward: "Esta semana y todas las siguientes",
     clearNote: "Se borrarán {n} días, del {from} al {to}.", clearNote1: "Se borrará 1 día: {from}.",
@@ -6219,38 +6235,110 @@ function clearOwnWorkouts(days){
   });
   state.doneCount = computeDoneCount();
 }
-let clearDraft = null; // {weekIdx, scope: 'week'|'onward'}
-function clearDraftDays(){
+// Altiro's own (generated) workouts still to come on these days -- not the user's, nothing done.
+function clearablePlanDays(fromKey, toKey){
+  const todayKey = dateKey(TODAY_DATE);
+  const start = fromKey < todayKey ? todayKey : fromKey;
+  const out = [];
+  for(let d = parseDateKey(start); dateKey(d) <= toKey; d = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1)){
+    const k = dateKey(d), slot = getRawDaySlot(d), log = state.dayLog[k];
+    const done = (k===todayKey && isTodayDone()) || !!(log && (log.performance || log.completedOverride===true || log.actualRunDistance!=null));
+    if(!slot.isCustom && slot.p.t!=='rest' && !done) out.push(k);
+  }
+  return out;
+}
+// Whether Altiro's plan still makes workouts from this day on (it doesn't once the user plans their own).
+function planRunsFrom(key){ return !(state.ownWorkouts && state.ownSince && state.ownSince <= key); }
+function clearPlanWeek(keys){
+  const rest = ()=> ses('rest','Rest Day','','Día de descanso','');
+  keys.forEach(k=>{ const sess = rest(); writeDaySlot(parseDateKey(k), {p: sess, c: null, completed: false, isCustom: true}); cloudSavePlannedSession(k, sess); });
+}
+// From `key` on, no generated plan: the user's own workouts only (same as "Create my own workouts").
+// Today's plan workout, if already done, stays as it was.
+function stopPlanFrom(key){
+  const todayKey = dateKey(TODAY_DATE);
+  const from = key < todayKey ? todayKey : key;
+  state.ownWorkouts = true;
+  state.ownSince = from;
+  // Copies of the plan's workouts saved on later days (not the user's own) go too.
+  Object.entries(state.dayLog).forEach(([k, log])=>{
+    if(k>=from && k>dateKey(weekDates(0)[6]) && log.session && !log.session.isCustom){ delete log.session; cloudClearPlannedSession(k); }
+  });
+  state.week = regenerateUpcomingWeek();
+  saveProfileToCloud();
+}
+let clearDraft = null; // {weekIdx, scope: 'week'|'onward', what: 'mine'|'plan'|'all'}
+function clearRange(){
   const dates = weekDates(clearDraft.weekIdx);
-  return clearableOwnWorkouts(dateKey(dates[0]), clearDraft.scope==='week' ? dateKey(dates[6]) : null);
+  const todayKey = dateKey(TODAY_DATE), from = dateKey(dates[0]) < todayKey ? todayKey : dateKey(dates[0]);
+  return {from, to: clearDraft.scope==='week' ? dateKey(dates[6]) : null, weekEnd: dateKey(dates[6])};
+}
+function clearDraftDays(){
+  const {from, to} = clearRange();
+  return clearableOwnWorkouts(from, to);
+}
+function clearDraftPlanDays(){
+  const {from, weekEnd} = clearRange();
+  return clearablePlanDays(from, weekEnd);
+}
+// What there is to clear on that week, for choosing: the user's workouts, Altiro's, or both.
+function clearOptionsFor(weekIdx){
+  const dates = weekDates(weekIdx), todayKey = dateKey(TODAY_DATE);
+  const from = dateKey(dates[0]) < todayKey ? todayKey : dateKey(dates[0]);
+  return {mine: clearableOwnWorkouts(from, null).length>0, plan: planRunsFrom(dateKey(dates[6])) && clearablePlanDays(from, dateKey(dates[6])).length>0};
 }
 function openClearWeeks(weekIdx){
-  clearDraft = {weekIdx, scope:'week'};
+  const o = clearOptionsFor(weekIdx);
+  clearDraft = {weekIdx, scope:'week', what: o.mine ? 'mine' : 'plan'};
   renderClearWeeks();
   document.getElementById('clearWeeksOverlay').hidden = false;
 }
 function closeClearWeeks(){ document.getElementById('clearWeeksOverlay').hidden = true; clearDraft = null; }
 function renderClearWeeks(){
   if(!clearDraft) return;
-  const L = STR[state.lang], dates = weekDates(clearDraft.weekIdx);
+  const L = STR[state.lang], dates = weekDates(clearDraft.weekIdx), o = clearOptionsFor(clearDraft.weekIdx);
   document.getElementById('clearSub').textContent = L.clearSub;
+  const whats = [o.mine && {key:'mine', t:L.clearWhatMine}, o.plan && {key:'plan', t:L.clearWhatPlan}, o.mine && o.plan && {key:'all', t:L.clearWhatAll}].filter(Boolean);
+  document.getElementById('clearWhatSection').hidden = whats.length<2;
+  renderChipRow('clearWhatChips', whats.map(w=>({key:w.key, en:{t:w.t}, es:{t:w.t}})), clearDraft.what, k=>{ clearDraft.what = k; renderClearWeeks(); });
   const opts = [{key:'week', t:L.clearScopeWeek.replace('{range}', fmtShortRange(dates[0], dates[6]))}, {key:'onward', t:L.clearScopeOnward}];
-  renderChipRow('clearScopeChips', opts.map(o=>({key:o.key, en:{t:o.t}, es:{t:o.t}})), clearDraft.scope, k=>{ clearDraft.scope = k; renderClearWeeks(); });
-  const days = clearDraftDays();
+  renderChipRow('clearScopeChips', opts.map(x=>({key:x.key, en:{t:x.t}, es:{t:x.t}})), clearDraft.scope, k=>{ clearDraft.scope = k; renderClearWeeks(); });
   const fmt = k=>{ const d = parseDateKey(k); return `${MONTHS_SHORT[state.lang][d.getMonth()]} ${d.getDate()}`; };
-  document.getElementById('clearNote').textContent = !days.length ? L.clearNone
-    : days.length===1 ? L.clearNote1.replace('{from}', fmt(days[0].key))
-    : L.clearNote.replace('{n}', days.length).replace('{from}', fmt(days[0].key)).replace('{to}', fmt(days[days.length-1].key));
-  document.getElementById('applyClearBtn').disabled = !days.length;
+  const mine = clearDraft.what!=='plan' ? clearDraftDays() : [];
+  const planWeekDays = clearDraft.what!=='mine' && clearDraft.scope==='week' ? clearDraftPlanDays() : [];
+  const stopsPlan = clearDraft.what!=='mine' && clearDraft.scope==='onward';
+  // How many days change, and which: the user's own ones plus Altiro's that week.
+  const keys = [...new Set([...mine.map(d=>d.key), ...planWeekDays])].sort();
+  const help = clearDraft.what==='mine' ? L.clearMineHelp : clearDraft.what==='all' ? L.clearAllHelp : L.clearPlanHelp;
+  let note = !keys.length && !stopsPlan ? L.clearNone
+    : !keys.length ? ''
+    : keys.length===1 ? L.clearNote1.replace('{from}', fmt(keys[0]))
+    : L.clearNote.replace('{n}', keys.length).replace('{from}', fmt(keys[0])).replace('{to}', fmt(keys[keys.length-1]));
+  if(stopsPlan) note = (note ? note+' ' : '') + L.clearPlanOnwardHelp.replace('{date}', fmt(clearRange().from));
+  else if(keys.length) note = help+' '+note;
+  document.getElementById('clearNote').textContent = note;
+  document.getElementById('applyClearBtn').disabled = !keys.length && !stopsPlan;
 }
 document.getElementById('closeClearWeeks').addEventListener('click', closeClearWeeks);
 document.getElementById('applyClearBtn').addEventListener('click', ()=>{
   if(!clearDraft) return;
-  const L = STR[state.lang], days = clearDraftDays();
-  clearOwnWorkouts(days);
+  const L = STR[state.lang], what = clearDraft.what, scope = clearDraft.scope, {from} = clearRange();
+  // (The user's own days are picked before anything changes.) Altiro's plan goes first: once it's stopped
+  // from a date, the user's cleared days fall back to rest days.
+  const mine = what!=='plan' ? clearDraftDays() : [];
+  let planDays = [];
+  if(what!=='mine'){
+    if(scope==='onward') stopPlanFrom(from);
+    else { planDays = clearDraftPlanDays(); clearPlanWeek(planDays); }
+  }
+  clearOwnWorkouts(mine);
+  // "Both", one week: the user's days that went back to Altiro's plan become rest days too.
+  if(what==='all' && scope==='week') clearPlanWeek(clearDraftPlanDays());
+  const n = new Set([...mine.map(d=>d.key), ...planDays]).size;
+  state.doneCount = computeDoneCount();
   closeClearWeeks();
   refreshViews();
-  showToast(days.length===1 ? L.clearDoneToast1 : L.clearDoneToast.replace('{n}', days.length));
+  showToast(n===1 ? L.clearDoneToast1 : n ? L.clearDoneToast.replace('{n}', n) : L.toastUpdated);
 });
 document.getElementById('applyRepeatBtn').addEventListener('click', applyRepeatWeek);
 
@@ -6347,8 +6435,14 @@ function syncActualRunDistanceFromEntry(dayKey, entry){
 }
 function resetToSuggestedPlan(key){
   const date = parseDateKey(key);
-  const gen = sessionForDate(date);
-  writeDaySlot(date, {p: gen.p, c: gen.c, completed: false, isCustom: false});
+  if(currentWeekIdxFor(key)>=0){
+    const gen = sessionForDate(date);
+    writeDaySlot(date, {p: gen.p, c: gen.c, completed: false, isCustom: false});
+  } else if(state.dayLog[key]){
+    // A later day just follows the plan again -- no saved copy of today's version of it, which would
+    // stay put if the plan changes (new training days, or the plan stopped).
+    delete state.dayLog[key].session;
+  }
   cloudClearPlannedSession(key);
   clearDayDone(key);
 }
@@ -8615,7 +8709,7 @@ function renderWeek(){
   for(let weekIdx=0; weekIdx<state.planWeeksLoaded; weekIdx++){
     const dates = weekDates(weekIdx);
     html += `<div class="week-block" data-week-idx="${weekIdx}">
-      <div class="week-block-label"><span>${weekRangeLabel(weekIdx)}</span><span class="week-block-right">${weekPlanMetaHtml(weekIdx)}<span class="week-btns">${ownWeekWorkouts(weekIdx).count ? `<button type="button" class="week-repeat-btn" data-repeat-week="${weekIdx}">${ICONS.repeat}${L.repeatWeekBtn}</button>` : ''}${clearableInWeek(weekIdx).length ? `<button type="button" class="week-repeat-btn week-clear-btn" data-clear-week="${weekIdx}" aria-label="${escapeHtml(L.clearTitle)}" title="${escapeHtml(L.clearTitle)}">${ICONS.trash}</button>` : ''}</span></span></div>
+      <div class="week-block-label"><span>${weekRangeLabel(weekIdx)}</span><span class="week-block-right">${weekPlanMetaHtml(weekIdx)}<span class="week-btns">${ownWeekWorkouts(weekIdx).count ? `<button type="button" class="week-repeat-btn" data-repeat-week="${weekIdx}">${ICONS.repeat}${L.repeatWeekBtn}</button>` : ''}${(()=>{ const o = clearOptionsFor(weekIdx); return o.mine || o.plan; })() ? `<button type="button" class="week-repeat-btn week-clear-btn" data-clear-week="${weekIdx}" aria-label="${escapeHtml(L.clearTitle)}" title="${escapeHtml(L.clearTitle)}">${ICONS.trash}</button>` : ''}</span></span></div>
       ${dates.map((date,i)=>planListRowHtml(weekIdx,i,date)).join('')}
     </div>`;
   }

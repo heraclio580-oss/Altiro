@@ -440,6 +440,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 #confirmDeleteOverlay{z-index:95;}
 .confirm-row{display:flex;gap:10px;margin-top:20px;}
 .confirm-row .btn{flex:1;}
+.home-done-line{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ok-icon);margin:2px 0 6px;}
+.home-done-line svg{width:13px;height:13px;flex-shrink:0;}
 .repeat-clear{margin-top:26px;padding-top:18px;border-top:1px solid var(--divider-soft);}
 .week-clear-btn{padding:3px 7px;}
 .week-clear-btn svg{width:12px;height:12px;}
@@ -3368,6 +3370,7 @@ const STR = {
     greetingRest: "Rest up, {name}.",
     greetingActive: "Today's the day, {name}.",
     weatherConditionClear: "Clear",
+    heroEyebrowNext: "Up next today", homeDoneLine: "{name} done",
     heroEyebrowReady: "Ready when you are", heroTitleRun: "Time to run.", heroTitleStrength: "Time to lift.", heroTitleInterval: "Time for intervals.", heroTitleHike: "Time to get outside.", heroTitleMove: "Time to move.",
     heroSubStreak: "Keep your {n}-week streak going.", heroSubStart: "Every streak starts with one workout.",
     heroSubWeekCounts: "This week counts. Keep your {n}-week streak going.",
@@ -4015,6 +4018,7 @@ const STR = {
     greetingRest: "Descansa, {name}.",
     greetingActive: "Hoy es el día, {name}.",
     weatherConditionClear: "Despejado",
+    heroEyebrowNext: "Lo siguiente hoy", homeDoneLine: "{name} hecho",
     heroEyebrowReady: "Cuando estés listo", heroTitleRun: "Hora de correr.", heroTitleStrength: "Hora de levantar.", heroTitleInterval: "Hora de intervalos.", heroTitleHike: "Hora de salir.", heroTitleMove: "Hora de moverse.",
     heroSubStreak: "Mantén tu racha de {n} semanas.", heroSubStart: "Toda racha empieza con un entrenamiento.",
     heroSubWeekCounts: "Esta semana ya cuenta. Mantén tu racha de {n} semanas.",
@@ -7195,12 +7199,19 @@ function renderHome(){
     c.addEventListener('click', ()=> openDayDetail(c.getAttribute('data-date')));
   });
 
-  const eff = todaySession(); const effL = ST(eff);
+  // Today's own workout done (or nothing planned) and another one still to do today -- a run planned for
+  // later: that one takes the main card, so what's next is what shows.
+  const ownEff = todaySession(), ownDone = ownEff.t!=='rest' && isTodayDone();
+  const focusExtra = (ownEff.t==='rest' || ownDone)
+    ? ((state.dayLog[dateKey(TODAY_DATE)] && state.dayLog[dateKey(TODAY_DATE)].extraWorkouts) || []).find(w=> !w.completed && w.session && w.session.t!=='class' && w.session.t!=='rest')
+    : null;
+  state._homeFocusExtraId = focusExtra ? focusExtra.id : null;
+  const eff = focusExtra ? focusExtra.session : ownEff; const effL = ST(eff);
   const tip = state.ownWorkouts && eff.t==='rest' ? L.ownRestTip : (SESSION_TIP[eff.t]||SESSION_TIP.rest)[state.lang];
   // Today's plan workout was placed around a hard class today (see placeSessions): say so.
-  const hardClass = eff.t!=='rest' && !state.week[TODAY_IDX].isCustom && classItemsFor(dateKey(TODAY_DATE)).find(it=> it.cls && CLASS_LOAD[it.cls.kind]);
+  const hardClass = !focusExtra && eff.t!=='rest' && !state.week[TODAY_IDX].isCustom && classItemsFor(dateKey(TODAY_DATE)).find(it=> it.cls && CLASS_LOAD[it.cls.kind]);
   const aroundClass = hardClass ? ST(hardClass.session).title : '';
-  const comp = state.week[TODAY_IDX].c; const compL = comp ? ST(comp) : null;
+  const comp = focusExtra ? null : state.week[TODAY_IDX].c; const compL = comp ? ST(comp) : null;
   const canStart = eff.t!=='rest' && !state.todayCompleted;
   // A structured strength session tracks progression per exercise, not for the session as a whole,
   // so there's no single "Next Suggested" number to show here anymore -- the exercise list itself
@@ -7242,13 +7253,14 @@ function renderHome(){
   const todayKey = dateKey(TODAY_DATE);
   const todayEntries = (state.dayLog[todayKey] && state.dayLog[todayKey].manualEntries) || [];
   // (Classes have their own section below.)
-  const todayExtras = ((state.dayLog[todayKey] && state.dayLog[todayKey].extraWorkouts) || []).filter(w=> !(w.session && w.session.t==='class'));
+  const todayExtras = ((state.dayLog[todayKey] && state.dayLog[todayKey].extraWorkouts) || []).filter(w=> !(w.session && w.session.t==='class') && w!==focusExtra);
   const todayClasses = classRowsHtml(todayKey);
   document.getElementById('sessionCard').innerHTML = `
     <div class="session-desc-tap" id="sessionDescTap">
       <div class="top-row">
         <span class="eyebrow">${L.todayLabel} &middot; ${DAY_NAMES_FULL[state.lang][TODAY_IDX]}</span>
       </div>
+      ${focusExtra && ownDone ? `<div class="home-done-line">${ICONS.checkSm}<span>${escapeHtml(L.homeDoneLine.replace('{name}', ST(ownEff).title))}</span></div>` : ''}
       <div class="title">${effL.title}${effL.detail?', '+effL.detail:''}</div>
       ${exerciseListHtml(eff, undefined, true).replace('r-exercise-list', 'r-exercise-list card')}
       ${runBreakdownHtml(eff, 'card')}
@@ -7259,11 +7271,11 @@ function renderHome(){
       ${(eff.t!=='rest' && compL) ? `<div class="paired">${TYPE_ICON[comp.t]}<span>${L.pairedWithInline} <b>${compL.title}${compL.detail?', '+compL.detail:''}</b></span></div>` : ''}
     </div>
     ${eff.t!=='rest' ? `<button class="watch-demo-btn" id="watchDemoBtn" type="button">${ICONS.play}${L.watchDemoBtn}</button>` : ''}
-    ${exercisesForSession(eff) && !isTodayDone() ? `<button class="watch-demo-btn" id="changeExercisesBtn" type="button">${ICONS.swap}${L.changeExercisesBtn}</button>` : ''}
+    ${exercisesForSession(eff) && (focusExtra || !isTodayDone()) ? `<button class="watch-demo-btn" id="changeExercisesBtn" type="button">${ICONS.swap}${L.changeExercisesBtn}</button>` : ''}
     <button class="watch-demo-btn" id="addTodayWorkoutBtn" type="button">${L.addWorkoutBtn}</button>
     ${eff.t!=='rest' ? `<button class="watch-demo-btn" id="deleteTodayWorkoutBtn" type="button">${ICONS.trash}${L.deleteWorkoutBtn}</button>` : ''}
     <button class="watch-demo-btn" id="trackRunBtn" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18s5.5-5.2 5.5-9.5a5.5 5.5 0 0 0-11 0C4.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg>${L.gpsTrackBtn}</button>
-    ${eff.t!=='rest' ? `
+    ${eff.t!=='rest' && !focusExtra ? `
     <div class="toggle-row" style="margin-top:14px;">
       <div>
         <div class="tt">${L.markCompleteTitle}</div>
@@ -7304,13 +7316,13 @@ function renderHome(){
   // week strip above -- one consistent way to see the full schedule/actions for today.
   document.getElementById('sessionDescTap').addEventListener('click', (e)=>{
     const lift = e.target.closest('[data-lift-key]');
-    if(lift && !isTodayDone()){ openWorkoutPreview(todayKey, null, {tuneKey: lift.getAttribute('data-lift-key')}); return; }
+    if(lift && (focusExtra || !isTodayDone())){ openWorkoutPreview(todayKey, focusExtra ? {kind:'extra', id: focusExtra.id} : null, {tuneKey: lift.getAttribute('data-lift-key')}); return; }
     openDayDetail(todayKey);
   });
   const watchDemoBtn = document.getElementById('watchDemoBtn');
   if(watchDemoBtn) watchDemoBtn.addEventListener('click', ()=> openExerciseDetail(eff, 'home'));
   const changeExercisesBtn = document.getElementById('changeExercisesBtn');
-  if(changeExercisesBtn) changeExercisesBtn.addEventListener('click', ()=> openWorkoutPreview(todayKey));
+  if(changeExercisesBtn) changeExercisesBtn.addEventListener('click', ()=> focusExtra ? openWorkoutPreview(todayKey, {kind:'extra', id: focusExtra.id}) : openWorkoutPreview(todayKey));
   document.getElementById('addTodayWorkoutBtn').addEventListener('click', ()=>{
     state.openDayKey = todayKey;
     openManualEntry();
@@ -7328,7 +7340,9 @@ function renderHome(){
     });
   });
   const delToday = document.getElementById('deleteTodayWorkoutBtn');
-  if(delToday) delToday.addEventListener('click', ()=> askDeleteWorkout(effL.title, todayKey, isTodayDone(), ()=> deleteDayWorkout(todayKey)));
+  if(delToday) delToday.addEventListener('click', ()=> focusExtra
+    ? askDeleteWorkout(effL.title, todayKey, false, ()=> deleteExtraWorkout(todayKey, focusExtra.id))
+    : askDeleteWorkout(effL.title, todayKey, isTodayDone(), ()=> deleteDayWorkout(todayKey)));
   const homeExtraWrap = document.getElementById('homeExtraWorkoutsWrap');
   if(homeExtraWrap){
     homeExtraWrap.querySelectorAll('[data-start-extra]').forEach(btn=>{
@@ -7342,7 +7356,7 @@ function renderHome(){
     });
   }
   bindClassRows(document.getElementById('homeClassesWrap'), todayKey, ()=> refreshViews());
-  renderTodayHero(eff, effL, workoutGoal);
+  renderTodayHero(eff, effL, workoutGoal, focusExtra);
 }
 
 /* ---------------- paces from a mile time ---------------- */
@@ -8228,6 +8242,16 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
 
 document.getElementById('recordBtn').addEventListener('click', function(){
   if(this.classList.contains('disabled') || this.classList.contains('done') || this.classList.contains('recording')) return;
+  // The workout up next today (after the day's own is done) is the one the button starts.
+  const nextId = state._homeFocusExtraId;
+  if(nextId && findExtraWorkout(dateKey(TODAY_DATE), nextId)){
+    const w = findExtraWorkout(dateKey(TODAY_DATE), nextId);
+    if(w.session.t==='interval'){ openIntervalTimer(nextId); return; }
+    this.classList.add('recording');
+    document.getElementById('recordLabel').textContent = STR[state.lang].recordingLabel;
+    setTimeout(()=> openLogPerformance(nextId), 350);
+    return;
+  }
   // Their own workouts, nothing planned today: the button is "Add Workout".
   if(state.ownWorkouts && todaySession().t==='rest'){
     state.openDayKey = dateKey(TODAY_DATE);
@@ -14346,11 +14370,12 @@ function weekRingSvg(done, goal){
   const arcs = Array.from({length:n}, (_,i)=>`<circle cx="36" cy="36" r="${r}" fill="none" stroke="${i<done ? 'var(--accent)' : 'var(--divider)'}" stroke-width="6" stroke-linecap="butt" stroke-dasharray="${seg} ${c-seg}" stroke-dashoffset="${-i*(seg+gap)}"/>`).join('');
   return `<svg viewBox="0 0 72 72">${arcs}</svg>`;
 }
-function renderTodayHero(eff, effL, workoutGoal){
+function renderTodayHero(eff, effL, workoutGoal, focusExtra){
   const L = STR[state.lang];
   const hero = document.getElementById('todayHero');
   const btn = document.getElementById('recordBtn'), icon = document.getElementById('recordIcon'), label = document.getElementById('recordLabel');
-  const done = eff.t!=='rest' && isTodayDone(), rest = eff.t==='rest';
+  // (A workout still to do today, after the day's own is done, is up next -- never shown as done.)
+  const done = !focusExtra && eff.t!=='rest' && isTodayDone(), rest = eff.t==='rest';
   hero.classList.toggle('done', done);
   hero.classList.toggle('rest', rest);
   btn.classList.remove('disabled','done','recording');
@@ -14368,7 +14393,7 @@ function renderTodayHero(eff, effL, workoutGoal){
     sub = streakNudge(true);
     btn.classList.add('done'); icon.innerHTML = ICONS.checkSm; label.textContent = L.recordDoneLabel;
   } else {
-    eyebrow = L.heroEyebrowReady; title = L[HERO_TITLE_KEY[eff.t]] || L.heroTitleMove;
+    eyebrow = focusExtra ? L.heroEyebrowNext : L.heroEyebrowReady; title = L[HERO_TITLE_KEY[eff.t]] || L.heroTitleMove;
     sub = streakNudge(false);
     icon.innerHTML = eff.t==='interval' ? ICONS.play : (TYPE_ICON[eff.t] || ICONS.play);
     label.textContent = eff.t==='interval' ? L.startTimerLabel : L.recordActionLabel;

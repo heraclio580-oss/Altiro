@@ -438,6 +438,41 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .week-repeat-btn svg{width:11px;height:11px;}
 .week-btns{display:inline-flex;gap:6px;flex-shrink:0;}
 #confirmDeleteOverlay{z-index:95;}
+/* trophies: badges (a shield with the A) and best efforts */
+.trophy-head{font-family:var(--font-mono);font-size:12px;color:var(--text-2);margin:-2px 0 4px;}
+.trophy-group{margin-top:14px;}
+.trophy-group-label{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;}
+.trophy-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 6px;}
+.trophy{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;padding:2px 0;cursor:pointer;color:var(--text);font-family:var(--font-body);min-width:0;}
+.trophy-name{font-size:10.5px;line-height:1.25;text-align:center;color:var(--text);max-width:100%;overflow-wrap:anywhere;}
+.trophy-sub{font-family:var(--font-mono);font-size:9px;color:var(--text-3);text-align:center;}
+.badge-svg{display:block;flex-shrink:0;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.35));}
+.badge-svg.locked{filter:none;opacity:0.75;}
+.effort-row{display:flex;flex-direction:column;gap:6px;padding:9px 0;border-bottom:1px solid var(--divider-soft);}
+.effort-name{font-size:13px;font-weight:600;color:var(--text);}
+.effort-list{display:flex;flex-wrap:wrap;gap:6px 14px;}
+.effort{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:12px;color:var(--text);}
+.effort em{font-style:normal;font-size:10px;color:var(--text-3);}
+.effort-none{font-size:12px;color:var(--text-3);}
+.effort-medal{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-family:var(--font-mono);font-size:10px;font-weight:700;color:#1B1B1E;flex-shrink:0;}
+.effort-medal.gold{background:linear-gradient(160deg,#FFE38E,#B9860C);}
+.effort-medal.silver{background:linear-gradient(160deg,#F1F3F6,#8E959F);}
+.effort-medal.bronze{background:linear-gradient(160deg,#E8AE79,#8C4F22);}
+.effort-medal.big{width:96px;height:96px;font-size:44px;}
+#badgeOverlay{z-index:96;}
+.badge-panel{text-align:center;}
+.badge-hero{display:flex;justify-content:center;margin:6px 0 12px;position:relative;}
+#badgeOverlay.celebrate .badge-hero::before{content:"";position:absolute;left:50%;top:50%;width:190px;height:190px;margin:-95px 0 0 -95px;border-radius:50%;background:radial-gradient(circle,rgba(218,20,25,0.28),transparent 65%);animation:badgeGlow 2.4s ease-out both;}
+#badgeOverlay.celebrate .badge-hero > *{animation:badgePop .7s cubic-bezier(.2,1.4,.4,1) both;position:relative;}
+@keyframes badgePop{0%{transform:scale(.3) rotate(-14deg);opacity:0;}60%{transform:scale(1.12) rotate(4deg);opacity:1;}100%{transform:scale(1) rotate(0);}}
+@keyframes badgeGlow{0%{transform:scale(.4);opacity:0;}40%{opacity:1;}100%{transform:scale(1.1);opacity:.6;}}
+@media (prefers-reduced-motion: reduce){ #badgeOverlay .badge-hero > *, #badgeOverlay .badge-hero::before{animation:none !important;} }
+.badge-eyebrow{font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);}
+.badge-title{font-family:var(--font-display);font-weight:700;font-size:21px;color:var(--text);margin-top:6px;text-wrap:balance;}
+.badge-time{font-family:var(--font-mono);font-size:30px;font-weight:600;color:var(--text);margin-top:4px;}
+.badge-desc{font-size:13.5px;line-height:1.5;color:var(--text-2);margin:8px auto 0;max-width:30ch;}
+.badge-retro-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:16px;}
+.badge-more{font-family:var(--font-mono);font-size:13px;color:var(--text-2);}
 .confirm-row{display:flex;gap:10px;margin-top:20px;}
 .confirm-row .btn{flex:1;}
 .home-done-line{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ok-icon);margin:2px 0 6px;}
@@ -1742,6 +1777,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div id="progActivity"></div>
       </div>
       <div class="sheet-section" style="margin-top:26px;">
+        <div class="st-label" data-i18n="trophiesLabel"></div>
+        <div id="trophyCase"></div>
+      </div>
+      <div class="sheet-section" style="margin-top:26px;">
         <div class="st-label" data-i18n="liftProgressLabel"></div>
         <div id="liftProgress"></div>
       </div>
@@ -2062,6 +2101,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     </div>
   </div>
 
+  <div class="sheet-overlay" id="badgeOverlay" hidden>
+    <div class="sheet-panel badge-panel">
+      <div class="sheet-handle"></div>
+      <div id="badgeBody"></div>
+      <div class="confirm-row">
+        <button class="btn btn-ghost" id="badgeSeeAllBtn" type="button" data-i18n="badgeSeeAll"></button>
+        <button class="btn btn-primary" id="badgeDoneBtn" type="button"></button>
+      </div>
+    </div>
+  </div>
   <div class="sheet-overlay" id="confirmDeleteOverlay" hidden>
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
@@ -3370,6 +3419,19 @@ const STR = {
     greetingRest: "Rest up, {name}.",
     greetingActive: "Today's the day, {name}.",
     weatherConditionClear: "Clear",
+    trophiesLabel: "Trophies", trophiesCount: "{n} badges earned", trophiesCount1: "1 badge earned",
+    trophyFirsts: "Firsts", trophyStreaks: "Weeks in a row", trophyMilestones: "Milestones", trophyMonths: "Months",
+    bestEffortsLabel: "Best efforts", bestNone: "No run this far yet", bestNote: "Best efforts use each run's average pace.",
+    badgeDistName: "{n} {u}", badgeDistDesc: "{n} {u} run in total.",
+    badgeVolName: "{n} {u} lifted", badgeVolDesc: "{n} {u} lifted in total.",
+    badgeMonthDesc: "Every week of the month counted toward your streak.",
+    badgeEarnedToast: "Badge earned: {name}", badgesEarnedToast: "{n} badges earned: {names}",
+    bestPlaceToast: "{place} best {name}: {time}", bestPlace1: "Best", bestPlace2: "2nd", bestPlace3: "3rd",
+    badgeRetroTitle: "You've already earned {n} badges", badgeRetroTitle1: "You've already earned a badge",
+    badgeRetroSub: "From the workouts you've logged so far. See them all in Progress.",
+    bestNewEyebrow: "New best effort", bestNewTitle: "Your fastest {name}", bestAlsoLine: "Also your fastest {list}.",
+    badgeNewEyebrow: "New badge", badgeWelcomeEyebrow: "Welcome to Altiro", badgeEarnedOn: "Earned {date}", badgeNiceBtn: "Nice!", badgeSeeAll: "See trophies", closeBtnLabel: "Close",
+    badgeProgressWeeks: "{n} of {of} weeks", badgeProgressOf: "{n} of {of}", badgeLocked: "Not yet",
     heroEyebrowNext: "Up next today", homeDoneLine: "{name} done",
     doneSectionLabel: "Done",
     heroEyebrowReady: "Ready when you are", heroTitleRun: "Time to run.", heroTitleStrength: "Time to lift.", heroTitleInterval: "Time for intervals.", heroTitleHike: "Time to get outside.", heroTitleMove: "Time to move.",
@@ -4019,6 +4081,19 @@ const STR = {
     greetingRest: "Descansa, {name}.",
     greetingActive: "Hoy es el día, {name}.",
     weatherConditionClear: "Despejado",
+    trophiesLabel: "Trofeos", trophiesCount: "{n} insignias ganadas", trophiesCount1: "1 insignia ganada",
+    trophyFirsts: "Primeras veces", trophyStreaks: "Semanas seguidas", trophyMilestones: "Hitos", trophyMonths: "Meses",
+    bestEffortsLabel: "Mejores marcas", bestNone: "Aún sin una carrera tan larga", bestNote: "Las mejores marcas usan el ritmo promedio de cada carrera.",
+    badgeDistName: "{n} {u}", badgeDistDesc: "{n} {u} corridas en total.",
+    badgeVolName: "{n} {u} levantadas", badgeVolDesc: "{n} {u} levantadas en total.",
+    badgeMonthDesc: "Cada semana del mes contó para tu racha.",
+    badgeEarnedToast: "Insignia ganada: {name}", badgesEarnedToast: "{n} insignias ganadas: {names}",
+    bestPlaceToast: "{name}: {place} mejor tiempo, {time}", bestPlace1: "el", bestPlace2: "2.º", bestPlace3: "3.er",
+    badgeRetroTitle: "Ya ganaste {n} insignias", badgeRetroTitle1: "Ya ganaste una insignia",
+    badgeRetroSub: "Por los entrenamientos que has registrado. Míralas todas en Progreso.",
+    bestNewEyebrow: "Nueva mejor marca", bestNewTitle: "Tu {name} más rápido", bestAlsoLine: "También tu mejor marca en {list}.",
+    badgeNewEyebrow: "Nueva insignia", badgeWelcomeEyebrow: "Bienvenido a Altiro", badgeEarnedOn: "Ganada el {date}", badgeNiceBtn: "¡Genial!", badgeSeeAll: "Ver trofeos", closeBtnLabel: "Cerrar",
+    badgeProgressWeeks: "{n} de {of} semanas", badgeProgressOf: "{n} de {of}", badgeLocked: "Todavía no",
     heroEyebrowNext: "Lo siguiente hoy", homeDoneLine: "{name} hecho",
     doneSectionLabel: "Hechos",
     heroEyebrowReady: "Cuando estés listo", heroTitleRun: "Hora de correr.", heroTitleStrength: "Hora de levantar.", heroTitleInterval: "Hora de intervalos.", heroTitleHike: "Hora de salir.", heroTitleMove: "Hora de moverse.",
@@ -5559,6 +5634,7 @@ const defaultState = () => ({
   mileTime:null, // seconds -- a recent mile time the run paces are based on (see mileTimePaces)
   jogBaseline:null, // a new runner's latest longest steady jog {min, week, held} -- see recordJogBaseline()
   classes:[], // recurring classes {id, kind, name, days (0 = Mon), time 'HH:MM', minutes, from, skips} -- see classItemsFor()
+  badges:null, // earned badges {id: dateKey} and the best efforts' top three; null until worked out (see checkBadges)
   hiddenLifts:[], // lift keys taken off Progress -> Your lifts; their logged workouts stay
   exerciseSwaps:{}, // "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'} -- see applyStandingSwaps()
   week:null,
@@ -5589,6 +5665,7 @@ const defaultState = () => ({
   userName:'Jordan Rivera',
   userEmail:'jordan.rivera@gmail.com',
 });
+let badgesReady = false, badgeQueue = [], badgePumpTimer = null; // trophies (see checkBadges)
 let state = defaultState();
 state.lang = loadLang();
 state.distUnit = loadDistUnit();
@@ -6579,8 +6656,11 @@ function elFor(id){return document.getElementById('screen-'+id);}
 
 // After anything that changes what's planned or logged: redraw Day Detail if it's open, and whichever
 // screen is showing -- the rest redraw themselves when switched to (see showScreen below).
+let badgeCheckTimer = null;
+function scheduleBadgeCheck(){ if(!badgesReady) return; clearTimeout(badgeCheckTimer); badgeCheckTimer = setTimeout(checkBadges, 400); }
 function refreshViews(){
   scheduleReminderSync();
+  scheduleBadgeCheck();
   if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail();
   const active = SCREEN_IDS.find(s=>elFor(s) && !elFor(s).hidden);
   if(active==='home') renderHome();
@@ -6590,6 +6670,7 @@ function refreshViews(){
 }
 function showScreen(id){
   scheduleReminderSync(); // a workout just done (or anything else) can change what's coming up
+  scheduleBadgeCheck();
   SCREEN_IDS.forEach(s=>{
     const el = elFor(s);
     if(!el) return;
@@ -10368,6 +10449,7 @@ function renderProgress(){
       <div class="wd-stat"><div class="l">${L.weekDetailDistanceLabel}</div><div class="v">${sel.distance.toFixed(1)} mi</div></div>
     </div>`;
   renderActivity();
+  renderTrophyCase();
   renderLiftProgress();
   renderPRs();
 }
@@ -10475,6 +10557,350 @@ function renderActivity(){
     </div>
     <div class="act-note">${L.activityNote}</div>`;
   el.querySelectorAll('[data-act-day]').forEach(b=> b.addEventListener('click', ()=>{ state.progActivityDay = b.dataset.actDay; renderActivity(); }));
+}
+
+/* ---------------- trophies: badges and best efforts ---------------- */
+// Badges are worked out from the whole logged history -- so someone who already trained before this
+// existed gets the ones they've earned -- and each keeps the day it was earned (state.badges: {id: dateKey},
+// saved with the profile). Best efforts are each run's time at 1 mile, 5K, 10K, half and full marathon
+// distance (from its average pace), the top three of each. Small wins get a toast; the bigger ones a
+// moment of their own.
+const BADGE_TIERS = {bronze:['#E8AE79','#8C4F22'], silver:['#F1F3F6','#8E959F'], gold:['#FFE38E','#B9860C'], locked:['#3B3B40','#242427']};
+const BADGES = [
+  {id:'day_one', g:'firsts', tier:'gold', big:true, label:'DAY 1', en:['Day One','Your first day on Altiro. Every streak starts here.'], es:['Día uno','Tu primer día en Altiro. Toda racha empieza aquí.']},
+  {id:'first_workout', g:'firsts', tier:'bronze', label:'1st', en:['First workout','Your first workout, done.'], es:['Primer entrenamiento','Tu primer entrenamiento, hecho.']},
+  {id:'first_run', g:'firsts', tier:'bronze', label:'RUN', en:['First run','Your first run logged.'], es:['Primera carrera','Tu primera carrera registrada.']},
+  {id:'first_lift', g:'firsts', tier:'bronze', label:'LIFT', en:['First lift','Your first lifting workout logged.'], es:['Primeras pesas','Tu primer entrenamiento de pesas registrado.']},
+  {id:'first_gps', g:'firsts', tier:'bronze', label:'GPS', en:['First tracked run','A run tracked with Altiro\'s GPS.'], es:['Primera carrera con GPS','Una carrera registrada con el GPS de Altiro.']},
+  {id:'first_own', g:'firsts', tier:'bronze', label:'OWN', en:['Your own workout','A workout you built yourself, done.'], es:['Tu propio entrenamiento','Un entrenamiento creado por ti, hecho.']},
+  {id:'first_week', g:'firsts', tier:'bronze', label:'WK', en:['First week in the books','A week with enough workouts to count toward your streak.'], es:['Primera semana completa','Una semana con los entrenamientos que cuentan para tu racha.']},
+  {id:'first_pr', g:'firsts', tier:'bronze', label:'PR', en:['First personal record','You beat your best on a lift.'], es:['Primer récord personal','Superaste tu mejor marca en un levantamiento.']},
+  {id:'comeback', g:'firsts', tier:'bronze', label:'BACK', en:['Comeback','Back at it after two weeks or more off.'], es:['De vuelta','De vuelta tras dos semanas o más sin entrenar.']},
+  ...[[2,'bronze',false],[4,'bronze',true],[8,'silver',true],[12,'silver',true],[26,'gold',true],[52,'gold',true]].map(([n,tier,big])=>({id:'streak_'+n, g:'streaks', tier, big, n, label:n+'W',
+    en:[`${n} weeks in a row`, `${n} weeks in a row with enough workouts to keep your streak.`], es:[`${n} semanas seguidas`, `${n} semanas seguidas con los entrenamientos de tu racha.`]})),
+  ...[[10,'bronze',false],[25,'bronze',true],[50,'silver',true],[100,'gold',true],[250,'gold',true]].map(([n,tier,big])=>({id:'workouts_'+n, g:'totals', tier, big, n, label:String(n),
+    en:[`${n} workouts`, `${n} workouts done.`], es:[`${n} entrenamientos`, `${n} entrenamientos hechos.`]})),
+  ...[[10,'bronze',false],[50,'silver',true],[100,'silver',true],[250,'gold',true],[500,'gold',true]].map(([n,tier,big])=>({id:'dist_'+n, g:'totals', tier, big, n, dist:true})),
+  ...[[10000,'10k','bronze',false],[100000,'100k','silver',true],[1000000,'1m','gold',true]].map(([n,s,tier,big])=>({id:'vol_'+s, g:'totals', tier, big, n, vol:true, label:s.toUpperCase()})),
+];
+const BEST_EFFORTS = [
+  {k:'1mi', mi:1, en:'1 mile', es:'1 milla'}, {k:'5k', mi:3.10686, en:'5K', es:'5K'}, {k:'10k', mi:6.21371, en:'10K', es:'10K'},
+  {k:'half', mi:13.1094, en:'Half marathon', es:'Medio maratón'}, {k:'full', mi:26.2188, en:'Marathon', es:'Maratón'},
+];
+// A badge's name and description in the user's language (distance and month badges are worked out).
+function badgeText(def){
+  const L = STR[state.lang];
+  if(def.dist){
+    const n = useKm() ? Math.round(def.n*1.609344) : def.n, u = useKm() ? 'km' : (state.lang==='es' ? 'millas' : 'miles');
+    return [L.badgeDistName.replace('{n}', n.toLocaleString()).replace('{u}', u), L.badgeDistDesc.replace('{n}', n.toLocaleString()).replace('{u}', u)];
+  }
+  if(def.vol){
+    const n = def.n.toLocaleString(state.lang==='es' ? 'es' : 'en-US');
+    return [L.badgeVolName.replace('{n}', n).replace('{u}', state.weightUnit), L.badgeVolDesc.replace('{n}', n).replace('{u}', state.weightUnit)];
+  }
+  if(def.month){
+    const d = parseDateKey(def.month+'-01');
+    const m = MONTHS_FULL[state.lang][d.getMonth()];
+    const name = `${m.charAt(0).toUpperCase()+m.slice(1)} ${d.getFullYear()}`;
+    return [name, L.badgeMonthDesc];
+  }
+  return def[state.lang] || def.en;
+}
+function badgeDef(id){
+  if(id.startsWith('month_')){
+    const m = id.slice(6), d = parseDateKey(m+'-01');
+    return {id, g:'months', tier:'silver', big:true, month:m, label: MONTHS_SHORT.en[d.getMonth()].toUpperCase()};
+  }
+  return BADGES.find(b=>b.id===id) || null;
+}
+function badgeLabel(def){
+  if(def.dist) return String(useKm() ? Math.round(def.n*1.609344) : def.n);
+  return def.label;
+}
+// The badge: a shield in its tier's colour with Altiro's A on it, and its number or short label.
+let badgeSvgSeq = 0;
+function badgeSvg(def, locked, size){
+  const [c1, c2] = BADGE_TIERS[locked ? 'locked' : def.tier];
+  const id = 'bg'+(++badgeSvgSeq);
+  const ink = locked ? '#5C5C63' : '#1B1B1E';
+  const label = badgeLabel(def);
+  return `<svg class="badge-svg${locked ? ' locked' : ''}" viewBox="0 0 64 72" width="${size||56}" height="${Math.round((size||56)*72/64)}" aria-hidden="true">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
+    <path d="M32 2.5 58.5 11.5V36c0 16.5-11.6 27.6-26.5 33.5C17.1 63.6 5.5 52.5 5.5 36V11.5Z" fill="url(#${id})"/>
+    <path d="M32 7.5 53.5 15V36c0 13.6-9.4 23-21.5 28.2C19.9 59 10.5 49.6 10.5 36V15Z" fill="none" stroke="rgba(255,255,255,${locked ? 0.08 : 0.45})" stroke-width="1.2"/>
+    <path d="M21.5 44 32 17.5 42.5 44" fill="none" stroke="${ink}" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>
+    ${locked ? '' : '<path d="M18.5 39.5C26 33 35 28.5 46.5 26" fill="none" stroke="#DA1419" stroke-width="3" stroke-linecap="round"/><path d="M21 44C28 39.5 35.5 36.6 44 35" fill="none" stroke="#1C9A40" stroke-width="2.2" stroke-linecap="round"/>'}
+    <text x="32" y="57.5" text-anchor="middle" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="${label.length>3 ? 7.5 : 9}" font-weight="700" fill="${ink}">${escapeHtml(label)}</text>
+  </svg>`;
+}
+// Every workout done on a day: the day's own, Additional Workouts and logged ones.
+function doneWorkoutsOn(key){
+  const date = parseDateKey(key);
+  if(date > TODAY_DATE) return [];
+  const dd = getDayData(date), log = state.dayLog[key] || {};
+  const out = [];
+  const ownDone = dd.primarySource==='plan' && dd.p.t!=='rest' && (dd.isToday ? isTodayDone() : dd.completed);
+  if(ownDone){
+    const perf = log.performance || null;
+    const distance = dd.actualRunDistance!=null ? dd.actualRunDistance : perf && perf.distance!=null ? perf.distance : dd.p.t==='run' ? plannedMilesOf(dd.p) : null;
+    out.push({type: dd.p.t, perf, distance, time: perf && perf.time, own: !!dd.isCustom});
+  }
+  dd.extraWorkouts.forEach(w=>{
+    if(!w.completed || !w.session) return;
+    const perf = w.performance || null;
+    out.push({type: w.session.t, perf, distance: w.actualDistance!=null ? w.actualDistance : perf && perf.distance, time: perf && perf.time, own: true});
+  });
+  dd.manualEntries.forEach(e=>{
+    const perf = e.performance || null;
+    out.push({type: e.type, perf, distance: e.distance, time: e.durationMin!=null ? e.durationMin : perf && perf.time, own: true});
+  });
+  return out;
+}
+function daysApart(a, b){ return Math.round((parseDateKey(b) - parseDateKey(a)) / 86400000); }
+// The day a week reached enough workouts to count toward the streak, or null.
+function weekCountedOn(monday, need){
+  let n = 0;
+  for(let d=0; d<7; d++){
+    const date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+d);
+    if(date > TODAY_DATE) break;
+    if(workoutDoneOn(dateKey(date)) && ++n>=need) return dateKey(date);
+  }
+  return null;
+}
+function evaluateTrophies(){
+  const todayKey = dateKey(TODAY_DATE);
+  const keys = new Set(Object.keys(state.dayLog).filter(k=> k<=todayKey));
+  weekDates(0).forEach(d=>{ const k = dateKey(d); if(k<=todayKey) keys.add(k); });
+  const earned = {}, give = (id, k)=>{ if(!earned[id] || k<earned[id]) earned[id] = k; };
+  // Day One: everyone has it, from the day they joined -- a new user's welcome.
+  give('day_one', state.joinedOn && state.joinedOn<=todayKey ? state.joinedOn : todayKey);
+  let workouts = 0, miles = 0, volume = 0, lastActive = null;
+  const runs = [];
+  [...keys].sort().forEach(k=>{
+    const items = doneWorkoutsOn(k);
+    if(!items.length) return;
+    if(lastActive && daysApart(lastActive, k) > 14) give('comeback', k);
+    lastActive = k;
+    items.forEach(it=>{
+      workouts++;
+      give('first_workout', k);
+      if(it.own) give('first_own', k);
+      if(it.type==='run'){
+        give('first_run', k);
+        const dist = Number(it.distance) || 0, time = Number(it.time) || 0;
+        miles += dist;
+        if(dist>0 && time>0) runs.push({key:k, dist, time});
+        if(it.perf && (it.perf.route || it.perf.source==='gps')) give('first_gps', k);
+      }
+      if(it.type==='strength'){ give('first_lift', k); volume += loggedLiftVolume(it.perf); }
+      BADGES.forEach(b=>{
+        if(b.id.startsWith('workouts_') && workouts>=b.n) give(b.id, k);
+        if(b.dist && miles>=b.n) give(b.id, k);
+        if(b.vol && volume>=b.n) give(b.id, k);
+      });
+    });
+  });
+  // Weeks: the first that counted, and runs of them in a row (a paused week doesn't break one).
+  const need = streakWeekNeed(), thisMonday = mondayOf(TODAY_DATE);
+  const counted = new Map();
+  let run = 0;
+  for(let m = earliestLogMonday(); m <= thisMonday; m = new Date(m.getFullYear(), m.getMonth(), m.getDate()+7)){
+    const on = weekCountedOn(m, need);
+    counted.set(dateKey(m), on);
+    if(on){
+      run++;
+      give('first_week', on);
+      BADGES.forEach(b=>{ if(b.g==='streaks' && run>=b.n) give(b.id, on); });
+    } else if(m.getTime()!==thisMonday.getTime() && !weekPaused(m)) run = 0;
+  }
+  // A month: every week starting in it counted (or was paused), at least two of them counted.
+  const months = new Set([...counted.keys()].map(k=> k.slice(0,7)));
+  months.forEach(mo=>{
+    const weeks = [...counted.keys()].filter(k=> k.slice(0,7)===mo);
+    const first = new Date(Number(mo.slice(0,4)), Number(mo.slice(5,7))-1, 1);
+    // Every Monday of the month must be one we know about (so a month started part-way through doesn't count).
+    let mondays = 0;
+    for(let d = new Date(first); d.getMonth()===first.getMonth(); d.setDate(d.getDate()+1)) if(d.getDay()===1) mondays++;
+    if(weeks.length<mondays) return;
+    const on = weeks.map(k=> counted.get(k));
+    if(on.filter(Boolean).length<2) return;
+    if(weeks.some((k, i)=> !on[i] && !weekPaused(parseDateKey(k)))) return;
+    give('month_'+mo, on.filter(Boolean).sort().pop());
+  });
+  // A personal record: a lift beaten (its estimated max above every time before), or one entered.
+  liftHistory().forEach(lift=>{
+    let best = 0;
+    lift.days.forEach((d, i)=>{ if(i>0 && d.e1rm > best + 0.01) give('first_pr', d.key); best = Math.max(best, d.e1rm); });
+  });
+  (state.prs || []).forEach(pr=>{ if(pr.createdAt) give('first_pr', dateKey(new Date(pr.createdAt))); });
+  // Best efforts: each run that covered the distance, timed at its average pace, top three.
+  const best = {};
+  BEST_EFFORTS.forEach(b=>{
+    best[b.k] = runs.filter(r=> r.dist >= b.mi*0.99)
+      .map(r=> ({key:r.key, sec: Math.round(r.time*60*b.mi/r.dist), pace: r.time*60/r.dist}))
+      .filter(r=> r.pace>=150 && r.pace<=1800)
+      .sort((a, c)=> a.sec-c.sec).slice(0, 3)
+      .map(({key, sec})=> ({key, sec}));
+  });
+  return {earned, best, totals:{workouts, miles, volume}, weekRun: run};
+}
+function fmtEffortTime(sec){
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  return h ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+}
+function fmtTrophyDate(key){ const d = parseDateKey(key); return `${MONTHS_SHORT[state.lang][d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }
+
+// ---- earning them: worked out after the history has loaded, then whenever anything changes ----
+// (badgesReady, badgeQueue and badgePumpTimer are declared near the top, before anything at startup reads them.)
+function loadLocalBadges(){
+  try{ const s = JSON.parse(localStorage.getItem('altiro_badges')||'null'); return s && s.uid===(state.userId||'') ? s.badges : null; }catch(e){ return null; }
+}
+function saveBadges(){
+  try{ localStorage.setItem('altiro_badges', JSON.stringify({uid: state.userId||'', badges: state.badges})); }catch(e){}
+  saveProfileToCloud();
+}
+function checkBadges(){
+  if(!badgesReady) return;
+  const {earned, best} = evaluateTrophies();
+  const firstTime = !state.badges || typeof state.badges!=='object';
+  const stored = firstTime ? {} : state.badges;
+  const fresh = Object.keys(earned).filter(id=> !stored[id]).sort((a,b)=> earned[a]<earned[b] ? -1 : 1);
+  const snap = {};
+  BEST_EFFORTS.forEach(b=>{ snap['best_'+b.k] = best[b.k].map(r=> r.key+'|'+r.sec); });
+  const newBests = [];
+  if(!firstTime) BEST_EFFORTS.forEach(b=>{
+    const prev = stored['best_'+b.k] || [];
+    snap['best_'+b.k].forEach((entry, i)=>{ if(!prev.includes(entry)) newBests.push({k:b.k, place:i, sec: best[b.k][i].sec}); });
+  });
+  const bestChanged = BEST_EFFORTS.some(b=> JSON.stringify(snap['best_'+b.k])!==JSON.stringify(stored['best_'+b.k]||[]));
+  if(!firstTime && !fresh.length && !bestChanged) return;
+  const next = {...stored, ...snap};
+  fresh.forEach(id=>{ next[id] = earned[id]; });
+  state.badges = next;
+  saveBadges();
+  if(firstTime){
+    // Someone just joined: Day One is their welcome. Anyone with history gets one summary of it all.
+    if(fresh.length===1 && fresh[0]==='day_one') badgeQueue.push({type:'badge', id:'day_one', welcome:true});
+    else if(fresh.length) badgeQueue.push({type:'retro', ids: fresh.sort((x, y)=> (y==='day_one') - (x==='day_one'))});
+  } else {
+    fresh.forEach(id=> badgeQueue.push({type:'badge', id}));
+    // A run that's the fastest at several distances at once (a 5K is also a fastest mile) gets one moment.
+    const firsts = newBests.filter(b=> b.place===0);
+    if(firsts.length) badgeQueue.push({type:'best', list: firsts});
+    newBests.filter(b=> b.place>0).forEach(b=> badgeQueue.push({type:'best', ...b}));
+  }
+  pumpBadgeQueue();
+}
+// Not in the middle of something: a workout being logged, a run, the timer, another sheet, setup.
+function badgeMomentFree(){
+  if([...document.querySelectorAll('.sheet-overlay')].some(o=> !o.hidden)) return false;
+  if(['gpsOverlay','intervalTimerOverlay','tutorialOverlay','tourOverlay'].some(id=>{ const el = document.getElementById(id); return el && !el.hidden; })) return false;
+  const active = SCREEN_IDS.find(s=> elFor(s) && !elFor(s).hidden);
+  return TAB_SCREENS.includes(active) || active==='summary';
+}
+function pumpBadgeQueue(){
+  clearTimeout(badgePumpTimer);
+  if(!badgeQueue.length) return;
+  if(!badgeMomentFree()){ badgePumpTimer = setTimeout(pumpBadgeQueue, 1500); return; }
+  const L = STR[state.lang];
+  // The small ones together, in one toast; then the big ones, one at a time.
+  const small = badgeQueue.filter(x=> x.type==='badge' && !badgeDef(x.id).big || x.type==='best' && x.place>0);
+  if(small.length){
+    badgeQueue = badgeQueue.filter(x=> !small.includes(x));
+    const names = small.map(x=> x.type==='badge' ? badgeText(badgeDef(x.id))[0]
+      : L.bestPlaceToast.replace('{place}', L['bestPlace'+(x.place+1)]).replace('{name}', BEST_EFFORTS.find(b=>b.k===x.k)[state.lang]).replace('{time}', fmtEffortTime(x.sec)));
+    showToast(small.length===1 ? (small[0].type==='badge' ? L.badgeEarnedToast.replace('{name}', names[0]) : names[0]) : L.badgesEarnedToast.replace('{n}', small.length).replace('{names}', names.join(', ')));
+  }
+  const big = badgeQueue.shift();
+  if(big) openBadgeMoment(big);
+}
+// The big moment: the badge (or the retro summary, or a new best), with a way to the trophy case.
+function openBadgeMoment(item){
+  const L = STR[state.lang], body = document.getElementById('badgeBody');
+  if(item.type==='retro'){
+    const shown = item.ids.slice(0, 8);
+    body.innerHTML = `<div class="badge-eyebrow">${L.trophiesLabel}</div>
+      <div class="badge-title">${(item.ids.length===1 ? L.badgeRetroTitle1 : L.badgeRetroTitle).replace('{n}', item.ids.length)}</div>
+      <p class="badge-desc">${L.badgeRetroSub}</p>
+      <div class="badge-retro-row">${shown.map(id=> badgeSvg(badgeDef(id), false, 48)).join('')}${item.ids.length>shown.length ? `<span class="badge-more">+${item.ids.length-shown.length}</span>` : ''}</div>`;
+  } else if(item.type==='best'){
+    // The longest distance leads (a new fastest 5K says more than the mile inside it).
+    const list = item.list.slice().sort((a, c)=> BEST_EFFORTS.findIndex(x=>x.k===c.k) - BEST_EFFORTS.findIndex(x=>x.k===a.k));
+    const lead = list[0], b = BEST_EFFORTS.find(x=>x.k===lead.k);
+    body.innerHTML = `<div class="badge-hero"><div class="effort-medal big gold">1</div></div>
+      <div class="badge-eyebrow">${L.bestNewEyebrow}</div>
+      <div class="badge-title">${escapeHtml(L.bestNewTitle.replace('{name}', b[state.lang]))}</div>
+      <div class="badge-time">${fmtEffortTime(lead.sec)}</div>
+      ${list.length>1 ? `<p class="badge-desc">${escapeHtml(L.bestAlsoLine.replace('{list}', list.slice(1).map(x=> `${BEST_EFFORTS.find(e=>e.k===x.k)[state.lang]} ${fmtEffortTime(x.sec)}`).join(', ')))}</p>` : ''}
+      <p class="badge-desc">${L.bestNote}</p>`;
+  } else {
+    const def = badgeDef(item.id), [name, desc] = badgeText(def);
+    const isOn = !item.detail || !!(state.badges && state.badges[item.id]);
+    body.innerHTML = `<div class="badge-hero">${badgeSvg(def, !isOn, 116)}</div>
+      <div class="badge-eyebrow">${item.detail ? (state.badges && state.badges[item.id] ? L.badgeEarnedOn.replace('{date}', fmtTrophyDate(state.badges[item.id])) : escapeHtml(item.progress||'')) : item.welcome ? L.badgeWelcomeEyebrow : L.badgeNewEyebrow}</div>
+      <div class="badge-title">${escapeHtml(name)}</div>
+      <p class="badge-desc">${escapeHtml(desc)}</p>`;
+  }
+  document.getElementById('badgeSeeAllBtn').hidden = !!item.detail;
+  document.getElementById('badgeDoneBtn').textContent = item.detail ? L.closeBtnLabel : L.badgeNiceBtn;
+  const ov = document.getElementById('badgeOverlay');
+  ov.classList.toggle('celebrate', !item.detail);
+  ov.hidden = false;
+}
+function closeBadgeMoment(){
+  document.getElementById('badgeOverlay').hidden = true;
+  if(badgeQueue.length) setTimeout(pumpBadgeQueue, 350);
+}
+document.getElementById('badgeDoneBtn').addEventListener('click', closeBadgeMoment);
+document.getElementById('badgeOverlay').addEventListener('click', e=>{ if(e.target.id==='badgeOverlay') closeBadgeMoment(); });
+document.getElementById('badgeSeeAllBtn').addEventListener('click', ()=>{
+  badgeQueue = [];
+  document.getElementById('badgeOverlay').hidden = true;
+  showScreen('progress');
+  setTimeout(()=>{ const t = document.getElementById('trophyCase'); if(t && t.scrollIntoView) t.scrollIntoView({block:'start'}); }, 50);
+});
+
+// ---- the trophy case (Progress) ----
+function renderTrophyCase(){
+  const el = document.getElementById('trophyCase');
+  if(!el) return;
+  const L = STR[state.lang];
+  const {earned, best, totals, weekRun} = evaluateTrophies();
+  const have = id=> (state.badges && state.badges[id]) || earned[id];
+  const progressOf = def=>{
+    if(def.g==='streaks') return L.badgeProgressWeeks.replace('{n}', Math.min(weekRun, def.n)).replace('{of}', def.n);
+    if(def.id.startsWith('workouts_')) return L.badgeProgressOf.replace('{n}', Math.min(totals.workouts, def.n)).replace('{of}', def.n);
+    if(def.dist){ const u = useKm() ? 1.609344 : 1; return L.badgeProgressOf.replace('{n}', Math.floor(Math.min(totals.miles, def.n)*u)).replace('{of}', Math.round(def.n*u)) + (useKm() ? ' km' : ' mi'); }
+    if(def.vol) return L.badgeProgressOf.replace('{n}', Math.floor(Math.min(totals.volume, def.n)).toLocaleString()).replace('{of}', def.n.toLocaleString()) + ' ' + state.weightUnit;
+    return L.badgeLocked;
+  };
+  const tile = def=>{
+    const on = have(def.id), [name] = badgeText(def);
+    return `<button class="trophy" type="button" data-badge="${def.id}" data-progress="${escapeHtml(on ? '' : progressOf(def))}">
+      ${badgeSvg(def, !on, 52)}<span class="trophy-name">${escapeHtml(name)}</span>
+      <span class="trophy-sub">${on ? fmtTrophyDate(on).replace(/, \d{4}$/, '') : escapeHtml(progressOf(def))}</span></button>`;
+  };
+  const group = (label, defs)=> defs.length ? `<div class="trophy-group"><div class="trophy-group-label">${label}</div><div class="trophy-grid">${defs.map(tile).join('')}</div></div>` : '';
+  const monthIds = Object.keys({...(state.badges||{}), ...earned}).filter(id=> id.startsWith('month_')).sort().reverse();
+  const thisMonth = 'month_'+dateKey(TODAY_DATE).slice(0,7);
+  const monthDefs = [...(monthIds.includes(thisMonth) ? [] : [thisMonth]), ...monthIds].map(badgeDef);
+  const all = BADGES.filter(b=> have(b.id)).length + monthIds.length;
+  const efforts = BEST_EFFORTS.map(b=>{
+    const list = best[b.k];
+    return `<div class="effort-row"><span class="effort-name">${b[state.lang]}</span><span class="effort-list">${list.length
+      ? list.map((r, i)=> `<span class="effort"><span class="effort-medal ${['gold','silver','bronze'][i]}">${i+1}</span><b>${fmtEffortTime(r.sec)}</b><em>${fmtTrophyDate(r.key).replace(/, \d{4}$/, '')}</em></span>`).join('')
+      : `<span class="effort-none">${L.bestNone}</span>`}</span></div>`;
+  }).join('');
+  el.innerHTML = `<div class="trophy-head">${all===1 ? L.trophiesCount1 : L.trophiesCount.replace('{n}', all)}</div>
+    ${group(L.trophyFirsts, BADGES.filter(b=>b.g==='firsts'))}
+    ${group(L.trophyStreaks, BADGES.filter(b=>b.g==='streaks'))}
+    ${group(L.trophyMilestones, BADGES.filter(b=>b.g==='totals'))}
+    ${group(L.trophyMonths, monthDefs)}
+    <div class="trophy-group"><div class="trophy-group-label">${L.bestEffortsLabel}</div>${efforts}<div class="lift-note">${L.bestNote}</div></div>`;
+  el.querySelectorAll('[data-badge]').forEach(b=> b.addEventListener('click', ()=>{
+    const id = b.dataset.badge;
+    openBadgeMoment({type:'badge', id, detail:true, progress: b.dataset.progress});
+  }));
 }
 
 /* ---------------- lift progress ---------------- */
@@ -12850,6 +13276,8 @@ async function loadProfileFromCloud(){
   if(data.mile_time_sec) state.mileTime = Number(data.mile_time_sec);
   if(data.jog_baseline && typeof data.jog_baseline==='object') state.jogBaseline = data.jog_baseline;
   if(data.exercise_swaps && typeof data.exercise_swaps==='object') state.exerciseSwaps = data.exercise_swaps;
+  state.badges = data.badges && typeof data.badges==='object' ? data.badges : loadLocalBadges();
+  if(data.created_at) state.joinedOn = dateKey(new Date(data.created_at));
   if('hidden_lifts' in data){
     state.hiddenLifts = Array.isArray(data.hidden_lifts) ? data.hidden_lifts : [];
     try{ localStorage.setItem('altiro_hidden_lifts', JSON.stringify(state.hiddenLifts)); }catch(e){}
@@ -12893,6 +13321,7 @@ async function saveProfileToCloud(){
       plan_start_date: state.planStartDate,
       exercise_swaps: state.exerciseSwaps,
       hidden_lifts: state.hiddenLifts,
+      ...(badgesReady ? {badges: state.badges} : {}), // (never before they're worked out: that would wipe saved ones)
       lift_split: state.liftSplit,
       jog_baseline: state.jogBaseline,
       mile_time_sec: state.mileTime,
@@ -12905,7 +13334,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes','own_since','distance_unit','hidden_lifts'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes','own_since','distance_unit','hidden_lifts','badges'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }
@@ -13606,6 +14035,7 @@ document.getElementById('passwordInput').addEventListener('input', updateEmailSi
 let signedInLoad = null; // {userId, promise}
 let signingUp = false;
 function setSignedInUser(user){
+  if(state.userId!==user.id){ badgesReady = false; state.badges = null; state.joinedOn = null; }
   state.signedIn = true;
   state.userEmail = user.email;
   state.userName = user.email.split('@')[0]; // replaced by the profile's real name, if there is one
@@ -13625,6 +14055,8 @@ function enterSignedIn(user){
     // loaded (a returning user's plan already exists, there's nothing to "build").
     showScreen('home');
     startStravaSync();
+    badgesReady = true;
+    checkBadges();
   })();
   signedInLoad = {userId: user.id, promise};
   return promise;

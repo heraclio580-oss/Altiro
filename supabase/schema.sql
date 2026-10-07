@@ -356,3 +356,4 @@ create policy "own push subscriptions" on push_subscriptions
 --     );
 --   $$);
 alter table profiles add column if not exists hidden_lifts jsonb;     -- lift keys taken off Progress -> Your lifts (their workouts stay logged)
+alter table profiles add column if not exists badges jsonb;           -- earned badges {id: date} and best-effort top threes (see checkBadges)

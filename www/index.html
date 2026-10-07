@@ -434,6 +434,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .week-repeat-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:var(--r-pill);background:none;color:var(--text-2);font:inherit;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}
 .week-repeat-btn svg{width:11px;height:11px;}
 .week-btns{display:inline-flex;gap:6px;flex-shrink:0;}
+.repeat-clear{margin-top:26px;padding-top:18px;border-top:1px solid var(--divider-soft);}
 .week-clear-btn{padding:3px 7px;}
 .week-clear-btn svg{width:12px;height:12px;}
 .week-block-label > span:first-child{white-space:nowrap;}
@@ -2039,6 +2040,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
       <div class="footer-note" style="text-align:left;margin-top:14px;" id="repeatNote"></div>
       <button class="btn btn-primary sheet-apply" id="applyRepeatBtn" type="button" data-i18n="repeatApplyBtn"></button>
+      <div class="sheet-section repeat-clear" id="repeatClearSection">
+        <div class="st-label" data-i18n="repeatClearLabel"></div>
+        <div class="footer-note" style="text-align:left;margin:2px 0 4px;" data-i18n="repeatClearSub"></div>
+        <div class="chip-row" id="repeatClearChips"></div>
+        <div class="footer-note" style="text-align:left;margin-top:10px;" id="repeatClearNote"></div>
+        <button class="btn btn-ghost" id="repeatClearBtn" type="button" style="width:100%;margin-top:10px;" data-i18n="repeatClearBtn"></button>
+      </div>
     </div>
   </div>
 
@@ -3229,6 +3237,10 @@ const STR = {
     repeatApplyBtn: "Repeat week",
     repeatDoneToast: "Copied into {weeks}",
     clearWeekBtn: "Clear",
+    repeatClearLabel: "Clear the weeks ahead",
+    repeatClearSub: "Changed your mind? Take your planned and repeated workouts off the weeks after this one. Done and logged workouts stay.",
+    repeatClearSpanAll: "All weeks after",
+    repeatClearBtn: "Clear weeks",
     clearTitle: "Clear planned workouts",
     clearSub: "Take the workouts you planned or repeated off these days. Each day goes back to Altiro's plan, or a rest day if you plan your own workouts. Workouts you've already done or logged stay.",
     clearScopeLabel: "Clear",
@@ -3860,6 +3872,10 @@ const STR = {
     repeatApplyBtn: "Repetir semana",
     repeatDoneToast: "Copiada en {weeks}",
     clearWeekBtn: "Borrar",
+    repeatClearLabel: "Borrar las semanas siguientes",
+    repeatClearSub: "¿Cambiaste de idea? Quita tus entrenamientos planeados y repetidos de las semanas después de esta. Los que hiciste o registraste se quedan.",
+    repeatClearSpanAll: "Todas las semanas siguientes",
+    repeatClearBtn: "Borrar semanas",
     clearTitle: "Borrar entrenamientos planeados",
     clearSub: "Quita de estos días los entrenamientos que planeaste o repetiste. Cada día vuelve al plan de Altiro, o a un día de descanso si planeas tus propios entrenamientos. Los que ya hiciste o registraste se quedan.",
     clearScopeLabel: "Borrar",
@@ -6027,7 +6043,7 @@ function repeatTargetMondays(fromMonday, draft){
 }
 let repeatDraft = null; // {weekIdx, span: '1'|'2'|'4'|'8'|'until', startPick (the "until" day), calMonth, others: 'plan'|'rest'}
 function openRepeatWeek(weekIdx){
-  repeatDraft = {weekIdx, span:'4', startPick:null, calMonth:null, others:'plan'};
+  repeatDraft = {weekIdx, span:'4', startPick:null, calMonth:null, others:'plan', clearSpan:'4'};
   renderRepeatWeek();
   document.getElementById('repeatOverlay').hidden = false;
   document.querySelector('#repeatOverlay .sheet-panel').scrollTop = 0;
@@ -6065,6 +6081,25 @@ function renderRepeatWeek(){
       .replace('{range}', fmtShortRange(targets[0], new Date(last.getFullYear(), last.getMonth(), last.getDate()+6)));
   }
   document.getElementById('applyRepeatBtn').disabled = !targets.length || !src.count;
+  renderRepeatClear();
+}
+// "Clear the weeks ahead": the weeks after this one, for as many weeks as picked (or all of them).
+function repeatClearDays(){
+  const d = repeatDraft, dates = weekDates(d.weekIdx);
+  const from = new Date(dates[0].getFullYear(), dates[0].getMonth(), dates[0].getDate()+7);
+  const to = d.clearSpan==='all' ? null : new Date(from.getFullYear(), from.getMonth(), from.getDate()+7*Number(d.clearSpan)-1);
+  return clearableOwnWorkouts(dateKey(from), to ? dateKey(to) : null);
+}
+function renderRepeatClear(){
+  const L = STR[state.lang], d = repeatDraft;
+  const spanLabel = {'1':L.repeatSpan1, '2':L.repeatSpan2, '4':L.repeatSpan4, '8':L.repeatSpan8, all:L.repeatClearSpanAll};
+  renderChipRow('repeatClearChips', ['1','2','4','8','all'].map(k=>({key:k, en:{t:spanLabel[k]}, es:{t:spanLabel[k]}})), d.clearSpan, k=>{ d.clearSpan = k; renderRepeatClear(); });
+  const days = repeatClearDays();
+  const fmt = k=>{ const x = parseDateKey(k); return `${MONTHS_SHORT[state.lang][x.getMonth()]} ${x.getDate()}`; };
+  document.getElementById('repeatClearNote').textContent = !days.length ? L.clearNone
+    : days.length===1 ? L.clearNote1.replace('{from}', fmt(days[0].key))
+    : L.clearNote.replace('{n}', days.length).replace('{from}', fmt(days[0].key)).replace('{to}', fmt(days[days.length-1].key));
+  document.getElementById('repeatClearBtn').disabled = !days.length;
 }
 function applyRepeatWeek(){
   const d = repeatDraft; if(!d) return;
@@ -6107,6 +6142,15 @@ function applyRepeatWeek(){
   showToast(L.repeatDoneToast.replace('{weeks}', weeksText));
 }
 document.getElementById('closeRepeat').addEventListener('click', closeRepeatWeek);
+document.getElementById('repeatClearBtn').addEventListener('click', ()=>{
+  if(!repeatDraft) return;
+  const L = STR[state.lang], days = repeatClearDays();
+  if(!days.length) return;
+  clearOwnWorkouts(days);
+  closeRepeatWeek();
+  refreshViews();
+  showToast(days.length===1 ? L.clearDoneToast1 : L.clearDoneToast.replace('{n}', days.length));
+});
 
 /* ---------------- clear planned workouts ---------------- */
 // The way back from planning or repeating weeks: the workouts the user put on days from today on come

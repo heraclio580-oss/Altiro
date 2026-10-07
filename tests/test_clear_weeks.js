@@ -81,6 +81,29 @@ function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok
   click(doc.getElementById('closeClearWeeks'));
   check('Today\'s done workout was never touched', title(0,4)==='Friday Lift');
 
+  // ---- From the Repeat sheet: "Clear the weeks ahead" ----
+  click(doc.querySelector('[data-repeat-week="1"]'));
+  await wait(10);
+  click(doc.getElementById('applyRepeatBtn')); // Push/Pull back into the next 4 weeks (Sep 28 - Oct 25)
+  await wait(30);
+  check('(set-up) repeated again', title(2,0)==='Push Day' && title(3,2)==='Pull Day');
+  click(doc.querySelector('[data-repeat-week="1"]'));
+  await wait(10);
+  const rc = [...doc.querySelectorAll('#repeatClearChips .chip')].map(c=>c.textContent);
+  check('The Repeat sheet has "Clear the weeks ahead": 1, 2, 4, 8 or all weeks after', !doc.getElementById('repeatClearSection').hidden && rc.join()==='Next week,Next 2 weeks,Next 4 weeks,Next 8 weeks,All weeks after', rc.join());
+  [...doc.querySelectorAll('#repeatClearChips .chip')].find(c=>c.textContent==='Next 2 weeks').click();
+  await wait(5);
+  check('...says what 2 weeks clears', /4 days will be cleared, Sep 28 to Oct 7\./.test(doc.getElementById('repeatClearNote').textContent), doc.getElementById('repeatClearNote').textContent);
+  click(doc.getElementById('repeatClearBtn'));
+  await wait(30);
+  check('...and clears just those weeks', doc.getElementById('repeatOverlay').hidden && title(2,0)===planTitle && !/Pull Day/.test(row(3,2).textContent) && title(1,0)==='Push Day', [title(2,0), title(3,2)].join(','));
+  click(doc.querySelector('[data-repeat-week="1"]'));
+  await wait(10);
+  [...doc.querySelectorAll('#repeatClearChips .chip')].find(c=>c.textContent==='All weeks after').click();
+  await wait(5);
+  check('"All weeks after" picks up the rest (Oct 12 - Oct 21)', /4 days will be cleared, Oct 12 to Oct 21\./.test(doc.getElementById('repeatClearNote').textContent), doc.getElementById('repeatClearNote').textContent);
+  click(doc.getElementById('closeRepeat'));
+
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(failures ? 1 : 0);
 })().catch(e => { console.log('TEST THREW:', e.stack || e); process.exit(1); });

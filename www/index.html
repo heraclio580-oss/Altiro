@@ -3371,6 +3371,7 @@ const STR = {
     greetingActive: "Today's the day, {name}.",
     weatherConditionClear: "Clear",
     heroEyebrowNext: "Up next today", homeDoneLine: "{name} done",
+    doneSectionLabel: "Done",
     heroEyebrowReady: "Ready when you are", heroTitleRun: "Time to run.", heroTitleStrength: "Time to lift.", heroTitleInterval: "Time for intervals.", heroTitleHike: "Time to get outside.", heroTitleMove: "Time to move.",
     heroSubStreak: "Keep your {n}-week streak going.", heroSubStart: "Every streak starts with one workout.",
     heroSubWeekCounts: "This week counts. Keep your {n}-week streak going.",
@@ -4019,6 +4020,7 @@ const STR = {
     greetingActive: "Hoy es el día, {name}.",
     weatherConditionClear: "Despejado",
     heroEyebrowNext: "Lo siguiente hoy", homeDoneLine: "{name} hecho",
+    doneSectionLabel: "Hechos",
     heroEyebrowReady: "Cuando estés listo", heroTitleRun: "Hora de correr.", heroTitleStrength: "Hora de levantar.", heroTitleInterval: "Hora de intervalos.", heroTitleHike: "Hora de salir.", heroTitleMove: "Hora de moverse.",
     heroSubStreak: "Mantén tu racha de {n} semanas.", heroSubStart: "Toda racha empieza con un entrenamiento.",
     heroSubWeekCounts: "Esta semana ya cuenta. Mantén tu racha de {n} semanas.",
@@ -5728,7 +5730,7 @@ function getDayData(date){
   // happened -- fall back to the first logged entry as this day's effective content.
   // Which record the displayed session actually came from -- a tap on it has to open Log Performance
   // for THAT workout (see primaryLogTarget()), not for the empty rest slot underneath it.
-  let primarySource = 'plan';
+  let primarySource = 'plan', primaryExtraId = null;
   if(p.t==='rest' && manualEntries.length>0){
     const first = manualEntries[0];
     p = ses(first.type, first.name, first.volume||'', first.name, first.volume||'');
@@ -5741,7 +5743,12 @@ function getDayData(date){
     // at all. Shown regardless of whether it's completed yet, same as a planned custom primary would
     // describe itself before being marked done.
     // (A class keeps to its own Classes section rather than standing in for the day's workout.)
-    p = extraWorkouts.find(w=> !(w.session && w.session.t==='class')).session;
+    // The one still to do comes first (a run planned for later, after one already done); once they're
+    // all done, the first one.
+    const own = extraWorkouts.filter(w=> !(w.session && w.session.t==='class'));
+    const pick = own.find(w=>!w.completed) || own[0];
+    p = pick.session;
+    primaryExtraId = pick.id;
     isCustom = true;
     primarySource = 'extra';
   }
@@ -5750,7 +5757,7 @@ function getDayData(date){
   // workout IS one of them (a rest day with one, above). active: anything at all was done that day.
   // (A recorded performance or run distance for it counts too.)
   let completed = primarySource==='plan' ? planCompleted || !!(log && (log.performance || log.actualRunDistance!=null)) || isLoggedWorkout({p, isCustom}, manualEntries)
-    : primarySource==='entry' || extraWorkouts.some(w=>w.completed);
+    : primarySource==='entry' || !!(extraWorkouts.find(w=>w.id===primaryExtraId) || {}).completed;
   if(log && typeof log.completedOverride === 'boolean') completed = log.completedOverride;
   // A rest day with nothing on it has nothing to be done -- a done mark left from a workout that was
   // taken off it (saved before that was cleared) doesn't count.
@@ -5763,7 +5770,7 @@ function getDayData(date){
   return {
     missed: (log && log.missed) || null, // why the day's workout was missed, if the user said (see setMissedReason)
     markedNotDone: !!(log && log.completedOverride===false),
-    key, date, p, c, completed, active, manualEntries, isCustom, extraWorkouts, actualRunDistance, primarySource,
+    key, date, p, c, completed, active, manualEntries, isCustom, extraWorkouts, actualRunDistance, primarySource, primaryExtraId,
     isToday: key===dateKey(TODAY_DATE),
     isPast: date.getTime() < TODAY_DATE.getTime(),
     isFuture: date.getTime() > TODAY_DATE.getTime(),
@@ -7750,7 +7757,7 @@ function resolveLogTarget(t){
 // it was logged (promotePrimaryFromLog) -- that underlying record is what a tap should log against,
 // so the same workout never ends up with two separate performance records.
 function primaryLogTarget(dd){
-  if(dd.primarySource==='extra') return {dayKey: dd.key, kind:'extra', id: dd.extraWorkouts[0].id};
+  if(dd.primarySource==='extra') return {dayKey: dd.key, kind:'extra', id: dd.primaryExtraId};
   const first = dd.manualEntries[0];
   if(first && (dd.primarySource==='entry' || (first.type===dd.p.t && first.name===dd.p.en.title))){
     return {dayKey: dd.key, kind:'entry', id: first.id};
@@ -9186,7 +9193,7 @@ function previewedWorkout(){
     return w ? {session: w.session, c: null, extra: w} : null;
   }
   const dd = getDayData(parseDateKey(wp.dayKey));
-  if(dd.primarySource==='extra'){ wp.target = {kind:'extra', id: dd.extraWorkouts[0].id}; return previewedWorkout(); }
+  if(dd.primarySource==='extra'){ wp.target = {kind:'extra', id: dd.primaryExtraId}; return previewedWorkout(); }
   return {session: dd.p, c: dd.c, extra: null};
 }
 function exerciseRxText(ex){
@@ -9443,7 +9450,14 @@ function renderDayDetail(){
 
   document.getElementById('dayDetailTitle').textContent = `${DAY_NAMES_FULL[state.lang][dow]}, ${MONTHS_SHORT[state.lang][date.getMonth()]} ${date.getDate()}`;
   const planRowEl = document.getElementById('dayDetailPlanRow');
-  if(dd.p.t==='rest'){
+  // Today's own workout done and another still to do: that one is shown as the day's workout (same as
+  // Home), and the finished one moves down to "Done".
+  const ddPending = dd.isToday && dd.primarySource==='plan' && dd.p.t!=='rest' && isTodayDone()
+    ? dd.extraWorkouts.find(w=> !w.completed && w.session && w.session.t!=='class' && w.session.t!=='rest') : null;
+  if(ddPending){
+    planRowEl.className = `day-row ${statusClassFor('today', true)} editable`;
+    planRowEl.innerHTML = planRowHtml({...dd, p: ddPending.session, c: null, completed: false}, 'today');
+  } else if(dd.p.t==='rest'){
     // A genuinely empty day (no plan, nothing logged) doesn't need a bordered bubble just to say
     // so -- "Rest Day" is plain descriptive text here, and "+ Add Workout" below is the one way in.
     planRowEl.className = 'day-row-empty';
@@ -9455,10 +9469,12 @@ function renderDayDetail(){
 
   const actionsEl = document.getElementById('dayDetailActions');
   let actionsHtml = '';
+  // (A day whose workout is one the user added -- see getDayData -- is done when that one is.)
+  const ddTodayDone = ddPending ? false : dd.primarySource==='plan' ? isTodayDone() : dd.completed;
   if(dd.isToday){
-    if(dd.p.t!=='rest' && !isTodayDone()){
+    if(dd.p.t!=='rest' && !ddTodayDone){
       actionsHtml += `<button class="btn btn-primary" id="ddStartWorkoutBtn" style="width:100%;margin-top:14px;">${L.startWorkoutBtn}</button>`;
-    } else if(isTodayDone()){
+    } else if(ddTodayDone){
       actionsHtml += `<div class="r-inline-btn" style="display:flex;align-items:center;gap:6px;color:var(--ok-icon);font-size:12px;">${ICONS.checkSm} ${L.completedTodayInline}</div>`;
     }
   }
@@ -9473,7 +9489,7 @@ function renderDayDetail(){
   if(dd.p.t!=='rest'){
     actionsHtml += `<button class="watch-demo-btn" id="ddDeleteWorkoutBtn" type="button" style="margin-top:12px;">${ICONS.trash}${L.deleteWorkoutBtn}</button>`;
   }
-  if(dd.isCustom && (dd.isToday || dd.isFuture)){
+  if(dd.isCustom && !ddPending && (dd.isToday || dd.isFuture)){
     actionsHtml += `<button class="btn-text" id="ddResetPlanBtn" type="button" style="width:100%;margin-top:12px;">${L.resetPlanBtn}</button>`;
   }
   let rescheduleIdx = -1;
@@ -9495,17 +9511,18 @@ function renderDayDetail(){
   actionsEl.hidden = actionsHtml==='';
 
   const ddStartBtn = document.getElementById('ddStartWorkoutBtn');
-  if(ddStartBtn) ddStartBtn.addEventListener('click', ()=>{ const t = primaryLogTarget(dd); closeDayDetail(); openLogPerformanceFor(t, 'record'); });
+  if(ddStartBtn) ddStartBtn.addEventListener('click', ()=>{ const t = ddPending ? {dayKey: dd.key, kind:'extra', id: ddPending.id} : primaryLogTarget(dd); closeDayDetail(); openLogPerformanceFor(t, 'record'); });
   const ddWatchBtn = document.getElementById('ddWatchDemoBtn');
   if(ddWatchBtn) ddWatchBtn.addEventListener('click', ()=>{
     const activeScreen = SCREEN_IDS.find(s=>elFor(s) && !elFor(s).hidden) || 'home';
     closeDayDetail();
-    openExerciseDetail(dd.p, activeScreen);
+    openExerciseDetail(ddPending ? ddPending.session : dd.p, activeScreen);
   });
   const ddDeleteBtn = document.getElementById('ddDeleteWorkoutBtn');
   if(ddDeleteBtn) ddDeleteBtn.addEventListener('click', ()=>{
     const key = state.openDayKey;
-    askDeleteWorkout(ST(dd.p).title, key, dd.completed, ()=> deleteDayWorkout(key));
+    if(ddPending) askDeleteWorkout(ST(ddPending.session).title, key, false, ()=> deleteExtraWorkout(key, ddPending.id));
+    else askDeleteWorkout(ST(dd.p).title, key, dd.completed, ()=> deleteDayWorkout(key));
   });
   const ddResetBtn = document.getElementById('ddResetPlanBtn');
   if(ddResetBtn) ddResetBtn.addEventListener('click', ()=>{
@@ -9565,14 +9582,20 @@ function renderDayDetail(){
   const extraSection = document.getElementById('dayDetailExtraSection');
   const extraWrap = document.getElementById('dayDetailExtraWorkouts');
   // (Classes have their own section.)
-  const ddExtras = dd.extraWorkouts.filter(w=> !(w.session && w.session.t==='class'));
-  extraSection.hidden = ddExtras.length===0;
+  // (The one standing in as the day's workout is shown above, not again here. Still to do first; the ones
+  // already done at the bottom, under "Done".)
+  // (A past day keeps it in the list too: that's where a forgotten one gets marked done.)
+  const ddExtrasAll = dd.extraWorkouts.filter(w=> !(w.session && w.session.t==='class') && (dd.isPast || w.id!==dd.primaryExtraId) && w!==ddPending);
+  const ddExtras = [...ddExtrasAll.filter(w=>!w.completed), ...ddExtrasAll.filter(w=>w.completed)];
+  extraSection.hidden = ddExtras.length===0 && !ddPending;
   const classesHtml = classRowsHtml(state.openDayKey);
   document.getElementById('dayDetailClassSection').hidden = !classesHtml;
   document.getElementById('dayDetailClasses').innerHTML = classesHtml;
   bindClassRows(document.getElementById('dayDetailClasses'), state.openDayKey, ()=>{ refreshViews(); if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail(); });
-  extraWrap.innerHTML = ddExtras.map(w=>{
+  const firstDoneIdx = ddExtras.findIndex(w=>w.completed);
+  extraWrap.innerHTML = ddExtras.map((w, wi)=>{
     const effL = ST(w.session);
+    const doneLabel = wi===firstDoneIdx && wi>0 ? `<div class="st-label" style="margin:14px 0 8px;">${STR[state.lang].doneSectionLabel}</div>` : '';
     // Today's extras go through the live Record flow (Start Workout -> Log Performance), same as
     // the primary session, and its own "Completed" badge is just a static label once done (the live
     // flow is the only intended way to un-record it). A past day has no live flow to run, but still
@@ -9587,7 +9610,7 @@ function renderDayDetail(){
           : `<button class="btn-text" data-start-extra="${w.id}" type="button" style="white-space:nowrap;">${L.startWorkoutBtn}</button>`)
       : dd.isFuture ? ''
       : `<button class="btn-text" data-mark-extra-done="${w.id}" type="button" style="white-space:nowrap;${w.completed?'color:var(--ok-icon);':''}">${w.completed?ICONS.checkSm:''}${w.completed?L.recordDoneLabel:L.markDoneLabel}</button>`;
-    return `<div class="manual-entry editable" data-extra-id="${w.id}">
+    return `${doneLabel}<div class="manual-entry editable" data-extra-id="${w.id}">
       <span class="ic">${TYPE_ICON[w.session.t]}</span>
       <div class="body">
         <div class="n">${escapeHtml(effL.title)}</div>
@@ -9597,7 +9620,28 @@ function renderDayDetail(){
       ${startOrDone}
       <button class="del" data-del-extra="${w.id}" type="button">${ICONS.trash}</button>
     </div>`;
-  }).join('');
+  }).join('') + (ddPending ? (()=>{
+    // The day's own workout, already done, listed with the other finished ones.
+    const ownL = ST(dd.p);
+    return `${firstDoneIdx<0 && ddExtras.length ? `<div class="st-label" style="margin:14px 0 8px;">${L.doneSectionLabel}</div>` : ''}<div class="manual-entry editable" data-done-own="1">
+      <span class="ic">${TYPE_ICON[dd.p.t]}</span>
+      <div class="body">
+        <div class="n">${escapeHtml(ownL.title)}</div>
+        <div class="v">${escapeHtml(ownL.detail||'')}</div>
+        ${exerciseListHtml(dd.p, dd.date)}
+      </div>
+      <span class="r-inline-btn" style="display:flex;align-items:center;gap:4px;color:var(--ok-icon);font-size:11px;white-space:nowrap;">${ICONS.checkSm}${L.recordDoneLabel}</span>
+      <button class="del" data-del-own="1" type="button">${ICONS.trash}</button>
+    </div>`;
+  })() : '');
+  const doneOwn = extraWrap.querySelector('[data-done-own]');
+  if(doneOwn){
+    doneOwn.addEventListener('click', e=>{ if(!e.target.closest('[data-del-own]')) openLogPerformanceFor(primaryLogTarget(dd)); });
+    doneOwn.querySelector('[data-del-own]').addEventListener('click', ()=>{
+      const key = state.openDayKey;
+      askDeleteWorkout(ST(dd.p).title, key, true, ()=> deleteDayWorkout(key));
+    });
+  }
   // Tapping the bubble body opens Log Performance for it, or for a future one (which can't be logged
   // yet) a preview of it -- the Start/Mark Done/trash buttons inside it stay their own dedicated actions.
   extraWrap.querySelectorAll('[data-extra-id]').forEach(el=>{

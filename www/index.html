@@ -5527,6 +5527,8 @@ function isTodayDone(){
     || !!(log && isLoggedWorkout(state.week[TODAY_IDX], log.manualEntries));
   if(todaySession().t==='rest') done = done || (log && log.manualEntries.length>0) || (log && log.extraWorkouts && log.extraWorkouts.some(w=>w.completed));
   if(log && typeof log.completedOverride === 'boolean') done = log.completedOverride;
+  // (Same for today: an empty rest day is never "done", whatever an old done mark says.)
+  if(todaySession().t==='rest' && !(log && ((log.manualEntries||[]).length || (log.extraWorkouts||[]).some(w=>w.completed)))) done = false;
   return !!done;
 }
 // Which of today's active workouts the record flow (Log Performance / Interval Timer) is currently
@@ -5638,6 +5640,9 @@ function getDayData(date){
   let completed = primarySource==='plan' ? planCompleted || !!(log && (log.performance || log.actualRunDistance!=null)) || isLoggedWorkout({p, isCustom}, manualEntries)
     : primarySource==='entry' || extraWorkouts.some(w=>w.completed);
   if(log && typeof log.completedOverride === 'boolean') completed = log.completedOverride;
+  // A rest day with nothing on it has nothing to be done -- a done mark left from a workout that was
+  // taken off it (saved before that was cleared) doesn't count.
+  if(p.t==='rest' && !extraWorkouts.some(w=>w.completed)) completed = false;
   const active = !!completed || manualEntries.length>0 || extraWorkouts.some(w=>w.completed);
   // The distance actually run, as reported in Log Performance -- null until a run is actually
   // logged for this day, in which case it should be used instead of the plan's prescribed

@@ -433,6 +433,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .week-block-right{display:flex;align-items:center;gap:10px;}
 .week-repeat-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:var(--r-pill);background:none;color:var(--text-2);font:inherit;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}
 .week-repeat-btn svg{width:11px;height:11px;}
+.week-btns{display:inline-flex;gap:6px;flex-shrink:0;}
+.week-clear-btn{padding:3px 7px;}
+.week-clear-btn svg{width:12px;height:12px;}
+.week-block-label > span:first-child{white-space:nowrap;}
 .repeat-days{display:flex;flex-direction:column;gap:4px;margin:4px 0 6px;}
 .repeat-day{display:flex;gap:12px;font-size:13px;color:var(--text-2);}
 .repeat-day b{flex:0 0 38px;font-family:var(--font-mono);font-weight:500;font-size:11px;color:var(--text-3);padding-top:1px;}
@@ -2038,6 +2042,23 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     </div>
   </div>
 
+  <div class="sheet-overlay" id="clearWeeksOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="clearTitle"></span>
+        <button class="iconbtn" id="closeClearWeeks"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <p class="fb-sub" id="clearSub"></p>
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="clearScopeLabel"></div>
+        <div class="chip-row" id="clearScopeChips"></div>
+      </div>
+      <div class="footer-note" style="text-align:left;margin-top:14px;" id="clearNote"></div>
+      <button class="btn btn-primary sheet-apply" id="applyClearBtn" type="button" data-i18n="clearApplyBtn"></button>
+    </div>
+  </div>
+
   <!-- FEEDBACK SHEET (overlay) -->
   <div class="sheet-overlay" id="streakOverlay" hidden>
     <div class="sheet-panel">
@@ -3207,6 +3228,15 @@ const STR = {
     repeatPickEnd: "Pick the last day to copy it to.",
     repeatApplyBtn: "Repeat week",
     repeatDoneToast: "Copied into {weeks}",
+    clearWeekBtn: "Clear",
+    clearTitle: "Clear planned workouts",
+    clearSub: "Take the workouts you planned or repeated off these days. Each day goes back to Altiro's plan, or a rest day if you plan your own workouts. Workouts you've already done or logged stay.",
+    clearScopeLabel: "Clear",
+    clearScopeWeek: "Just this week ({range})", clearScopeOnward: "This week and every week after",
+    clearNote: "{n} days will be cleared, {from} to {to}.", clearNote1: "1 day will be cleared: {from}.",
+    clearNone: "Nothing to clear here. Only workouts you've done or logged are left.",
+    clearApplyBtn: "Clear workouts",
+    clearDoneToast: "Cleared {n} days", clearDoneToast1: "Cleared 1 day",
     startLabel: "When do you want to start?",
     adjStartLabel: "When should your plan start?",
     startKeep: "Keep my plan", startToday: "Today", startTomorrow: "Tomorrow", startMonday: "Next Monday", startPick: "Pick a date",
@@ -3829,6 +3859,15 @@ const STR = {
     repeatPickEnd: "Elige el último día al que copiarla.",
     repeatApplyBtn: "Repetir semana",
     repeatDoneToast: "Copiada en {weeks}",
+    clearWeekBtn: "Borrar",
+    clearTitle: "Borrar entrenamientos planeados",
+    clearSub: "Quita de estos días los entrenamientos que planeaste o repetiste. Cada día vuelve al plan de Altiro, o a un día de descanso si planeas tus propios entrenamientos. Los que ya hiciste o registraste se quedan.",
+    clearScopeLabel: "Borrar",
+    clearScopeWeek: "Solo esta semana ({range})", clearScopeOnward: "Esta semana y todas las siguientes",
+    clearNote: "Se borrarán {n} días, del {from} al {to}.", clearNote1: "Se borrará 1 día: {from}.",
+    clearNone: "No hay nada que borrar aquí. Solo quedan entrenamientos que hiciste o registraste.",
+    clearApplyBtn: "Borrar entrenamientos",
+    clearDoneToast: "Se borraron {n} días", clearDoneToast1: "Se borró 1 día",
     startLabel: "¿Cuándo quieres empezar?",
     adjStartLabel: "¿Cuándo empieza tu plan?",
     startKeep: "Mantener mi plan", startToday: "Hoy", startTomorrow: "Mañana", startMonday: "El próximo lunes", startPick: "Elegir fecha",
@@ -6068,6 +6107,70 @@ function applyRepeatWeek(){
   showToast(L.repeatDoneToast.replace('{weeks}', weeksText));
 }
 document.getElementById('closeRepeat').addEventListener('click', closeRepeatWeek);
+
+/* ---------------- clear planned workouts ---------------- */
+// The way back from planning or repeating weeks: the workouts the user put on days from today on come
+// off them -- each day back to Altiro's plan (a rest day for someone planning their own) and its
+// not-yet-done Additional Workouts removed. Anything done or logged stays, and the past is never touched.
+function clearableOwnWorkouts(fromKey, toKey){
+  const todayKey = dateKey(TODAY_DATE);
+  const start = fromKey < todayKey ? todayKey : fromKey;
+  const keys = new Set(Object.keys(state.dayLog));
+  weekDates(0).forEach(d=> keys.add(dateKey(d)));
+  const out = [];
+  [...keys].filter(k=> k>=start && (!toKey || k<=toKey)).sort().forEach(k=>{
+    const slot = getRawDaySlot(parseDateKey(k)), log = state.dayLog[k];
+    const done = (k===todayKey && isTodayDone())
+      || !!(log && (log.performance || log.completedOverride===true || log.actualRunDistance!=null || (log.manualEntries||[]).length));
+    const day = {key:k, primary: !!slot.isCustom && !done, extras: ((log && log.extraWorkouts) || []).filter(w=>!w.completed).map(w=>w.id)};
+    if(day.primary || day.extras.length) out.push(day);
+  });
+  return out;
+}
+function clearableInWeek(weekIdx){
+  const dates = weekDates(weekIdx);
+  return clearableOwnWorkouts(dateKey(dates[0]), dateKey(dates[6]));
+}
+function clearOwnWorkouts(days){
+  days.forEach(d=>{
+    d.extras.forEach(id=> deleteExtraWorkout(d.key, id));
+    if(d.primary) resetToSuggestedPlan(d.key);
+  });
+  state.doneCount = computeDoneCount();
+}
+let clearDraft = null; // {weekIdx, scope: 'week'|'onward'}
+function clearDraftDays(){
+  const dates = weekDates(clearDraft.weekIdx);
+  return clearableOwnWorkouts(dateKey(dates[0]), clearDraft.scope==='week' ? dateKey(dates[6]) : null);
+}
+function openClearWeeks(weekIdx){
+  clearDraft = {weekIdx, scope:'week'};
+  renderClearWeeks();
+  document.getElementById('clearWeeksOverlay').hidden = false;
+}
+function closeClearWeeks(){ document.getElementById('clearWeeksOverlay').hidden = true; clearDraft = null; }
+function renderClearWeeks(){
+  if(!clearDraft) return;
+  const L = STR[state.lang], dates = weekDates(clearDraft.weekIdx);
+  document.getElementById('clearSub').textContent = L.clearSub;
+  const opts = [{key:'week', t:L.clearScopeWeek.replace('{range}', fmtShortRange(dates[0], dates[6]))}, {key:'onward', t:L.clearScopeOnward}];
+  renderChipRow('clearScopeChips', opts.map(o=>({key:o.key, en:{t:o.t}, es:{t:o.t}})), clearDraft.scope, k=>{ clearDraft.scope = k; renderClearWeeks(); });
+  const days = clearDraftDays();
+  const fmt = k=>{ const d = parseDateKey(k); return `${MONTHS_SHORT[state.lang][d.getMonth()]} ${d.getDate()}`; };
+  document.getElementById('clearNote').textContent = !days.length ? L.clearNone
+    : days.length===1 ? L.clearNote1.replace('{from}', fmt(days[0].key))
+    : L.clearNote.replace('{n}', days.length).replace('{from}', fmt(days[0].key)).replace('{to}', fmt(days[days.length-1].key));
+  document.getElementById('applyClearBtn').disabled = !days.length;
+}
+document.getElementById('closeClearWeeks').addEventListener('click', closeClearWeeks);
+document.getElementById('applyClearBtn').addEventListener('click', ()=>{
+  if(!clearDraft) return;
+  const L = STR[state.lang], days = clearDraftDays();
+  clearOwnWorkouts(days);
+  closeClearWeeks();
+  refreshViews();
+  showToast(days.length===1 ? L.clearDoneToast1 : L.clearDoneToast.replace('{n}', days.length));
+});
 document.getElementById('applyRepeatBtn').addEventListener('click', applyRepeatWeek);
 
 /* ---------------- user-planned workouts (today or any future date) ---------------- */
@@ -8387,7 +8490,7 @@ function renderWeek(){
   for(let weekIdx=0; weekIdx<state.planWeeksLoaded; weekIdx++){
     const dates = weekDates(weekIdx);
     html += `<div class="week-block" data-week-idx="${weekIdx}">
-      <div class="week-block-label"><span>${weekRangeLabel(weekIdx)}</span><span class="week-block-right">${weekPlanMetaHtml(weekIdx)}${ownWeekWorkouts(weekIdx).count ? `<button type="button" class="week-repeat-btn" data-repeat-week="${weekIdx}">${ICONS.repeat}${L.repeatWeekBtn}</button>` : ''}</span></div>
+      <div class="week-block-label"><span>${weekRangeLabel(weekIdx)}</span><span class="week-block-right">${weekPlanMetaHtml(weekIdx)}<span class="week-btns">${ownWeekWorkouts(weekIdx).count ? `<button type="button" class="week-repeat-btn" data-repeat-week="${weekIdx}">${ICONS.repeat}${L.repeatWeekBtn}</button>` : ''}${clearableInWeek(weekIdx).length ? `<button type="button" class="week-repeat-btn week-clear-btn" data-clear-week="${weekIdx}" aria-label="${escapeHtml(L.clearTitle)}" title="${escapeHtml(L.clearTitle)}">${ICONS.trash}</button>` : ''}</span></span></div>
       ${dates.map((date,i)=>planListRowHtml(weekIdx,i,date)).join('')}
     </div>`;
   }
@@ -8396,6 +8499,7 @@ function renderWeek(){
     : `<div id="planScrollSentinel" style="height:1px;"></div>`;
   wrap.innerHTML = html;
   wrap.querySelectorAll('[data-repeat-week]').forEach(b=> b.addEventListener('click', ()=> openRepeatWeek(parseInt(b.getAttribute('data-repeat-week'),10))));
+  wrap.querySelectorAll('[data-clear-week]').forEach(b=> b.addEventListener('click', ()=> openClearWeeks(parseInt(b.getAttribute('data-clear-week'),10))));
   setupDayRowInteraction(wrap);
 }
 // Opens the Plan tab with today's row centered vertically in the screen (past days visible above,

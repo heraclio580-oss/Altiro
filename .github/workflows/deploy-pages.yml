@@ -23,6 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Stamp the build so open copies of the site can tell a newer version is out (see checkForUpdate).
+      - name: Stamp build
+        run: |
+          sed -i "s/__ALTIRO_BUILD__/${GITHUB_SHA}/" www/index.html
+          printf '{"build":"%s"}\n' "$GITHUB_SHA" > www/version.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: www

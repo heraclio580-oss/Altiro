@@ -45,12 +45,16 @@ function planWorkout(doc, name){
   const delBtn = [...doc.querySelectorAll('#dayDetailExtraWorkouts [data-del-extra]')][0];
   delBtn.click();
   await wait(20);
+  doc.getElementById('confirmDeleteOk').click();
+  await wait(20);
   const remaining = doc.querySelectorAll('#dayDetailExtraWorkouts .manual-entry');
   console.log('Deleting one extra workout leaves the other:', remaining.length===1 && remaining[0].textContent.includes('Workout C') ? 'OK' : `FAIL (${remaining.length}, ${doc.getElementById('dayDetailExtraWorkouts').textContent})`);
   console.log('Primary plan still shows Workout A after deleting an extra:', doc.getElementById('dayDetailPlanRow').textContent.includes('Workout A') ? 'OK' : 'FAIL');
 
   // Delete the last extra -- section should hide again.
   doc.querySelector('#dayDetailExtraWorkouts [data-del-extra]').click();
+  await wait(20);
+  doc.getElementById('confirmDeleteOk').click();
   await wait(20);
   console.log('Additional-workouts section hides once empty again:', doc.getElementById('dayDetailExtraSection').hidden===true ? 'OK' : 'FAIL');
 

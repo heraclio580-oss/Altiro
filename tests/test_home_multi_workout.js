@@ -60,6 +60,8 @@ function planTodayWorkout(doc, win, name){
   // Delete the (now completed) extra workout -- it just disappears, the rest untouched.
   doc.querySelector(`#homeExtraWorkoutsWrap [data-extra-id="${extraId}"] [data-del-extra]`).click();
   await wait(20);
+  doc.getElementById('confirmDeleteOk').click();
+  await wait(20);
   console.log('Deleting an extra workout removes just that one:', !doc.querySelector(`#homeExtraWorkoutsWrap [data-extra-id="${extraId}"]`) && doc.getElementById('homeExtraWorkoutsWrap').textContent.includes('Home Workout B') ? 'OK' : 'FAIL');
   console.log('Today\'s planned workout unaffected by deleting it:', doc.querySelector('#sessionCard .title').textContent===planned ? 'OK' : 'FAIL');
 

@@ -55,6 +55,8 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('Delete button is present on Home\'s entry:', !!delBtn ? 'OK' : 'FAIL');
   delBtn.click();
   await wait(20);
+  doc.getElementById('confirmDeleteOk').click();
+  await wait(20);
   console.log('Entry removed from Home\'s list after deleting from Home:', !doc.getElementById('homeEntriesWrap').textContent.includes('Extra Cardio') ? 'OK' : 'FAIL');
   console.log('List falls back to "Nothing logged" again:', doc.getElementById('homeEntriesWrap').textContent.includes('Nothing logged') ? 'OK' : 'FAIL');
   console.log('Completed toggle reverts to OFF once the only log is removed:', !doc.getElementById('homeCompleteToggle').classList.contains('on') ? 'OK' : 'FAIL');

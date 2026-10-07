@@ -144,7 +144,10 @@ html:not(.proto-on) .device-wrap{margin-top:28px;}
   overflow:hidden;
 }
 .device::before{content:"";position:absolute;top:10px;left:50%;transform:translateX(-50%);width:84px;height:5px;background:#0d0e10;border-radius:3px;z-index:50;}
-.screen{position:absolute;inset:0;background:var(--screen-bg);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+.screen{position:absolute;inset:0;background:var(--screen-bg);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;}
+/* (pan-y: iOS Safari still lets a screen be dragged sideways when anything in it is a hair too wide;
+   screens only ever scroll up and down. Maps, sliders and drag-to-reorder handle their own gestures.) */
+html,body{overflow-x:hidden;}
 .screen[hidden]{display:none;}
 /* On an actual phone-width viewport the app fills the screen edge-to-edge like a real mobile web
    app instead of showing a shrunk-down mockup of itself -- the bezel/notch/shadow chrome below is
@@ -434,6 +437,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .week-repeat-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:var(--r-pill);background:none;color:var(--text-2);font:inherit;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}
 .week-repeat-btn svg{width:11px;height:11px;}
 .week-btns{display:inline-flex;gap:6px;flex-shrink:0;}
+#confirmDeleteOverlay{z-index:95;}
+.confirm-row{display:flex;gap:10px;margin-top:20px;}
+.confirm-row .btn{flex:1;}
 .repeat-clear{margin-top:26px;padding-top:18px;border-top:1px solid var(--divider-soft);}
 .week-clear-btn{padding:3px 7px;}
 .week-clear-btn svg{width:12px;height:12px;}
@@ -1131,6 +1137,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .toast{position:absolute;left:16px;right:16px;bottom:78px;background:var(--toast-bg);border:1px solid var(--divider);border-left:4px solid var(--ok-border);border-radius:var(--r-md);padding:11px 12px;font-size:12.5px;color:var(--toast-text);display:flex;align-items:center;gap:8px;z-index:100;animation:toastIn .2s ease both;}
 .toast[hidden]{display:none;}
 .toast svg{width:14px;height:14px;color:var(--ok-icon);flex-shrink:0;}
+.update-bar{position:absolute;left:16px;right:16px;top:calc(10px + env(safe-area-inset-top,0px));z-index:101;display:flex;align-items:center;gap:10px;background:var(--toast-bg);border:1px solid var(--accent);border-radius:var(--r-md);padding:8px 8px 8px 14px;font-size:12.5px;color:var(--toast-text);box-shadow:0 8px 24px rgba(0,0,0,0.35);}
+.update-bar[hidden]{display:none;}
+.update-bar span{flex:1;min-width:0;}
+.update-bar .btn{height:34px;padding:0 14px;font-size:12px;width:auto;flex-shrink:0;}
 @keyframes toastIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
 /* ---------- summary ---------- */
@@ -2050,6 +2060,20 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     </div>
   </div>
 
+  <div class="sheet-overlay" id="confirmDeleteOverlay" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="deleteWorkoutTitle"></span>
+        <button class="iconbtn" id="closeConfirmDelete"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <p class="fb-sub" id="confirmDeleteSub"></p>
+      <div class="confirm-row">
+        <button class="btn btn-ghost" id="confirmDeleteCancel" type="button" data-i18n="wpCancel"></button>
+        <button class="btn btn-primary" id="confirmDeleteOk" type="button" data-i18n="deleteWorkoutBtn"></button>
+      </div>
+    </div>
+  </div>
   <div class="sheet-overlay" id="clearWeeksOverlay" hidden>
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
@@ -2645,6 +2669,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
     </div>
   </div>
+  <div class="update-bar" id="updateBar" hidden><span data-i18n="updateReady"></span><button class="btn btn-primary" id="updateBtn" type="button" data-i18n="updateBtn"></button></div>
   <div class="toast" id="toast" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 10l4 4 8-9"/></svg><span id="toastMsg"></span></div>
 
   <!-- HOW IT WORKS TUTORIAL: a swipeable tour of the app -->
@@ -3237,6 +3262,12 @@ const STR = {
     repeatApplyBtn: "Repeat week",
     repeatDoneToast: "Copied into {weeks}",
     clearWeekBtn: "Clear",
+    updateReady: "A new version of Altiro is ready.", updateBtn: "Update",
+    deleteWorkoutTitle: "Delete this workout?",
+    deleteWorkoutSub: "{name} will be removed from {day}.",
+    deleteWorkoutSubDone: "{name} will be removed from {day}, along with what you logged for it. This can't be undone.",
+    deleteWorkoutBtn: "Delete workout",
+    workoutDeletedToast: "Workout deleted",
     repeatClearLabel: "Clear the weeks ahead",
     repeatClearSub: "Changed your mind? Take your planned and repeated workouts off the weeks after this one. Done and logged workouts stay.",
     repeatClearSpanAll: "All weeks after",
@@ -3872,6 +3903,12 @@ const STR = {
     repeatApplyBtn: "Repetir semana",
     repeatDoneToast: "Copiada en {weeks}",
     clearWeekBtn: "Borrar",
+    updateReady: "Hay una nueva versión de Altiro.", updateBtn: "Actualizar",
+    deleteWorkoutTitle: "¿Eliminar este entrenamiento?",
+    deleteWorkoutSub: "{name} se quitará del {day}.",
+    deleteWorkoutSubDone: "{name} se quitará del {day}, junto con lo que registraste. No se puede deshacer.",
+    deleteWorkoutBtn: "Eliminar entrenamiento",
+    workoutDeletedToast: "Entrenamiento eliminado",
     repeatClearLabel: "Borrar las semanas siguientes",
     repeatClearSub: "¿Cambiaste de idea? Quita tus entrenamientos planeados y repetidos de las semanas después de esta. Los que hiciste o registraste se quedan.",
     repeatClearSpanAll: "Todas las semanas siguientes",
@@ -6313,8 +6350,11 @@ function resetToSuggestedPlan(key){
   const gen = sessionForDate(date);
   writeDaySlot(date, {p: gen.p, c: gen.c, completed: false, isCustom: false});
   cloudClearPlannedSession(key);
-  // The workout taken off the day takes its "done" with it -- its done mark, what was logged for it and
-  // a run's distance -- so the plan's own workout (or rest day) starts fresh instead of showing as done.
+  clearDayDone(key);
+}
+// The workout taken off a day takes its "done" with it -- its done mark, what was logged for it and a
+// run's distance -- so whatever the day holds now starts fresh instead of showing as done.
+function clearDayDone(key){
   const log = state.dayLog[key];
   if(log){
     if(log.completedOverride!=null){ log.completedOverride = null; cloudSetCompletedOverride(key, null); }
@@ -6324,6 +6364,42 @@ function resetToSuggestedPlan(key){
   if(key===dateKey(TODAY_DATE)) state.todayCompleted = false;
   state.doneCount = computeDoneCount();
 }
+// Deleting a day's own workout -- one the plan made or the user created: the day becomes a rest day the
+// user chose (the plan won't refill it; "Reset to Suggested Plan" brings the plan's back). When the day's
+// workout is really an Additional Workout or a logged one standing in on a rest day, that one is deleted.
+function deleteDayWorkout(key){
+  const dd = getDayData(parseDateKey(key));
+  if(dd.primarySource==='extra'){ deleteExtraWorkout(key, primaryLogTarget(dd).id); state.doneCount = computeDoneCount(); return; }
+  if(dd.primarySource==='entry'){ deleteManualEntry(key, dd.manualEntries[0].id); return; }
+  const rest = ses('rest','Rest Day','','Día de descanso','');
+  writeDaySlot(parseDateKey(key), {p: rest, c: null, completed: false, isCustom: true});
+  cloudSavePlannedSession(key, rest);
+  clearDayDone(key);
+}
+// "Delete this workout?" -- every delete of a workout asks first.
+let confirmDeleteAction = null;
+function askDeleteWorkout(name, key, done, onDelete){
+  const L = STR[state.lang], d = parseDateKey(key);
+  const day = key===dateKey(TODAY_DATE) ? (state.lang==='es' ? 'hoy' : 'today')
+    : `${DAY_NAMES_FULL[state.lang][(d.getDay()+6)%7]}, ${MONTHS_SHORT[state.lang][d.getMonth()]} ${d.getDate()}`;
+  let sub = (done ? L.deleteWorkoutSubDone : L.deleteWorkoutSub).replace('{name}', name).replace('{day}', day);
+  if(key===dateKey(TODAY_DATE) && state.lang==='es') sub = sub.replace('del hoy', 'de hoy');
+  document.getElementById('confirmDeleteSub').textContent = sub;
+  confirmDeleteAction = onDelete;
+  document.getElementById('confirmDeleteOverlay').hidden = false;
+}
+function closeConfirmDelete(){ document.getElementById('confirmDeleteOverlay').hidden = true; confirmDeleteAction = null; }
+document.getElementById('closeConfirmDelete').addEventListener('click', closeConfirmDelete);
+document.getElementById('confirmDeleteCancel').addEventListener('click', closeConfirmDelete);
+document.getElementById('confirmDeleteOverlay').addEventListener('click', e=>{ if(e.target.id==='confirmDeleteOverlay') closeConfirmDelete(); });
+document.getElementById('confirmDeleteOk').addEventListener('click', ()=>{
+  const act = confirmDeleteAction;
+  closeConfirmDelete();
+  if(!act) return;
+  act();
+  refreshViews();
+  showToast(STR[state.lang].workoutDeletedToast);
+});
 function allPlanDates(){
   const dates = [];
   for(let w=0; w<state.planWeeksLoaded; w++) dates.push(...weekDates(w));
@@ -7091,6 +7167,7 @@ function renderHome(){
     ${eff.t!=='rest' ? `<button class="watch-demo-btn" id="watchDemoBtn" type="button">${ICONS.play}${L.watchDemoBtn}</button>` : ''}
     ${exercisesForSession(eff) && !isTodayDone() ? `<button class="watch-demo-btn" id="changeExercisesBtn" type="button">${ICONS.swap}${L.changeExercisesBtn}</button>` : ''}
     <button class="watch-demo-btn" id="addTodayWorkoutBtn" type="button">${L.addWorkoutBtn}</button>
+    ${eff.t!=='rest' ? `<button class="watch-demo-btn" id="deleteTodayWorkoutBtn" type="button">${ICONS.trash}${L.deleteWorkoutBtn}</button>` : ''}
     <button class="watch-demo-btn" id="trackRunBtn" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18s5.5-5.2 5.5-9.5a5.5 5.5 0 0 0-11 0C4.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg>${L.gpsTrackBtn}</button>
     ${eff.t!=='rest' ? `
     <div class="toggle-row" style="margin-top:14px;">
@@ -7151,8 +7228,13 @@ function renderHome(){
     homeCompleteToggle.addEventListener('click', toggleTodayCompleted);
   }
   document.getElementById('homeEntriesWrap').querySelectorAll('[data-del]').forEach(btn=>{
-    btn.addEventListener('click', ()=> deleteManualEntry(todayKey, btn.getAttribute('data-del')));
+    btn.addEventListener('click', ()=>{
+      const id = btn.getAttribute('data-del'), en = todayEntries.find(e=>e.id===id);
+      askDeleteWorkout(en ? en.name : '', todayKey, true, ()=> deleteManualEntry(todayKey, id));
+    });
   });
+  const delToday = document.getElementById('deleteTodayWorkoutBtn');
+  if(delToday) delToday.addEventListener('click', ()=> askDeleteWorkout(effL.title, todayKey, isTodayDone(), ()=> deleteDayWorkout(todayKey)));
   const homeExtraWrap = document.getElementById('homeExtraWorkoutsWrap');
   if(homeExtraWrap){
     homeExtraWrap.querySelectorAll('[data-start-extra]').forEach(btn=>{
@@ -7160,9 +7242,8 @@ function renderHome(){
     });
     homeExtraWrap.querySelectorAll('[data-del-extra]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        deleteExtraWorkout(todayKey, btn.getAttribute('data-del-extra'));
-        refreshViews();
-        showToast(STR[state.lang].toastUpdated);
+        const id = btn.getAttribute('data-del-extra'), w = findExtraWorkout(todayKey, id);
+        askDeleteWorkout(w ? ST(w.session).title : '', todayKey, !!(w && w.completed), ()=> deleteExtraWorkout(todayKey, id));
       });
     });
   }
@@ -9271,6 +9352,9 @@ function renderDayDetail(){
   if(ddStravaId){
     actionsHtml += `<div><a class="strava-view-link" id="ddStravaLink" href="${escapeHtml(stravaActivityUrl(ddStravaId))}" target="_blank" rel="noopener">${L.viewOnStrava}</a></div>`;
   }
+  if(dd.p.t!=='rest'){
+    actionsHtml += `<button class="watch-demo-btn" id="ddDeleteWorkoutBtn" type="button" style="margin-top:12px;">${ICONS.trash}${L.deleteWorkoutBtn}</button>`;
+  }
   if(dd.isCustom && (dd.isToday || dd.isFuture)){
     actionsHtml += `<button class="btn-text" id="ddResetPlanBtn" type="button" style="width:100%;margin-top:12px;">${L.resetPlanBtn}</button>`;
   }
@@ -9299,6 +9383,11 @@ function renderDayDetail(){
     const activeScreen = SCREEN_IDS.find(s=>elFor(s) && !elFor(s).hidden) || 'home';
     closeDayDetail();
     openExerciseDetail(dd.p, activeScreen);
+  });
+  const ddDeleteBtn = document.getElementById('ddDeleteWorkoutBtn');
+  if(ddDeleteBtn) ddDeleteBtn.addEventListener('click', ()=>{
+    const key = state.openDayKey;
+    askDeleteWorkout(ST(dd.p).title, key, dd.completed, ()=> deleteDayWorkout(key));
   });
   const ddResetBtn = document.getElementById('ddResetPlanBtn');
   if(ddResetBtn) ddResetBtn.addEventListener('click', ()=>{
@@ -9417,9 +9506,8 @@ function renderDayDetail(){
   });
   extraWrap.querySelectorAll('[data-del-extra]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      deleteExtraWorkout(state.openDayKey, btn.getAttribute('data-del-extra'));
-      refreshViews();
-      showToast(STR[state.lang].toastUpdated);
+      const key = state.openDayKey, id = btn.getAttribute('data-del-extra'), w = findExtraWorkout(key, id);
+      askDeleteWorkout(w ? ST(w.session).title : '', key, !!(w && w.completed), ()=> deleteExtraWorkout(key, id));
     });
   });
 
@@ -9444,7 +9532,10 @@ function renderDayDetail(){
     });
   }
   entriesWrap.querySelectorAll('[data-del]').forEach(btn=>{
-    btn.addEventListener('click', ()=> deleteManualEntry(state.openDayKey, btn.getAttribute('data-del')));
+    btn.addEventListener('click', ()=>{
+      const key = state.openDayKey, id = btn.getAttribute('data-del'), en = dd.manualEntries.find(e=>e.id===id);
+      askDeleteWorkout(en ? en.name : '', key, true, ()=> deleteManualEntry(key, id));
+    });
   });
 }
 document.getElementById('dayCompleteToggle').addEventListener('click', ()=>{
@@ -14382,6 +14473,30 @@ function isStandalone(){
   return navigator.standalone===true;
 }
 function isNativeShell(){ return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+// ---- New version check (website): Safari and a home-screen app keep running the page they loaded, so
+// a deploy could go unseen for days. Each deploy stamps its build into this page and into version.json;
+// when the app comes back on screen (and every half hour while it's open) it checks version.json and,
+// if there's a newer build, offers a one-tap Update -- never in the middle of a workout or a run.
+const APP_BUILD = '__ALTIRO_BUILD__';
+let updateCheckAt = 0;
+function workoutInProgress(){
+  return !document.getElementById('logPerfOverlay').hidden || !!(typeof timerState!=='undefined' && timerState && timerState.started)
+    || (()=>{ try{ return !!localStorage.getItem('altiro_gps_run'); }catch(e){ return false; } })();
+}
+async function checkForUpdate(){
+  if(isNativeShell() || APP_BUILD.startsWith('__') || !window.fetch || Date.now()-updateCheckAt < 60000) return;
+  updateCheckAt = Date.now();
+  try{
+    const res = await fetch('version.json?t='+Date.now(), {cache:'no-store'});
+    if(!res.ok) return;
+    const v = await res.json();
+    if(v && v.build && v.build!==APP_BUILD && !workoutInProgress()) document.getElementById('updateBar').hidden = false;
+  }catch(e){ /* offline -- try again next time */ }
+}
+document.getElementById('updateBtn').addEventListener('click', ()=> location.reload());
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') checkForUpdate(); });
+setTimeout(checkForUpdate, 5000);
+setInterval(()=>{ if(document.visibilityState==='visible') checkForUpdate(); }, 30*60*1000);
 // The store app's own notifications (the @capacitor/local-notifications plugin): reminders there are
 // scheduled on the phone itself -- web push doesn't reach an app from the App Store / Google Play.
 function nativeNotifications(){

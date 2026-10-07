@@ -101,6 +101,9 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const delBtn = entries.querySelector('[data-del]');
   delBtn.click();
   await wait(10);
+  console.log('Deleting asks first ("Delete this workout?"):', !doc.getElementById('confirmDeleteOverlay').hidden && doc.getElementById('dayDetailEntries').textContent.includes('Push-ups') ? 'OK' : 'FAIL');
+  doc.getElementById('confirmDeleteOk').click();
+  await wait(10);
   console.log('entry removed after delete:', doc.getElementById('dayDetailEntries').textContent.includes('Push-ups') ? 'FAIL (still present)' : 'OK (removed)');
 
   doc.getElementById('closeDayDetail').click();

@@ -7381,7 +7381,7 @@ function renderHome(){
     </div>` : ''}
     <div class="st-label" style="margin-top:14px;">${L.loggedWorkoutsLabel}</div>
     <div id="homeEntriesWrap" style="margin-top:8px;">${todayEntries.length ? todayEntries.map(en=>`
-      <div class="manual-entry">
+      <div class="manual-entry editable" data-entry-id="${en.id}">
         <span class="ic">${MANUAL_TYPE_ICON[en.type]}</span>
         <div class="body">
           <div class="n">${escapeHtml(en.name)}</div>
@@ -7393,7 +7393,7 @@ function renderHome(){
     <div class="st-label" style="margin-top:14px;">${L.additionalWorkoutsLabel}</div>
     <div id="homeExtraWorkoutsWrap" style="margin-top:8px;">${todayExtras.map(w=>{
       const wL = ST(w.session);
-      return `<div class="manual-entry" data-extra-id="${w.id}">
+      return `<div class="manual-entry editable" data-extra-id="${w.id}">
         <span class="ic">${TYPE_ICON[w.session.t]}</span>
         <div class="body">
           <div class="n">${escapeHtml(wL.title)}</div>
@@ -7429,6 +7429,12 @@ function renderHome(){
     homeCompleteToggle.classList.toggle('on', isTodayDone());
     homeCompleteToggle.addEventListener('click', toggleTodayCompleted);
   }
+  // Tapping a workout (not its buttons) opens it: one done shows what was logged, to look over or fix;
+  // one still to do starts it.
+  document.getElementById('homeEntriesWrap').querySelectorAll('[data-entry-id]').forEach(el=> el.addEventListener('click', e=>{
+    if(e.target.closest('[data-del]')) return;
+    openLogPerformanceFor({dayKey: todayKey, kind:'entry', id: el.getAttribute('data-entry-id')});
+  }));
   document.getElementById('homeEntriesWrap').querySelectorAll('[data-del]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const id = btn.getAttribute('data-del'), en = todayEntries.find(e=>e.id===id);
@@ -7441,6 +7447,10 @@ function renderHome(){
     : askDeleteWorkout(effL.title, todayKey, isTodayDone(), ()=> deleteDayWorkout(todayKey)));
   const homeExtraWrap = document.getElementById('homeExtraWorkoutsWrap');
   if(homeExtraWrap){
+    homeExtraWrap.querySelectorAll('[data-extra-id]').forEach(el=> el.addEventListener('click', e=>{
+      if(e.target.closest('[data-del-extra], [data-start-extra]')) return;
+      openLogPerformanceFor({dayKey: todayKey, kind:'extra', id: el.getAttribute('data-extra-id')});
+    }));
     homeExtraWrap.querySelectorAll('[data-start-extra]').forEach(btn=>{
       btn.addEventListener('click', ()=> openLogPerformance(btn.getAttribute('data-start-extra')));
     });

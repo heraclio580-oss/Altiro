@@ -6161,6 +6161,16 @@ function resetToSuggestedPlan(key){
   const gen = sessionForDate(date);
   writeDaySlot(date, {p: gen.p, c: gen.c, completed: false, isCustom: false});
   cloudClearPlannedSession(key);
+  // The workout taken off the day takes its "done" with it -- its done mark, what was logged for it and
+  // a run's distance -- so the plan's own workout (or rest day) starts fresh instead of showing as done.
+  const log = state.dayLog[key];
+  if(log){
+    if(log.completedOverride!=null){ log.completedOverride = null; cloudSetCompletedOverride(key, null); }
+    if(log.performance){ delete log.performance; cloudSetDayPerformance(key, null); }
+    if(log.actualRunDistance!=null){ log.actualRunDistance = null; cloudSetActualRunDistance(key, null); }
+  }
+  if(key===dateKey(TODAY_DATE)) state.todayCompleted = false;
+  state.doneCount = computeDoneCount();
 }
 function allPlanDates(){
   const dates = [];
@@ -9736,6 +9746,10 @@ function deleteManualEntry(key, id){
   const entry = log.manualEntries.find(e=>e.id===id);
   log.manualEntries = log.manualEntries.filter(e=>e.id!==id);
   if(entry && entry.supabaseId) cloudDeleteManualEntry(entry.supabaseId);
+  // A logged workout that became the day's workout (on a rest day, see logCompletedEntry) goes with it:
+  // the day goes back to its plan instead of still showing the deleted workout as scheduled.
+  const slot = entry ? getRawDaySlot(parseDateKey(key)) : null;
+  if(slot && slot.isCustom && slot.p.t===entry.type && slot.p.en.title===entry.name && !log.manualEntries.length) resetToSuggestedPlan(key);
   state.doneCount = computeDoneCount();
   refreshViews();
 }

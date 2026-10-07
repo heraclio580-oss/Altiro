@@ -65,6 +65,38 @@ function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok
   await wait(10);
   check('A normal exercise rests between its own sets as before', current()==='Lateral Raise' && restOn(), current()+' rest:'+restOn());
 
+  // ---- Log as you go: link exercises while doing the workout ----
+  doc.getElementById('restSkip').click();
+  doc.getElementById('closeLogPerf').click();
+  await wait(20);
+  const type = (el, v)=>{ el.value = v; el.dispatchEvent(new window.Event('input', {bubbles:true})); };
+  doc.getElementById('addTodayWorkoutBtn').click();
+  await wait(20);
+  doc.getElementById('createLiveToggle').click();
+  type(doc.getElementById('manualNameInput'), 'Arms');
+  doc.getElementById('saveManualEntry').click();
+  await wait(950);
+  const add = name => { type(doc.getElementById('logPerfAddExerciseInput'), name); doc.getElementById('logPerfAddExerciseBtn').click(); };
+  add('Hammer Curl');
+  await wait(10);
+  add('Triceps Pushdown');
+  await wait(10);
+  const liveLinks = () => [...doc.querySelectorAll('#logPerfExercisesList [data-ss-live]')];
+  check('Log as you go: the second exercise gets a "Superset with above" toggle (the first has none)', liveLinks().length===1 && liveLinks()[0].dataset.ssLive==='Triceps Pushdown', liveLinks().map(b=>b.dataset.ssLive).join(','));
+  const w = row('Hammer Curl').querySelector('[data-field="weight"]');
+  w.value = '35'; w.dispatchEvent(new window.Event('input', {bubbles:true}));
+  liveLinks()[0].click();
+  await wait(20);
+  const tags = [...doc.querySelectorAll('#logPerfExercisesList .ss-tag')].map(e=>e.textContent);
+  check('Tapping it makes them Superset A (A1, A2)', tags.join(',')==='A1,A2' && /Superset A/.test(doc.querySelector('#logPerfExercisesList .ss-head').textContent), tags.join(','));
+  check('...keeping what was already typed', row('Hammer Curl').querySelector('[data-field="weight"]').value==='35', row('Hammer Curl').querySelector('[data-field="weight"]').value);
+  tick('Hammer Curl', 0);
+  await wait(10);
+  check('...and a set of A1 moves straight to A2, no rest', current()==='Triceps Pushdown' && !restOn(), current()+' rest:'+restOn());
+  liveLinks()[0].click();
+  await wait(20);
+  check('Tapping it again unlinks them', !doc.querySelector('#logPerfExercisesList .ss-tag') && liveLinks()[0].getAttribute('aria-pressed')==='false');
+
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(failures ? 1 : 0);
 })().catch(e => { console.log('TEST THREW:', e.stack || e); process.exit(1); });

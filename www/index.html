@@ -490,6 +490,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .ss-link{display:flex;align-items:center;gap:6px;margin:-2px 0 6px;background:none;border:none;padding:3px 0;font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);cursor:pointer;}
 .ss-link svg{width:14px;height:14px;}
 .ss-link[aria-pressed="true"]{color:var(--accent);}
+.live-ss-link{margin:0 0 6px 2px;}
 .exercise-edit-item:first-child .ss-link{display:none;}
 .ss-tag{font-family:var(--font-mono);font-style:normal;font-size:10px;font-weight:600;color:var(--accent);margin-right:6px;}
 .r-exercise-list li .ex-nm{min-width:0;}
@@ -7500,7 +7501,11 @@ function openLogPerformanceFor(logTarget, mode){
     });
     exercisesListEl.innerHTML = exercises.map((ex, exIdx)=>{
       const ssLab = ssLabels[exIdx];
-      const ssHead = ssLab && ssLab.first ? `<div class="ss-head">${escapeHtml(STR[state.lang].supersetHead.replace('{g}', ssLab.group))}</div>` : '';
+      const ssHead = (building && exIdx>0 ? (()=>{
+          const on = !!ex.superset && ex.superset===exercises[exIdx-1].superset;
+          return `<button class="ss-link live-ss-link" type="button" data-ss-live="${escapeHtml(ex.key)}" aria-pressed="${on}">${ICONS.link}<span>${STR[state.lang][on ? 'supersetLinkedBtn' : 'supersetLinkBtn']}</span></button>`;
+        })() : '')
+        + (ssLab && ssLab.first ? `<div class="ss-head">${escapeHtml(STR[state.lang].supersetHead.replace('{g}', ssLab.group))}</div>` : '');
       const t = getExerciseTarget(ex, state.intensityIdx);
       const loggedEx = perf && perf.exercises ? perf.exercises.find(p=>p.key===ex.key) : null;
       const loggedSets = loggedEx && Array.isArray(loggedEx.sets) && loggedEx.sets.length ? loggedEx.sets : null;
@@ -7553,6 +7558,7 @@ function openLogPerformanceFor(logTarget, mode){
         </div>` : ''}
       </div>`;
     }).join('');
+    exercisesListEl.querySelectorAll('[data-ss-live]').forEach(btn=> btn.addEventListener('click', ()=> toggleLiveSuperset(btn.getAttribute('data-ss-live'))));
     exercisesListEl.querySelectorAll('.exercise-log-row').forEach(rowEl=>{
       const ex = exercises.find(e=>e.key===rowEl.getAttribute('data-exercise-key'));
       rowEl.querySelectorAll('.set-stepper-btn').forEach(btn=>{
@@ -7737,6 +7743,19 @@ function addLiveExercise(){
     const w = row.querySelector('[data-field="weight"]');
     if(w && !w.value) w.focus();
   }
+}
+// "Log as you go": link an exercise to the one above it as a superset, or unlink it.
+function toggleLiveSuperset(key){
+  const t = state._logTarget, resolved = t && resolveLogTarget(t);
+  if(!resolved) return;
+  const list = resolved.session.exercises || [];
+  const i = list.findIndex(e=>e.key===key);
+  if(i<=0) return;
+  const links = list.map((e, j)=> j>0 && !!e.superset && e.superset===list[j-1].superset);
+  links[i] = !links[i];
+  saveLogPerfDraft();
+  setSessionExercises(t, relinkSupersets(list, links));
+  openLogPerformanceFor(t, 'record');
 }
 function removeLiveExercise(key){
   const t = state._logTarget, resolved = t && resolveLogTarget(t);
@@ -8673,6 +8692,21 @@ function supersetLabels(exercises){
     i = j;
   }
   return labels;
+}
+// Gives a list fresh superset ids from which exercises are linked to the one above (links[i]).
+function relinkSupersets(list, links){
+  let groups = 0;
+  return list.map((ex, i)=>{
+    const out = {...ex};
+    delete out.superset;
+    return out;
+  }).map((ex, i, arr)=>{
+    if(links[i] && i>0){
+      if(!arr[i-1].superset) arr[i-1].superset = 's'+(++groups);
+      ex.superset = arr[i-1].superset;
+    }
+    return ex;
+  });
 }
 function ssTagHtml(lab){ return lab ? `<em class="ss-tag">${lab.label}</em>` : ''; }
 

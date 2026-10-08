@@ -63,12 +63,14 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195; // metres to degrees o
   const txt = (page, sel)=> page.evaluate(s=>{ const e = document.querySelector(s); return e ? e.textContent.replace(/\s+/g,' ').trim() : null; }, sel);
   const shown = (page, sel)=> page.evaluate(s=>{ const e = document.querySelector(s); return !!e && !e.hidden && !e.closest('[hidden]'); }, sel);
   const fix = (page, metres, acc, eastM)=> page.evaluate(([la, ln, a])=> window.__fix(la, ln, a), [LAT0 + metres*M_LAT, LNG0 + (eastM||0)*M_LAT/Math.cos(LAT0*Math.PI/180), acc==null ? 6 : acc]);
+  // On a day that isn't a run, the GPS button is under the Today card's More.
+  const tapTrack = async (page)=>{ if(!(await page.evaluate(()=>{ const e = document.getElementById('trackRunBtn'); return !!e && !e.closest('[hidden]'); }))) await page.tap('#homeMoreBtn'); await page.tap('#trackRunBtn'); };
 
   // ---- A run nobody planned, from Today ----
   {
     const {page, errors} = await openApp();
-    check('Today has a "Track a run with GPS" button', await shown(page, '#trackRunBtn') && /Track a run with GPS/.test(await txt(page, '#trackRunBtn')));
-    await page.tap('#trackRunBtn');
+    check('Today has a "Track a run with GPS" button (under More on a day that isn\'t a run)', /Track a run with GPS/.test(await txt(page, '#trackRunBtn')));
+    await tapTrack(page);
     await sleep(100);
     check('It opens the run tracker', await shown(page, '#gpsOverlay'));
     check('...looking for GPS at first', /Finding GPS/.test(await txt(page, '#gpsSignal')));
@@ -140,7 +142,7 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195; // metres to degrees o
   // ---- A run left half-way comes back when the app is opened again ----
   {
     const {page, errors, ctx} = await openApp();
-    await page.tap('#trackRunBtn');
+    await tapTrack(page);
     await fix(page, 0);
     await page.tap('#gpsStartBtn');
     for(let i=1; i<=40; i++){ await page.clock.fastForward(2000); await fix(page, i*10); }
@@ -222,7 +224,7 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195; // metres to degrees o
     await page.clock.pauseAt(new Date('2026-09-19T08:05:00'));
     await page.evaluate(()=>{ [...document.querySelectorAll('.proto-pill')].find(p=>p.dataset.navId==='home').click(); document.documentElement.classList.remove('proto-on'); });
     await sleep(200);
-    await page.tap('#trackRunBtn');
+    await tapTrack(page);
     await sleep(100);
     await fix(page, 0);
     await page.tap('#gpsStartBtn');
@@ -242,7 +244,7 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195; // metres to degrees o
   {
     const {page, errors} = await openApp({withMapLib: true});
     await page.clock.resume();
-    await page.tap('#trackRunBtn');
+    await tapTrack(page);
     let gl = false;
     for(let i=0; i<40 && !gl; i++){ gl = await page.evaluate(()=> !!window.maplibregl && !!document.querySelector('#gpsMap .maplibregl-canvas, #gpsMap .route-map-gl')); if(!gl) await sleep(100); }
     check('With the map library available, the tracker sets up a real map', gl);

@@ -72,8 +72,10 @@ const wobble = i => [0, 2.5, -2, 3, -3, 1, -2.5, 2, -1, 0][i%10];
   const txt = (page, sel)=> page.evaluate(s=>{ const e = document.querySelector(s); return e ? e.textContent.replace(/\s+/g,' ').trim() : null; }, sel);
   const shown = (page, sel)=> page.evaluate(s=>{ const e = document.querySelector(s); return !!e && !e.hidden && !e.closest('[hidden]'); }, sel);
   const val = (page, id)=> page.evaluate(i=> document.getElementById(i).value, id);
+  // On a day that isn't a run, the GPS button is under the Today card's More.
+  const tapTrack = async (page)=>{ if(!(await page.evaluate(()=>{ const e = document.getElementById('trackRunBtn'); return !!e && !e.closest('[hidden]'); }))) await page.tap('#homeMoreBtn'); await page.tap('#trackRunBtn'); };
   async function trailRun(page){
-    await page.tap('#trackRunBtn');
+    await tapTrack(page);
     await page.evaluate(([la, ln, a])=> window.__fix(la, ln, a), [LAT0, LNG0, 0]);
     await page.tap('#gpsStartBtn');
     for(let i=1; i<=160; i++){

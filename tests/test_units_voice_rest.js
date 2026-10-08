@@ -76,6 +76,8 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195;
   const run = async (page, from, to)=>{ for(let i=from; i<=to; i++){ await page.clock.fastForward(2000); await page.evaluate(([la, ln])=> window.__fix(la, ln), [LAT0 + i*10*M_LAT, LNG0]); } };
   const said = page=> page.evaluate(()=> window.__said.map(s=> s.text));
   const milesShown = /\d\s*mi\b|\/mi\b/;
+  // On a day that isn't a run, the GPS button is under the Today card's More.
+  const tapTrack = async (page)=>{ if(!(await page.evaluate(()=>{ const e = document.getElementById('trackRunBtn'); return !!e && !e.closest('[hidden]'); }))) await page.tap('#homeMoreBtn'); await page.tap('#trackRunBtn'); };
 
   // ---- Kilometres ----
   {
@@ -156,7 +158,7 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195;
   // ---- Voice during a GPS run (miles, English) ----
   {
     const {page, errors} = await openApp();
-    await page.tap('#trackRunBtn');
+    await tapTrack(page);
     check('The tracker has a voice button, on to start with', await page.evaluate(()=> document.getElementById('gpsVoiceBtn').getAttribute('aria-pressed'))==='true');
     await page.evaluate(([la, ln])=> window.__fix(la, ln), [LAT0, LNG0]);
     await page.tap('#gpsStartBtn');
@@ -180,7 +182,7 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195;
   // ---- Voice in Spanish and km, and turned off ----
   {
     const {page, errors} = await openApp({unit: 'km', lang: 'es'});
-    await page.tap('#trackRunBtn');
+    await tapTrack(page);
     check('In km, the tracker\'s distance reads Kilómetros', /Kilómetros/.test(await txt(page, '#gpsOverlay .gps-grid')), await txt(page, '#gpsOverlay .gps-grid'));
     await page.evaluate(([la, ln])=> window.__fix(la, ln), [LAT0, LNG0]);
     await page.tap('#gpsStartBtn');

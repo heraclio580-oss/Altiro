@@ -70,14 +70,14 @@ check('Each demo has form cues in English and Spanish', DEMO_KEYS.every(k=> MOVE
     else await click('.wp-chooser [data-cancel-change]');
   }
   check('(set-up) a move with a demo is in the workout (planned or swapped in)', !!swapped);
-  const withThumb = rows().filter(r=> r.querySelector('.ex-demo-btn')).map(r=> r.querySelector('.wp-ex-name').textContent);
-  const without = rows().filter(r=> !r.querySelector('.ex-demo-btn')).map(r=> r.querySelector('.wp-ex-name').textContent);
+  const withThumb = rows().filter(r=> r.querySelector('.ex-demo-btn:not(.howto)')).map(r=> r.querySelector('.wp-ex-name').textContent);
+  const without = rows().filter(r=> !r.querySelector('.ex-demo-btn:not(.howto)')).map(r=> r.querySelector('.wp-ex-name').textContent);
   const thumb = doc.querySelector(`#wpExerciseList [data-demo="${swapped}"] [data-move]`);
   const shows = !thumb ? null : PHOTOS.includes(swapped)
     ? [...thumb.querySelectorAll('img')].map(i=>i.getAttribute('src')).join(' ')===`demos/${slug(swapped)}-start.webp demos/${slug(swapped)}-end.webp`
     : !!thumb.querySelector('line, path');
   check(`The workout shows a little demo beside the move that has one (${PHOTOS.includes(swapped) ? 'photos' : 'drawn figure'})`, withThumb.includes(swapped) && shows, withThumb.join(', '));
-  check('...and none beside moves without one', without.length>0 && without.every(n=> !DEMO_KEYS.includes(n)), without.join(', '));
+  check('...and moves without one get a "How to" (their steps) instead', without.length>0 && without.every(n=> !DEMO_KEYS.includes(n)) && rows().filter(r=> !r.querySelector('.ex-demo-btn:not(.howto)')).every(r=> r.querySelector('.ex-demo-btn.howto')), without.join(', '));
 
   await click(`#wpExerciseList [data-demo="${swapped}"]`);
   const ov = doc.getElementById('moveDemoOverlay');

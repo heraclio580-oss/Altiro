@@ -709,7 +709,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .ex-demo-btn{flex-shrink:0;width:60px;height:50px;padding:0;border-radius:10px;border:1px solid var(--divider-soft);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .ex-demo-btn:hover{border-color:var(--hover-border);}
 .ex-demo-btn svg{width:100%;height:100%;display:block;}
+.ex-demo-btn.howto{flex-direction:column;gap:3px;white-space:nowrap;letter-spacing:0;color:var(--text-2);font-family:var(--font-mono);font-size:calc(9px * min(var(--fs, 1), 1.1));text-transform:uppercase;}
+.ex-demo-btn.howto svg{width:18px;height:18px;flex:none;}
+.md-stage[hidden],.md-controls[hidden]{display:none;}
 .exercise-log-name .ex-demo-btn{width:42px;height:35px;border-radius:8px;margin-right:8px;}
+.exercise-log-name .ex-demo-btn.howto span{display:none;}
+.exercise-log-name .ex-demo-btn.howto svg{width:20px;height:20px;}
 #moveDemoOverlay{z-index:92;}
 .mv-photo{position:relative;display:block;width:100%;height:100%;background:#26272A;}
 .mv-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;}
@@ -1202,6 +1207,23 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .toast-undo[hidden]{display:none;}
 .update-bar{position:absolute;left:16px;right:16px;top:calc(10px + env(safe-area-inset-top,0px));z-index:101;display:flex;align-items:center;gap:10px;background:var(--toast-bg);border:1px solid var(--accent);border-radius:var(--r-md);padding:8px 8px 8px 14px;font-size:calc(12.5px * var(--fs, 1));color:var(--toast-text);box-shadow:0 8px 24px rgba(0,0,0,0.35);}
 .update-bar[hidden]{display:none;}
+/* first-week checklist (Home) */
+.checklist-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px 8px;margin:14px 20px 0;}
+.checklist-card[hidden]{display:none;}
+.ck-head{display:flex;align-items:center;gap:10px;}
+.ck-head .ck-title{flex:1;font-weight:600;font-size:calc(15px * var(--fs, 1));color:var(--text);}
+.ck-head .ck-count{font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));color:var(--text-3);}
+.ck-head .iconbtn{width:30px;height:30px;}
+.ck-bar{height:4px;border-radius:2px;background:var(--well);margin:10px 0 4px;overflow:hidden;}
+.ck-bar span{display:block;height:100%;background:var(--accent);border-radius:2px;}
+.ck-item{display:flex;align-items:center;gap:10px;width:100%;padding:11px 2px;background:none;border:none;border-top:1px solid var(--divider);color:var(--text);font-family:var(--font-body);font-size:calc(14px * var(--fs, 1));text-align:left;cursor:pointer;}
+.ck-item:first-of-type{border-top:none;}
+.ck-item .ck-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--divider-soft);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.ck-item.done .ck-dot{background:var(--ok-icon);border-color:var(--ok-icon);color:#fff;}
+.ck-item.done .ck-dot svg{width:13px;height:13px;}
+.ck-item.done .ck-label{color:var(--text-3);text-decoration:line-through;}
+.ck-item .ck-label{flex:1;}
+.ck-item .ck-go{color:var(--text-3);font-size:calc(16px * var(--fs, 1));}
 /* saving / saved / not saved */
 .net-bar{border-color:var(--warn, #E8A33D);}
 .net-bar .iconbtn{width:30px;height:30px;flex-shrink:0;}
@@ -1741,6 +1763,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <button class="th-start" id="recordBtn" type="button"><span class="th-start-ic" id="recordIcon"></span><span id="recordLabel"></span></button>
       <div class="th-next" id="thNext"></div>
     </div>
+
+    <div class="checklist-card" id="homeChecklist" hidden></div>
 
     <div class="overview-card">
       <span class="eyebrow" data-i18n="weekViewTitle"></span>
@@ -3727,6 +3751,9 @@ const STR = {
     additionalWorkoutsLabel: "Additional Workouts",
     markCompleteTitle: "Completed",
     markCompleteSub: "Mark this day as done or not",
+    howToShort: "How to",
+    ckTitle: "Getting started", ckCount: "{n} of {total}", ckHide: "Hide",
+    ckWorkout: "Do your first workout", ckLocation: "Allow location for runs and weather", ckReminders: "Turn on workout reminders", ckStrava: "Connect Strava (optional)",
     savingChip: "Saving…", savedChip: "Saved", backOnlineToast: "Back online",
     offlineBar: "You're offline. Changes won't be saved until you're back online.",
     saveFailedBar: "Your last change didn't save. Check your connection, then do it again.",
@@ -4394,6 +4421,9 @@ const STR = {
     additionalWorkoutsLabel: "Entrenamientos adicionales",
     markCompleteTitle: "Completado",
     markCompleteSub: "Marca este día como hecho o no",
+    howToShort: "Cómo",
+    ckTitle: "Primeros pasos", ckCount: "{n} de {total}", ckHide: "Ocultar",
+    ckWorkout: "Haz tu primer entrenamiento", ckLocation: "Permite la ubicación para carreras y clima", ckReminders: "Activa los recordatorios", ckStrava: "Conecta Strava (opcional)",
     savingChip: "Guardando…", savedChip: "Guardado", backOnlineToast: "De nuevo en línea",
     offlineBar: "Sin conexión. Los cambios no se guardarán hasta que vuelvas a estar en línea.",
     saveFailedBar: "Tu último cambio no se guardó. Revisa tu conexión y vuelve a hacerlo.",
@@ -7653,6 +7683,53 @@ function renderHome(){
   }
   bindClassRows(document.getElementById('homeClassesWrap'), todayKey, ()=> refreshViews());
   renderTodayHero(eff, effL, workoutGoal, focusExtra);
+  renderChecklist();
+}
+// ---- first-week checklist: a new account's first few steps, on Home until they're done or hidden ----
+const CHECKLIST_DAYS = 14;
+function checklistHidden(){
+  try{ const s = JSON.parse(localStorage.getItem('altiro_checklist_hidden')||'null'); return !!s && s.uid===(state.userId||''); }catch(e){ return false; }
+}
+function checklistItems(){
+  let loc = false;
+  try{ loc = localStorage.getItem('altiro_weather_ok')==='1' || localStorage.getItem('altiro_loc_asked')==='granted'; }catch(e){}
+  return [
+    {k:'workout', done: !!(state.badges && state.badges.first_workout) || computeDoneCount()>0},
+    {k:'location', done: loc},
+    {k:'reminders', done: !!state.notifications},
+    {k:'strava', done: !!strava.connected, optional: true},
+  ];
+}
+function renderChecklist(){
+  const el = document.getElementById('homeChecklist');
+  if(!el) return;
+  // (Only once signed in: before that, some of what it reads isn't set up yet.)
+  const recent = state.joinedOn && daysApart(state.joinedOn, dateKey(TODAY_DATE)) < CHECKLIST_DAYS;
+  if(!state.signedIn || !recent || checklistHidden()){ el.hidden = true; return; }
+  const items = checklistItems();
+  if(items.every(i=> i.done || i.optional)){ el.hidden = true; return; }
+  const L = STR[state.lang], done = items.filter(i=>i.done).length;
+  const label = {workout:L.ckWorkout, location:L.ckLocation, reminders:L.ckReminders, strava:L.ckStrava};
+  el.innerHTML = `<div class="ck-head"><span class="ck-title">${L.ckTitle}</span><span class="ck-count">${L.ckCount.replace('{n}', done).replace('{total}', items.length)}</span>
+      <button class="iconbtn" id="ckHideBtn" type="button" aria-label="${escapeHtml(L.ckHide)}"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M6 6l8 8M14 6l-8 8"/></svg></button></div>
+    <div class="ck-bar"><span style="width:${Math.round(done/items.length*100)}%"></span></div>
+    ${items.map(i=> `<button class="ck-item${i.done ? ' done' : ''}" type="button" data-ck="${i.k}"><span class="ck-dot">${i.done ? ICONS.checkSm : ''}</span><span class="ck-label">${escapeHtml(label[i.k])}</span>${i.done ? '' : '<span class="ck-go">›</span>'}</button>`).join('')}`;
+  el.hidden = false;
+  el.querySelector('#ckHideBtn').addEventListener('click', ()=>{
+    try{ localStorage.setItem('altiro_checklist_hidden', JSON.stringify({uid: state.userId||''})); }catch(e){}
+    el.hidden = true;
+  });
+  el.querySelectorAll('[data-ck]').forEach(b=> b.addEventListener('click', ()=> checklistGo(b.dataset.ck)));
+}
+function checklistGo(k){
+  const toSetting = id=>{
+    showScreen('settings');
+    setTimeout(()=>{ const t = document.getElementById(id); if(t && t.scrollIntoView) t.scrollIntoView({block:'center'}); }, 60);
+  };
+  if(k==='workout'){ const r = document.getElementById('todayHero'); if(r && r.scrollIntoView) r.scrollIntoView({block:'start'}); }
+  else if(k==='location') document.getElementById('locPromptOverlay').hidden = false;
+  else if(k==='reminders') toSetting('notifToggle');
+  else if(k==='strava') toSetting('stravaConnectBtn');
 }
 
 /* ---------------- paces from a mile time ---------------- */
@@ -14683,7 +14760,218 @@ const DEMO_PHOTOS = new Map([
     es: ['Mancuernas a la altura de los hombros, palmas al frente', 'Abdomen firme, espalda recta', 'Empuja hacia arriba hasta estirar los brazos', 'Baja con control hasta los hombros']}}],
 ]);
 const demoSlug = key => key.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+// How to do each exercise, in three short steps (shown when there's no picture of it, or with one that has none).
+const HOWTO = {
+  'Front Squat': {en:['Bar rests on the front of your shoulders, elbows high', 'Sit straight down between your heels, chest tall', 'Drive up through your whole foot, elbows stay up'],
+    es:['Barra sobre la parte delantera de los hombros, codos altos', 'Baja recto entre los talones, pecho erguido', 'Sube empujando con todo el pie, codos arriba']},
+  'Leg Press': {en:['Feet shoulder-width in the middle of the platform', 'Lower until your knees are near 90°, back flat on the pad', 'Press back up without locking your knees'],
+    es:['Pies al ancho de hombros en el centro de la plataforma', 'Baja hasta unos 90° de rodilla, espalda pegada al respaldo', 'Empuja sin bloquear las rodillas']},
+  'Goblet Squat': {en:['Hold the weight at your chest, elbows down', 'Sit down between your knees, chest up', 'Push the floor away to stand'],
+    es:['Sujeta el peso contra el pecho, codos hacia abajo', 'Baja entre las rodillas con el pecho arriba', 'Empuja el suelo para subir']},
+  'Kettlebell Sumo Squat': {en:['Wide stance, toes out, bell hanging in both hands', 'Sit down with knees pushing out over your toes', 'Stand tall and squeeze your glutes at the top'],
+    es:['Postura ancha, puntas hacia fuera, pesa colgando con ambas manos', 'Baja empujando las rodillas hacia fuera', 'Sube erguido y aprieta los glúteos arriba']},
+  'Dumbbell Step-Up': {en:['Whole foot on the box, dumbbells at your sides', 'Drive through the top foot to stand up tall', 'Step down slowly, then switch or repeat'],
+    es:['Todo el pie sobre el cajón, mancuernas a los lados', 'Empuja con el pie de arriba hasta quedar erguido', 'Baja despacio y cambia o repite']},
+  'Bodyweight Squat': {en:['Feet shoulder-width, arms out in front for balance', 'Sit your hips back and down, chest up', 'Stand up by pushing through your heels'],
+    es:['Pies al ancho de hombros, brazos al frente para equilibrarte', 'Lleva la cadera atrás y abajo, pecho arriba', 'Sube empujando con los talones']},
+  'Jump Squat': {en:['Squat down to about parallel', 'Explode up and jump as high as you can', 'Land softly on the balls of your feet, then sink into the next one'],
+    es:['Baja en sentadilla hasta quedar casi paralelo', 'Sube con fuerza y salta lo más alto que puedas', 'Aterriza suave y baja directo a la siguiente']},
+  'Wall Sit': {en:['Back flat against the wall', 'Slide down until your knees are at 90°', 'Hold still and keep breathing'],
+    es:['Espalda pegada a la pared', 'Baja hasta que las rodillas estén a 90°', 'Aguanta quieto y sigue respirando']},
+  'Walking Lunge': {en:['Take a long step forward', 'Lower until your back knee nearly touches the floor', 'Push through the front heel and step into the next one'],
+    es:['Da un paso largo hacia delante', 'Baja hasta que la rodilla de atrás casi toque el suelo', 'Empuja con el talón delantero y sigue con el siguiente paso']},
+  'Bulgarian Split Squat': {en:['Back foot on a bench, front foot well ahead', 'Lower straight down, front knee over your foot', 'Drive up through the front heel'],
+    es:['Pie trasero sobre un banco, el delantero bien adelantado', 'Baja recto, rodilla delantera sobre el pie', 'Sube empujando con el talón delantero']},
+  'Step-Up': {en:['Whole foot on the box or step', 'Drive through that foot to stand up tall', 'Lower yourself down with control'],
+    es:['Todo el pie sobre el cajón o escalón', 'Empuja con ese pie hasta quedar erguido', 'Baja controlando el movimiento']},
+  'Reverse Lunge': {en:['Step one foot back', 'Lower until both knees are near 90°', 'Push through the front foot to come back up'],
+    es:['Da un paso atrás con un pie', 'Baja hasta que ambas rodillas estén cerca de 90°', 'Empuja con el pie delantero para volver']},
+  'Bodyweight Split Squat': {en:['Stand in a long split stance', 'Drop your back knee toward the floor', 'Press up through the front foot, torso tall'],
+    es:['Postura dividida y larga', 'Baja la rodilla trasera hacia el suelo', 'Sube empujando con el pie delantero, torso erguido']},
+  'Bodyweight Step-Up': {en:['Foot fully on a sturdy step', 'Stand up using the top leg, not a push from the back foot', 'Step down slowly'],
+    es:['Pie completo sobre un escalón firme', 'Sube con la pierna de arriba, sin impulsarte con la de atrás', 'Baja despacio']},
+  'Deadlift': {en:['Bar over mid-foot, grip just outside your legs', 'Flat back, chest up, push the floor away', 'Stand tall, then lower the bar close to your legs'],
+    es:['Barra sobre la mitad del pie, agarre justo fuera de las piernas', 'Espalda recta, pecho arriba, empuja el suelo', 'Ponte erguido y baja la barra pegada a las piernas']},
+  'Trap Bar Deadlift': {en:['Stand in the middle, grab the handles', 'Hips down, chest up, back flat', 'Drive through your feet to stand tall'],
+    es:['Colócate en el centro y agarra las asas', 'Cadera abajo, pecho arriba, espalda recta', 'Empuja con los pies hasta quedar erguido']},
+  'Rack Pull': {en:['Bar set just below or above your knees', 'Flat back, shoulders over the bar', 'Pull to standing, squeeze your glutes, lower with control'],
+    es:['Barra justo por debajo o encima de las rodillas', 'Espalda recta, hombros sobre la barra', 'Sube hasta quedar erguido, aprieta glúteos y baja controlando']},
+  'Romanian Deadlift': {en:['Soft knees, bar close to your legs', 'Push your hips back until you feel your hamstrings stretch', 'Squeeze your glutes to stand back up'],
+    es:['Rodillas algo flexionadas, barra pegada a las piernas', 'Lleva la cadera atrás hasta notar el estiramiento detrás del muslo', 'Aprieta los glúteos para volver a subir']},
+  'Hip Thrust': {en:['Upper back on a bench, bar over your hips', 'Drive your hips up until your body is flat from knees to shoulders', 'Squeeze your glutes at the top, lower slowly'],
+    es:['Parte alta de la espalda en un banco, barra sobre la cadera', 'Sube la cadera hasta quedar recto de rodillas a hombros', 'Aprieta los glúteos arriba y baja despacio']},
+  'Good Morning': {en:['Bar on your upper back, soft knees', 'Hinge forward from your hips, back flat', 'Stop when your hamstrings are stretched, then stand up'],
+    es:['Barra en la parte alta de la espalda, rodillas algo flexionadas', 'Inclínate desde la cadera con la espalda recta', 'Para al notar el estiramiento y vuelve a subir']},
+  'Dumbbell Romanian Deadlift': {en:['Dumbbells in front of your thighs, soft knees', 'Push your hips back, weights slide down your legs', 'Squeeze your glutes to stand back up'],
+    es:['Mancuernas delante de los muslos, rodillas algo flexionadas', 'Lleva la cadera atrás, las pesas bajan pegadas a las piernas', 'Aprieta los glúteos para volver a subir']},
+  'Kettlebell Swing': {en:['Hike the bell back between your legs, back flat', 'Snap your hips forward to float the bell to chest height', 'Let it swing back down and hinge again (it\'s hips, not arms)'],
+    es:['Lleva la pesa atrás entre las piernas, espalda recta', 'Empuja la cadera adelante para que suba a la altura del pecho', 'Déjala bajar y vuelve a flexionar la cadera (son caderas, no brazos)']},
+  'Dumbbell Hip Thrust': {en:['Upper back on a bench, dumbbell on your hips', 'Drive your hips up until flat from knees to shoulders', 'Pause and squeeze, then lower slowly'],
+    es:['Parte alta de la espalda en un banco, mancuerna sobre la cadera', 'Sube la cadera hasta quedar recto de rodillas a hombros', 'Pausa y aprieta, luego baja despacio']},
+  'Single-Leg Romanian Deadlift': {en:['Stand on one leg, soft knee', 'Hinge forward as the other leg reaches back, hips square', 'Stand back up by squeezing the standing glute'],
+    es:['De pie sobre una pierna, rodilla algo flexionada', 'Inclínate mientras la otra pierna va atrás, cadera recta', 'Vuelve a subir apretando el glúteo de apoyo']},
+  'Glute Bridge': {en:['Lie on your back, knees bent, feet flat', 'Push through your heels to lift your hips', 'Squeeze your glutes at the top, lower slowly'],
+    es:['Boca arriba, rodillas flexionadas, pies apoyados', 'Empuja con los talones para subir la cadera', 'Aprieta los glúteos arriba y baja despacio']},
+  'Single-Leg Glute Bridge': {en:['On your back, one foot down, the other leg up', 'Push through the planted heel to lift your hips', 'Keep your hips level, lower slowly'],
+    es:['Boca arriba, un pie apoyado y la otra pierna arriba', 'Empuja con el talón apoyado para subir la cadera', 'Mantén la cadera nivelada y baja despacio']},
+  'Incline Barbell Press': {en:['Bench at a low incline, feet planted', 'Lower the bar to your upper chest', 'Press up and slightly back over your shoulders'],
+    es:['Banco poco inclinado, pies firmes', 'Baja la barra a la parte alta del pecho', 'Empuja hacia arriba y un poco atrás, sobre los hombros']},
+  'Incline Dumbbell Press': {en:['Bench at a low incline, dumbbells at your chest', 'Press up until your arms are straight', 'Lower slowly, elbows a little in from your sides'],
+    es:['Banco poco inclinado, mancuernas a la altura del pecho', 'Empuja hasta estirar los brazos', 'Baja despacio, codos algo pegados al cuerpo']},
+  'Dumbbell Floor Press': {en:['Lie on the floor, dumbbells over your chest', 'Lower until your upper arms touch the floor', 'Press straight back up'],
+    es:['Tumbado en el suelo, mancuernas sobre el pecho', 'Baja hasta que los brazos toquen el suelo', 'Empuja recto hacia arriba']},
+  'Chest Fly': {en:['Lie on a bench, dumbbells over your chest, slight bend in your elbows', 'Open your arms wide until you feel a chest stretch', 'Bring them back together like hugging a tree'],
+    es:['Tumbado en un banco, mancuernas sobre el pecho, codos algo flexionados', 'Abre los brazos hasta notar el estiramiento en el pecho', 'Ciérralos como si abrazaras un árbol']},
+  'Cable Fly': {en:['Stand between the cables, slight bend in your elbows', 'Bring your hands together in front of your chest', 'Let them open back slowly under control'],
+    es:['De pie entre las poleas, codos algo flexionados', 'Junta las manos delante del pecho', 'Ábrelas despacio y con control']},
+  'Dumbbell Floor Fly': {en:['Lie on the floor, dumbbells over your chest', 'Open your arms until your elbows touch the floor', 'Squeeze your chest to bring them back up'],
+    es:['Tumbado en el suelo, mancuernas sobre el pecho', 'Abre los brazos hasta que los codos toquen el suelo', 'Aprieta el pecho para volver a subirlas']},
+  'Incline Push-Up': {en:['Hands on a bench or counter, body in a straight line', 'Lower your chest to the edge', 'Push back up, keep your hips in line'],
+    es:['Manos en un banco o mesa, cuerpo en línea recta', 'Baja el pecho hasta el borde', 'Empuja de vuelta, cadera alineada']},
+  'Knee Push-Up': {en:['Hands under your shoulders, knees on the floor', 'Lower your chest with your body straight from knees to head', 'Push back up'],
+    es:['Manos bajo los hombros, rodillas en el suelo', 'Baja el pecho con el cuerpo recto de rodillas a cabeza', 'Empuja de vuelta']},
+  'Wall Push-Up': {en:['Hands on the wall at shoulder height, step back', 'Bend your elbows to bring your chest toward the wall', 'Push back to straight arms'],
+    es:['Manos en la pared a la altura de los hombros, da un paso atrás', 'Dobla los codos para acercar el pecho a la pared', 'Empuja hasta estirar los brazos']},
+  'Decline Push-Up': {en:['Feet up on a bench, hands on the floor', 'Lower your chest, body in a straight line', 'Push back up'],
+    es:['Pies sobre un banco, manos en el suelo', 'Baja el pecho con el cuerpo recto', 'Empuja de vuelta']},
+  'Diamond Push-Up': {en:['Hands together under your chest, thumbs and fingers touching', 'Lower with your elbows close to your sides', 'Push back up through your triceps'],
+    es:['Manos juntas bajo el pecho, pulgares e índices tocándose', 'Baja con los codos pegados al cuerpo', 'Empuja usando los tríceps']},
+  'Overhead Press': {en:['Bar at your shoulders, squeeze your glutes and core', 'Press straight up, moving your head back out of the way', 'Lock out overhead, then lower to your shoulders'],
+    es:['Barra en los hombros, aprieta glúteos y abdomen', 'Empuja recto hacia arriba apartando la cabeza', 'Estira arriba y baja a los hombros']},
+  'Push Press': {en:['Bar at your shoulders, small dip at the knees', 'Drive up with your legs and press the bar overhead', 'Lower to your shoulders with control'],
+    es:['Barra en los hombros, flexiona un poco las rodillas', 'Impúlsate con las piernas y empuja la barra arriba', 'Baja a los hombros con control']},
+  'Dumbbell Shoulder Press': {en:['Dumbbells at shoulder height, palms forward', 'Press up until your arms are straight', 'Lower back to your shoulders slowly'],
+    es:['Mancuernas a la altura de los hombros, palmas al frente', 'Empuja hasta estirar los brazos', 'Baja despacio hasta los hombros']},
+  'Pike Push-Up': {en:['Hips high in an upside-down V, hands on the floor', 'Lower the top of your head toward the floor', 'Push back up to the V'],
+    es:['Cadera alta en forma de V invertida, manos en el suelo', 'Baja la cabeza hacia el suelo', 'Empuja de vuelta a la V']},
+  'Bent-Over Row': {en:['Hinge forward, back flat, bar hanging at your knees', 'Pull the bar to your lower ribs', 'Lower it slowly, keep your back still'],
+    es:['Inclínate con la espalda recta, barra a la altura de las rodillas', 'Tira de la barra hacia las costillas bajas', 'Bájala despacio sin mover la espalda']},
+  'Seated Cable Row': {en:['Sit tall, slight bend in your knees', 'Pull the handle to your belly, squeeze your shoulder blades', 'Let your arms straighten slowly'],
+    es:['Siéntate erguido, rodillas algo flexionadas', 'Tira del agarre hacia el abdomen juntando las escápulas', 'Estira los brazos despacio']},
+  'T-Bar Row': {en:['Straddle the bar, hinge forward with a flat back', 'Pull the handle to your chest', 'Lower under control'],
+    es:['Coloca la barra entre las piernas e inclínate con la espalda recta', 'Tira del agarre hacia el pecho', 'Baja controlando']},
+  'Resistance Band Row': {en:['Anchor the band at chest height, step back', 'Pull your hands to your ribs, elbows close', 'Squeeze your shoulder blades, then release slowly'],
+    es:['Ancla la banda a la altura del pecho y da un paso atrás', 'Lleva las manos a las costillas, codos pegados', 'Junta las escápulas y suelta despacio']},
+  'Inverted Row': {en:['Hang under a bar or sturdy table, body straight', 'Pull your chest up to the bar', 'Lower slowly, keep your hips up'],
+    es:['Cuélgate bajo una barra o mesa firme, cuerpo recto', 'Tira del pecho hacia la barra', 'Baja despacio sin dejar caer la cadera']},
+  'Superman': {en:['Lie face down, arms reaching forward', 'Lift your arms, chest and legs off the floor', 'Hold a moment, then lower slowly'],
+    es:['Boca abajo, brazos estirados al frente', 'Levanta brazos, pecho y piernas del suelo', 'Aguanta un momento y baja despacio']},
+  'Pull-Up': {en:['Hang from the bar, hands just wider than your shoulders', 'Pull your chest up until your chin clears the bar', 'Lower all the way down with control'],
+    es:['Cuélgate de la barra, manos algo más anchas que los hombros', 'Sube hasta que la barbilla pase la barra', 'Baja del todo con control']},
+  'Chin-Up': {en:['Hang with palms facing you, shoulder-width', 'Pull until your chin clears the bar', 'Lower all the way down slowly'],
+    es:['Cuélgate con las palmas hacia ti, al ancho de hombros', 'Sube hasta que la barbilla pase la barra', 'Baja del todo despacio']},
+  'Dumbbell Pullover': {en:['Lie on a bench, one dumbbell over your chest with both hands', 'Lower it back over your head, slight bend in your elbows', 'Pull it back over your chest'],
+    es:['Tumbado en un banco, una mancuerna sobre el pecho con ambas manos', 'Llévala atrás por encima de la cabeza, codos algo flexionados', 'Vuelve a llevarla sobre el pecho']},
+  'Prone Y-T-W Raise': {en:['Lie face down, arms hanging or on the floor', 'Lift your arms into a Y, then a T, then a W', 'Squeeze your shoulder blades each time, lower slowly'],
+    es:['Boca abajo, brazos colgando o en el suelo', 'Sube los brazos en Y, luego en T y luego en W', 'Junta las escápulas cada vez y baja despacio']},
+  'Bicep Curl': {en:['Stand tall, weights at your sides, palms forward', 'Curl up without swinging, elbows by your sides', 'Lower slowly all the way down'],
+    es:['De pie, pesas a los lados, palmas al frente', 'Sube sin balancearte, codos pegados', 'Baja despacio del todo']},
+  'Hammer Curl': {en:['Weights at your sides, palms facing each other', 'Curl up, keeping your palms facing in', 'Lower slowly'],
+    es:['Pesas a los lados, palmas enfrentadas', 'Sube manteniendo las palmas hacia dentro', 'Baja despacio']},
+  'Triceps Pushdown': {en:['Elbows pinned to your sides', 'Push the bar or rope down until your arms are straight', 'Let it come back up slowly, elbows still'],
+    es:['Codos pegados al cuerpo', 'Empuja la barra o cuerda hacia abajo hasta estirar los brazos', 'Deja que suba despacio sin mover los codos']},
+  'Overhead Triceps Extension': {en:['Hold the weight overhead with both hands', 'Lower it behind your head, elbows pointing up', 'Straighten your arms back up'],
+    es:['Sujeta el peso sobre la cabeza con ambas manos', 'Bájalo detrás de la cabeza, codos hacia arriba', 'Estira los brazos de nuevo']},
+  'Triceps Dip': {en:['Support yourself on parallel bars, arms straight', 'Lower until your shoulders are just below your elbows', 'Press back up'],
+    es:['Apóyate en paralelas con los brazos estirados', 'Baja hasta que los hombros queden algo por debajo de los codos', 'Empuja de vuelta arriba']},
+  'Bench Dip': {en:['Hands on a bench behind you, legs out in front', 'Bend your elbows to lower your hips', 'Push back up to straight arms'],
+    es:['Manos en un banco detrás de ti, piernas al frente', 'Dobla los codos para bajar la cadera', 'Empuja hasta estirar los brazos']},
+  'Face Pull': {en:['Rope at face height, arms straight', 'Pull toward your face, hands apart, elbows high', 'Squeeze your upper back, then return slowly'],
+    es:['Cuerda a la altura de la cara, brazos estirados', 'Tira hacia la cara separando las manos, codos altos', 'Aprieta la espalda alta y vuelve despacio']},
+  'Reverse Fly': {en:['Hinge forward, weights hanging under your chest', 'Raise your arms out to the sides, slight bend in your elbows', 'Squeeze your shoulder blades, lower slowly'],
+    es:['Inclínate, pesas colgando bajo el pecho', 'Abre los brazos a los lados, codos algo flexionados', 'Junta las escápulas y baja despacio']},
+  'Band Pull-Apart': {en:['Hold a band at shoulder height, arms straight', 'Pull it apart until it touches your chest', 'Return slowly'],
+    es:['Sujeta una banda a la altura de los hombros, brazos estirados', 'Sepárala hasta que toque el pecho', 'Vuelve despacio']},
+  'Calf Raise': {en:['Balls of your feet on a step, heels hanging', 'Rise up onto your toes as high as you can', 'Lower your heels below the step slowly'],
+    es:['Puntas de los pies en un escalón, talones fuera', 'Sube de puntillas lo más alto que puedas', 'Baja los talones por debajo del escalón despacio']},
+  'Single-Leg Calf Raise': {en:['Stand on one foot on a step, hold something for balance', 'Rise up onto your toes', 'Lower slowly below the step'],
+    es:['De pie con un pie en un escalón, sujétate para equilibrarte', 'Sube de puntillas', 'Baja despacio por debajo del escalón']},
+  'Plank': {en:['Forearms under your shoulders, body straight', 'Squeeze your glutes and brace your belly', 'Hold without letting your hips sag'],
+    es:['Antebrazos bajo los hombros, cuerpo recto', 'Aprieta glúteos y abdomen', 'Aguanta sin dejar caer la cadera']},
+  'Dead Bug': {en:['On your back, arms up, knees bent over your hips', 'Lower the opposite arm and leg toward the floor', 'Keep your lower back pressed down, then switch sides'],
+    es:['Boca arriba, brazos arriba, rodillas sobre la cadera', 'Baja el brazo y la pierna contrarios hacia el suelo', 'Mantén la zona lumbar pegada y cambia de lado']},
+  'Side Plank': {en:['On your side, elbow under your shoulder', 'Lift your hips so your body is straight', 'Hold, then switch sides'],
+    es:['De lado, codo bajo el hombro', 'Sube la cadera hasta quedar recto', 'Aguanta y cambia de lado']},
+  'Bicycle Crunch': {en:['On your back, hands lightly behind your head', 'Bring one elbow toward the opposite knee as the other leg straightens', 'Switch sides in a slow pedaling motion'],
+    es:['Boca arriba, manos suaves detrás de la cabeza', 'Lleva un codo hacia la rodilla contraria mientras estiras la otra pierna', 'Cambia de lado como pedaleando despacio']},
+  'Kettlebell Front Squat': {en:['Hold the bell at your chest, elbows down', 'Sit down between your knees, chest up', 'Drive up through your whole foot'],
+    es:['Pesa contra el pecho, codos hacia abajo', 'Baja entre las rodillas con el pecho arriba', 'Sube empujando con todo el pie']},
+  'Kettlebell Reverse Lunge': {en:['Bell at your chest or side', 'Step back and lower your back knee toward the floor', 'Push through the front foot to stand'],
+    es:['Pesa en el pecho o al lado', 'Da un paso atrás y baja la rodilla trasera', 'Empuja con el pie delantero para subir']},
+  'Kettlebell Split Squat': {en:['Long split stance, bell at your chest', 'Lower your back knee straight down', 'Press up through the front foot'],
+    es:['Postura dividida larga, pesa en el pecho', 'Baja la rodilla trasera recta', 'Sube empujando con el pie delantero']},
+  'Kettlebell Deadlift': {en:['Bell between your feet, hinge down with a flat back', 'Grip it and push the floor away to stand', 'Lower it back down the same way'],
+    es:['Pesa entre los pies, inclínate con la espalda recta', 'Agárrala y empuja el suelo para subir', 'Bájala de la misma forma']},
+  'Single-Leg Kettlebell Deadlift': {en:['Bell in one hand, stand on the opposite leg', 'Hinge forward as your free leg reaches back', 'Stand up by squeezing the standing glute'],
+    es:['Pesa en una mano, apoyo en la pierna contraria', 'Inclínate mientras la pierna libre va atrás', 'Sube apretando el glúteo de apoyo']},
+  'Kettlebell Clean': {en:['Hike the bell back between your legs', 'Drive your hips and keep the bell close as it comes up', 'Catch it softly at your shoulder, wrist straight'],
+    es:['Lleva la pesa atrás entre las piernas', 'Empuja la cadera y mantén la pesa cerca al subir', 'Recíbela suave en el hombro, muñeca recta']},
+  'Kettlebell Floor Press': {en:['Lie on the floor, bell at your chest', 'Press it straight up, wrist straight', 'Lower until your upper arm touches the floor'],
+    es:['Tumbado en el suelo, pesa en el pecho', 'Empújala recto hacia arriba, muñeca recta', 'Baja hasta que el brazo toque el suelo']},
+  'Kettlebell Overhead Press': {en:['Bell at your shoulder, brace your core', 'Press straight up until your arm is straight', 'Lower it back to your shoulder slowly'],
+    es:['Pesa en el hombro, abdomen firme', 'Empuja recto hasta estirar el brazo', 'Bájala despacio al hombro']},
+  'Kettlebell Push Press': {en:['Bell at your shoulder, small dip at the knees', 'Drive with your legs and press it overhead', 'Lower it back to your shoulder'],
+    es:['Pesa en el hombro, flexiona un poco las rodillas', 'Impúlsate con las piernas y empújala arriba', 'Bájala al hombro']},
+  'Kettlebell Halo': {en:['Hold the bell upside down by the horns at your chest', 'Circle it slowly around your head', 'Keep your core tight, then switch direction'],
+    es:['Sujeta la pesa del revés por el asa a la altura del pecho', 'Rodéala despacio alrededor de la cabeza', 'Abdomen firme y cambia de dirección']},
+  'Kettlebell Row': {en:['Hinge forward, one hand braced on your knee or a bench', 'Pull the bell to your hip', 'Lower it slowly'],
+    es:['Inclínate apoyando una mano en la rodilla o un banco', 'Tira de la pesa hacia la cadera', 'Bájala despacio']},
+  'Kettlebell Gorilla Row': {en:['Wide stance, two bells on the floor, hinge forward', 'Row one bell to your hip while pressing on the other', 'Switch sides each rep'],
+    es:['Postura ancha, dos pesas en el suelo, inclínate', 'Rema una pesa hacia la cadera apoyándote en la otra', 'Alterna los lados en cada repetición']},
+  'Kettlebell High Pull': {en:['Bell between your feet, hinge down', 'Drive your hips and pull the bell up to your chest, elbows high', 'Lower it back down'],
+    es:['Pesa entre los pies, inclínate', 'Empuja la cadera y tira de la pesa hasta el pecho, codos altos', 'Bájala de nuevo']},
+  'Kettlebell Pullover': {en:['Lie on the floor, bell over your chest with both hands', 'Lower it back over your head, arms nearly straight', 'Pull it back over your chest'],
+    es:['Tumbado en el suelo, pesa sobre el pecho con ambas manos', 'Llévala atrás por encima de la cabeza, brazos casi estirados', 'Vuelve a llevarla sobre el pecho']},
+  'Kettlebell Curl': {en:['Hold the bell by the handle or horns, arms straight', 'Curl it up, elbows by your sides', 'Lower slowly'],
+    es:['Sujeta la pesa por el asa, brazos estirados', 'Súbela con los codos pegados', 'Baja despacio']},
+  'Kettlebell Overhead Triceps Extension': {en:['Hold the bell overhead with both hands', 'Lower it behind your head, elbows pointing up', 'Straighten your arms back up'],
+    es:['Sujeta la pesa sobre la cabeza con ambas manos', 'Bájala detrás de la cabeza, codos hacia arriba', 'Estira los brazos de nuevo']},
+  'Turkish Get-Up': {en:['Lie down, bell pressed up in one hand, eyes on it', 'Roll to your elbow, then your hand, lift your hips, sweep the leg under', 'Stand up step by step, then reverse it slowly (start light)'],
+    es:['Tumbado, pesa arriba en una mano, mírala', 'Apóyate en el codo, luego en la mano, sube la cadera y pasa la pierna', 'Levántate paso a paso y deshazlo despacio (empieza ligero)']},
+  'Kettlebell Windmill': {en:['Bell overhead in one hand, feet turned away from it', 'Push your hip out and slide your free hand down your leg', 'Eyes on the bell, then stand back up'],
+    es:['Pesa arriba en una mano, pies girados hacia el otro lado', 'Saca la cadera y desliza la mano libre por la pierna', 'Mira la pesa y vuelve a subir']},
+  'Towel Row': {en:['Loop a towel around a sturdy post, hold both ends', 'Lean back with straight arms, body straight', 'Pull your chest to your hands, lower slowly'],
+    es:['Pasa una toalla por un poste firme y sujeta los extremos', 'Inclínate atrás con los brazos estirados, cuerpo recto', 'Lleva el pecho a las manos y baja despacio']},
+  'Wall Angel': {en:['Back, head and arms against the wall', 'Slide your arms up overhead, keeping them on the wall', 'Slide them back down slowly'],
+    es:['Espalda, cabeza y brazos contra la pared', 'Desliza los brazos hacia arriba sin despegarlos', 'Bájalos despacio']},
+  'Bird Dog': {en:['On hands and knees, back flat', 'Reach one arm forward and the opposite leg back', 'Hold, return, then switch sides'],
+    es:['A cuatro patas, espalda recta', 'Estira un brazo adelante y la pierna contraria atrás', 'Aguanta, vuelve y cambia de lado']},
+  'Hanging Knee Raise': {en:['Hang from a bar, shoulders engaged', 'Bring your knees up toward your chest', 'Lower slowly without swinging'],
+    es:['Cuélgate de una barra con los hombros activos', 'Sube las rodillas hacia el pecho', 'Baja despacio sin balancearte']},
+  'Reverse Curl': {en:['Hold the weight palms down', 'Curl up, elbows by your sides', 'Lower slowly'],
+    es:['Sujeta el peso con las palmas hacia abajo', 'Sube con los codos pegados', 'Baja despacio']},
+  'Preacher Curl': {en:['Upper arms flat on the pad', 'Curl the weight up', 'Lower slowly until your arms are almost straight'],
+    es:['Brazos apoyados en el soporte', 'Sube el peso', 'Baja despacio hasta casi estirar los brazos']},
+  'Concentration Curl': {en:['Sit, elbow braced on the inside of your thigh', 'Curl the dumbbell up toward your shoulder', 'Lower slowly'],
+    es:['Sentado, codo apoyado en la cara interna del muslo', 'Sube la mancuerna hacia el hombro', 'Baja despacio']},
+  'Skull Crusher': {en:['Lie on a bench, weight over your chest, arms straight', 'Bend only your elbows to lower it toward your forehead', 'Straighten your arms back up'],
+    es:['Tumbado en un banco, peso sobre el pecho, brazos estirados', 'Dobla solo los codos para bajarlo hacia la frente', 'Estira los brazos de nuevo']},
+  'Cable Lateral Raise': {en:['Stand side-on to the cable, handle in the far hand', 'Raise your arm out to shoulder height', 'Lower slowly'],
+    es:['De lado a la polea, agarre en la mano más lejana', 'Sube el brazo hasta la altura del hombro', 'Baja despacio']},
+  'Front Raise': {en:['Weights in front of your thighs', 'Raise them straight in front to shoulder height', 'Lower slowly'],
+    es:['Pesas delante de los muslos', 'Súbelas al frente hasta la altura de los hombros', 'Baja despacio']},
+  'Rear Delt Raise': {en:['Hinge forward, weights hanging', 'Raise your arms out to the sides, leading with your elbows', 'Lower slowly'],
+    es:['Inclínate con las pesas colgando', 'Abre los brazos a los lados guiando con los codos', 'Baja despacio']},
+  'Upright Row': {en:['Weights in front of your thighs, hands about shoulder-width', 'Pull up to chest height, elbows leading', 'Lower slowly (stop lower if your shoulders pinch)'],
+    es:['Pesas delante de los muslos, manos al ancho de hombros', 'Súbelas al pecho guiando con los codos', 'Baja despacio (para antes si molesta el hombro)']},
+  'Wrist Curl': {en:['Forearms on your thighs, palms up, wrists over your knees', 'Curl the weight up with just your wrists', 'Lower slowly'],
+    es:['Antebrazos sobre los muslos, palmas arriba, muñecas fuera', 'Sube el peso solo con las muñecas', 'Baja despacio']},
+  'Dead Hang': {en:['Grab the bar, shoulder-width', 'Hang with straight arms, shoulders active', 'Breathe and hold, step down when your grip fades'],
+    es:['Agarra la barra al ancho de hombros', 'Cuélgate con los brazos estirados y los hombros activos', 'Respira y aguanta, baja cuando falle el agarre']},
+  'Ab Wheel Rollout': {en:['Kneel, hands on the wheel under your shoulders', 'Roll forward slowly, keeping your back flat', 'Pull back with your abs (go only as far as you control)'],
+    es:['De rodillas, manos en la rueda bajo los hombros', 'Rueda despacio adelante con la espalda recta', 'Vuelve con el abdomen (llega solo hasta donde controles)']},
+  'Bench Press': {en:['Eyes under the bar, feet planted, shoulder blades pinched', 'Lower the bar to your mid-chest', 'Press it back up over your shoulders'],
+    es:['Ojos bajo la barra, pies firmes, escápulas juntas', 'Baja la barra a la mitad del pecho', 'Empújala de vuelta sobre los hombros']},
+  'Dumbbell Bench Press': {en:['Lie on a bench, dumbbells at your chest', 'Press up until your arms are straight', 'Lower slowly, elbows a little in from your sides'],
+    es:['Tumbado en un banco, mancuernas a la altura del pecho', 'Empuja hasta estirar los brazos', 'Baja despacio, codos algo pegados al cuerpo']},
+  'Lateral Raise': {en:['Weights at your sides, slight bend in your elbows', 'Raise your arms out to shoulder height', 'Lower slowly'],
+    es:['Pesas a los lados, codos algo flexionados', 'Sube los brazos hasta la altura de los hombros', 'Baja despacio']},
+  'Arnold Press': {en:['Dumbbells at your chest, palms facing you', 'Rotate your palms forward as you press up', 'Reverse the turn on the way down'],
+    es:['Mancuernas en el pecho, palmas hacia ti', 'Gira las palmas al frente mientras empujas arriba', 'Deshaz el giro al bajar']},
+};
 const hasDemo = key => DEMO_PHOTOS.has(key) || !!MOVES[key];
+// Every exercise can say how it's done: with a picture when there is one, or just its steps.
+const hasHowTo = key => hasDemo(key) || !!HOWTO[key];
 function moveDemoSvg(key, cls){
   if(DEMO_PHOTOS.has(key)){
     const src = `demos/${demoSlug(key)}`, ph = DEMO_PHOTOS.get(key);
@@ -14729,12 +15017,18 @@ document.addEventListener('visibilitychange', mvKick);
 // Tap a move's figure: a bigger one, with pause, slow motion and what to focus on.
 let mdKey = null, mdSpeed = 1;
 function exerciseDemoBtn(key, name){
-  return hasDemo(key) ? `<button class="ex-demo-btn" type="button" data-demo="${escapeHtml(key)}" aria-label="${escapeHtml(STR[state.lang].mdShowHow.replace('{name}', name))}">${moveDemoSvg(key, 'mv-thumb')}</button>` : '';
+  const label = escapeHtml(STR[state.lang].mdShowHow.replace('{name}', name));
+  if(hasDemo(key)) return `<button class="ex-demo-btn" type="button" data-demo="${escapeHtml(key)}" aria-label="${label}">${moveDemoSvg(key, 'mv-thumb')}</button>`;
+  return HOWTO[key] ? `<button class="ex-demo-btn howto" type="button" data-demo="${escapeHtml(key)}" aria-label="${label}">${ICONS.info}<span>${STR[state.lang].howToShort}</span></button>` : '';
 }
 function openMoveDemo(key){
-  if(!hasDemo(key)) return;
+  if(!hasHowTo(key)) return;
   mdKey = key; mdSpeed = mvStill() ? 0 : 1;
-  document.getElementById('mdStage').innerHTML = moveDemoSvg(key, 'mv-big');
+  // No picture of this one yet: just its steps.
+  const pic = hasDemo(key);
+  document.getElementById('mdStage').hidden = !pic;
+  document.querySelector('#moveDemoOverlay .md-controls').hidden = !pic;
+  document.getElementById('mdStage').innerHTML = pic ? moveDemoSvg(key, 'mv-big') : '';
   renderMoveDemo();
   document.getElementById('moveDemoOverlay').hidden = false;
   mvKick();
@@ -14743,7 +15037,7 @@ function renderMoveDemo(){
   if(!mdKey) return;
   const L = STR[state.lang];
   document.getElementById('mdTitle').textContent = exerciseDisplayName(mdKey);
-  const cueSet = MOVES[mdKey] ? MOVES[mdKey].cues : (DEMO_PHOTOS.get(mdKey) || {}).cues;
+  const cueSet = (MOVES[mdKey] && MOVES[mdKey].cues) || (DEMO_PHOTOS.get(mdKey) || {}).cues || HOWTO[mdKey];
   const cues = cueSet ? cueSet[state.lang] : [];
   document.getElementById('mdCues').innerHTML = cues.map(c=>`<li>${escapeHtml(c)}</li>`).join('');
   document.getElementById('mdCuesSection').hidden = !cues.length;

@@ -6857,6 +6857,7 @@ function resetToWelcome(){
   state.lang = lang; state.theme = theme;
   strava = {connected:false, athleteName:'', status:'idle', lastSyncAt:0};
   signedInLoad = null;
+  resetBadgeChecks();
   document.getElementById('goalNext').disabled = true;
   renderOnbOwn();
   document.getElementById('levelNext').disabled = true;
@@ -10777,8 +10778,18 @@ function saveBadges(){
   try{ localStorage.setItem('altiro_badges', JSON.stringify({uid: state.userId||'', badges: state.badges})); }catch(e){}
   saveProfileToCloud();
 }
+// Signed out (or another account signing in): no checks, nothing waiting to pop up. Otherwise the
+// empty signed-out state looks like a brand-new account and its Day One welcome would show at the next sign-in.
+function resetBadgeChecks(){
+  badgesReady = false;
+  badgeQueue = [];
+  clearTimeout(badgePumpTimer);
+  clearTimeout(badgeCheckTimer);
+  const ov = document.getElementById('badgeOverlay');
+  if(ov) ov.hidden = true;
+}
 function checkBadges(){
-  if(!badgesReady) return;
+  if(!badgesReady || !state.userId) return;
   const {earned, best} = evaluateTrophies();
   const firstTime = !state.badges || typeof state.badges!=='object';
   const stored = firstTime ? {} : state.badges;
@@ -14083,7 +14094,7 @@ document.getElementById('passwordInput').addEventListener('input', updateEmailSi
 let signedInLoad = null; // {userId, promise}
 let signingUp = false;
 function setSignedInUser(user){
-  if(state.userId!==user.id){ badgesReady = false; state.badges = null; state.joinedOn = null; }
+  if(state.userId!==user.id){ resetBadgeChecks(); state.badges = null; state.joinedOn = null; }
   state.signedIn = true;
   state.userEmail = user.email;
   state.userName = user.email.split('@')[0]; // replaced by the profile's real name, if there is one
@@ -14171,6 +14182,7 @@ sb.auth.onAuthStateChange((event, session)=>{
     state.signedIn = false;
     state.userId = null;
     signedInLoad = null;
+    resetBadgeChecks();
   }
 });
 

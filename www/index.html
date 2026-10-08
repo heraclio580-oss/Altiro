@@ -1202,6 +1202,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .toast-undo[hidden]{display:none;}
 .update-bar{position:absolute;left:16px;right:16px;top:calc(10px + env(safe-area-inset-top,0px));z-index:101;display:flex;align-items:center;gap:10px;background:var(--toast-bg);border:1px solid var(--accent);border-radius:var(--r-md);padding:8px 8px 8px 14px;font-size:calc(12.5px * var(--fs, 1));color:var(--toast-text);box-shadow:0 8px 24px rgba(0,0,0,0.35);}
 .update-bar[hidden]{display:none;}
+/* saving / saved / not saved */
+.net-bar{border-color:var(--warn, #E8A33D);}
+.net-bar .iconbtn{width:30px;height:30px;flex-shrink:0;}
+.save-chip{position:absolute;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:100;display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:var(--r-pill);background:var(--toast-bg);border:1px solid var(--divider);color:var(--text-2);font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));letter-spacing:0.04em;pointer-events:none;animation:toastIn .2s ease both;}
+.save-chip[hidden]{display:none;}
+.save-chip svg{width:12px;height:12px;color:var(--ok-icon);}
 .update-bar span{flex:1;min-width:0;}
 .update-bar .btn{height:34px;padding:0 14px;font-size:calc(12px * var(--fs, 1));width:auto;flex-shrink:0;}
 @keyframes toastIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
@@ -2753,6 +2759,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
     </div>
   </div>
+  <div class="save-chip" id="saveChip" hidden aria-live="polite"></div>
+  <div class="update-bar net-bar" id="netBar" hidden role="status"><span id="netBarText"></span><button class="iconbtn" id="netBarClose" type="button" aria-label="Close"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button></div>
   <div class="update-bar" id="updateBar" hidden><span data-i18n="updateReady"></span><button class="btn btn-primary" id="updateBtn" type="button" data-i18n="updateBtn"></button></div>
   <div class="toast" id="toast" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 10l4 4 8-9"/></svg><span id="toastMsg"></span><button class="toast-undo" id="toastUndo" type="button" hidden data-i18n="undoBtn"></button></div>
 
@@ -3008,10 +3016,68 @@ const AUTH_RETURN = (()=>{
   const q = new URLSearchParams((location.hash||'').replace(/^#/, '') + '&' + (location.search||'').replace(/^\?/, ''));
   return { type: q.get('type'), error: q.get('error_code') || q.get('error'), errorDescription: q.get('error_description') };
 })();
+// Saving, saved, or not saved: every change sent to the cloud goes through here, so the app can say
+// "Saved" (a small mark at the top), and say plainly when something didn't save or the phone is offline.
+let saveInFlight = 0, saveFailed = false, saveChipTimer = null, savingShowTimer = null;
+function trackedFetch(input, init){
+  const url = typeof input==='string' ? input : (input && input.url) || '';
+  const method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+  if(!/\/rest\/v1\//.test(url) || method==='GET' || method==='HEAD') return fetch(input, init);
+  saveInFlight++;
+  clearTimeout(savingShowTimer);
+  savingShowTimer = setTimeout(()=>{ if(saveInFlight>0) showSaveChip('saving'); }, 600);
+  return fetch(input, init).then(res=>{
+    saveInFlight = Math.max(0, saveInFlight-1);
+    if(res.ok) noteSaved();
+    else if(res.status>=500 || res.status===401 || res.status===403) noteSaveFailed();
+    // (Other answers, like a column this database doesn't have yet, are retried by the caller.)
+    else if(!saveInFlight) hideSaveChip();
+    return res;
+  }, err=>{
+    saveInFlight = Math.max(0, saveInFlight-1);
+    noteSaveFailed();
+    throw err;
+  });
+}
+function showSaveChip(kind){
+  const chip = document.getElementById('saveChip');
+  if(!chip) return;
+  const L = STR[state.lang];
+  chip.innerHTML = kind==='saved' ? `${ICONS.checkSm}<span>${L.savedChip}</span>` : `<span>${L.savingChip}</span>`;
+  chip.hidden = false;
+  clearTimeout(saveChipTimer);
+  if(kind==='saved') saveChipTimer = setTimeout(hideSaveChip, 1400);
+}
+function hideSaveChip(){ const chip = document.getElementById('saveChip'); if(chip) chip.hidden = true; }
+function noteSaved(){
+  if(saveInFlight) return;
+  clearTimeout(savingShowTimer);
+  if(saveFailed){ saveFailed = false; if(navigator.onLine!==false) hideNetBar(); }
+  showSaveChip('saved');
+}
+function noteSaveFailed(){
+  saveFailed = true;
+  clearTimeout(savingShowTimer);
+  hideSaveChip();
+  showNetBar(navigator.onLine===false ? 'offlineBar' : 'saveFailedBar');
+}
+function showNetBar(key){
+  const bar = document.getElementById('netBar');
+  if(!bar) return;
+  document.getElementById('netBarText').textContent = STR[state.lang][key];
+  bar.hidden = false;
+}
+function hideNetBar(){ const bar = document.getElementById('netBar'); if(bar) bar.hidden = true; }
+window.addEventListener('offline', ()=>{ if(state.signedIn) showNetBar('offlineBar'); });
+window.addEventListener('online', ()=>{
+  if(document.getElementById('netBar').hidden) return;
+  if(saveFailed) showNetBar('saveFailedBar');
+  else { hideNetBar(); showToast(STR[state.lang].backOnlineToast); }
+});
 const supabaseReady = new Promise((resolve)=>{
   (function poll(attemptsLeft){
     if(window.supabase && window.supabase.createClient){
-      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: (...a)=> trackedFetch(...a) } });
       resolve(true);
       return;
     }
@@ -3661,6 +3727,9 @@ const STR = {
     additionalWorkoutsLabel: "Additional Workouts",
     markCompleteTitle: "Completed",
     markCompleteSub: "Mark this day as done or not",
+    savingChip: "Saving…", savedChip: "Saved", backOnlineToast: "Back online",
+    offlineBar: "You're offline. Changes won't be saved until you're back online.",
+    saveFailedBar: "Your last change didn't save. Check your connection, then do it again.",
     textSizeLabel: "Text size", textSizeNote: "Makes the words in Altiro bigger on this device.",
     termGotIt: "Got it", termWhat: "What's this?", undoBtn: "Undo", workoutRestoredToast: "Workout restored",
     loggedWorkoutsLabel: "Logged Workouts", alsoTodayLabel: "Also today", moreBtn: "More", addAnotherWorkoutBtn: "Add a workout",
@@ -4325,6 +4394,9 @@ const STR = {
     additionalWorkoutsLabel: "Entrenamientos adicionales",
     markCompleteTitle: "Completado",
     markCompleteSub: "Marca este día como hecho o no",
+    savingChip: "Guardando…", savedChip: "Guardado", backOnlineToast: "De nuevo en línea",
+    offlineBar: "Sin conexión. Los cambios no se guardarán hasta que vuelvas a estar en línea.",
+    saveFailedBar: "Tu último cambio no se guardó. Revisa tu conexión y vuelve a hacerlo.",
     textSizeLabel: "Tamaño del texto", textSizeNote: "Agranda las letras de Altiro en este dispositivo.",
     termGotIt: "Entendido", termWhat: "¿Qué es esto?", undoBtn: "Deshacer", workoutRestoredToast: "Entrenamiento restaurado",
     loggedWorkoutsLabel: "Entrenamientos registrados", alsoTodayLabel: "También hoy", moreBtn: "Más", addAnotherWorkoutBtn: "Añadir entrenamiento",
@@ -6670,6 +6742,7 @@ document.getElementById('toastUndo').addEventListener('click', ()=>{
   showToast(STR[state.lang].workoutRestoredToast);
 });
 window.addEventListener('pagehide', commitPendingDelete);
+document.getElementById('netBarClose').addEventListener('click', hideNetBar);
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) commitPendingDelete(); });
 function allPlanDates(){
   const dates = [];

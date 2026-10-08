@@ -711,6 +711,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .ex-demo-btn svg{width:100%;height:100%;display:block;}
 .ex-demo-btn.howto{flex-direction:column;gap:3px;white-space:nowrap;letter-spacing:0;color:var(--text-2);font-family:var(--font-mono);font-size:calc(9px * min(var(--fs, 1), 1.1));text-transform:uppercase;}
 .ex-demo-btn.howto svg{width:18px;height:18px;flex:none;}
+.demo-ex-row{display:flex;align-items:center;gap:12px;width:100%;padding:8px 0;background:none;border:none;border-bottom:1px solid var(--divider);color:var(--text);font-family:var(--font-body);font-size:calc(15px * var(--fs, 1));text-align:left;cursor:pointer;}
+.demo-ex-row .demo-ex-name{flex:1;min-width:0;}
+.demo-ex-row .ck-go{color:var(--text-3);}
+#demoExercises{margin-top:6px;}
+#demoExercises[hidden],#demoPlayer[hidden],#demoPlaceholderNote[hidden]{display:none;}
 .md-stage[hidden],.md-controls[hidden]{display:none;}
 .exercise-log-name .ex-demo-btn{width:42px;height:35px;border-radius:8px;margin-right:8px;}
 .exercise-log-name .ex-demo-btn.howto span{display:none;}
@@ -2025,9 +2030,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
       <div class="demo-session-title" id="demoSessionTitle"></div>
       <div class="demo-session-detail" id="demoSessionDetail"></div>
+      <div id="demoExercises" hidden></div>
       <div class="demo-focus-label" data-i18n="focusPointsLabel"></div>
       <ul class="demo-focus-list" id="demoFocusList"></ul>
-      <div class="footer-note" data-i18n="demoPlaceholderNote" style="margin-top:18px;text-align:left;"></div>
+      <div class="footer-note" id="demoPlaceholderNote" data-i18n="demoPlaceholderNote" style="margin-top:18px;text-align:left;"></div>
     </div>
   </section>
 
@@ -3751,7 +3757,7 @@ const STR = {
     additionalWorkoutsLabel: "Additional Workouts",
     markCompleteTitle: "Completed",
     markCompleteSub: "Mark this day as done or not",
-    howToShort: "How to",
+    howToShort: "How to", demoExercisesLabel: "How to do each exercise",
     ckTitle: "Getting started", ckCount: "{n} of {total}", ckHide: "Hide",
     ckWorkout: "Do your first workout", ckLocation: "Allow location for runs and weather", ckReminders: "Turn on workout reminders", ckStrava: "Connect Strava (optional)",
     savingChip: "Saving…", savedChip: "Saved", backOnlineToast: "Back online",
@@ -4421,7 +4427,7 @@ const STR = {
     additionalWorkoutsLabel: "Entrenamientos adicionales",
     markCompleteTitle: "Completado",
     markCompleteSub: "Marca este día como hecho o no",
-    howToShort: "Cómo",
+    howToShort: "Cómo", demoExercisesLabel: "Cómo hacer cada ejercicio",
     ckTitle: "Primeros pasos", ckCount: "{n} de {total}", ckHide: "Ocultar",
     ckWorkout: "Haz tu primer entrenamiento", ckLocation: "Permite la ubicación para carreras y clima", ckReminders: "Activa los recordatorios", ckStrava: "Conecta Strava (opcional)",
     savingChip: "Guardando…", savedChip: "Guardado", backOnlineToast: "De nuevo en línea",
@@ -14521,6 +14527,15 @@ function renderExerciseDetail(){
   anim.className = 'demo-anim demo-anim-' + demoSession.t;
   anim.innerHTML = TYPE_ICON[demoSession.t] || '';
 
+  // A workout with exercises: each one's picture or steps, instead of the stand-in player.
+  const exercises = exercisesForSession(demoSession) || [];
+  const listed = exercises.filter(ex=> hasHowTo(ex.key));
+  const exWrap = document.getElementById('demoExercises');
+  exWrap.hidden = !listed.length;
+  document.getElementById('demoPlayer').hidden = !!listed.length;
+  document.getElementById('demoPlaceholderNote').hidden = !!listed.length;
+  exWrap.innerHTML = listed.length ? `<div class="demo-focus-label">${STR[state.lang].demoExercisesLabel}</div>` + listed.map(ex=>
+    `<button class="demo-ex-row" type="button" data-demo="${escapeHtml(ex.key)}">${exerciseDemoBtn(ex.key, ex.name).replace(/^<button[^>]*>/, '<span class="ex-demo-btn' + (hasDemo(ex.key) ? '' : ' howto') + '">').replace(/<\/button>$/, '</span>')}<span class="demo-ex-name">${escapeHtml(exerciseDisplayName(ex.key) || ex.name)}</span><span class="ck-go">›</span></button>`).join('') : '';
   const points = (FOCUS_POINTS[demoSession.t] || FOCUS_POINTS.run)[state.lang];
   document.getElementById('demoFocusList').innerHTML = points.map(p=>`<li>${p}</li>`).join('');
 

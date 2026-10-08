@@ -6796,22 +6796,38 @@ function reorderAcrossPlan(sourceFlatIdx, targetFlatIdx){
   if(sourceFlatIdx === targetFlatIdx) return;
   const dates = allPlanDates();
   const step = sourceFlatIdx < targetFlatIdx ? 1 : -1;
-  const movingSlot = getRawDaySlot(dates[sourceFlatIdx]);
+  // What moves with a day is everything on it still to do: its own workout, and any workout added to it
+  // (a workout added on a rest day shows as that day's workout, so it has to travel with the day too).
+  // Done ones and classes stay where they happened. A rest day moves as a plain rest day (not carrying a
+  // note like "Plan starts Monday" that belongs to its date).
+  const moves = w=> !w.completed && !(w.session && w.session.t==='class');
+  const movable = log => ((log && log.extraWorkouts) || []).filter(moves);
+  const plainRest = ()=> ses('rest','Rest Day','','Día de descanso','');
+  const bundleOf = date => {
+    const slot = getRawDaySlot(date);
+    return {slot: slot.p.t==='rest' ? {...slot, p: plainRest(), c: null} : slot, extras: movable(state.dayLog[dateKey(date)])};
+  };
+  const lo = Math.min(sourceFlatIdx, targetFlatIdx), hi = Math.max(sourceFlatIdx, targetFlatIdx);
+  const before = {};
+  for(let i=lo; i<=hi; i++) before[i] = bundleOf(dates[i]);
   // A drag reassigns which content lives on which date, so every date the cascade touches has to be
   // treated -- and persisted -- as an explicit custom plan for that date from here on. Without this,
   // the reorder was purely local: nothing about it was ever saved to the cloud, so signing out and
   // back in re-loaded each date's original auto-generated content and the rearrangement was gone.
-  function writeCustom(date, slot){
-    const stamped = {...slot, isCustom:true};
+  function place(i, bundle){
+    const date = dates[i], key = dateKey(date);
+    const stamped = {...bundle.slot, isCustom:true};
     writeDaySlot(date, stamped);
-    const key = dateKey(date);
     cloudSavePlannedSession(key, stamped.p);
     cloudSetCompletedOverride(key, stamped.completed);
+    const log = ensureDayLog(key);
+    const stay = (log.extraWorkouts || []).filter(w=> !moves(w));
+    log.extraWorkouts = [...stay, ...bundle.extras];
+    bundle.extras.forEach(w=>{ if(w.supabaseId && before[i].extras.indexOf(w)<0) cloudMoveExtraWorkout(w.supabaseId, key); });
   }
-  for(let i=sourceFlatIdx; i!==targetFlatIdx; i+=step){
-    writeCustom(dates[i], getRawDaySlot(dates[i+step]));
-  }
-  writeCustom(dates[targetFlatIdx], movingSlot);
+  for(let i=sourceFlatIdx; i!==targetFlatIdx; i+=step) place(i, before[i+step]);
+  place(targetFlatIdx, before[sourceFlatIdx]);
+  state.doneCount = computeDoneCount();
 }
 
 /* ---------------- reschedule (missed day) ----------------
@@ -13837,6 +13853,11 @@ async function cloudInsertExtraWorkout(dateStr, entry){
 async function cloudDeleteExtraWorkout(supabaseId){
   if(!state.userId || !supabaseId) return;
   try{ await sb.from('planned_workouts').delete().eq('id', supabaseId); }catch(e){ /* best-effort */ }
+}
+// An added workout moved to another day (dragged on the Plan).
+async function cloudMoveExtraWorkout(supabaseId, dateStr){
+  if(!state.userId || !supabaseId) return;
+  try{ await sb.from('planned_workouts').update({log_date: dateStr}).eq('id', supabaseId); }catch(e){ /* best-effort */ }
 }
 async function cloudSetExtraWorkoutCompleted(supabaseId, completed){
   if(!state.userId || !supabaseId) return;

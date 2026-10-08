@@ -12555,6 +12555,22 @@ document.getElementById('shareCardFullBtn').addEventListener('click', openShareF
 const MI_M = 1609.344;
 const GPS_KEY = 'altiro_gps_run', GPS_DONE_KEY = 'altiro_gps_done';
 const GPS_MAX_ACCURACY_M = 35, GPS_MAX_SPEED_MS = 12;
+// Smoothing: each fix is blended into a running estimate of where the runner really is (a simple Kalman
+// filter -- how much it trusts a fix depends on that fix's accuracy and how long since the last one),
+// and distance only counts once the estimate has moved GPS_MIN_STEP_M. Adding up raw fixes counted every
+// sideways wobble as distance: about 15% long on a short walk-and-run next to a Garmin, most of it while
+// running (a phone bouncing in a hand). GPS_Q is how fast a runner can change pace, in m/s per second.
+const GPS_Q = 3, GPS_MIN_STEP_M = 5;
+function gpsSmooth(kf, lat, lng, acc, t){
+  const dt = Math.max(0, (t - kf.t)/1000), a = Math.max(acc || 0, 3);
+  kf.v += dt * GPS_Q * GPS_Q;
+  const K = kf.v / (kf.v + a*a);
+  kf.lat += K * (lat - kf.lat);
+  kf.lng += K * (lng - kf.lng);
+  kf.v = (1 - K) * kf.v;
+  kf.t = t;
+  return [kf.lat, kf.lng, t];
+}
 const PROTO_MODE = /[?&]proto\b/.test(location.search);
 function haversineM(a, b){
   const R = 6371008.8, toR = x=> x*Math.PI/180;
@@ -12700,7 +12716,10 @@ function saveGpsRun(force){
   if(!force && Date.now()-gpsSaveAt < 4000) return;
   gpsSaveAt = Date.now();
   try{
+    // (Saved as paused if the app is closed mid-run: the few metres the smoothed position trails behind
+    // are counted now, as a pause would.)
     localStorage.setItem(GPS_KEY, JSON.stringify({...gps, movingMs: gpsElapsedMs(), runningSince:null, status: gps.status==='running' ? 'paused' : gps.status,
+      distM: gpsLiveDistM(), lastRaw: gps.status==='running' ? null : gps.lastRaw,
       segs: gps.segs.map(s=> encodePolyline(s.map(p=> [p[0], p[1]]))), segTimes: gps.segs.map(s=> s.map(p=> p[2]||0)),
       segAlts: gps.segs.map(s=> s.map(p=> p[3]==null ? null : Math.round(p[3]*10)/10))}));
   }catch(e){}
@@ -12727,8 +12746,9 @@ function gpsSignalState(){
   if(Date.now()-gpsLastFix.at > 20000) return 'finding';
   return gpsLastFix.acc > GPS_MAX_ACCURACY_M ? 'weak' : 'good';
 }
-// Every GPS fix: kept only if it's accurate enough, isn't a jump no runner could make, and has really
-// moved (standing still shouldn't add distance from GPS wobble).
+// Every GPS fix: kept only if it's accurate enough and isn't a jump no runner could make; smoothed (see
+// gpsSmooth); and counted once the smoothed position has really moved (standing still shouldn't add
+// distance from GPS wobble).
 function onGpsFix(lat, lng, acc, time, alt, altAcc){
   if(!isFinite(lat) || !isFinite(lng)) return;
   gpsLastFix = {lat, lng, acc: acc || 0, at: Date.now()};
@@ -12736,11 +12756,23 @@ function onGpsFix(lat, lng, acc, time, alt, altAcc){
     const t = time || Date.now();
     const p = [lat, lng, t];
     if(gps.newSeg || !gps.lastPt){
+      gps.kf = {lat, lng, v: Math.max(acc || 0, 3)**2, t};
+      gps.lastRaw = null;
       trackElevation(p, alt, altAcc, true);
       gps.segs.push([p]); gps.newSeg = false; gps.lastPt = p;
     } else {
-      const d = haversineM(gps.lastPt, p), dt = (t - gps.lastPt[2])/1000;
-      if(dt > 0 && d/dt <= GPS_MAX_SPEED_MS && d >= Math.max(4, (acc || 0)*0.5)){
+      // (A run picked up again after the app was reopened starts smoothing from where it left off.)
+      if(!gps.kf) gps.kf = {lat: gps.lastPt[0], lng: gps.lastPt[1], v: Math.max(acc || 0, 3)**2, t: gps.lastPt[2]};
+      const sinceKf = (t - gps.kf.t)/1000;
+      const jump = haversineM([gps.kf.lat, gps.kf.lng], p);
+      if(sinceKf > 0 && !(jump/sinceKf > GPS_MAX_SPEED_MS && jump > 2*Math.max(acc || 0, 10))){
+        gpsSmooth(gps.kf, lat, lng, acc, t);
+        gps.lastRaw = {lat, lng, t, alt, altAcc};
+      }
+      const sp = [gps.kf.lat, gps.kf.lng, gps.kf.t];
+      const d = haversineM(gps.lastPt, sp), dt = (sp[2] - gps.lastPt[2])/1000;
+      if(dt > 0 && d >= GPS_MIN_STEP_M){
+        const p = sp;
         const before = gps.distM;
         gps.distM += d;
         trackElevation(p, alt, altAcc, false);
@@ -12760,6 +12792,25 @@ function onGpsFix(lat, lng, acc, time, alt, altAcc){
     saveGpsRun();
   }
   renderGps();
+}
+// The smoothed position trails the runner by a few metres; at a pause or the finish, count the way from
+// the last counted point to the last good fix, so that bit isn't lost each time.
+function gpsCatchUp(){
+  if(!gps || !gps.lastPt || !gps.lastRaw || gps.lastRaw.t < gps.lastPt[2]) return;
+  const r = gps.lastRaw, p = [r.lat, r.lng, r.t], d = haversineM(gps.lastPt, p);
+  gps.lastRaw = null;
+  if(d < 1) return;
+  gps.distM += d;
+  trackElevation(p, r.alt, r.altAcc, false);
+  gps.segs[gps.segs.length-1].push(p);
+  gps.lastPt = p;
+}
+// What the tracker shows while running: the distance counted so far plus the few metres the smoothed
+// position trails behind (counted for real at the next pause or the finish -- see gpsCatchUp).
+function gpsLiveDistM(){
+  if(!gps) return 0;
+  const r = gps.lastRaw;
+  return gps.distM + (gps.status==='running' && r && gps.lastPt && r.t >= gps.lastPt[2] ? haversineM(gps.lastPt, [r.lat, r.lng]) : 0);
 }
 function onGpsError(code){
   const L = STR[state.lang];
@@ -12859,7 +12910,7 @@ function closeGpsTracker(){
 function renderGps(){
   if(!gps || document.getElementById('gpsOverlay').hidden) return;
   const L = STR[state.lang];
-  const ms = gpsElapsedMs(), units = gps.distM/unitMeters();
+  const ms = gpsElapsedMs(), units = gpsLiveDistM()/unitMeters();
   document.getElementById('gpsTime').textContent = fmtRunClock(ms);
   document.getElementById('gpsDist').textContent = units.toFixed(2);
   document.getElementById('gpsAvgPace').textContent = units >= 0.05 ? fmtPaceSec(ms/1000/units) : '--:--';
@@ -12904,6 +12955,7 @@ function renderGps(){
 document.getElementById('gpsStartBtn').addEventListener('click', ()=>{
   if(!gps) return;
   if(gps.status==='running'){
+    gpsCatchUp();
     gps.movingMs = gpsElapsedMs(); gps.runningSince = null; gps.status = 'paused';
     gpsKeepAwake(false);
     announceRun('paused');
@@ -13009,6 +13061,7 @@ function finishGpsRun(msAtPress){
   const L = STR[state.lang];
   if(!gps) return;
   // The run's time stops when Finish is pressed, not when the hold completes.
+  if(gps.status==='running') gpsCatchUp();
   const ms = msAtPress || gpsElapsedMs(), mi = gps.distM/MI_M;
   if(mi < 0.01){ showToast(L.gpsTooShort); return; }
   const lastPart = gps.distM/gps.splitM - gps.splits.length;

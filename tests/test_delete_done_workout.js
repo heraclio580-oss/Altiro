@@ -60,7 +60,6 @@ const openToday = async doc => { doc.querySelector('#weekStrip .day-cell.today')
     check('(set-up) the logged workout became the day\'s workout', /Morning lift/.test(flat(doc.getElementById('dayDetailPlanRow'))), flat(doc.getElementById('dayDetailPlanRow')));
     doc.querySelector('#dayDetailOverlay [data-del]').click();
     await wait(10);
-    doc.getElementById('confirmDeleteOk').click();
     await wait(30);
     check('Deleting it puts the rest day back (not the deleted workout as scheduled)', flat(doc.getElementById('dayDetailPlanRow'))==='Rest Day', flat(doc.getElementById('dayDetailPlanRow')));
     check('...and nothing says it was completed', !/Completed today/.test(flat(doc.getElementById('dayDetailActions'))), flat(doc.getElementById('dayDetailActions')));

@@ -55,7 +55,6 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('Delete button is present on Home\'s entry:', !!delBtn ? 'OK' : 'FAIL');
   delBtn.click();
   await wait(20);
-  doc.getElementById('confirmDeleteOk').click();
   await wait(20);
   console.log('Entry removed from Home\'s list after deleting from Home:', !doc.getElementById('homeEntriesWrap').textContent.includes('Extra Cardio') ? 'OK' : 'FAIL');
   console.log('List hides again once it\'s empty:', doc.getElementById('homeAlsoToday').hidden ? 'OK' : 'FAIL');

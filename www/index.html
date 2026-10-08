@@ -437,7 +437,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .week-repeat-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:var(--r-pill);background:none;color:var(--text-2);font:inherit;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}
 .week-repeat-btn svg{width:11px;height:11px;}
 .week-btns{display:inline-flex;gap:6px;flex-shrink:0;}
-#confirmDeleteOverlay{z-index:95;}
+#termOverlay{z-index:96;}
+/* the little (i) next to a training word: tap for what it means */
+.term-i{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:-4px -4px -4px 2px;padding:0;border:none;background:none;color:var(--text-3);cursor:pointer;vertical-align:middle;flex-shrink:0;}
+.term-i svg{width:14px;height:14px;}
+.term-i:hover{color:var(--text);}
+.term-text{font-size:15px;line-height:1.5;color:var(--text);margin:6px 0 0;}
 /* trophies: badges (a shield with the A) and best efforts */
 .trophy-toggle{display:flex;align-items:center;gap:10px;width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:var(--font-body);text-align:left;cursor:pointer;}
 .trophy-toggle .tt-main{flex:1;min-width:0;}
@@ -1191,6 +1196,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .toast{position:absolute;left:16px;right:16px;bottom:78px;background:var(--toast-bg);border:1px solid var(--divider);border-left:4px solid var(--ok-border);border-radius:var(--r-md);padding:11px 12px;font-size:12.5px;color:var(--toast-text);display:flex;align-items:center;gap:8px;z-index:100;animation:toastIn .2s ease both;}
 .toast[hidden]{display:none;}
 .toast svg{width:14px;height:14px;color:var(--ok-icon);flex-shrink:0;}
+#toastMsg{flex:1;min-width:0;}
+.toast-undo{flex-shrink:0;margin:-6px -4px -6px 0;padding:8px 12px;border:none;border-radius:var(--r-pill);background:none;color:var(--accent-hover);font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}
+.toast-undo[hidden]{display:none;}
 .update-bar{position:absolute;left:16px;right:16px;top:calc(10px + env(safe-area-inset-top,0px));z-index:101;display:flex;align-items:center;gap:10px;background:var(--toast-bg);border:1px solid var(--accent);border-radius:var(--r-md);padding:8px 8px 8px 14px;font-size:12.5px;color:var(--toast-text);box-shadow:0 8px 24px rgba(0,0,0,0.35);}
 .update-bar[hidden]{display:none;}
 .update-bar span{flex:1;min-width:0;}
@@ -2128,18 +2136,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
     </div>
   </div>
-  <div class="sheet-overlay" id="confirmDeleteOverlay" hidden>
+  <div class="sheet-overlay" id="termOverlay" hidden>
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <span class="label" data-i18n="deleteWorkoutTitle"></span>
-        <button class="iconbtn" id="closeConfirmDelete"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+        <span class="label" id="termTitle"></span>
+        <button class="iconbtn" id="closeTerm" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       </div>
-      <p class="fb-sub" id="confirmDeleteSub"></p>
-      <div class="confirm-row">
-        <button class="btn btn-ghost" id="confirmDeleteCancel" type="button" data-i18n="wpCancel"></button>
-        <button class="btn btn-primary" id="confirmDeleteOk" type="button" data-i18n="deleteWorkoutBtn"></button>
-      </div>
+      <p class="term-text" id="termText"></p>
+      <button class="btn btn-primary" id="termOk" type="button" style="width:100%;margin-top:18px;" data-i18n="termGotIt"></button>
     </div>
   </div>
   <div class="sheet-overlay" id="clearWeeksOverlay" hidden>
@@ -2742,7 +2747,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     </div>
   </div>
   <div class="update-bar" id="updateBar" hidden><span data-i18n="updateReady"></span><button class="btn btn-primary" id="updateBtn" type="button" data-i18n="updateBtn"></button></div>
-  <div class="toast" id="toast" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 10l4 4 8-9"/></svg><span id="toastMsg"></span></div>
+  <div class="toast" id="toast" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 10l4 4 8-9"/></svg><span id="toastMsg"></span><button class="toast-undo" id="toastUndo" type="button" hidden data-i18n="undoBtn"></button></div>
 
   <!-- HOW IT WORKS TUTORIAL: a swipeable tour of the app -->
   <div class="tutorial-overlay" id="tutorialOverlay" hidden>
@@ -3024,6 +3029,7 @@ const ICONS = {
   pause: '<svg viewBox="0 0 20 20" fill="currentColor"><rect x="5" y="4" width="3.5" height="12"/><rect x="11.5" y="4" width="3.5" height="12"/></svg>',
   muteOn: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 8v4h3l4 3V5L6 8H3z"/><path d="M13.5 7a4 4 0 0 1 0 6"/></svg>',
   muteOff: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 8v4h3l4 3V5L6 8H3z"/><path d="M13 7l4 6M17 7l-4 6"/></svg>',
+  info: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5" stroke-linecap="round"/><circle cx="10" cy="6.3" r="0.6" fill="currentColor"/></svg>',
   dots: '<svg viewBox="0 0 20 20" fill="currentColor"><circle cx="4.5" cy="10" r="1.7"/><circle cx="10" cy="10" r="1.7"/><circle cx="15.5" cy="10" r="1.7"/></svg>',
   plus: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M10 4v12M4 10h12"/></svg>',
   trash: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4.5h4V6M6 6l.7 10h6.6L14 6"/></svg>',
@@ -3340,7 +3346,7 @@ const STR = {
     deleteWorkoutSub: "{name} will be removed from {day}.",
     deleteWorkoutSubDone: "{name} will be removed from {day}, along with what you logged for it. This can't be undone.",
     deleteWorkoutBtn: "Delete workout",
-    workoutDeletedToast: "Workout deleted",
+    workoutDeletedToast: "Workout deleted", workoutDeletedNamedToast: "{name} deleted",
     repeatClearLabel: "Clear the weeks ahead",
     repeatClearSub: "Changed your mind? Take your planned and repeated workouts off the weeks after this one. Done and logged workouts stay.",
     repeatClearSpanAll: "All weeks after",
@@ -3648,6 +3654,7 @@ const STR = {
     additionalWorkoutsLabel: "Additional Workouts",
     markCompleteTitle: "Completed",
     markCompleteSub: "Mark this day as done or not",
+    termGotIt: "Got it", termWhat: "What's this?", undoBtn: "Undo", workoutRestoredToast: "Workout restored",
     loggedWorkoutsLabel: "Logged Workouts", alsoTodayLabel: "Also today", moreBtn: "More", addAnotherWorkoutBtn: "Add a workout",
     addWorkoutBtn: "+ Add Workout",
     noWorkoutsLoggedLabel: "Nothing logged for this day yet.",
@@ -4002,7 +4009,7 @@ const STR = {
     deleteWorkoutSub: "{name} se quitará del {day}.",
     deleteWorkoutSubDone: "{name} se quitará del {day}, junto con lo que registraste. No se puede deshacer.",
     deleteWorkoutBtn: "Eliminar entrenamiento",
-    workoutDeletedToast: "Entrenamiento eliminado",
+    workoutDeletedToast: "Entrenamiento eliminado", workoutDeletedNamedToast: "{name}: eliminado",
     repeatClearLabel: "Borrar las semanas siguientes",
     repeatClearSub: "¿Cambiaste de idea? Quita tus entrenamientos planeados y repetidos de las semanas después de esta. Los que hiciste o registraste se quedan.",
     repeatClearSpanAll: "Todas las semanas siguientes",
@@ -4310,6 +4317,7 @@ const STR = {
     additionalWorkoutsLabel: "Entrenamientos adicionales",
     markCompleteTitle: "Completado",
     markCompleteSub: "Marca este día como hecho o no",
+    termGotIt: "Entendido", termWhat: "¿Qué es esto?", undoBtn: "Deshacer", workoutRestoredToast: "Entrenamiento restaurado",
     loggedWorkoutsLabel: "Entrenamientos registrados", alsoTodayLabel: "También hoy", moreBtn: "Más", addAnotherWorkoutBtn: "Añadir entrenamiento",
     addWorkoutBtn: "+ Añadir entrenamiento",
     noWorkoutsLoggedLabel: "Aún no hay nada registrado este día.",
@@ -6576,30 +6584,84 @@ function deleteDayWorkout(key){
   cloudSavePlannedSession(key, rest);
   clearDayDone(key);
 }
-// "Delete this workout?" -- every delete of a workout asks first.
-let confirmDeleteAction = null;
-function askDeleteWorkout(name, key, done, onDelete){
-  const L = STR[state.lang], d = parseDateKey(key);
-  const day = key===dateKey(TODAY_DATE) ? (state.lang==='es' ? 'hoy' : 'today')
-    : `${DAY_NAMES_FULL[state.lang][(d.getDay()+6)%7]}, ${MONTHS_SHORT[state.lang][d.getMonth()]} ${d.getDate()}`;
-  let sub = (done ? L.deleteWorkoutSubDone : L.deleteWorkoutSub).replace('{name}', name).replace('{day}', day);
-  if(key===dateKey(TODAY_DATE) && state.lang==='es') sub = sub.replace('del hoy', 'de hoy');
-  document.getElementById('confirmDeleteSub').textContent = sub;
-  confirmDeleteAction = onDelete;
-  document.getElementById('confirmDeleteOverlay').hidden = false;
+// Deleting a workout: gone at once, with Undo on the toast for a few seconds. What it changes in the cloud
+// waits until then (and is sent straight away if the app is closed or they sign out first), so Undo just
+// puts the day back as it was -- nothing to re-create anywhere.
+const UNDO_MS = typeof window.__ALTIRO_UNDO_MS__==='number' ? window.__ALTIRO_UNDO_MS__ : 5000;
+let cloudHold = null, pendingUndo = null;
+function heldInCloud(fn){
+  return function(...args){
+    if(cloudHold){ cloudHold.push(()=> fn.apply(this, args)); return Promise.resolve(null); }
+    return fn.apply(this, args);
+  };
 }
-function closeConfirmDelete(){ document.getElementById('confirmDeleteOverlay').hidden = true; confirmDeleteAction = null; }
-document.getElementById('closeConfirmDelete').addEventListener('click', closeConfirmDelete);
-document.getElementById('confirmDeleteCancel').addEventListener('click', closeConfirmDelete);
-document.getElementById('confirmDeleteOverlay').addEventListener('click', e=>{ if(e.target.id==='confirmDeleteOverlay') closeConfirmDelete(); });
-document.getElementById('confirmDeleteOk').addEventListener('click', ()=>{
-  const act = confirmDeleteAction;
-  closeConfirmDelete();
-  if(!act) return;
-  act();
+// (Everything a delete can send: removing the workout, the day's planned slot, and its done state.)
+cloudDeleteExtraWorkout = heldInCloud(cloudDeleteExtraWorkout);
+cloudDeleteManualEntry = heldInCloud(cloudDeleteManualEntry);
+cloudSavePlannedSession = heldInCloud(cloudSavePlannedSession);
+cloudClearPlannedSession = heldInCloud(cloudClearPlannedSession);
+cloudSetCompletedOverride = heldInCloud(cloudSetCompletedOverride);
+cloudSetDayPerformance = heldInCloud(cloudSetDayPerformance);
+cloudSetActualRunDistance = heldInCloud(cloudSetActualRunDistance);
+cloudSetMissed = heldInCloud(cloudSetMissed);
+const cloneData = v => v===undefined ? undefined : (typeof structuredClone==='function' ? structuredClone(v) : JSON.parse(JSON.stringify(v)));
+function snapshotDay(key){
+  const idx = currentWeekIdxFor(key), w = idx>=0 ? state.week[idx] : null;
+  return {
+    log: state.dayLog[key], logCopy: cloneData(state.dayLog[key]),
+    idx, slot: w ? cloneData({p: w.p, c: w.c, completed: w.completed, isCustom: w.isCustom}) : null,
+    todayCompleted: state.todayCompleted,
+  };
+}
+function restoreDay(key, snap){
+  if(snap.log){
+    // Back into the same object, so anything holding on to it still sees the day.
+    Object.keys(snap.log).forEach(k=>{ delete snap.log[k]; });
+    Object.assign(snap.log, snap.logCopy);
+    state.dayLog[key] = snap.log;
+  } else delete state.dayLog[key];
+  if(snap.slot && state.week[snap.idx]) Object.assign(state.week[snap.idx], snap.slot);
+  state.todayCompleted = snap.todayCompleted;
+  state.doneCount = computeDoneCount();
+}
+function commitPendingDelete(){
+  if(!pendingUndo) return;
+  const {ops, timer} = pendingUndo;
+  clearTimeout(timer);
+  pendingUndo = null;
+  ops.forEach(op=>{ try{ op(); }catch(e){} });
+}
+function askDeleteWorkout(name, key, done, onDelete){
+  commitPendingDelete(); // one Undo at a time: the one before is final now
+  const snap = snapshotDay(key);
+  cloudHold = [];
+  let ops;
+  try{ onDelete(); }
+  finally{ ops = cloudHold; cloudHold = null; }
   refreshViews();
-  showToast(STR[state.lang].workoutDeletedToast);
+  pendingUndo = {key, snap, ops, timer: setTimeout(()=>{ commitPendingDelete(); hideUndoToast(); }, UNDO_MS)};
+  const L = STR[state.lang];
+  showToast(name ? L.workoutDeletedNamedToast.replace('{name}', name) : L.workoutDeletedToast);
+  document.getElementById('toastUndo').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideUndoToast, UNDO_MS);
+}
+function hideUndoToast(){
+  document.getElementById('toast').hidden = true;
+  document.getElementById('toastUndo').hidden = true;
+}
+document.getElementById('toastUndo').addEventListener('click', ()=>{
+  if(!pendingUndo) return;
+  const {key, snap, timer} = pendingUndo;
+  clearTimeout(timer);
+  pendingUndo = null;
+  restoreDay(key, snap);
+  refreshViews();
+  if(!document.getElementById('dayDetailOverlay').hidden && state.openDayKey) renderDayDetail();
+  showToast(STR[state.lang].workoutRestoredToast);
 });
+window.addEventListener('pagehide', commitPendingDelete);
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) commitPendingDelete(); });
 function allPlanDates(){
   const dates = [];
   for(let w=0; w<state.planWeeksLoaded; w++) dates.push(...weekDates(w));
@@ -7374,7 +7436,7 @@ function renderHome(){
       ${runBreakdownHtml(eff, 'card')}
       <div class="session-tip"><p>${tip}</p></div>
       ${aroundClass ? `<div class="paired">${ICONS.class}<span>${L.plannedAroundClass.replace('{name}', `<b>${escapeHtml(aroundClass)}</b>`)}</span></div>` : ''}
-      ${suggestedTargetStr ? `<div class="paired"><span>${L.statProgress}: <b>${suggestedTargetStr}</b></span></div>` : ''}
+      ${suggestedTargetStr ? `<div class="paired"><span>${L.statProgress}: <b>${suggestedTargetStr}</b>${termBtn('next')}</span></div>` : ''}
       ${isPaceFree(eff) ? `<div class="paired"><span>${L.effortLabel}: <b>${L.effortEasyTalk}</b></span></div>` : ''}
       ${(eff.t!=='rest' && compL) ? `<div class="paired">${TYPE_ICON[comp.t]}<span>${L.pairedWithInline} <b>${compL.title}${compL.detail?', '+compL.detail:''}</b></span></div>` : ''}
     </div>
@@ -7991,7 +8053,7 @@ function openLogPerformanceFor(logTarget, mode){
           const on = !!ex.superset && ex.superset===exercises[exIdx-1].superset;
           return `<button class="ss-link live-ss-link" type="button" data-ss-live="${escapeHtml(ex.key)}" aria-pressed="${on}">${ICONS.link}<span>${STR[state.lang][on ? 'supersetLinkedBtn' : 'supersetLinkBtn']}</span></button>`;
         })() : '')
-        + (ssLab && ssLab.first ? `<div class="ss-head">${escapeHtml(STR[state.lang].supersetHead.replace('{g}', ssLab.group))}</div>` : '');
+        + (ssLab && ssLab.first ? `<div class="ss-head">${escapeHtml(STR[state.lang].supersetHead.replace('{g}', ssLab.group))}${termBtn('superset')}</div>` : '');
       const t = getExerciseTarget(ex, state.intensityIdx);
       const loggedEx = perf && perf.exercises ? perf.exercises.find(p=>p.key===ex.key) : null;
       const loggedSets = loggedEx && Array.isArray(loggedEx.sets) && loggedEx.sets.length ? loggedEx.sets : null;
@@ -8804,8 +8866,9 @@ function weekPlanMetaHtml(weekIdx){
   const mi = weekStats(weekIdx).plannedDistance;
   // Their own workouts: no build / deload cycle, just the miles they've planned.
   if(state.ownWorkouts) return mi>0 ? `<span class="week-block-meta">${+mi.toFixed(1)} mi</span>` : '';
-  const phase = isRecoveryWeek(planWeekIndex(dates[0])) ? L.planWeekRecovery : L.planWeekBuild;
-  return `<span class="week-block-meta">${phase}${mi>0 ? ` · ${+mi.toFixed(1)} mi` : ''}</span>`;
+  const deload = isRecoveryWeek(planWeekIndex(dates[0]));
+  const phase = deload ? L.planWeekRecovery : L.planWeekBuild;
+  return `<span class="week-block-meta">${phase}${termBtn(deload ? 'deload' : 'build')}${mi>0 ? ` · ${+mi.toFixed(1)} mi` : ''}</span>`;
 }
 function weekRangeLabel(weekIdx){
   const L = STR[state.lang];
@@ -9205,6 +9268,47 @@ function relinkSupersets(list, links){
     return ex;
   });
 }
+/* ---------------- training words, in plain words ---------------- */
+// A small (i) next to a word a beginner might not know; tapping it says what it means in a sentence or two.
+const TERMS = {
+  build: {en:['Build week', 'A normal training week. Your plan adds a little each week, a bit more distance or weight, so you keep improving without overdoing it.'],
+          es:['Semana de progresión', 'Una semana normal de entrenamiento. Tu plan suma un poco cada semana, algo más de distancia o de peso, para que sigas mejorando sin pasarte.']},
+  deload: {en:['Deload week', 'A lighter week, every 4th week: less weight and fewer sets so your body recovers and comes back stronger. Easy is the point.'],
+           es:['Semana de descarga', 'Una semana más ligera, cada 4.ª semana: menos peso y menos series para que tu cuerpo se recupere y vuelva más fuerte. Que sea fácil es la idea.']},
+  pyramid: {en:['Pyramid sets', 'Start lighter with more reps, then add weight and do fewer reps each set, up to your top weight. It warms you up as you go and lets you lift heavier safely.'],
+            es:['Series en pirámide', 'Empieza con menos peso y más repeticiones, y en cada serie sube el peso y baja las repeticiones hasta tu peso máximo. Calientas sobre la marcha y levantas más pesado con seguridad.']},
+  superset: {en:['Superset', 'Two or more exercises done back to back: one set of each with no rest in between, then rest. It saves time and keeps your heart rate up.'],
+             es:['Superserie', 'Dos o más ejercicios seguidos: una serie de cada uno sin descanso entre ellos y luego descansas. Ahorra tiempo y mantiene el pulso arriba.']},
+  estmax: {en:['Estimated max', 'The most you could probably lift once, worked out from the sets you\'ve logged. It shows how your strength is moving; you never need to test it.'],
+           es:['Máximo estimado', 'Lo máximo que probablemente podrías levantar una vez, calculado con las series que has registrado. Muestra cómo avanza tu fuerza; nunca necesitas probarlo.']},
+  volume: {en:['Volume', 'Weight times reps, added up for every set in a workout. More volume over time means you\'re doing more work.'],
+           es:['Volumen', 'Peso por repeticiones, sumado en todas las series de un entrenamiento. Más volumen con el tiempo significa que estás haciendo más trabajo.']},
+  next: {en:['Next suggested', 'What to aim for next time, based on how this went: a pace for runs, a weight for lifts. Hit it and the next target moves up a little.'],
+         es:['Siguiente sugerido', 'Tu objetivo para la próxima vez, según cómo te fue: un ritmo para correr, un peso para levantar. Si lo logras, el siguiente objetivo sube un poco.']},
+  wave: {en:['Your week\'s wave', 'Each lift moves through the week in a wave: a light day to practise, building days a bit heavier, a step-down day to recover a little, and a peak day, the heaviest of the week.'],
+         es:['La ola de tu semana', 'Cada levantamiento recorre la semana como una ola: un día ligero para practicar, días de progresión algo más pesados, un día de bajada para recuperarte un poco y un día pico, el más pesado de la semana.']},
+};
+function termBtn(key){ return `<button class="term-i" type="button" data-term="${key}" aria-label="${escapeHtml(STR[state.lang].termWhat)}">${ICONS.info}</button>`; }
+function openTerm(key){
+  const t = TERMS[key];
+  if(!t) return;
+  const [title, text] = t[state.lang] || t.en;
+  document.getElementById('termTitle').textContent = title;
+  document.getElementById('termText').textContent = text;
+  document.getElementById('termOverlay').hidden = false;
+}
+function closeTerm(){ document.getElementById('termOverlay').hidden = true; }
+// Caught on the way down, so the (i) never also opens the card or row it sits in.
+document.addEventListener('click', e=>{
+  const b = e.target.closest && e.target.closest('[data-term]');
+  if(!b) return;
+  e.stopPropagation();
+  e.preventDefault();
+  openTerm(b.getAttribute('data-term'));
+}, true);
+document.getElementById('closeTerm').addEventListener('click', closeTerm);
+document.getElementById('termOk').addEventListener('click', closeTerm);
+document.getElementById('termOverlay').addEventListener('click', e=>{ if(e.target.id==='termOverlay') closeTerm(); });
 function ssTagHtml(lab){ return lab ? `<em class="ss-tag">${lab.label}</em>` : ''; }
 
 /* ---------------- day detail sheet ---------------- */
@@ -9212,7 +9316,7 @@ function ssTagHtml(lab){ return lab ? `<em class="ss-tag">${lab.label}</em>` : '
 function exerciseListHtml(session, date, tappable){
   const exercises = exercisesForSession(session, date);
   if(!exercises) return '';
-  const ss = supersetLabels(exercises);
+  const ss = supersetLabels(exercises), tipped = {};
   return `<ul class="r-exercise-list">${exercises.map((ex, i)=>{
     const t = !ex.bodyweight && ex.durationSec==null ? getExerciseTarget(ex, state.intensityIdx) : null;
     const weight = ex.pyramid ? ` · ${STR[state.lang].pyramidTop.replace('{w}', ex.pyramid.top)} ${state.weightUnit}`
@@ -9220,7 +9324,10 @@ function exerciseListHtml(session, date, tappable){
     const cls = [tappable && ex.durationSec==null ? 'lift-tap' : '', ss[i] ? 'ss-member' : ''].filter(Boolean).join(' ');
     const attr = (cls ? ` class="${cls}"` : '') + (tappable && ex.durationSec==null ? ` data-lift-key="${escapeHtml(ex.key)}"` : '');
     const nm = ss[i] ? `<div class="ex-nm">${ssTagHtml(ss[i])}${escapeHtml(ex.name)}</div>` : escapeHtml(ex.name);
-    return `<li${attr}>${nm} <span>${fmtExercisePrescription(ex)}${weight}</span></li>`;
+    // One (i) per kind per list is plenty.
+    const tip = ex.pyramid && !tipped.pyramid ? (tipped.pyramid = true, termBtn('pyramid'))
+      : ss[i] && ss[i].first && !tipped.superset ? (tipped.superset = true, termBtn('superset')) : '';
+    return `<li${attr}>${nm} <span>${fmtExercisePrescription(ex)}${weight}${tip}</span></li>`;
   }).join('')}</ul>`;
 }
 function planRowHtml(dd, status){
@@ -9344,7 +9451,7 @@ function renderWorkoutPreview(){
   document.getElementById('wpIcon').innerHTML = TYPE_ICON[session.t] || '';
   document.getElementById('wpTitle').textContent = sL.title;
   const wave = session.t==='strength' && !r.extra ? liftWaveFor(session, date) : null;
-  document.getElementById('wpDetail').textContent = [sL.detail, wave ? L['wave_'+(wave.deload ? 'deload' : wave.pos)] : ''].filter(Boolean).join(' · ');
+  document.getElementById('wpDetail').innerHTML = escapeHtml([sL.detail, wave ? L['wave_'+(wave.deload ? 'deload' : wave.pos)] : ''].filter(Boolean).join(' · ')) + (wave ? termBtn(wave.deload ? 'deload' : 'wave') : '');
 
   const runSection = document.getElementById('wpRunSection');
   runSection.hidden = session.t!=='run';
@@ -11184,7 +11291,7 @@ function renderLiftDetail(){
   const histShown = liftView.allHistory ? hist : hist.slice(0, 8);
   const chips = (items, cur, attr)=> `<div class="chip-row">${items.map(([k,label])=> `<button class="chip${k===cur ? ' sel' : ''}" type="button" ${attr}="${k}">${label}</button>`).join('')}</div>`;
   body.innerHTML = `
-    <div class="lift-hero"><div class="l">${heroLabel}</div><div class="v">${heroVal}</div>${heroDelta}</div>
+    <div class="lift-hero"><div class="l">${heroLabel}${liftView.metric==='e1rm' ? termBtn('estmax') : liftView.metric==='volume' ? termBtn('volume') : ''}</div><div class="v">${heroVal}</div>${heroDelta}</div>
     ${chips([['e1rm',L.liftMetricE1rm],['top',L.liftMetricTop],['volume',L.liftMetricVolume]], liftView.metric, 'data-lift-metric')}
     ${days.length ? liftChartSvg(days, liftView.metric, liftView.sel) : `<div class="lift-readout">${L.liftNoneInRange}</div>`}
     ${selDay ? `<div class="lift-readout" id="liftReadout"><div>${fmtLiftDate(selDay.key, true)} · ${fmtLiftNum(val(selDay))} ${unit}</div>
@@ -11321,6 +11428,7 @@ document.getElementById('themeToggle').addEventListener('click', function(){
   this.classList.toggle('on', state.theme==='light');
 });
 document.getElementById('signOutBtn').addEventListener('click', async ()=>{
+  commitPendingDelete(); // a delete still waiting on its Undo is final now
   await forgetThisDeviceForReminders(); // the next person to sign in here shouldn't get this account's reminders
   await sb.auth.signOut();
   resetToWelcome();
@@ -11616,6 +11724,7 @@ let toastTimer=null;
 function showToast(msg){
   const t = document.getElementById('toast');
   document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastUndo').hidden = true;
   t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>{ t.hidden = true; }, 2200);

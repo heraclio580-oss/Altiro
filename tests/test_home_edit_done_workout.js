@@ -65,10 +65,10 @@ function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok
   doc.getElementById('closeLogPerf').click();
   await wait(20);
 
-  // The trash on the card still only deletes (asks first), it doesn't open the workout.
+  // The trash on the card only deletes (with Undo), it doesn't open the workout.
   card().querySelector('[data-del-extra]').click();
   await wait(20);
-  check('Its trash asks to delete, it doesn\'t open it', doc.getElementById('logPerfOverlay').hidden && !doc.getElementById('confirmDeleteOverlay').hidden);
+  check('Its trash deletes it (with Undo), it doesn\'t open it', doc.getElementById('logPerfOverlay').hidden && !doc.getElementById('toastUndo').hidden && !doc.querySelector('#homeExtraWorkoutsWrap [data-extra-id]'));
 
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(failures ? 1 : 0);

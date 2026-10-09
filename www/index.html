@@ -5169,6 +5169,23 @@ function generatePlanWeek(cfg, n){
     const cl = classLoad[liftDays[i]];
     week[liftDays[i]].wave = cl && (cl.hard || cl.legs) ? {...w, pos:'light', focus:null, classDay:true} : w;
   });
+  // Full body days take turns leading with a different body part, carrying on from week to week; the
+  // week's peak day leads with the part its peak lift belongs to.
+  const fullDays = liftDays.filter(d=> /^Full Body Strength/.test(week[d].p.en.title));
+  if(fullDays.length){
+    const parts = fullDays.map((_, i)=> FULL_FOCUS_ROTATION[(n*fullDays.length + i) % FULL_FOCUS_ROTATION.length]);
+    const peakAt = fullDays.findIndex(d=> week[d].wave && week[d].wave.focus);
+    const peakPart = peakAt>=0 ? FOCUS_PART[week[fullDays[peakAt]].wave.focus.movement] : null;
+    if(peakPart && parts[peakAt]!==peakPart){
+      const j = parts.indexOf(peakPart);
+      if(j>=0) parts[j] = parts[peakAt];
+      parts[peakAt] = peakPart;
+    }
+    fullDays.forEach((d, i)=>{
+      const p = week[d].p;
+      week[d].p = ses('strength', p.en.title, `${p.en.detail} · ${FULL_FOCUS_LABEL.en[parts[i]]}`, p.es.title, `${p.es.detail} · ${FULL_FOCUS_LABEL.es[parts[i]]}`);
+    });
+  }
   // Running and lifting go hand in hand: in a plan with both, a lifting day is followed by an easy
   // 20-30 minute jog -- except the peak day, a day before a hard run or the long run, and for someone
   // still building up to running.
@@ -5425,6 +5442,30 @@ const LIFT_TEMPLATES = {
   'Back & Biceps Day':    [{m:'deadlift', sets:4, reps:6}, {m:'vpull'}, {m:'hpull'}, {m:'biceps'}],
   'Legs & Shoulders Day': [{m:'squat', sets:4, reps:8}, {m:'hinge'}, {m:'vpush'}, {m:'lateral'}],
 };
+// Full body days with a focus: the day's focus body part leads (its main lift takes the pyramid and,
+// on the week's peak day, the top single), then one move for each other part -- the opposite muscles
+// first, then legs, then shoulders -- and arms always last, as the finisher, so grip and arms aren't
+// tired out before the bigger lifts. The focus rotates day to day (see FULL_FOCUS_ROTATION).
+const FULL_FOCUS_TEMPLATES = {
+  chest:     [{m:'hpush', sets:4, reps:8}, {m:'hpull'}, {m:'squat'}, {m:'reardelt'}, {m:'biceps'}],
+  back:      [{m:'deadlift', sets:4, reps:6}, {m:'hpush'}, {m:'lunge'}, {m:'lateral'}, {m:'triceps'}],
+  legs:      [{m:'squat', sets:4, reps:8}, {m:'vpull'}, {m:'chest2'}, {m:'lateral'}, {m:'arms'}],
+  shoulders: [{m:'vpush', sets:4, reps:8}, {m:'hpull'}, {m:'hinge'}, {m:'chest2'}, {m:'biceps'}],
+};
+const FULL_FOCUS_ROTATION = ['chest','back','legs','shoulders'];
+// The week's peak lift belongs to one of the focuses: the peak day takes that focus.
+const FOCUS_PART = {hpush:'chest', squat:'legs', deadlift:'back', vpush:'shoulders'};
+const FULL_FOCUS_LABEL = {
+  en: {chest:'Chest focus', back:'Back focus', legs:'Legs focus', shoulders:'Shoulders focus'},
+  es: {chest:'Enfoque: pecho', back:'Enfoque: espalda', legs:'Enfoque: piernas', shoulders:'Enfoque: hombros'},
+};
+// A full body workout's focus, read from its own detail ("45 min · Chest focus") -- so it travels with
+// the workout when it's moved to another day.
+function fullBodyFocusOf(session){
+  if(!session || !session.en || !/^Full Body Strength/.test(session.en.title)) return null;
+  const m = String(session.en.detail||'').match(/(Chest|Back|Legs|Shoulders) focus/);
+  return m ? m[1].toLowerCase() : null;
+}
 const LEVEL_RANK = {beginner:0, intermediate:1, advanced:2};
 function fitsLevel(key, level){
   const def = exerciseDef(key);
@@ -5591,21 +5632,25 @@ function plannedExercises(session, date){
     });
   }
   const isB = !LIFT_TEMPLATES[title] && / B$/.test(title);
-  let slots = liftTemplateFor(title);
+  const fbFocus = fullBodyFocusOf(session);
+  let slots = fbFocus ? FULL_FOCUS_TEMPLATES[fbFocus] : liftTemplateFor(title);
   if(!slots) return null;
   const level = planLevel(), equipment = planEquipment();
   const planWeek = planWeekIndex(d);
   const recovery = isRecoveryWeek(planWeek);
   // The week's peak workout leads with the focus lift (moved up from its own slot, or added).
   const focus = (liftWaveFor(session, d) || {}).focus;
-  if(focus){
+  if(focus && fbFocus && !FOCUS_PART[focus.movement]){
+    // (A full body day keeps arms last even in an arm-strength week: the arm lift is its finisher.)
+    slots = [...slots.slice(0, -1), {m:focus.movement, focus:true}];
+  } else if(focus){
     const j = slots.findIndex(sl=>FOCUS_SLOTS[focus.movement].includes(sl.m));
     const rest = j>=0 ? slots.filter((_,i)=>i!==j) : slots;
     slots = [{m:focus.movement, focus:true}, ...rest];
   }
   // Short and efficient: with a pyramid on the main lift, a workout is 4 lifts (3 when an arm & grip
-  // focus adds its grip work to an upper-body day).
-  if(equipment!=='bodyweight') slots = slots.slice(0, 4);
+  // focus adds its grip work to an upper-body day) -- a full body day 5: one for each body part.
+  if(equipment!=='bodyweight' && !fbFocus) slots = slots.slice(0, 4);
   // A workout that trains a movement twice (Arm Day's two curls) takes the next option the second
   // time, or a close movement's, rather than repeating the same exercise.
   const used = new Set();

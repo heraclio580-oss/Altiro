@@ -1,0 +1,99 @@
+name: Android test APK
+
+# Builds the Android app (the Capacitor shell around www/) as an installable test APK and posts it on the
+# "android-test" release, so the latest build is always at
+#   https://github.com/<owner>/<repo>/releases/download/android-test/Altiro-test.apk
+# The android/ project isn't kept in git: it's created fresh here (npx cap add android), then the
+# settings in scripts/native-config.js and the icons from resources/ are applied.
+#
+# Signed with scripts/test-signing/altiro-test.keystore -- a test-only key kept in the repo so each new build
+# installs over the last one. A Play Store release is signed with a separate, private key.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'www/**'
+      - 'resources/**'
+      - 'scripts/native-config.js'
+      - 'scripts/test-signing/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/android-test-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-test-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install packages
+        run: npm ci
+
+      # The same build stamp the website gets (see deploy-pages.yml).
+      - name: Stamp build
+        run: |
+          sed -i "s/__ALTIRO_BUILD__/${GITHUB_SHA}/" www/index.html
+          printf '{"build":"%s"}\n' "$GITHUB_SHA" > www/version.json
+
+      - name: Create the Android project
+        run: |
+          npx cap add android
+          npx cap sync android
+          node scripts/native-config.js
+
+      - name: App icons and splash screen
+        continue-on-error: true
+        run: npx capacitor-assets generate --android --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000' --splashBackgroundColor '#0a0a0a' --splashBackgroundColorDark '#0a0a0a'
+
+      # A new version number every build, so Android treats it as an update.
+      - name: Version
+        run: |
+          sed -i -E "s/versionCode [0-9]+/versionCode ${GITHUB_RUN_NUMBER}/; s/versionName \"[^\"]*\"/versionName \"0.1.${GITHUB_RUN_NUMBER}\"/" android/app/build.gradle
+          grep -E "versionCode|versionName" android/app/build.gradle
+
+      - name: Test signing key
+        run: |
+          mkdir -p ~/.android
+          cp scripts/test-signing/altiro-test.keystore ~/.android/debug.keystore
+
+      - name: Build the APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Keep the APK with this run
+        uses: actions/upload-artifact@v4
+        with:
+          name: Altiro-test-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Post it on the android-test release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk Altiro-test.apk
+          gh release delete android-test --yes --cleanup-tag || true
+          gh release create android-test Altiro-test.apk \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "Altiro Android test build" \
+            --notes "Test build ${GITHUB_RUN_NUMBER} (${GITHUB_SHA::7}). Download Altiro-test.apk on your Android phone and open it to install. Android asks once to allow installs from your browser."

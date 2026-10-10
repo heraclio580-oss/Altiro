@@ -12977,12 +12977,11 @@ function loadMapLib(){
   });
   return mapLibPromise;
 }
+// The maps in the app (the GPS tracker, a run's Summary) use OpenFreeMap's Liberty style -- streets, trails,
+// parks and buildings in full colour, the same in light and dark mode. The share card's picture keeps the
+// dark style, to suit its dark design.
+const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 function mapStyleUrl(dark){ return `https://tiles.openfreemap.org/styles/${dark ? 'dark' : 'positron'}`; }
-function appIsDark(){
-  const t = document.documentElement.getAttribute('data-theme');
-  if(t) return t!=='light';
-  return !(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
-}
 function supportsWebGL(){
   try{ const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); }catch(e){ return false; }
 }
@@ -13026,7 +13025,7 @@ async function showRouteMap(el, segs, opts){
     const box = document.createElement('div');
     box.className = 'route-map-gl';
     el.appendChild(box);
-    const map = new maplibregl.Map({container: box, style: mapStyleUrl(opts.dark!=null ? opts.dark : appIsDark()), attributionControl:{compact:true},
+    const map = new maplibregl.Map({container: box, style: opts.dark!=null ? mapStyleUrl(opts.dark) : MAP_STYLE_URL, attributionControl:{compact:true},
       interactive: !!opts.interactive, center: segs.length ? [segs[0][0][1], segs[0][0][0]] : [-98.5, 39.8], zoom: segs.length ? 14 : 3, preserveDrawingBuffer: !!opts.capture});
     map.on('load', ()=>{
       addRouteLayers(map);

@@ -496,3 +496,66 @@ Anything every plan must always — or must never — do.
 ## 8. Anything else
 
 ✏️
+
+---
+
+## 9. Workout-building decisions (questionnaire, October 2026)
+
+Answers from the 38-question workout questionnaire. **Round 1** is how the plan builds each workout;
+**Round 2** adds the new setup and Adjust questions. ✅ marks what's in the app.
+
+### Round 1: how each workout is built
+
+- **Never:** a behind-the-neck version of any exercise; telling anyone to add weight to a bodyweight
+  exercise (pull-ups, dips, push-ups stay bodyweight; they progress by reps).
+- **Arms last, on every split.** Push days end with triceps, pull days with biceps, upper and full-body
+  days with arms; the one-muscle-a-day split keeps its own Arm Day (biceps and triceps).
+- **Core after all the weights**, as the very last exercise of every lifting workout. The separate
+  Core Activation add-on stays only on days without lifting.
+- **Warm-up:** a 5-minute general warm-up before lifting, and light warm-up sets of the main lift (the
+  pyramid's warm-up 10s).
+- **How hard:** stop each set with 1–2 clean reps left. If rep 10 isn't as clean as rep 1, drop to sets
+  of 5; if rep 5 isn't, that's the single for the day.
+- **Weight steps:** beginners +2.5 lb upper body, +5 lb legs; they can always stay at the same weight.
+- **Machines first for beginners in a gym** on the big lifts (chest press, leg press, assisted pull-up,
+  assisted dip, shoulder press) for the first 4 weeks; then the plan moves to the free-weight version,
+  and they can stay on the machine.
+- **The main lift changes every session** its body part leads (e.g. bench press, then dumbbell press,
+  then incline press); the user can keep a lift they like.
+- **Focus rotation by default: Chest, Back, Legs.** Shoulders get a supporting exercise every workout
+  but aren't a focus unless the user picks them. Every split rotates which lift leads.
+- **Exercises per workout by length:** 20 min 3 · 30 min 4 · 45 min 5 · 60 min 6–7 · longer: 8 suggested
+  and the user can add more. Until users pick a length (Round 2): beginner 4, intermediate 5, advanced 6.
+- **Coaching message for every session**, following the week's wave:
+  - 3 lifting days: light, peak, easy · 4: light, build, peak, easy · 5 or more: light, build, peak,
+    easy, recovery.
+  - Light: "Welcome back. Today is lighter, to get back into the rhythm."
+  - Build: "Keep your form smooth and move the weight a little faster, under control."
+  - Peak: "Peak of the week: bring it up a notch. If rep 10 isn't as clean as rep 1, drop to 5s; if
+    rep 5 isn't, that's your single. Controlled, but turn it up."
+  - Easy: "Nice and easy: same reps, lighter weight."
+  - Recovery (last day, 5+ days): mobility and stretching are the main part of the workout.
+- **Rest between sets:** main lift 2–3 min, other exercises 60–90 sec by default; users can change both.
+
+### Round 2: new setup and Adjust questions
+
+- **Lifting goal** (lifters only): Get stronger (5–8 reps) / Build muscle (8–12) / Fitness or weight
+  loss (12–15). The main lift keeps its pyramid; the goal sets the reps of the other exercises.
+- **Workout length:** 20 / 30 / 45 / 60 minutes (sets the number of exercises above). After each light
+  week, ask: add time or an exercise, or keep going as planned.
+- **Injuries:** a collapsible checklist (knees, lower back, hips, ankles, shoulders, wrists, elbows,
+  neck) with a short note; exercises that load those areas are left out.
+- **Home equipment:** bench, pull-up bar, resistance bands, and how heavy their dumbbells or kettlebells go.
+- **Age 50+ on light intensity:** lighter starting weights, more mobility and warm-up, no jumping or
+  explosive moves. Moderate or high intensity start as picked.
+- **Focus:** users pick the focus muscles (chest, back, legs, shoulders, arms, glutes) and their order,
+  in setup and in Adjust, and can choose the day's primary lift.
+- **Core day** as one of the days in the one-muscle-a-day split.
+- **The last day for 5+ day lifters:** the user chooses mobility only, or light lifting with mobility.
+- **The light week:** every 4th week by default. On a light week's Monday: "Keep it" or "Move it to
+  next week"; also in Adjust any time. Users can turn it off.
+- **Cardio:** in Adjust, cardio on the same days as lifting or on separate days. On lifting days with
+  cardio, a collapsible cardio card: treadmill run or walk, bike or spin, stair stepper, elliptical,
+  rowing machine, outdoor run or walk, jump rope, or their own. The easy jog after lifting becomes one of
+  these, added with a tap.
+- **Supersets:** suggested, never built in; the user decides.

@@ -741,6 +741,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .wp-ex-name{font-size:calc(14px * var(--fs, 1));color:var(--text);}
 .wp-ex-rx{font-family:var(--font-mono);font-size:calc(11.5px * var(--fs, 1));color:var(--text-2);margin-top:2px;}
 .wp-ex-note{font-size:calc(11.5px * var(--fs, 1));color:var(--text-3);margin-top:3px;}
+.wp-coach{margin:0 0 14px;padding:12px 14px;border-radius:12px;background:var(--well);border:1px solid var(--divider);font-size:calc(13px * var(--fs, 1));line-height:1.5;color:var(--text-2);}
+.wp-coach p{margin:0;}
+.wp-coach p + p{margin-top:6px;color:var(--text-3);font-size:calc(12px * var(--fs, 1));}
+.wp-coach b{color:var(--text);font-weight:600;}
+.wp-keep{display:inline-flex;align-items:center;gap:4px;margin-top:6px;height:28px;padding:0 10px;border-radius:var(--r-pill);border:1px solid var(--border);background:transparent;color:var(--text-2);font-size:calc(11.5px * var(--fs, 1));cursor:pointer;}
+.wp-keep.on{border-color:var(--accent);color:var(--text);}
+.wp-keep svg{width:12px;height:12px;}
 .wp-ex-note .btn-text{padding:0 0 0 4px;font-size:calc(11.5px * var(--fs, 1));}
 .wp-change{flex-shrink:0;height:30px;padding:0 12px;border-radius:var(--r-pill);border:1px solid var(--border);background:transparent;color:var(--text-2);font-size:calc(12px * var(--fs, 1));cursor:pointer;}
 .wp-change:hover{color:var(--text);border-color:var(--hover-border);}
@@ -2440,6 +2447,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="wp-pace" id="wpPace"></div>
       </div>
       <div class="sheet-section" id="wpExerciseSection" hidden>
+        <div class="wp-coach" id="wpCoach" hidden></div>
         <div class="st-label" data-i18n="wpExercisesLabel"></div>
         <div id="wpExerciseList"></div>
         <div id="wpSkippedList"></div>
@@ -3424,7 +3432,9 @@ const STR = {
     pyramidRulesPeak: "Peak day, the heaviest of your week. Every rep clean: when a set of 10 would get ugly, switch to 5s. When 5 isn't there, do one clean single (that's your top for today, not a max), then work back down.",
     pyramidRulesPeakBeginner: "Peak day, the heaviest of your week. Every rep clean: when a set of 10 would get ugly, switch to 5s. Build up to the heavy 5s; no single yet.",
     pyramidRulesLight: "{day}: no single today. Every rep clean: when a set of 10 would get ugly, switch to 5s.",
-    wave_light: "Light day", wave_build: "Building day", wave_step: "Step-down day", wave_peak: "Peak day", wave_deload: "Deload day",
+    wave_light: "Light day", wave_build: "Building day", wave_step: "Easy day", wave_peak: "Peak day", wave_deload: "Deload day", wave_recovery: "Recovery day",
+    keepLift: "Keep this lift", keptLift: "Keeping this lift",
+    keepLiftOnToast: "{name} stays your main lift", keepLiftOffToast: "{name} will rotate again",
     pyramidRulesDeload: "Deload week: lighter weights and fewer sets so your body recovers and comes back stronger. Every rep clean, nothing close to a grind. If it all feels easy, that's the point.",
     pyrFivesBtn: "Switch to 5s",
     pyrSingleBtn: "Top single now",
@@ -4094,7 +4104,9 @@ const STR = {
     pyramidRulesPeak: "Día pico, el más pesado de tu semana. Cada repetición limpia: cuando una serie de 10 se vaya a poner fea, pasa a series de 5. Cuando no salgan 5, haz una sola repetición limpia (tu tope de hoy, no un máximo) y luego baja.",
     pyramidRulesPeakBeginner: "Día pico, el más pesado de tu semana. Cada repetición limpia: cuando una serie de 10 se vaya a poner fea, pasa a series de 5. Sube hasta las series pesadas de 5; todavía sin la repetición tope.",
     pyramidRulesLight: "{day}: hoy sin repetición tope. Cada repetición limpia: cuando una serie de 10 se vaya a poner fea, pasa a series de 5.",
-    wave_light: "Día ligero", wave_build: "Día de subida", wave_step: "Día de bajada", wave_peak: "Día pico", wave_deload: "Día de descarga",
+    wave_light: "Día ligero", wave_build: "Día de subida", wave_step: "Día suave", wave_peak: "Día pico", wave_deload: "Día de descarga", wave_recovery: "Día de recuperación",
+    keepLift: "Mantener este ejercicio", keptLift: "Manteniendo este ejercicio",
+    keepLiftOnToast: "{name} se queda como tu ejercicio principal", keepLiftOffToast: "{name} volverá a rotar",
     pyramidRulesDeload: "Semana de descarga: menos peso y menos series para que el cuerpo se recupere y vuelva más fuerte. Cada repetición limpia, nada cerca del fallo. Si todo se siente fácil, de eso se trata.",
     pyrFivesBtn: "Pasar a series de 5",
     pyrSingleBtn: "Repetición tope ahora",
@@ -4593,6 +4605,28 @@ const SESSION_TIP = {
   rest: {en:"Recovery is part of the plan — take the day.", es:"La recuperación es parte del plan. Tómate el día."},
   class: {en:"Start it when class starts — the clock keeps your time.", es:"Empiézala cuando empiece la clase: el reloj lleva tu tiempo."},
 };
+// What to aim for on a lifting day, by its place in the week's wave (see liftWave).
+const WAVE_COACH = {
+  first: {en:"Welcome back. Today is lighter, to get back into the rhythm.", es:"De vuelta al trabajo. Hoy es más ligero, para retomar el ritmo."},
+  light: {en:"Lighter today: smooth, clean reps.", es:"Hoy más ligero: repeticiones fluidas y limpias."},
+  build: {en:"Keep your form smooth and move the weight a little faster, under control.", es:"Mantén la técnica fluida y mueve el peso un poco más rápido, con control."},
+  peak: {en:"Peak of the week: bring it up a notch. If rep 10 isn't as clean as rep 1, drop to 5s; if rep 5 isn't, that's your single. Controlled, but turn it up.",
+         es:"Pico de la semana: sube un punto. Si la repetición 10 no sale tan limpia como la 1, pasa a series de 5; si la 5 no sale limpia, esa es tu repetición única. Con control, pero con más intensidad."},
+  step: {en:"Nice and easy: same reps, lighter weight.", es:"Suave: mismas repeticiones, menos peso."},
+  recovery: {en:"Recovery day: keep the weights light. The mobility and stretching are the main part of today.", es:"Día de recuperación: pesos ligeros. La movilidad y los estiramientos son lo principal de hoy."},
+  deload: {en:"Deload week: everything comes down a notch so you recover and come back stronger.", es:"Semana de descarga: todo baja un punto para que te recuperes y vuelvas más fuerte."},
+  classDay: {en:"Light today, since you have class too: smooth, clean reps.", es:"Hoy ligero, porque también tienes clase: repeticiones fluidas y limpias."},
+};
+function waveCoach(wave){
+  if(!wave) return '';
+  const k = wave.deload ? 'deload' : wave.classDay ? 'classDay' : wave.pos==='light' && wave.first ? 'first' : wave.pos;
+  return (WAVE_COACH[k] || WAVE_COACH.light)[state.lang];
+}
+// Before and during every lifting workout.
+const LIFT_WARMUP = {en:"Warm up for 5 minutes first: easy cardio, arm circles and leg swings. The main lift's lighter sets of 10 finish the warm-up.",
+  es:"Calienta 5 minutos primero: cardio suave, círculos de brazos y balanceo de piernas. Las series ligeras de 10 del ejercicio principal terminan el calentamiento."};
+const LIFT_EFFORT = {en:"How hard: stop each set with 1–2 clean reps left in the tank.",
+  es:"Qué tan duro: termina cada serie con 1–2 repeticiones limpias de reserva."};
 const FOCUS_POINTS = {
   run: {en:['Posture','Breathing rhythm','Pace control'], es:['Postura','Ritmo de respiración','Control del ritmo']},
   strength: {en:['Form','Full range of motion','Controlled tempo'], es:['Forma','Rango de movimiento completo','Tempo controlado']},
@@ -5157,7 +5191,8 @@ function generatePlanWeek(cfg, n){
         : (easyCount++ % 2 ? COMPANION.mobility() : COMPANION.core());
       week[d] = {p, c};
     } else {
-      week[d] = {p: liftSessionFor(it.split, cfg, recovery), c: it.legs ? COMPANION.mobility() : COMPANION.core()};
+      // (The core work is part of every lifting workout now -- its finisher -- so the add-on is mobility.)
+      week[d] = {p: liftSessionFor(it.split, cfg, recovery), c: COMPANION.mobility()};
     }
   });
   // The lifting days' weekly wave (see liftWave), in day order.
@@ -5194,7 +5229,7 @@ function generatePlanWeek(cfg, n){
       const next = week[(d+1)%7].p;
       const hardNext = next.t==='run' && /Long Run|Tempo Run|Interval Run/.test(next.en.title);
       const classDay = classLoad[d] && classLoad[d].hard;
-      if(week[d].wave && week[d].wave.pos!=='peak' && !hardNext && !classDay) week[d].c = COMPANION.jog();
+      if(week[d].wave && !['peak','recovery'].includes(week[d].wave.pos) && !hardNext && !classDay) week[d].c = COMPANION.jog();
     });
   }
   return week;
@@ -5205,7 +5240,7 @@ function generatePlanWeek(cfg, n){
 // week ends recovered rather than sore. top: how heavy each day's pyramid gets, as a share of the
 // lift's top weight (see pyramidSteps). A deload week keeps the wave's shape but brings every day down
 // (see DELOAD_FACTOR) with a shorter pyramid and no single.
-const WAVE_TOP = {light:0.8, build:0.9, step:0.85, peak:1};
+const WAVE_TOP = {light:0.8, build:0.9, step:0.85, peak:1, recovery:0.75};
 // Each week's peak lift, by the user's strength focus. A plan runs in 4-week blocks -- 3 build weeks
 // then a recovery week -- and the peak moves on every build week: All-round goes press -> squat ->
 // deadlift, then round again with the next variation of each; a single focus peaks a different
@@ -5226,7 +5261,9 @@ function peakFocusFor(cfg, n){
 function liftTemplateFor(title){ return LIFT_TEMPLATES[title] || LIFT_TEMPLATES[title.replace(/ B$/,'')] || null; }
 // lifts: the week's placed lifting workouts in day order. The peak is the one that trains the focus lift
 // (placed mid-week), or when none does, simply the middle one, which then gets it added; the day before
-// it builds, the day after steps down, the rest are light.
+// it builds (when there's a light day before that), the day after is easy, the rest are light -- and with
+// 5 or more lifting days the last one is a recovery day: light lifting, mostly mobility.
+// 3 days: light, peak, easy · 4: light, build, peak, easy · 5: light, build, peak, easy, recovery.
 function liftWave(lifts, cfg, n){
   if(!lifts.length) return [];
   const focus = peakFocusFor(cfg, n);
@@ -5234,8 +5271,10 @@ function liftWave(lifts, cfg, n){
   const found = lifts.findIndex(it=>it.peak);
   const peak = found>=0 ? found : Math.ceil((lifts.length-1)/2);
   return lifts.map((_,i)=>({
-    pos: i===peak ? 'peak' : i===peak-1 ? 'build' : i===peak+1 ? 'step' : 'light',
+    pos: i===peak ? 'peak' : i===peak-1 && peak>=2 ? 'build' : i===peak+1 ? 'step'
+      : lifts.length>=5 && i===lifts.length-1 ? 'recovery' : 'light',
     focus: i===peak && !deload ? focus : null,
+    first: i===0,
     deload,
   }));
 }
@@ -5246,9 +5285,7 @@ function liftWaveFor(session, date){
   return e && e.wave && e.p.en.title===session.en.title ? e.wave : null;
 }
 const planWeekCache = new Map();
-function planWeekFor(date){
-  const cfg = planConfig();
-  const n = planWeekIndex(date);
+function generatedWeek(cfg, n){
   const key = JSON.stringify(cfg)+'|'+n;
   if(!planWeekCache.has(key)){
     if(planWeekCache.size>300) planWeekCache.clear();
@@ -5256,6 +5293,7 @@ function planWeekFor(date){
   }
   return planWeekCache.get(key);
 }
+function planWeekFor(date){ return generatedWeek(planConfig(), planWeekIndex(date)); }
 // The generated session for a date, as a fresh copy (callers may edit it).
 function plannedSessionFor(date){
   // Creating their own workouts: from the day they chose to, nothing is generated -- every day is open
@@ -5384,13 +5422,26 @@ const EXERCISES = {
   'Wrist Curl': {en:'Wrist Curl', es:'Curl de Muñeca', sets:3, reps:15, seedFactor:0.1},
   'Dead Hang': {en:'Dead Hang', es:'Colgado en Barra', sets:3, durationSec:30, bodyweight:true, minLevel:'intermediate'},
   'Ab Wheel Rollout': {en:'Ab Wheel Rollout', es:'Rueda Abdominal', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
+  // Machine versions of the big lifts: where a beginner in a gym starts (see MACHINE_FIRST). They aren't
+  // part of anyone's week-to-week rotation, but anyone in a gym can swap to them. The assisted ones take
+  // a counterweight, not added weight, so they go by reps like any bodyweight move.
+  'Chest Press Machine': {en:'Chest Press Machine', es:'Press de Pecho en Máquina', sets:3, reps:10, seedFactor:0.7, machine:true},
+  'Shoulder Press Machine': {en:'Shoulder Press Machine', es:'Press de Hombro en Máquina', sets:3, reps:10, seedFactor:0.4, machine:true},
+  'Assisted Pull-Up': {en:'Assisted Pull-Up', es:'Dominada Asistida', sets:3, reps:8, bodyweight:true, machine:true},
+  'Assisted Dip': {en:'Assisted Dip', es:'Fondos Asistidos', sets:3, reps:10, bodyweight:true, machine:true},
 };
 // Where a move belongs, as sorted by hand: HOME_ONLY moves feel out of place on a public gym floor, so a
 // gym plan never suggests them; GYM_ONLY ones need a gym's equipment, so a plan at home never does.
 // Everything else is fine anywhere.
 const HOME_ONLY = new Set(['Dumbbell Floor Press','Dumbbell Floor Fly','Superman','Prone Y-T-W Raise','Dead Bug','Towel Row',
   'Wall Angel','Bird Dog','Hollow Body Hold','Cat-Cow','Thoracic Rotation','Reverse Crunch','Clamshell']);
-const GYM_ONLY = new Set(['Back Squat','Front Squat','Leg Press','Inverted Row','Triceps Pushdown','Triceps Dip']);
+const GYM_ONLY = new Set(['Back Squat','Front Squat','Leg Press','Inverted Row','Triceps Pushdown','Triceps Dip',
+  'Chest Press Machine','Shoulder Press Machine','Assisted Pull-Up','Assisted Dip']);
+// A beginner in a gym does the machine version of the big lifts for the plan's first 4 weeks -- the
+// machine guides the path, so form comes first -- then the free-weight version (they can keep the
+// machine: "Keep this lift", or a swap).
+const MACHINE_FIRST = {hpush:'Chest Press Machine', vpush:'Shoulder Press Machine', squat:'Leg Press', vpull:'Assisted Pull-Up', triceps:'Assisted Dip'};
+const MACHINE_WEEKS = 4;
 function fitsVenue(key, equipment){ return equipment==='gym' ? !HOME_ONLY.has(key) : !GYM_ONLY.has(key); }
 // Each movement pattern's options by the equipment the user has. A workout slot cycles through the
 // options its equipment allows -- the first two slots of a workout (its main lifts) once per 4-week
@@ -5400,13 +5451,13 @@ const MOVEMENTS = {
   lunge:    {gym:['Walking Lunge','Bulgarian Split Squat','Step-Up'], kettlebells:['Kettlebell Reverse Lunge','Kettlebell Split Squat'], dumbbells:['Walking Lunge','Bulgarian Split Squat','Step-Up'], bodyweight:['Reverse Lunge','Bodyweight Split Squat','Bodyweight Step-Up']},
   hinge:    {gym:['Romanian Deadlift','Hip Thrust','Kettlebell Swing','Good Morning'], kettlebells:['Kettlebell Swing','Single-Leg Kettlebell Deadlift','Kettlebell Deadlift'], dumbbells:['Dumbbell Romanian Deadlift','Kettlebell Swing','Dumbbell Hip Thrust'], bodyweight:['Single-Leg Romanian Deadlift','Single-Leg Glute Bridge','Glute Bridge']},
   deadlift: {gym:['Deadlift','Trap Bar Deadlift','Rack Pull'], kettlebells:['Kettlebell Deadlift','Kettlebell Swing','Kettlebell Clean'], dumbbells:['Dumbbell Romanian Deadlift','Kettlebell Swing'], bodyweight:['Single-Leg Romanian Deadlift','Single-Leg Glute Bridge']},
-  hpush:    {gym:['Bench Press','Dumbbell Bench Press','Incline Barbell Press'], kettlebells:['Kettlebell Floor Press','Push-Up'], dumbbells:['Dumbbell Floor Press','Push-Up'], bodyweight:['Push-Up','Incline Push-Up','Decline Push-Up','Knee Push-Up']},
+  hpush:    {gym:['Bench Press','Dumbbell Bench Press','Incline Barbell Press','Chest Press Machine'], kettlebells:['Kettlebell Floor Press','Push-Up'], dumbbells:['Dumbbell Floor Press','Push-Up'], bodyweight:['Push-Up','Incline Push-Up','Decline Push-Up','Knee Push-Up']},
   chest2:   {gym:['Incline Dumbbell Press','Chest Fly','Cable Fly'], kettlebells:['Push-Up','Kettlebell Floor Press'], dumbbells:['Dumbbell Floor Fly','Push-Up'], bodyweight:['Incline Push-Up','Diamond Push-Up','Wall Push-Up']},
-  vpush:    {gym:['Overhead Press','Arnold Press','Push Press'], kettlebells:['Kettlebell Overhead Press','Kettlebell Push Press','Kettlebell Halo'], dumbbells:['Dumbbell Shoulder Press','Arnold Press'], bodyweight:['Pike Push-Up']},
+  vpush:    {gym:['Overhead Press','Arnold Press','Push Press','Shoulder Press Machine'], kettlebells:['Kettlebell Overhead Press','Kettlebell Push Press','Kettlebell Halo'], dumbbells:['Dumbbell Shoulder Press','Arnold Press'], bodyweight:['Pike Push-Up']},
   hpull:    {gym:['Bent-Over Row','Seated Cable Row','T-Bar Row'], kettlebells:['Kettlebell Row','Kettlebell Gorilla Row'], dumbbells:['Dumbbell Row','Resistance Band Row'], bodyweight:['Inverted Row','Towel Row','Superman']},
-  vpull:    {gym:['Lat Pulldown','Pull-Up','Chin-Up'], kettlebells:['Kettlebell High Pull','Kettlebell Pullover'], dumbbells:['Dumbbell Pullover'], bodyweight:['Prone Y-T-W Raise','Superman','Wall Angel']},
+  vpull:    {gym:['Lat Pulldown','Pull-Up','Chin-Up','Assisted Pull-Up'], kettlebells:['Kettlebell High Pull','Kettlebell Pullover'], dumbbells:['Dumbbell Pullover'], bodyweight:['Prone Y-T-W Raise','Superman','Wall Angel']},
   arms:     {gym:['Bicep Curl','Triceps Pushdown','Hammer Curl'], kettlebells:['Kettlebell Curl','Kettlebell Overhead Triceps Extension'], dumbbells:['Bicep Curl','Overhead Triceps Extension','Hammer Curl'], bodyweight:['Bench Dip','Diamond Push-Up']},
-  triceps:  {gym:['Triceps Pushdown','Overhead Triceps Extension','Skull Crusher','Triceps Dip'], kettlebells:['Kettlebell Overhead Triceps Extension','Bench Dip'], dumbbells:['Overhead Triceps Extension','Skull Crusher','Bench Dip'], bodyweight:['Bench Dip','Diamond Push-Up']},
+  triceps:  {gym:['Triceps Pushdown','Overhead Triceps Extension','Skull Crusher','Triceps Dip','Assisted Dip'], kettlebells:['Kettlebell Overhead Triceps Extension','Bench Dip'], dumbbells:['Overhead Triceps Extension','Skull Crusher','Bench Dip'], bodyweight:['Bench Dip','Diamond Push-Up']},
   biceps:   {gym:['Bicep Curl','Preacher Curl','Hammer Curl','Concentration Curl'], kettlebells:['Kettlebell Curl'], dumbbells:['Bicep Curl','Hammer Curl','Concentration Curl','Preacher Curl'], bodyweight:['Chin-Up','Towel Row']},
   lateral:  {gym:['Lateral Raise','Cable Lateral Raise'], kettlebells:['Kettlebell Halo','Prone Y-T-W Raise'], dumbbells:['Lateral Raise'], bodyweight:['Prone Y-T-W Raise','Wall Angel']},
   frontraise:{gym:['Front Raise','Upright Row'], kettlebells:['Kettlebell Halo'], dumbbells:['Front Raise'], bodyweight:['Pike Push-Up']},
@@ -5414,45 +5465,57 @@ const MOVEMENTS = {
   calves:   {gym:['Calf Raise','Single-Leg Calf Raise'], kettlebells:['Calf Raise','Single-Leg Calf Raise'], dumbbells:['Calf Raise','Single-Leg Calf Raise'], bodyweight:['Calf Raise','Single-Leg Calf Raise']},
   armstrength: {gym:['Hammer Curl','Bicep Curl','Reverse Curl'], kettlebells:['Kettlebell Curl'], dumbbells:['Hammer Curl','Bicep Curl','Reverse Curl'], bodyweight:['Towel Row','Chin-Up']},
   grip:     {gym:['Wrist Curl','Dead Hang'], kettlebells:['Dead Hang'], dumbbells:['Wrist Curl','Dead Hang'], bodyweight:['Dead Hang']},
-  core:     {gym:['Plank','Hanging Knee Raise','Turkish Get-Up','Dead Bug','Ab Wheel Rollout'], kettlebells:['Turkish Get-Up','Plank','Kettlebell Windmill','Dead Bug'], dumbbells:['Plank','Dead Bug','Side Plank','Bicycle Crunch'], bodyweight:['Plank','Dead Bug','Side Plank','Bird Dog','Bicycle Crunch']},
+  core:     {gym:['Plank','Hanging Knee Raise','Side Plank','Ab Wheel Rollout','Bicycle Crunch'], kettlebells:['Turkish Get-Up','Plank','Kettlebell Windmill','Dead Bug'], dumbbells:['Plank','Dead Bug','Side Plank','Bicycle Crunch'], bodyweight:['Plank','Dead Bug','Side Plank','Bird Dog','Bicycle Crunch']},
 };
 // Which equipment lists a user can draw on when swapping an exercise: a gym has kettlebells, dumbbells
 // and floor space too; everyone can do bodyweight moves.
 const EQUIP_ACCESS = {gym:['gym','kettlebells','dumbbells','bodyweight'], kettlebells:['kettlebells','bodyweight'], dumbbells:['dumbbells','bodyweight'], bodyweight:['bodyweight']};
-// The generated lifting workouts, as movement-pattern slots (sets/reps override the lift's default).
-// A "... B" workout is the same template with every slot shifted one option along, so the second
-// upper (or push, etc.) day of a week isn't a copy of the first -- except Full Body B, which has its own.
+// The generated lifting workouts, as movement-pattern slots (sets/reps override the lift's default), in
+// the order they're done: the main lift first, arms always last of the weights (so grip and arms aren't
+// tired before the bigger lifts) -- push days end with triceps, pull days with biceps -- and then a core
+// finisher, added to every lifting workout (see plannedExercises). How many a workout has goes by level:
+// a beginner does the slots without `lvl` (4), an intermediate lifter adds the lvl:1 slot (5), an advanced
+// one the lvl:2 slot too (6). A "... B" workout without its own template is the same one with every slot
+// shifted one option along, so the second push (or pull) day of a week isn't a copy of the first.
 const LIFT_TEMPLATES = {
-  'Full Body Strength':   [{m:'squat'}, {m:'hpush'}, {m:'hpull'}, {m:'hinge'}, {m:'core'}],
-  'Full Body Strength B': [{m:'lunge'}, {m:'vpush'}, {m:'vpull'}, {m:'hinge'}, {m:'core'}],
-  'Upper Body Strength':  [{m:'hpush', sets:4, reps:10}, {m:'hpull', sets:4, reps:10}, {m:'vpush'}, {m:'vpull'}, {m:'arms'}],
-  'Lower Body Strength':  [{m:'squat', sets:4, reps:8}, {m:'hinge'}, {m:'lunge'}, {m:'calves'}, {m:'core'}],
-  'Push Day Strength':    [{m:'hpush', sets:4, reps:8}, {m:'vpush'}, {m:'lateral'}, {m:'triceps'}, {m:'chest2'}],
-  'Pull Day Strength':    [{m:'deadlift', sets:4, reps:6}, {m:'vpull'}, {m:'hpull'}, {m:'biceps'}, {m:'reardelt'}],
-  'Full Body Strength C': [{m:'deadlift'}, {m:'hpush'}, {m:'vpull'}, {m:'lateral'}, {m:'core'}],
-  'Leg Day':              [{m:'squat', sets:4, reps:8}, {m:'hinge'}, {m:'lunge'}, {m:'calves'}, {m:'core'}],
-  'Push & Legs Day':      [{m:'hpush', sets:4, reps:8}, {m:'squat'}, {m:'vpush'}, {m:'triceps'}],
-  'Pull & Legs Day':      [{m:'deadlift', sets:4, reps:6}, {m:'vpull'}, {m:'hpull'}, {m:'biceps'}],
-  'Chest Day':            [{m:'hpush', sets:4, reps:8}, {m:'chest2'}, {m:'chest2'}, {m:'triceps'}],
-  'Back Day':             [{m:'deadlift', sets:4, reps:6}, {m:'vpull'}, {m:'hpull'}, {m:'reardelt'}],
-  'Shoulder Day':         [{m:'vpush', sets:4, reps:8}, {m:'lateral'}, {m:'reardelt'}, {m:'frontraise'}],
-  'Arm Day':              [{m:'biceps', sets:4, reps:10}, {m:'triceps'}, {m:'biceps'}, {m:'triceps'}],
-  'Shoulders & Arms Day': [{m:'vpush', sets:4, reps:8}, {m:'lateral'}, {m:'biceps'}, {m:'triceps'}],
-  'Chest & Triceps Day':  [{m:'hpush', sets:4, reps:8}, {m:'chest2'}, {m:'triceps'}, {m:'triceps'}],
-  'Back & Biceps Day':    [{m:'deadlift', sets:4, reps:6}, {m:'vpull'}, {m:'hpull'}, {m:'biceps'}],
-  'Legs & Shoulders Day': [{m:'squat', sets:4, reps:8}, {m:'hinge'}, {m:'vpush'}, {m:'lateral'}],
+  'Full Body Strength':   [{m:'squat', sets:4, reps:8}, {m:'hinge', lvl:2}, {m:'hpush'}, {m:'lateral', lvl:1}, {m:'hpull'}, {m:'arms'}],
+  'Full Body Strength B': [{m:'hpull', sets:4, reps:8}, {m:'lunge'}, {m:'vpush', lvl:1}, {m:'hpush'}, {m:'hinge', lvl:2}, {m:'arms'}],
+  'Full Body Strength C': [{m:'deadlift', sets:4, reps:6}, {m:'hpush'}, {m:'lateral', lvl:1}, {m:'vpull'}, {m:'lunge', lvl:2}, {m:'arms'}],
+  // Upper A leads with the chest, Upper B with the back.
+  'Upper Body Strength':  [{m:'hpush', sets:4, reps:10}, {m:'hpull'}, {m:'vpush'}, {m:'vpull', lvl:1}, {m:'chest2', lvl:2}, {m:'arms'}],
+  'Upper Body Strength B':[{m:'hpull', sets:4, reps:10}, {m:'hpush'}, {m:'lateral'}, {m:'vpull', lvl:1}, {m:'reardelt', lvl:2}, {m:'arms'}],
+  // Lower A leads with the squat, Lower B with the deadlift. Leg days end with the core, no arms.
+  'Lower Body Strength':  [{m:'squat', sets:4, reps:8}, {m:'hinge'}, {m:'lunge'}, {m:'squat', lvl:2}, {m:'hinge', lvl:1}, {m:'calves'}],
+  'Lower Body Strength B':[{m:'deadlift', sets:4, reps:6}, {m:'squat'}, {m:'lunge'}, {m:'hinge', lvl:1}, {m:'squat', lvl:2}, {m:'calves'}],
+  'Push Day Strength':    [{m:'hpush', sets:4, reps:8}, {m:'chest2', lvl:1}, {m:'vpush'}, {m:'lateral'}, {m:'triceps', lvl:2}, {m:'triceps'}],
+  'Pull Day Strength':    [{m:'deadlift', sets:4, reps:6}, {m:'vpull'}, {m:'hpull'}, {m:'reardelt', lvl:1}, {m:'biceps', lvl:2}, {m:'biceps'}],
+  'Leg Day':              [{m:'squat', sets:4, reps:8}, {m:'hinge'}, {m:'lunge'}, {m:'squat', lvl:2}, {m:'hinge', lvl:1}, {m:'calves'}],
+  'Leg Day B':            [{m:'deadlift', sets:4, reps:6}, {m:'squat'}, {m:'lunge'}, {m:'hinge', lvl:1}, {m:'squat', lvl:2}, {m:'calves'}],
+  'Push & Legs Day':      [{m:'hpush', sets:4, reps:8}, {m:'squat'}, {m:'vpush'}, {m:'hinge', lvl:1}, {m:'lateral', lvl:2}, {m:'triceps'}],
+  'Pull & Legs Day':      [{m:'deadlift', sets:4, reps:6}, {m:'vpull'}, {m:'hpull', lvl:1}, {m:'lunge'}, {m:'reardelt', lvl:2}, {m:'biceps'}],
+  // The one-muscle-a-day split: arms have their own day; chest day still ends with triceps, back day with biceps.
+  'Chest Day':            [{m:'hpush', sets:4, reps:8}, {m:'chest2'}, {m:'hpush', lvl:2}, {m:'chest2', lvl:1}, {m:'lateral'}, {m:'triceps'}],
+  'Back Day':             [{m:'deadlift', sets:4, reps:6}, {m:'vpull'}, {m:'hpull'}, {m:'hpull', lvl:2}, {m:'reardelt', lvl:1}, {m:'biceps'}],
+  'Shoulder Day':         [{m:'vpush', sets:4, reps:8}, {m:'lateral'}, {m:'vpush', lvl:1}, {m:'reardelt'}, {m:'lateral', lvl:2}, {m:'frontraise'}],
+  'Arm Day':              [{m:'biceps', sets:4, reps:10}, {m:'triceps'}, {m:'biceps'}, {m:'triceps'}, {m:'armstrength', lvl:2}, {m:'grip', lvl:1}],
+  'Shoulders & Arms Day': [{m:'vpush', sets:4, reps:8}, {m:'lateral'}, {m:'reardelt', lvl:1}, {m:'frontraise', lvl:2}, {m:'biceps'}, {m:'triceps'}],
+  'Chest & Triceps Day':  [{m:'hpush', sets:4, reps:8}, {m:'chest2'}, {m:'lateral', lvl:1}, {m:'chest2', lvl:2}, {m:'triceps'}, {m:'triceps'}],
+  'Back & Biceps Day':    [{m:'deadlift', sets:4, reps:6}, {m:'vpull'}, {m:'hpull'}, {m:'reardelt', lvl:1}, {m:'biceps', lvl:2}, {m:'biceps'}],
+  'Legs & Shoulders Day': [{m:'squat', sets:4, reps:8}, {m:'hinge'}, {m:'lunge', lvl:1}, {m:'vpush'}, {m:'lateral'}, {m:'calves', lvl:2}],
 };
+// Movements that are arm work: always the last of the weights.
+const ARM_MOVEMENTS = new Set(['arms','biceps','triceps','armstrength','grip']);
 // Full body days with a focus: the day's focus body part leads (its main lift takes the pyramid and,
-// on the week's peak day, the top single), then one move for each other part -- the opposite muscles
-// first, then legs, then shoulders -- and arms always last, as the finisher, so grip and arms aren't
-// tired out before the bigger lifts. The focus rotates day to day (see FULL_FOCUS_ROTATION).
+// on the week's peak day, the top single), then one move for each other part, shoulders as a
+// supporting move, and arms always last, as the finisher. The focus rotates day to day (see
+// FULL_FOCUS_ROTATION); shoulders only lead when they're the week's peak lift.
 const FULL_FOCUS_TEMPLATES = {
-  chest:     [{m:'hpush', sets:4, reps:8}, {m:'hpull'}, {m:'squat'}, {m:'reardelt'}, {m:'biceps'}],
-  back:      [{m:'deadlift', sets:4, reps:6}, {m:'hpush'}, {m:'lunge'}, {m:'lateral'}, {m:'triceps'}],
-  legs:      [{m:'squat', sets:4, reps:8}, {m:'vpull'}, {m:'chest2'}, {m:'lateral'}, {m:'arms'}],
-  shoulders: [{m:'vpush', sets:4, reps:8}, {m:'hpull'}, {m:'hinge'}, {m:'chest2'}, {m:'biceps'}],
+  chest:     [{m:'hpush', sets:4, reps:8}, {m:'lateral', lvl:1}, {m:'hpull'}, {m:'squat'}, {m:'hinge', lvl:2}, {m:'biceps'}],
+  back:      [{m:'deadlift', sets:4, reps:6}, {m:'hpull'}, {m:'lunge', lvl:2}, {m:'lateral', lvl:1}, {m:'hpush'}, {m:'triceps'}],
+  legs:      [{m:'squat', sets:4, reps:8}, {m:'hinge', lvl:2}, {m:'vpull'}, {m:'vpush', lvl:1}, {m:'chest2'}, {m:'arms'}],
+  shoulders: [{m:'vpush', sets:4, reps:8}, {m:'hpull'}, {m:'hinge'}, {m:'chest2', lvl:1}, {m:'reardelt', lvl:2}, {m:'biceps'}],
 };
-const FULL_FOCUS_ROTATION = ['chest','back','legs','shoulders'];
+const FULL_FOCUS_ROTATION = ['chest','back','legs'];
 // The week's peak lift belongs to one of the focuses: the peak day takes that focus.
 const FOCUS_PART = {hpush:'chest', squat:'legs', deadlift:'back', vpush:'shoulders'};
 const FULL_FOCUS_LABEL = {
@@ -5476,10 +5539,11 @@ function fitsLevel(key, level){
 function fitsUser(key, equipment, level){ return fitsVenue(key, equipment) && fitsLevel(key, level); }
 // When a movement has nothing that fits (say, a beginner's only bodyweight overhead press is the pike
 // push-up), the slot borrows from a close movement instead.
-const BACKUP_MOVEMENT = {vpush:'hpush', frontraise:'lateral', vpull:'reardelt', chest2:'hpush', reardelt:'hpull', lateral:'reardelt', triceps:'hpush'};
+const BACKUP_MOVEMENT = {vpush:'hpush', frontraise:'lateral', vpull:'reardelt', chest2:'hpush', reardelt:'hpull', lateral:'reardelt', triceps:'hpush', biceps:'arms'};
 function movementOptions(movement, equipment, level, borrowed){
   const all = (MOVEMENTS[movement][equipment] || MOVEMENTS[movement].gym);
-  const fit = all.filter(k=> fitsUser(k, equipment, level));
+  // (Machine versions aren't rotated through; see MACHINE_FIRST.)
+  const fit = all.filter(k=> fitsUser(k, equipment, level) && !EXERCISES[k].machine);
   if(fit.length) return fit;
   // The other equipment the user can reach (a kettlebell user can always do bodyweight moves).
   for(const tier of (EQUIP_ACCESS[equipment] || []).slice(1)){
@@ -5632,25 +5696,21 @@ function plannedExercises(session, date){
     });
   }
   const isB = !LIFT_TEMPLATES[title] && / B$/.test(title);
-  const fbFocus = fullBodyFocusOf(session);
-  let slots = fbFocus ? FULL_FOCUS_TEMPLATES[fbFocus] : liftTemplateFor(title);
-  if(!slots) return null;
   const level = planLevel(), equipment = planEquipment();
-  const planWeek = planWeekIndex(d);
-  const recovery = isRecoveryWeek(planWeek);
   // The week's peak workout leads with the focus lift (moved up from its own slot, or added).
   const focus = (liftWaveFor(session, d) || {}).focus;
-  if(focus && fbFocus && !FOCUS_PART[focus.movement]){
-    // (A full body day keeps arms last even in an arm-strength week: the arm lift is its finisher.)
-    slots = [...slots.slice(0, -1), {m:focus.movement, focus:true}];
-  } else if(focus){
-    const j = slots.findIndex(sl=>FOCUS_SLOTS[focus.movement].includes(sl.m));
-    const rest = j>=0 ? slots.filter((_,i)=>i!==j) : slots;
-    slots = [{m:focus.movement, focus:true}, ...rest];
+  const wave = liftWaveFor(session, d);
+  let slots = liftSlotsFor(session, focus, level);
+  if(!slots) return null;
+  // A recovery day (the last of 5 or more lifting days) is short -- the main lift, the next one and the
+  // last (arms stay last), then the core -- since the mobility work is the main part of it.
+  if(wave && wave.pos==='recovery'){
+    const lifts = slots.slice(0, -1);
+    if(lifts.length>3) slots = [lifts[0], lifts[1], lifts[lifts.length-1], slots[slots.length-1]];
   }
-  // Short and efficient: with a pyramid on the main lift, a workout is 4 lifts (3 when an arm & grip
-  // focus adds its grip work to an upper-body day) -- a full body day 5: one for each body part.
-  if(equipment!=='bodyweight' && !fbFocus) slots = slots.slice(0, 4);
+  const planWeek = planWeekIndex(d);
+  const recovery = isRecoveryWeek(planWeek);
+  const machineFirst = level==='beginner' && equipment==='gym' && planWeek < MACHINE_WEEKS;
   // A workout that trains a movement twice (Arm Day's two curls) takes the next option the second
   // time, or a close movement's, rather than repeating the same exercise.
   const used = new Set();
@@ -5658,13 +5718,30 @@ function plannedExercises(session, date){
     for(let j=0; j<options.length; j++){ const k = options[(start + j) % options.length]; if(!used.has(k)) return k; }
     return null;
   };
+  // (Still nothing new: anything else for the movement the user can do -- other equipment included.)
+  const anyUnused = m=>{
+    for(const tier of EQUIP_ACCESS[equipment] || [equipment]) for(const k of (MOVEMENTS[m][tier] || [])){
+      if(!used.has(k) && fitsUser(k, equipment, level) && !EXERCISES[k].machine) return k;
+    }
+    return null;
+  };
+  // ...or for the close movement, and the one close to that.
+  const anyUnusedAlong = m=>{
+    for(let k = 0; m && k<4; k++, m = BACKUP_MOVEMENT[m]){ const hit = anyUnused(m); if(hit) return hit; }
+    return null;
+  };
   const list = slots.map((slot, i)=>{
     const options = movementOptions(slot.m, equipment, level);
-    // Main lifts change with each of the plan's 4-week cycles; the rest every week. The peak lift is
-    // the week's own variation of the focus.
-    const rotation = slot.focus ? focus.variant : (i<2 ? Math.floor(planWeek/4) : seed) + i + (isB ? 1 : 0);
-    const key = unused(options, rotation)
+    // The main lift changes every time its movement leads a workout (bench press, then dumbbell press,
+    // then incline press...); the second lift with each of the plan's 4-week cycles; the rest every week.
+    const rotation = i===0 ? leadCountBefore(slot.m, d) : (i===1 ? Math.floor(planWeek/4) : seed) + i + (isB ? 1 : 0);
+    // A lift the user chose to keep, or a beginner's machine, comes before the rotation.
+    const kept = keptLiftFor(slot.m, equipment);
+    const machine = machineFirst && MACHINE_FIRST[slot.m];
+    const key = (kept && !used.has(kept) && kept) || (machine && !used.has(machine) && machine)
+      || unused(options, rotation)
       || (BACKUP_MOVEMENT[slot.m] && unused(movementOptions(BACKUP_MOVEMENT[slot.m], equipment, level, true), rotation))
+      || anyUnusedAlong(slot.m)
       || options[rotation % options.length];
     used.add(key);
     const base = EXERCISES[key];
@@ -5672,14 +5749,87 @@ function plannedExercises(session, date){
     if(level==='beginner') sets -= 1;
     else if(level==='advanced' && i<2) sets += 1;
     if(i>0) sets += [-1, 0, 1][liftIntensity()] ?? 0; // accessory volume follows lifting intensity
-    if(recovery) sets -= 1;
-    const ex = {...base, key, sets: Math.max(2, sets), fromPlan:true};
+    if(recovery || wave && wave.pos==='recovery' && i>0) sets -= 1;
+    const ex = {...base, key, sets: Math.max(2, sets), fromPlan:true, movement: slot.m};
+    if(i===0) ex.mainLift = true;
+    if(slot.core) ex.finisher = true;
     if(slot.reps && !base.bodyweight) ex.reps = slot.reps; // a bodyweight move keeps its own rep count
-    delete ex.minLevel; delete ex.beginnerOnly;
+    delete ex.minLevel; delete ex.beginnerOnly; delete ex.machine;
     return localizedExercise(ex);
   });
   // The focus lift can land on a move another slot also picked -- keep the first.
   return list.filter((ex,i)=> list.findIndex(o=>o.key===ex.key)===i);
+}
+// A generated lifting workout's movement slots, in order: the level's share of its template (see
+// LIFT_TEMPLATES), the week's focus lift worked in, and the core finisher last. null when it isn't a
+// known lifting workout.
+function liftSlotsFor(session, focus, level){
+  const fbFocus = fullBodyFocusOf(session);
+  const template = fbFocus ? FULL_FOCUS_TEMPLATES[fbFocus] : liftTemplateFor(session.en.title);
+  if(!template) return null;
+  const rank = LEVEL_RANK[level] ?? 1;
+  let slots = template.filter(sl=> !sl.lvl || sl.lvl <= rank);
+  if(focus){
+    if(ARM_MOVEMENTS.has(focus.movement) && !ARM_MOVEMENTS.has(slots[0].m)){
+      // Arms stay last even in an arm-strength week: the arm lift takes the last arm slot, as the finisher.
+      let j = -1;
+      slots.forEach((sl,i)=>{ if(ARM_MOVEMENTS.has(sl.m)) j = i; });
+      if(j<0) j = slots.length-1;
+      slots = slots.map((sl,i)=> i===j ? {m:focus.movement, focus:true} : sl);
+    } else {
+      const j = slots.findIndex(sl=>FOCUS_SLOTS[focus.movement].includes(sl.m));
+      let rest = slots;
+      if(j>=0) rest = slots.filter((_,i)=>i!==j);
+      else {
+        // Added: the last of the supporting lifts makes room, so the workout keeps its length.
+        let drop = -1;
+        slots.forEach((sl,i)=>{ if(i>0 && !ARM_MOVEMENTS.has(sl.m)) drop = i; });
+        if(drop>0) rest = slots.filter((_,i)=>i!==drop);
+      }
+      slots = [{m:focus.movement, focus:true}, ...rest];
+    }
+  }
+  return [...slots, {m:'core', core:true}];
+}
+// How many of the plan's lifting workouts before `date` led with `movement` -- so each one that does
+// takes the next option along. Counted week by week from the plan's start, and remembered.
+const leadCountCache = new Map();
+function planWeekLeads(cfg, n){
+  return generatedWeek(cfg, n).map(e=>{
+    if(!e.wave || e.p.t!=='strength') return null;
+    const slots = liftSlotsFor(e.p, e.wave.focus, cfg.level);
+    return slots ? slots[0].m : null;
+  });
+}
+function leadCountBefore(movement, date){
+  const cfg = planConfig();
+  const n = planWeekIndex(date), dow = (date.getDay()+6)%7;
+  const cfgKey = JSON.stringify(cfg);
+  if(leadCountCache.size>400) leadCountCache.clear();
+  // Counts for all the weeks before week k: built up from the nearest week already worked out.
+  let k = n, before = null;
+  while(k>0 && !(before = leadCountCache.get(cfgKey+'|'+k))) k--;
+  before = before ? {...before} : {};
+  for(; k<n; k++){
+    planWeekLeads(cfg, k).forEach(m=>{ if(m) before[m] = (before[m]||0) + 1; });
+    leadCountCache.set(cfgKey+'|'+(k+1), {...before});
+  }
+  let count = before[movement] || 0;
+  planWeekLeads(cfg, n).forEach((m, i)=>{ if(i<dow && m===movement) count++; });
+  return count;
+}
+// "Keep this lift": the lift the user chose to stay on for a movement, instead of it changing
+// (kept with their standing exercise changes, as '__lock:<movement>').
+const LOCK_PREFIX = '__lock:';
+function keptLiftFor(movement, equipment){
+  const k = state.exerciseSwaps && state.exerciseSwaps[LOCK_PREFIX+movement];
+  return k && EXERCISES[k] && fitsVenue(k, equipment) ? k : null;
+}
+function setKeptLift(movement, key){
+  const swaps = {...state.exerciseSwaps};
+  if(key) swaps[LOCK_PREFIX+movement] = key; else delete swaps[LOCK_PREFIX+movement];
+  state.exerciseSwaps = swaps;
+  saveProfileToCloud();
 }
 // A strength session's exercises, or null when it has none -- the list the user built or changed
 // (session.exercises), else the plan's picks; the user's standing swaps/skips applied either way.
@@ -5738,7 +5888,7 @@ function applyPyramid(list, session, date){
   const peak = wave.pos==='peak' && !wave.deload;
   // Beginners build up to the heavy 5s but don't do the single yet.
   // (A lift on a hard class's day is light and short: the deload week's shorter ladder.)
-  const ladder = wave.deload || wave.classDay ? PYRAMID_DELOAD : peak ? PYRAMID_PEAK.filter(st=> planLevel()!=='beginner' || st[2]!=='top') : PYRAMID_LIGHT;
+  const ladder = wave.deload || wave.classDay || wave.pos==='recovery' ? PYRAMID_DELOAD : peak ? PYRAMID_PEAK.filter(st=> planLevel()!=='beginner' || st[2]!=='top') : PYRAMID_LIGHT;
   const steps = pyramidSteps(ladder, peak ? top : top*WAVE_TOP[wave.pos]*(wave.deload ? DELOAD_FACTOR : 1));
   const out = list.slice();
   out[0] = {...ex, sets: steps.length, reps: 10, pyramid: {peak, pos: wave.pos, deload: !!wave.deload, steps, top: Math.max(...steps.map(st=>st.weight))}};
@@ -7573,7 +7723,9 @@ function renderHome(){
     : null;
   state._homeFocusExtraId = focusExtra ? focusExtra.id : null;
   const eff = focusExtra ? focusExtra.session : ownEff; const effL = ST(eff);
-  const tip = state.ownWorkouts && eff.t==='rest' ? L.ownRestTip : (SESSION_TIP[eff.t]||SESSION_TIP.rest)[state.lang];
+  // A plan lifting day says what to aim for today, by its place in the week's wave.
+  const coach = !focusExtra && eff.t==='strength' ? waveCoach(liftWaveFor(eff, TODAY_DATE)) : '';
+  const tip = state.ownWorkouts && eff.t==='rest' ? L.ownRestTip : coach ? escapeHtml(coach) : (SESSION_TIP[eff.t]||SESSION_TIP.rest)[state.lang];
   // Today's plan workout was placed around a hard class today (see placeSessions): say so.
   const hardClass = !focusExtra && eff.t!=='rest' && !state.week[TODAY_IDX].isCustom && classItemsFor(dateKey(TODAY_DATE)).find(it=> it.cls && CLASS_LOAD[it.cls.kind]);
   const aroundClass = hardClass ? ST(hardClass.session).title : '';
@@ -7925,6 +8077,15 @@ function saveExerciseTarget(exerciseKey, target){
   state.progression[exerciseProgressionKey(exerciseKey)] = target;
   cloudSaveProgressionTarget({t:'strength', en:{title:exerciseKey}}, target);
 }
+// How much a lift goes up when every rep was there: 5 lb (2.5 kg) -- for a beginner, half that on
+// upper-body lifts (2.5 lb, 1 kg), which climb in smaller steps than the legs.
+const LOWER_MOVEMENTS = ['squat','lunge','hinge','deadlift','calves'];
+function isLowerBodyLift(key){ return LOWER_MOVEMENTS.some(m=> Object.values(MOVEMENTS[m]).some(list=> list.includes(key))); }
+function weightStepFor(key){
+  const kg = state.weightUnit==='kg';
+  if(planLevel()==='beginner' && !isLowerBodyLift(key)) return kg ? 1 : 2.5;
+  return kg ? 2.5 : 5;
+}
 function applyProgressionResult(session, logged){
   state._lastProgressed = false;
   if(!logged) return;
@@ -7946,10 +8107,10 @@ function applyProgressionResult(session, logged){
         }
         return;
       }
-      // Hit every rep (and it wasn't rated hard): 5 lb more than what was actually lifted -- or than the
+      // Hit every rep (and it wasn't rated hard): a step more than what was actually lifted -- or than the
       // target, if that's higher.
       const met = res.reps >= target.reps && logged.feel !== 'hard';
-      if(met){ target.weight = Math.max(target.weight, res.weight||0) + 5; advanced++; saveExerciseTarget(res.key, target); }
+      if(met){ target.weight = Math.max(target.weight, res.weight||0) + weightStepFor(res.key); advanced++; saveExerciseTarget(res.key, target); }
     });
     state._lastProgressed = advanced>0;
     state._lastProgressedCount = advanced;
@@ -8028,7 +8189,7 @@ function wireSetCheckDot(dot, rowEl, ex){
     // A set just done: rest before the next one -- none after the very last set of the workout, and
     // none between the exercises of a superset. (Unticking a set leaves a running rest alone.)
     if(checks[idx]){
-      if(Object.values(logPerfSetChecks).every(c=> c.every(Boolean))) stopRest(); else if(rest) startRest();
+      if(Object.values(logPerfSetChecks).every(c=> c.every(Boolean))) stopRest(); else if(rest) startRest(ex.pyramid || ex.mainLift ? 'main' : 'other');
     }
   });
 }
@@ -9528,8 +9689,8 @@ const TERMS = {
            es:['Volumen', 'Peso por repeticiones, sumado en todas las series de un entrenamiento. Más volumen con el tiempo significa que estás haciendo más trabajo.']},
   next: {en:['Next suggested', 'What to aim for next time, based on how this went: a pace for runs, a weight for lifts. Hit it and the next target moves up a little.'],
          es:['Siguiente sugerido', 'Tu objetivo para la próxima vez, según cómo te fue: un ritmo para correr, un peso para levantar. Si lo logras, el siguiente objetivo sube un poco.']},
-  wave: {en:['Your week\'s wave', 'Each lift moves through the week in a wave: a light day to practise, building days a bit heavier, a step-down day to recover a little, and a peak day, the heaviest of the week.'],
-         es:['La ola de tu semana', 'Cada levantamiento recorre la semana como una ola: un día ligero para practicar, días de progresión algo más pesados, un día de bajada para recuperarte un poco y un día pico, el más pesado de la semana.']},
+  wave: {en:['Your week\'s wave', 'Each week of lifting moves in a wave: a light day to get back into the rhythm, a building day a bit heavier, a peak day, the heaviest of the week, then an easy day: same reps, lighter weight. With 5 or more lifting days, the last one is a recovery day, mostly mobility and stretching.'],
+         es:['La ola de tu semana', 'Cada semana de pesas se mueve como una ola: un día ligero para retomar el ritmo, un día de subida algo más pesado, un día pico, el más pesado de la semana, y luego un día suave: mismas repeticiones, menos peso. Con 5 o más días de pesas, el último es un día de recuperación, sobre todo movilidad y estiramientos.']},
 };
 function termBtn(key){ return `<button class="term-i" type="button" data-term="${key}" aria-label="${escapeHtml(STR[state.lang].termWhat)}">${ICONS.info}</button>`; }
 function openTerm(key){
@@ -9720,6 +9881,15 @@ function renderWorkoutPreview(){
   const exSection = document.getElementById('wpExerciseSection');
   const exercises = exercisesForSession(session, date);
   exSection.hidden = !exercises;
+  // A lifting workout: what to aim for today, then the warm-up and how hard to go.
+  const coachEl = document.getElementById('wpCoach');
+  const lifting = !!(exercises && exercises.some(ex=> !ex.bodyweight || ex.pyramid));
+  coachEl.hidden = !lifting;
+  if(lifting){
+    const coach = waveCoach(wave);
+    coachEl.innerHTML = (coach ? `<p><b>${escapeHtml(coach)}</b></p>` : '')
+      + `<p>${escapeHtml(LIFT_WARMUP[state.lang])}</p><p>${escapeHtml(LIFT_EFFORT[state.lang])}</p>`;
+  }
   if(exercises){
     const wpSs = supersetLabels(exercises);
     document.getElementById('wpExerciseList').innerHTML = exercises.map((ex, i)=>{
@@ -9737,6 +9907,7 @@ function renderWorkoutPreview(){
             ${rx}
             ${ex.pyramid ? pyramidLadderHtml(ex) : ''}
             ${note}
+            ${keepLiftBtnHtml(ex, r)}
           </div>
           <button class="wp-change" type="button" data-change="${i}">${L.wpChangeBtn}</button>
         </div>`;
@@ -9760,6 +9931,14 @@ function renderWorkoutPreview(){
   document.getElementById('wpCompanionSection').hidden = !companion;
   if(companion) document.getElementById('wpCompanion').textContent = companion.title + (companion.detail ? ` · ${companion.detail}` : '');
   mvKick();
+}
+// The main lift changes each time its movement leads a workout; "Keep this lift" stays on this one.
+// (Only on the plan's own pick -- one swapped in, or a workout the user built, has nothing rotating.)
+function keepLiftBtnHtml(ex, r){
+  if(!ex.mainLift || !ex.fromPlan || ex.swappedFrom || !ex.movement || r.extra) return '';
+  const L = STR[state.lang];
+  const on = keptLiftFor(ex.movement, planEquipment())===ex.key;
+  return `<button class="wp-keep${on ? ' on' : ''}" type="button" data-keep-lift="${escapeHtml(ex.movement)}" data-keep-key="${escapeHtml(ex.key)}" aria-pressed="${on}">${on ? ICONS.checkSm : ''}${escapeHtml(on ? L.keptLift : L.keepLift)}</button>`;
 }
 // A pyramid, step by step -- "Warm-up 45 · 50 · 55 lb × 10", "Heavy sets 85 · 90 · 95 lb × 5", ... --
 // with how to run it.
@@ -9882,6 +10061,17 @@ document.getElementById('wpExerciseSection').addEventListener('click', (e)=>{
   const scope = e.target.closest('[data-scope]');
   if(scope && wp.editIdx!=null && wp.choice!=null){ applyExerciseChange(wp.editIdx, wp.choice, scope.getAttribute('data-scope')); return; }
   if(e.target.closest('[data-cancel-change]')){ wp.editIdx = null; wp.choice = null; renderWorkoutPreview(); return; }
+  const keep = e.target.closest('[data-keep-lift]');
+  if(keep){
+    const movement = keep.getAttribute('data-keep-lift'), key = keep.getAttribute('data-keep-key');
+    const on = keptLiftFor(movement, planEquipment())===key;
+    setKeptLift(movement, on ? null : key);
+    wp.changed = true;
+    refreshViews();
+    renderWorkoutPreview();
+    showToast(STR[state.lang][on ? 'keepLiftOffToast' : 'keepLiftOnToast'].replace('{name}', exerciseDisplayName(key)));
+    return;
+  }
   const undo = e.target.closest('[data-undo-swap]');
   if(undo){
     const swaps = {...state.exerciseSwaps};
@@ -13254,13 +13444,19 @@ function resumeGpsIfAny(){
 }
 
 /* ---------------- rest timer between sets ---------------- */
-// Checking off a set starts a rest countdown at the bottom of Log Performance: -15/+15 to change it (the
-// new length is remembered for next time), Skip to end it. The last 3 seconds beep, and the end says
+// Checking off a set starts a rest countdown at the bottom of Log Performance: 2 1/2 minutes after a set
+// of the main lift, 75 seconds after anything else; -15/+15 to change it (each length is remembered for
+// next time, separately), Skip to end it. The last 3 seconds beep, and the end says
 // "Go" in the timer's voice with a buzz. In the store app a notification is also scheduled for the end,
 // so it still comes through with the phone locked.
-const REST_KEY = 'altiro_rest_sec', REST_NOTIF_ID = 7100;
-let restDefaultSec = 90, rest = null;
-try{ const v = parseInt(localStorage.getItem(REST_KEY), 10); if(v>=15 && v<=600) restDefaultSec = v; }catch(e){}
+const REST_KEY = 'altiro_rest_sec', REST_MAIN_KEY = 'altiro_rest_main_sec', REST_NOTIF_ID = 7100;
+const restDefaults = {main: 150, other: 75};
+let rest = null;
+try{
+  const o = parseInt(localStorage.getItem(REST_KEY), 10), m = parseInt(localStorage.getItem(REST_MAIN_KEY), 10);
+  if(o>=15 && o<=600) restDefaults.other = o;
+  if(m>=15 && m<=600) restDefaults.main = m;
+}catch(e){}
 function restRemainingMs(){ return rest ? Math.max(0, rest.endAt - Date.now()) : 0; }
 function scheduleRestNotification(){
   const LN = nativeNotifications();
@@ -13273,12 +13469,14 @@ function cancelRestNotification(){
   const LN = nativeNotifications();
   if(LN) LN.cancel({notifications:[{id: REST_NOTIF_ID}]}).catch(()=>{});
 }
-function startRest(){
+function startRest(kind){
   stopRest();
+  kind = kind==='main' ? 'main' : 'other';
+  const restDefaultSec = restDefaults[kind];
   const ctx = getAudioCtx(); // this tap lets the beeps and the voice play
   if(ctx && ctx.state==='suspended') ctx.resume();
   loadVoiceClips();
-  rest = {total: restDefaultSec, endAt: Date.now() + restDefaultSec*1000, beeped: null, tick: null};
+  rest = {kind, total: restDefaultSec, endAt: Date.now() + restDefaultSec*1000, beeped: null, tick: null};
   const bar = document.getElementById('restBar');
   bar.classList.remove('done');
   bar.hidden = false;
@@ -13319,8 +13517,8 @@ function adjustRest(deltaSec){
   const nextLeft = Math.max(5, left + deltaSec);
   rest.endAt = Date.now() + nextLeft*1000;
   rest.total = Math.max(15, Math.min(600, Math.round((rest.total + deltaSec)/5)*5));
-  restDefaultSec = rest.total;
-  try{ localStorage.setItem(REST_KEY, String(restDefaultSec)); }catch(e){}
+  restDefaults[rest.kind] = rest.total;
+  try{ localStorage.setItem(rest.kind==='main' ? REST_MAIN_KEY : REST_KEY, String(rest.total)); }catch(e){}
   rest.beeped = null;
   renderRest();
   scheduleRestNotification();
@@ -14896,6 +15094,14 @@ const DEMO_PHOTOS = new Map([
 const demoSlug = key => key.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 // How to do each exercise, in three short steps (shown when there's no picture of it, or with one that has none).
 const HOWTO = {
+  'Chest Press Machine': {en:['Set the seat so the handles line up with your mid-chest', 'Press the handles forward until your arms are straight, not locked', 'Bring them back slowly until you feel a light stretch in your chest'],
+    es:['Ajusta el asiento para que los agarres queden a la altura del centro del pecho', 'Empuja los agarres hacia delante hasta estirar los brazos sin bloquear', 'Vuelve despacio hasta sentir un ligero estiramiento en el pecho']},
+  'Shoulder Press Machine': {en:['Set the seat so the handles start at shoulder height', 'Press straight up until your arms are straight, back against the pad', 'Lower slowly back to shoulder height'],
+    es:['Ajusta el asiento para que los agarres empiecen a la altura de los hombros', 'Empuja hacia arriba hasta estirar los brazos, espalda contra el respaldo', 'Baja despacio hasta la altura de los hombros']},
+  'Assisted Pull-Up': {en:['Pick the counterweight: more weight makes it easier', 'Kneel or stand on the pad, hands a bit wider than your shoulders', 'Pull your chest toward the bar, then lower all the way down with control'],
+    es:['Elige el contrapeso: más peso lo hace más fácil', 'Apoya las rodillas o los pies en la plataforma, manos algo más abiertas que los hombros', 'Lleva el pecho hacia la barra y baja del todo con control']},
+  'Assisted Dip': {en:['Pick the counterweight: more weight makes it easier', 'Grip the handles, arms straight, kneel or stand on the pad', 'Bend your elbows to about 90°, then press back up'],
+    es:['Elige el contrapeso: más peso lo hace más fácil', 'Agarra las barras con los brazos estirados, rodillas o pies en la plataforma', 'Dobla los codos hasta unos 90° y vuelve a empujar hacia arriba']},
   'Front Squat': {en:['Bar rests on the front of your shoulders, elbows high', 'Sit straight down between your heels, chest tall', 'Drive up through your whole foot, elbows stay up'],
     es:['Barra sobre la parte delantera de los hombros, codos altos', 'Baja recto entre los talones, pecho erguido', 'Sube empujando con todo el pie, codos arriba']},
   'Leg Press': {en:['Feet shoulder-width in the middle of the platform', 'Lower until your knees are near 90°, back flat on the pad', 'Press back up without locking your knees'],

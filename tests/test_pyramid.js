@@ -40,7 +40,7 @@ const movementOf = key => Object.keys(E.MOVEMENTS).filter(m=>Object.values(E.MOV
 
 setup({days:[0,1,2,3,4]});
 const wk0 = liftDays(0);
-check('5 lifting days: light, building, PEAK, step-down, light', wk0.map(d=>d.wave.pos).join()==='light,build,peak,step,light', wk0.map(d=>d.wave.pos).join());
+check('5 lifting days: light, building, PEAK, easy, recovery', wk0.map(d=>d.wave.pos).join()==='light,build,peak,step,recovery', wk0.map(d=>d.wave.pos).join());
 check('...the peak is Wednesday', wk0.find(d=>d.wave.pos==='peak').i===2);
 const peak0 = exs(wk0[2]);
 check('Peak day leads with the focus lift (week 1: a press)', movementOf(peak0[0].key).includes('hpush'), peak0[0].key);
@@ -53,9 +53,9 @@ check('A light day\'s main lift is a pyramid too, with no single', light.pyramid
 check('...shaped 3x10 warm-up, 3x10 work, 3x5, 2x5 down, 2x10 finish', light.pyramid.steps.map(s=>s.reps).join()==='10,10,10,10,10,10,5,5,5,5,5,10,10');
 check('...and topping out lighter than the peak', light.pyramid.top < steps[9].weight, `${light.pyramid.top} vs ${steps[9].weight}`);
 const tops = wk0.map(d=>exs(d)[0].pyramid ? exs(d)[0].pyramid.top : null);
-check('The week builds to the peak and comes back down', tops[0]<=tops[1] && tops[1]<tops[2] && tops[3]<tops[2] && tops[4]<=tops[3], tops.join(' → '));
+check('The week builds to the peak and comes back down', tops[0]<=tops[1] && tops[1]<tops[2] && tops[3]<tops[2], tops.join(' → '));
 check('Only the main lift is a pyramid; accessories stay straight sets', wk0.every(d=>exs(d).slice(1).every(e=>!e.pyramid)));
-check('Every workout is 4 lifts or fewer', wk0.every(d=>exs(d).length<=4), wk0.map(d=>exs(d).length).join());
+check('Every workout is 5 lifts and the core finisher (an intermediate lifter); the recovery day 3 and the core', wk0.map(d=>exs(d).length).join()==='6,6,6,6,4', wk0.map(d=>exs(d).length).join());
 
 // All-round: press -> squat -> deadlift, then a deload week with no peak, then the next variations.
 const peakOf = n => { const d = liftDays(n).find(x=>x.wave.pos==='peak' && x.wave.focus); return d ? exs(d)[0].key : null; };
@@ -67,7 +67,7 @@ check('...no peak single, a shorter pyramid (10 sets, not 13+)', rot[3]===null &
 const tops2 = liftDays(2).map(d=>exs(d)[0].pyramid.top), tops3 = deload.map(d=>exs(d)[0].pyramid.top);
 check('...and lighter every day than the week before (about 85%)', tops3.every((t,i)=> t < tops2[i] && t >= tops2[i]*0.6), tops2.join('/')+' -> '+tops3.join('/'));
 check('...accessories a set less', deload.every((d,i)=> exs(d).slice(1).every(e=> e.sets <= 3)));
-check('Next round peaks new variations', rot[4]!==rot[0] && rot[5]!==rot[1] && movementOf(rot[4]).includes('hpush'), rot.slice(4).join(', '));
+check('Next round peaks the same order again (the lift itself moves on every session its movement leads)', movementOf(rot[4]).includes('hpush') && movementOf(rot[5]).includes('squat'), rot.slice(4).join(', '));
 
 // Beginners build up to the heavy 5s but don't single yet.
 setup({days:[0,2,4], level:'beginner'});
@@ -89,14 +89,14 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const doc = window.document;
   const go = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
 
-  // Weights only, Monday to Friday (week 2 of the plan peaks the squat).
+  // Weights only, Monday, Tuesday, Wednesday and Friday (week 2 of the plan peaks the squat).
   go('adjust');
   await wait(10);
   for(let i=0;i<4;i++) doc.getElementById('adjSliderThumb').dispatchEvent(new window.KeyboardEvent('keydown', {key:'ArrowRight', bubbles:true}));
-  doc.querySelector('#adjDayCountChips .chip[data-count="5"]').click();
+  doc.querySelector('#adjDayCountChips .chip[data-count="4"]').click();
   for(let pass=0; pass<2; pass++) for(let d=0; d<7; d++){
     const chip = doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`);
-    const want = d<5;
+    const want = [0,1,2,4].includes(d);
     if(chip.classList.contains('sel')!==want && (pass===0 ? !want : want)) chip.click();
   }
   doc.getElementById('applyAdjust').click();
@@ -125,7 +125,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   doc.getElementById('closeWorkoutPreview').click();
   await wait(10);
 
-  // Today (Friday, the week's last lifting day): log the pyramid.
+  // Today (Friday, the week's last lifting day, an easy day): log the pyramid.
   go('home');
   await wait(20);
   const cardLine = doc.querySelector('#sessionCard .r-exercise-list li').textContent.replace(/\s+/g,' ');
@@ -141,6 +141,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   // Warm-ups and two working sets done; the third set of 10 would get ugly -> 5s from here.
   const dots = () => [...row.querySelectorAll('.set-check-dot')];
   for(let i=0;i<5;i++) dots()[i].click();
+  check('A set of the main lift starts a 2:30 rest', !doc.getElementById('restBar').hidden && doc.getElementById('restTime').textContent==='2:30', doc.getElementById('restTime').textContent);
   row.querySelector('[data-pyr="fives"]').click();
   const afterFives = sets();
   check('"Switch to 5s" turns the rest of the climb into 5s', afterFives.slice(5,9).every(s=>s.r==='5') && afterFives.slice(0,5).every(s=>s.r==='10'), afterFives.map(s=>s.w+'x'+s.r).join(' '));

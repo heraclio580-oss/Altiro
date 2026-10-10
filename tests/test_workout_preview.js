@@ -86,7 +86,8 @@ function helpers(dom){
   console.log('A bodyweight plan only lists bodyweight moves:', !before.some(n=>/Barbell|Dumbbell|Kettlebell|Cable|Bench Press|Squat$/.test(n) && !/Bodyweight|Jump|Split/.test(n)) ? 'OK' : `FAIL (${before})`);
 
   // ---- swap one exercise, just this workout ----
-  await click('#wpExerciseList [data-change="0"]');
+  // (The second exercise: the main lift changes every session, the second one stays for the 4-week block.)
+  await click('#wpExerciseList [data-change="1"]');
   const altChips = [...doc.querySelectorAll('.wp-chooser [data-alt]')].map(c=>c.getAttribute('data-alt'));
   console.log('Change offers alternatives plus Skip:', altChips.length>=2 && altChips.includes('skip') ? `OK (${altChips.join(', ')})` : `FAIL (${altChips})`);
   console.log('...and no scope choice until one is picked:', !doc.querySelector('.wp-chooser [data-scope]') ? 'OK' : 'FAIL');
@@ -94,27 +95,27 @@ function helpers(dom){
   await click(`.wp-chooser [data-alt="${alt}"]`);
   console.log('Picking one asks: just this workout, or every workout:', doc.querySelectorAll('.wp-chooser [data-scope]').length===2 ? 'OK' : 'FAIL');
   await click('.wp-chooser [data-scope="one"]');
-  console.log('Just this workout: the exercise is swapped here:', names()[0]===alt && names().slice(1).join()===before.slice(1).join() ? 'OK' : `FAIL (${names()})`);
+  console.log('Just this workout: the exercise is swapped here:', names()[1]===alt && names()[0]===before[0] && names().slice(2).join()===before.slice(2).join() ? 'OK' : `FAIL (${names()})`);
   await close();
   const monLog = Object.values(backend.db.workout_logs).find(r=>r.log_date==='2026-09-21');
-  console.log('...and that workout\'s own exercise list is saved:', monLog && Array.isArray(monLog.planned_exercises) && monLog.planned_exercises[0].key===alt ? 'OK' : `FAIL (${JSON.stringify(monLog)})`);
-  await tapPlanRow(2, 0); // the Monday after -- same workout, same main lifts this cycle
-  console.log("...but the next week's same workout is unchanged:", names()[0]===before[0] ? 'OK' : `FAIL (${names()[0]} vs ${before[0]})`);
+  console.log('...and that workout\'s own exercise list is saved:', monLog && Array.isArray(monLog.planned_exercises) && monLog.planned_exercises[1].key===alt ? 'OK' : `FAIL (${JSON.stringify(monLog)})`);
+  await tapPlanRow(2, 0); // the Monday after -- same workout, same second lift this cycle
+  console.log("...but the next week's same workout is unchanged:", names()[1]===before[1] ? 'OK' : `FAIL (${names()[1]} vs ${before[1]})`);
 
   // ---- swap, every workout ----
-  await click('#wpExerciseList [data-change="0"]');
+  await click('#wpExerciseList [data-change="1"]');
   await click(`.wp-chooser [data-alt="${alt}"]`);
   await click('.wp-chooser [data-scope="all"]');
-  console.log('Every workout: swapped here, with a note and Undo:', names()[0]===alt && /Replaces .+ in every workout/.test(doc.querySelector('#wpExerciseList .wp-ex-note').textContent) ? 'OK' : `FAIL (${names()[0]})`);
-  console.log('...saved to the profile:', backend.db.profiles.u1.exercise_swaps && backend.db.profiles.u1.exercise_swaps[before[0]]===alt ? 'OK' : `FAIL (${JSON.stringify(backend.db.profiles.u1.exercise_swaps)})`);
+  console.log('Every workout: swapped here, with a note and Undo:', names()[1]===alt && /Replaces .+ in every workout/.test(doc.querySelector('#wpExerciseList .wp-ex-note').textContent) ? 'OK' : `FAIL (${names()[1]})`);
+  console.log('...saved to the profile:', backend.db.profiles.u1.exercise_swaps && backend.db.profiles.u1.exercise_swaps[before[1]]===alt ? 'OK' : `FAIL (${JSON.stringify(backend.db.profiles.u1.exercise_swaps)})`);
   await close();
   await tapPlanRow(3, 0);
-  console.log('...and applied to later workouts too:', names()[0]===alt ? 'OK' : `FAIL (${names()[0]})`);
+  console.log('...and applied to later workouts too:', names()[1]===alt ? 'OK' : `FAIL (${names()[1]})`);
 
   // ---- skip an exercise, every workout, then undo ----
   const countBefore = names().length;
-  const skipped = names()[1];
-  await click('#wpExerciseList [data-change="1"]');
+  const skipped = names()[2];
+  await click('#wpExerciseList [data-change="2"]');
   await click('.wp-chooser [data-alt="skip"]');
   await click('.wp-chooser [data-scope="all"]');
   console.log('Skipping an exercise for every workout removes it, and says so:',
@@ -129,12 +130,12 @@ function helpers(dom){
   h2.go('week');
   await wait(20);
   await h2.tapPlanRow(1, 0);
-  console.log('Next sign-in: the just-this-workout swap is still on that Monday:', h2.names()[0]===alt ? 'OK' : `FAIL (${h2.names()[0]})`);
+  console.log('Next sign-in: the just-this-workout swap is still on that Monday:', h2.names()[1]===alt ? 'OK' : `FAIL (${h2.names()[1]})`);
   await h2.close();
   await h2.tapPlanRow(2, 0);
-  console.log('Next sign-in: the every-workout swap still applies:', h2.names()[0]===alt ? 'OK' : `FAIL (${h2.names()[0]})`);
+  console.log('Next sign-in: the every-workout swap still applies:', h2.names()[1]===alt ? 'OK' : `FAIL (${h2.names()[1]})`);
   await h2.click('#wpExerciseList [data-undo-swap]');
-  console.log('Undoing it restores the plan\'s own pick:', h2.names()[0]===before[0] ? 'OK' : `FAIL (${h2.names()[0]})`);
+  console.log('Undoing it restores the plan\'s own pick:', h2.names()[1]===before[1] ? 'OK' : `FAIL (${h2.names()[1]})`);
 
   // ---- skip the whole workout ----
   h2.doc.getElementById('wpSkipWorkoutBtn').click();

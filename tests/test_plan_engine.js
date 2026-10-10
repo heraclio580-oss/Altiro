@@ -224,8 +224,10 @@ check('Beginners don\'t get technical lifts (Pull-Up, Front Squat, ...)', noAdva
 const upperA = exercisesFor({days:[0,1,3,4], focus:4, eq:'gym'}, 'Upper Body Strength').map(e=>e.key);
 const upperB = exercisesFor({days:[0,1,3,4], focus:4, eq:'gym'}, 'Upper Body Strength B').map(e=>e.key);
 check('A second Upper day in the same week uses different exercises', upperA.join()!==upperB.join(), upperA.join()+' / '+upperB.join());
-const mainLifts = [0,1,2,3].map(w=> exercisesFor({days:[0,2,4], focus:4}, 'Lower Body Strength', new Date(2026,8,28+w*7))[0].key);
-check('Main lifts stay the same through a 4-week block, so they can progress', new Set(mainLifts).size===1, mainLifts.join(', '));
+const seconds = [0,1,2].map(w=> exercisesFor({days:[0,2,4], focus:4}, 'Lower Body Strength', new Date(2026,8,28+w*7))[1].key);
+check('The second lift stays the same through a 4-week block, so it can progress', new Set(seconds).size===1, seconds.join(', '));
+const mainLifts = [0,1,2].map(w=> exercisesFor({days:[0,2,4], focus:4}, 'Lower Body Strength', new Date(2026,8,28+w*7))[0].key);
+check('The main lift changes each time its movement leads (see test_workout_rules)', new Set(mainLifts).size>1, mainLifts.join(', '));
 const setsNormal = exercisesFor({days:[0,2,4], focus:4, level:'advanced'}, 'Push Day Strength', new Date(2026,8,28))[0].sets;
 const setsRecovery = exercisesFor({days:[0,2,4], focus:4, level:'advanced'}, 'Push Day Strength', new Date(2026,9,19))[0].sets;
 check('Recovery week lifts a set less', setsRecovery===setsNormal-1, `${setsNormal} -> ${setsRecovery}`);

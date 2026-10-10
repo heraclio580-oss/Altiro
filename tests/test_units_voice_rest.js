@@ -223,12 +223,12 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195;
     const dots = '#logPerfExercisesList .set-check-dot';
     check('(set-up) a lift with 2 sets, no rest running', await page.evaluate(d=> document.querySelectorAll(d).length, dots)===2 && !(await shown(page, '#restBar')));
     await page.locator(dots).first().tap();
-    check('Checking off set 1 starts a 1:30 rest', await shown(page, '#restBar') && (await txt(page, '#restTime'))==='1:30', await txt(page, '#restTime'));
+    check('Checking off set 1 starts a 1:15 rest (an exercise other than a main lift)', await shown(page, '#restBar') && (await txt(page, '#restTime'))==='1:15', await txt(page, '#restTime'));
     await page.tap('#restPlus');
-    check('+15 makes it 1:45', (await txt(page, '#restTime'))==='1:45', await txt(page, '#restTime'));
+    check('+15 makes it 1:30', (await txt(page, '#restTime'))==='1:30', await txt(page, '#restTime'));
     await page.clock.fastForward(30000);
-    check('It counts down', (await txt(page, '#restTime'))==='1:15', await txt(page, '#restTime'));
-    await page.clock.fastForward(70000);             // to 0:05 left
+    check('It counts down', (await txt(page, '#restTime'))==='1:00', await txt(page, '#restTime'));
+    await page.clock.fastForward(55000);             // to 0:05 left
     const tonesBefore = await page.evaluate(()=> window.__tones);
     await page.clock.runFor(3600);                    // step through 0:05 .. 0:01.4, tick by tick
     check('The last seconds beep', await page.evaluate(()=> window.__tones) - tonesBefore >= 2);
@@ -238,7 +238,8 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195;
     check('...then the rest bar goes away', !(await shown(page, '#restBar')));
     await page.locator(dots).first().tap();           // untick
     await page.locator(dots).first().tap();           // tick again
-    check('The next rest starts at the length chosen last time (1:45)', (await txt(page, '#restTime'))==='1:45', await txt(page, '#restTime'));
+    check('The next rest starts at the length chosen last time (1:30)', (await txt(page, '#restTime'))==='1:30', await txt(page, '#restTime'));
+    check('...remembered for other exercises only; a main lift keeps its own 2:30', await page.evaluate(()=> localStorage.getItem('altiro_rest_sec')==='90' && localStorage.getItem('altiro_rest_main_sec')===null));
     await page.tap('#restSkip');
     check('Skip ends it', !(await shown(page, '#restBar')));
     await page.locator(dots).nth(1).tap();

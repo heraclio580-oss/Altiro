@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-// Full body days each have a focus that rotates -- chest, back, legs, shoulders, carrying on from week to
-// week. The day's focus leads (its main lift first, with the pyramid), then one move for every other body
-// part, and arms always last as the finisher. The week's peak day leads with its peak lift's body part.
+// Full body days each have a focus that rotates -- chest, back, legs, carrying on from week to week. The
+// day's focus leads (its main lift first, with the pyramid), then one move for every other body part, a
+// shoulder move as support, arms always last of the weights as the finisher, and then the core finisher.
+// The week's peak day leads with its peak lift's body part.
 const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
 let failures = 0;
 function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok ? 'OK' : `FAIL${detail ? ' ('+detail+')' : ''}`); }
@@ -30,27 +31,33 @@ const M = E.MOVEMENTS;
 const inMove = (key, moves, eq) => moves.some(m=> Object.values(M[m]).some(list=> list.includes(key)));
 const LEAD = {Chest:['hpush'], Back:['deadlift','hinge'], Legs:['squat'], Shoulders:['vpush']};
 const ARMS = ['biceps','triceps','arms','armstrength'];
+const CORE = ['core'];
+// The weights, without the core finisher (checked to be last on its own).
+const weights = list => list.slice(0, -1);
 
 // Three full body days a week, over eight weeks.
 const weeks = [0,1,2,3,4,5,6,7].map(n=> week({days:[0,2,4]}, n));
 check('Every full body day has a focus, shown with the workout ("45 min · Chest focus")', weeks.flat().every(d=> focusOf(d) && /min · \w+ focus$/.test(d.p.en.detail)), weeks[0].map(d=>d.p.en.detail).join(' | '));
 check('...a different focus each day of the week', weeks.every(w=> new Set(w.map(focusOf)).size===w.length), weeks.map(w=>w.map(focusOf).join('/')).join('  '));
 const seen = new Set(weeks.slice(0,2).flat().map(focusOf));
-check('...rotating, so within two weeks every body part gets its turn', ['Chest','Back','Legs','Shoulders'].every(f=> seen.has(f)), [...seen].join(', '));
+check('...rotating chest, back, legs, so within two weeks each gets its turn', ['Chest','Back','Legs'].every(f=> seen.has(f)) && !seen.has('Shoulders'), [...seen].join(', '));
 check('...and in Spanish too', weeks[0].every(d=> /Enfoque: (pecho|espalda|piernas|hombros)$/.test(d.p.es.detail)), weeks[0][0].p.es.detail);
 
-let leadOk = true, armsOk = true, fiveOk = true, allPartsOk = true, sample = '';
+let leadOk = true, armsOk = true, fiveOk = true, allPartsOk = true, coreOk = true, sample = '';
 weeks.flat().forEach(d=>{
-  const list = E.exercisesForSession(d.p, d.date).map(e=>e.key), f = focusOf(d);
+  const all = E.exercisesForSession(d.p, d.date).map(e=>e.key), f = focusOf(d);
+  if(!inMove(all[all.length-1], CORE)) coreOk = false;
+  const list = weights(all);
   if(!inMove(list[0], LEAD[f])) leadOk = false;
   if(!inMove(list[list.length-1], ARMS)) armsOk = false;
   if(list.length!==5) fiveOk = false;
   if(list.slice(0,-1).some(k=> inMove(k, ARMS) && !inMove(k, ['vpull','hpull']))) allPartsOk = false; // no arm isolation before the end
-  if(!sample) sample = `${f}: ${list.join(' > ')}`;
+  if(!sample) sample = `${f}: ${all.join(' > ')}`;
 });
 check('The day\'s focus lift comes first', leadOk, sample);
-check('Arms are always last, the finisher -- never earlier in the workout', armsOk && allPartsOk, sample);
-check('Five exercises: one for each body part', fiveOk, sample);
+check('Arms are always last of the weights, the finisher -- never earlier in the workout', armsOk && allPartsOk, sample);
+check('...then the core finisher, the very last exercise', coreOk, sample);
+check('Intermediate: five lifts (one for each body part, plus a shoulder move) and the core', fiveOk, sample);
 
 // The week's peak: a full body plan's peak lift rotates bench / squat / deadlift; the peak day takes that focus.
 const PART = {hpush:'Chest', squat:'Legs', deadlift:'Back'};
@@ -65,13 +72,13 @@ check('...and that lift gets the peak pyramid', peakFirst);
 // Arm-strength focus: arms still finish the workout.
 const armWeek = week({days:[0,2,4], focus:'arms'}, 0);
 const armPeak = armWeek.find(d=> d.wave && d.wave.focus);
-const armList = armPeak ? E.exercisesForSession(armPeak.p, armPeak.date).map(e=>e.key) : [];
+const armList = armPeak ? weights(E.exercisesForSession(armPeak.p, armPeak.date).map(e=>e.key)) : [];
 check('An arm-strength week still ends with arms (grip stays fresh for the big lifts)', !armPeak || inMove(armList[armList.length-1], ARMS), armList.join(' > '));
 
 // Other equipment and 2 days a week.
 ['dumbbells','kettlebells','bodyweight'].forEach(eq=>{
   const w = week({days:[1,4], eq}, 3);
-  const ok = w.length===2 && w.every(d=>{ const l = E.exercisesForSession(d.p, d.date).map(e=>e.key); return l.length>=4 && inMove(l[l.length-1], ARMS.concat(['hpush'])); });
+  const ok = w.length===2 && w.every(d=>{ const l = weights(E.exercisesForSession(d.p, d.date).map(e=>e.key)); return l.length>=4 && inMove(l[l.length-1], ARMS.concat(['hpush'])); });
   check(`${eq}: two full body days, each ending with arms`, ok, w.map(d=> focusOf(d)+': '+E.exercisesForSession(d.p, d.date).map(e=>e.key).join(' > ')).join(' | '));
 });
 

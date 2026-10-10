@@ -16293,7 +16293,17 @@ function isNativeShell(){ return !!(window.Capacitor && window.Capacitor.isNativ
 // when the app comes back on screen (and every half hour while it's open) it checks version.json and,
 // if there's a newer build, offers a one-tap Update -- never in the middle of a workout or a run.
 const APP_BUILD = '__ALTIRO_BUILD__';
-let updateCheckAt = 0;
+let updateCheckAt = 0, newSiteBuild = null;
+// Update loads the page as a new address (?v=<build>): the site's pages are cached for up to 10 minutes
+// along the way, and a plain reload could get the old one back. The ?v= comes off again once loaded.
+function loadNewBuild(build){
+  const url = location.pathname + '?v=' + encodeURIComponent(build) + location.hash;
+  if(window.__ALTIRO_NAVIGATE__) window.__ALTIRO_NAVIGATE__(url); else location.replace(url);
+}
+try{
+  const q = new URLSearchParams(location.search);
+  if(q.has('v')){ q.delete('v'); const rest = q.toString(); history.replaceState(history.state, '', location.pathname + (rest ? '?'+rest : '') + location.hash); }
+}catch(e){}
 function workoutInProgress(){
   return !document.getElementById('logPerfOverlay').hidden || !!(typeof timerState!=='undefined' && timerState && timerState.started)
     || (()=>{ try{ return !!localStorage.getItem('altiro_gps_run'); }catch(e){ return false; } })();
@@ -16305,7 +16315,7 @@ async function checkForUpdate(){
     const res = await fetch('version.json?t='+Date.now(), {cache:'no-store'});
     if(!res.ok) return;
     const v = await res.json();
-    if(v && v.build && v.build!==APP_BUILD && !workoutInProgress()) document.getElementById('updateBar').hidden = false;
+    if(v && v.build && v.build!==APP_BUILD && !workoutInProgress()){ newSiteBuild = v.build; document.getElementById('updateBar').hidden = false; }
   }catch(e){ /* offline -- try again next time */ }
 }
 // The Android test app (installed from the android-test release, not a store) doesn't update itself:
@@ -16333,7 +16343,7 @@ async function checkForTestAppUpdate(){
   }catch(e){ /* offline -- try again next time */ }
 }
 document.getElementById('updateBtn').addEventListener('click', ()=>{
-  if(!testAppUpdate){ location.reload(); return; }
+  if(!testAppUpdate){ if(newSiteBuild) loadNewBuild(newSiteBuild); else location.reload(); return; }
   // Opens in the phone's browser, which downloads it; opening the file installs it over this one.
   const a = document.createElement('a');
   a.href = TEST_APK_URL; a.target = '_blank'; a.rel = 'noopener';

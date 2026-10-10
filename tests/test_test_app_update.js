@@ -44,6 +44,21 @@ async function open(opts){
     check('The website doesn\'t offer the test app', doc.getElementById('updateBar').hidden && !fetched.some(u=> u.includes('github.io')), fetched.join(', '));
     dom.window.close();
   }
+  {
+    // The website's own update: a newer build loads as a new address, past any cached copy of the page.
+    let went = null;
+    const dom = new JSDOM(html.replace("const APP_BUILD = '__ALTIRO_BUILD__';", "const APP_BUILD = 'old1';"), {runScripts:'dangerously', pretendToBeVisual:true, url:'https://example.com/Altiro/?v=old1#x',
+      beforeParse(w){ w.fetch = async ()=> ({ok:true, json: async()=> ({build:'new2'})}); w.__ALTIRO_NAVIGATE__ = u=>{ went = u; }; }});
+    await wait(50);
+    const doc = dom.window.document;
+    check('A ?v= in the address comes off once the page has loaded', dom.window.location.search==='' && dom.window.location.hash==='#x', dom.window.location.href);
+    dom.window.document.dispatchEvent(new dom.window.Event('visibilitychange'));
+    await wait(50);
+    check('The website offers its update', !doc.getElementById('updateBar').hidden && doc.getElementById('updateBtn').textContent==='Update');
+    doc.getElementById('updateBtn').click();
+    check('...and Update loads the new build by its own address (not a cached copy)', went==='/Altiro/?v=new2#x', went);
+    dom.window.close();
+  }
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(failures ? 1 : 0);
 })().catch(e => { console.log('TEST THREW:', e.stack || e); process.exit(1); });

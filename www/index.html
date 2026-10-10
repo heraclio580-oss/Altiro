@@ -7779,7 +7779,12 @@ function renderHome(){
     ? ((state.dayLog[dateKey(TODAY_DATE)] && state.dayLog[dateKey(TODAY_DATE)].extraWorkouts) || []).find(w=> !w.completed && w.session && w.session.t!=='class' && w.session.t!=='rest')
     : null;
   state._homeFocusExtraId = focusExtra ? focusExtra.id : null;
-  const eff = focusExtra ? focusExtra.session : ownEff; const effL = ST(eff);
+  // A rest day whose workout was done anyway (an added or logged one, all finished): the main card shows
+  // that workout, done -- not "Rest Day" with the workout listed underneath.
+  const ddToday = getDayData(TODAY_DATE);
+  const shownFromLog = !focusExtra && ownEff.t==='rest' && ddToday.p.t!=='rest' && ddToday.primarySource!=='plan';
+  const eff = focusExtra ? focusExtra.session : shownFromLog ? ddToday.p : ownEff; const effL = ST(eff);
+  const mainDone = focusExtra ? false : shownFromLog ? ddToday.completed : isTodayDone();
   // A plan lifting day says what to aim for today, by its place in the week's wave.
   const coach = !focusExtra && eff.t==='strength' ? waveCoach(liftWaveFor(eff, TODAY_DATE)) : '';
   const tip = state.ownWorkouts && eff.t==='rest' ? L.ownRestTip : coach ? escapeHtml(coach) : (SESSION_TIP[eff.t]||SESSION_TIP.rest)[state.lang];
@@ -7826,9 +7831,20 @@ function renderHome(){
   document.getElementById('ovDistanceBar').style.width = dPct+'%';
 
   const todayKey = dateKey(TODAY_DATE);
-  const todayEntries = (state.dayLog[todayKey] && state.dayLog[todayKey].manualEntries) || [];
+  // The workout the main card shows can itself be a logged workout or an added one (on a day with nothing
+  // else planned): it isn't listed again under "Also today" -- one workout, one card.
+  const mainTarget = focusExtra ? {kind:'extra', id: focusExtra.id} : primaryLogTarget(ddToday);
+  const todayEntries = ((state.dayLog[todayKey] && state.dayLog[todayKey].manualEntries) || []).filter(en=> !(mainTarget.kind==='entry' && en.id===mainTarget.id));
   // (Classes have their own section below.)
-  const todayExtras = ((state.dayLog[todayKey] && state.dayLog[todayKey].extraWorkouts) || []).filter(w=> !(w.session && w.session.t==='class') && w!==focusExtra);
+  const todayExtras = ((state.dayLog[todayKey] && state.dayLog[todayKey].extraWorkouts) || []).filter(w=> !(w.session && w.session.t==='class') && w!==focusExtra
+    && !(mainTarget.kind==='extra' && w.id===mainTarget.id));
+  // A run that's done shows what was actually run, not what was planned.
+  let mainDetail = effL.detail;
+  if(!focusExtra && eff.t==='run' && mainDone){
+    const r = resolveLogTarget({dayKey: todayKey, ...mainTarget});
+    const perf = r && r.performance;
+    if(perf && perf.distance!=null) mainDetail = [`${perf.distance} mi`, perf.time ? fmtDurationClock(perf.time) : ''].filter(Boolean).join(' · ');
+  }
   const todayClasses = classRowsHtml(todayKey);
   document.getElementById('sessionCard').innerHTML = `
     <div class="session-desc-tap" id="sessionDescTap">
@@ -7836,7 +7852,7 @@ function renderHome(){
         <span class="eyebrow">${L.todayLabel} &middot; ${DAY_NAMES_FULL[state.lang][TODAY_IDX]}</span>
       </div>
       ${focusExtra && ownDone ? `<div class="home-done-line">${ICONS.checkSm}<span>${escapeHtml(L.homeDoneLine.replace('{name}', ST(ownEff).title))}</span></div>` : ''}
-      <div class="title">${effL.title}${effL.detail?', '+effL.detail:''}</div>
+      <div class="title">${effL.title}${mainDetail?', '+mainDetail:''}</div>
       ${exerciseListHtml(eff, undefined, true).replace('r-exercise-list', 'r-exercise-list card')}
       ${runBreakdownHtml(eff, 'card')}
       <div class="session-tip"><p>${tip}</p></div>
@@ -7851,8 +7867,8 @@ function renderHome(){
         demo: eff.t!=='rest' ? `<button class="watch-demo-btn" id="watchDemoBtn" type="button">${ICONS.play}${L.watchDemoBtn}</button>` : '',
         gps: `<button class="watch-demo-btn" id="trackRunBtn" type="button">${ICONS.pin}${L.gpsTrackBtn}</button>`,
         add: `<button class="watch-demo-btn" id="addTodayWorkoutBtn" type="button">${ICONS.plus}${L.addAnotherWorkoutBtn}</button>`,
-        change: exercisesForSession(eff) && (focusExtra || !isTodayDone()) ? `<button class="watch-demo-btn" id="changeExercisesBtn" type="button">${ICONS.swap}${L.changeExercisesBtn}</button>` : '',
-        done: eff.t!=='rest' && !focusExtra ? `<div class="toggle-row more-toggle">
+        change: exercisesForSession(eff) && (focusExtra || !mainDone) ? `<button class="watch-demo-btn" id="changeExercisesBtn" type="button">${ICONS.swap}${L.changeExercisesBtn}</button>` : '',
+        done: eff.t!=='rest' && !focusExtra && !shownFromLog ? `<div class="toggle-row more-toggle">
             <div><div class="tt">${L.markCompleteTitle}</div><div class="ts">${L.markCompleteSub}</div></div>
             <div class="toggle" id="homeCompleteToggle"><div class="knob"></div></div>
           </div>` : '',

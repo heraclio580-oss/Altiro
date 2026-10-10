@@ -177,6 +177,59 @@ const T0 = new Date(2026, 8, 18, 8, 0).getTime(); // today (Fri 18th), 8:00
     check('...while a different run that day (27 minutes) stays', !!backend.db.manual_entries.e6);
     dom.window.close();
   }
+  // ---- The Today card: one completed run, one card ----
+  {
+    // A rest day where the only workout is an added run, done (tracked, then matched with the watch).
+    const backend = makeBackend({connected:false});
+    backend.addLog('2026-09-18', {planned_type:'rest', planned_title:'Rest Day', planned_detail:''});
+    backend.db.planned_workouts = {pw1: {id:'pw1', user_id:'u1', log_date:'2026-09-18', session_type:'run', title:'4.5 mile easy run', detail:'4.5 mi',
+      completed:true, actual_distance:4.03, performance:{distance:4.03, time:44.98, source:'gps', stravaId:401, route:['_p~iF~ps|U_ulLnnqC']}}};
+    const dom = new JSDOM(html, {runScripts:'dangerously', pretendToBeVisual:true, url:'https://example.com/Altiro/',
+      beforeParse(w){ w.supabase = {createClient: ()=> backend.createClient()}; w.__ALTIRO_TEST_TODAY__ = '2026-09-18'; }});
+    await wait(300);
+    const doc = dom.window.document;
+    const title = doc.querySelector('#sessionCard .title').textContent;
+    check('The main card shows the done run with what was actually run', /4\.5 mile easy run, 4\.03 mi · 44:5\d/.test(title), title);
+    check('...and it isn\'t listed again under "Also today"', doc.getElementById('homeAlsoToday').hidden && !doc.querySelector('#homeAlsoToday [data-extra-id]'), doc.getElementById('homeAlsoToday').textContent.replace(/\s+/g,' ').trim());
+    dom.window.close();
+  }
+  {
+    // A run that came in from the watch on a day with nothing planned becomes the day's workout.
+    const backend = makeBackend({connected:false});
+    const logId = backend.addLog('2026-09-18', {planned_type:'run', planned_title:'Morning Run', planned_detail:'4.03 mi · 44:59'});
+    backend.db.manual_entries.e5 = {id:'e5', workout_log_id: logId, name:'Morning Run', type:'run', volume:'4.03 mi · 44:59', notes:'', distance:4.03, duration_min:44.98,
+      performance:{distance:4.03, time:44.98, source:'strava', stravaId:501}};
+    const dom = new JSDOM(html, {runScripts:'dangerously', pretendToBeVisual:true, url:'https://example.com/Altiro/',
+      beforeParse(w){ w.supabase = {createClient: ()=> backend.createClient()}; w.__ALTIRO_TEST_TODAY__ = '2026-09-18'; }});
+    await wait(300);
+    const doc = dom.window.document;
+    check('A watch run that became the day\'s workout is the main card only (not repeated below)', /Morning Run, 4\.03 mi/.test(doc.querySelector('#sessionCard .title').textContent)
+      && !doc.querySelector('#homeAlsoToday [data-entry-id]'), doc.getElementById('homeAlsoToday').textContent.replace(/\s+/g,' ').trim());
+    dom.window.close();
+  }
+  {
+    // Exactly as it was on a real phone: the watch's copy took over the rest day as "Morning Run", and the
+    // GPS run (3.62 mi) sits on an added "4.5 mile easy run" (a run that day with nothing planned: the
+    // watch's run only takes over a day with nothing, or no run, planned). On the next sign-in: one run,
+    // one card.
+    const backend = makeBackend({connected:true});
+    backend.db.profiles.u1 = {id:'u1', training_days:[0,2], focus_ratio:2, level:'intermediate', equipment:'gym'}; // Fridays are rest days
+    const logId = backend.addLog('2026-09-18', {planned_type:'run', planned_title:'Morning Run', planned_detail:'4.03 mi · 44:59'});
+    backend.db.manual_entries.e4 = {id:'e4', workout_log_id: logId, name:'Morning Run', type:'run', volume:'4.03 mi · 44:59', notes:'', distance:4.03, duration_min:44.98,
+      performance:{distance:4.03, time:44.98, source:'strava', stravaId:601}};
+    backend.db.planned_workouts = {pw2: {id:'pw2', user_id:'u1', log_date:'2026-09-18', session_type:'run', title:'4.5 mile easy run', detail:'4.5 mi',
+      completed:true, actual_distance:3.62, performance:{distance:3.62, time:45, source:'gps', route:['_p~iF~ps|U_ulLnnqC'], splits:[795, 788, 674]}}};
+    const dom = new JSDOM(html, {runScripts:'dangerously', pretendToBeVisual:true, url:'https://example.com/Altiro/',
+      beforeParse(w){ w.supabase = {createClient: ()=> backend.createClient()}; w.__ALTIRO_TEST_TODAY__ = '2026-09-18'; }});
+    await wait(400);
+    const doc = dom.window.document;
+    const title = doc.querySelector('#sessionCard .title').textContent;
+    const also = doc.getElementById('homeAlsoToday');
+    check('The real-phone case: merged into one run with the watch\'s numbers, on one card', !backend.db.manual_entries.e4 && backend.db.planned_workouts.pw2.actual_distance===4.03
+      && /4\.5 mile easy run, 4\.03 mi · 44:5\d/.test(title) && also.hidden, `${title} | also: ${also.hidden ? '-' : also.textContent.replace(/\s+/g,' ').trim()} | ${backend.db.planned_workouts.pw2.actual_distance}`);
+    check('...and the week\'s distance counts it once', /^4\.0\//.test(doc.getElementById('ovDistanceVal').textContent), doc.getElementById('ovDistanceVal').textContent);
+    dom.window.close();
+  }
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(failures ? 1 : 0);
 })().catch(e => { console.log('TEST THREW:', e.stack || e); process.exit(1); });

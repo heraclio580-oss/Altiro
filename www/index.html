@@ -13808,6 +13808,7 @@ function elevProfileFrom(segs, altOf){
 // provider as the weather -- it gets sample points along the route, nothing else), which is far steadier
 // than a phone's altitude. If it answers, its gain, loss and profile replace the GPS ones in the run
 // waiting to be saved (and in Log Performance, unless they've been typed over); if not, the GPS ones stay.
+const ELEV_GAP_M = 60, ELEV_SMOOTH_M = 60, ELEV_STEP_M = 2;
 async function refineElevation(target, segs){
   try{
     let total = 0;
@@ -13821,6 +13822,10 @@ async function refineElevation(target, segs){
       let next = cum + step;
       for(let i=1; i<sg.length; i++){
         const a = sg[i-1], b = sg[i], d = haversineM(a, b);
+        // A long straight jump is GPS that dropped out (the screen was off), not the way the runner went:
+        // only its two ends are real, so the ground in between isn't sampled -- across open hillside it
+        // would count hills nobody ran over.
+        if(d > ELEV_GAP_M){ cum += d; next = cum + step; pts.push({lat: b[0], lng: b[1], d: cum, seg: si}); continue; }
         while(d>0 && next <= cum + d){ const f = (next-cum)/d; pts.push({lat: a[0]+(b[0]-a[0])*f, lng: a[1]+(b[1]-a[1])*f, d: next, seg: si}); next += step; }
         cum += d;
       }
@@ -13840,22 +13845,30 @@ async function refineElevation(target, segs){
       if(!data || !Array.isArray(data.elevation) || data.elevation.length!==batch.length) return;
       heights.push(...data.elevation);
     }
-    // Terrain data is smooth, so a 1 m step is enough to count, and whatever is left at the end of each
-    // stretch is counted too.
+    // Terrain data comes in 90 m squares, so along a road it steps up and down by a few metres from one
+    // square to the next (and with the slopes beside the road) -- counted as is, a 236 ft run (Garmin's
+    // barometer) came out at 482. So the heights are averaged over about 120 m of route first, and only
+    // a 2 m change counts; whatever is left at the end of each stretch is counted too.
+    const smoothed = pts.map((p, i)=>{
+      let sum = 0, n = 0;
+      for(let j = i; j>=0 && pts[j].seg===p.seg && p.d - pts[j].d <= ELEV_SMOOTH_M; j--) if(isFinite(heights[j])){ sum += heights[j]; n++; }
+      for(let j = i+1; j<pts.length && pts[j].seg===p.seg && pts[j].d - p.d <= ELEV_SMOOTH_M; j++) if(isFinite(heights[j])){ sum += heights[j]; n++; }
+      return n ? sum/n : NaN;
+    });
     let gain = 0, loss = 0, anchor = null, seg = -1, last = null;
     const settle = ()=>{ if(anchor!=null && last!=null){ if(last>anchor) gain += last-anchor; else loss += anchor-last; } };
     pts.forEach((p, i)=>{
-      const h = heights[i];
+      const h = smoothed[i];
       if(!isFinite(h)) return;
       if(p.seg!==seg || anchor==null){ settle(); anchor = h; last = h; seg = p.seg; return; }
       last = h;
-      if(h - anchor >= 1){ gain += h - anchor; anchor = h; }
-      else if(anchor - h >= 1){ loss += anchor - h; anchor = h; }
+      if(h - anchor >= ELEV_STEP_M){ gain += h - anchor; anchor = h; }
+      else if(anchor - h >= ELEV_STEP_M){ loss += anchor - h; anchor = h; }
     });
     settle();
     const every = Math.ceil(pts.length/150);
     const prof = {d: [], a: []};
-    pts.forEach((p, i)=>{ if((i%every===0 || i===pts.length-1) && isFinite(heights[i])){ prof.d.push(Math.round(p.d)); prof.a.push(Math.round(heights[i]*10)/10); } });
+    pts.forEach((p, i)=>{ if((i%every===0 || i===pts.length-1) && isFinite(smoothed[i])){ prof.d.push(Math.round(p.d)); prof.a.push(Math.round(smoothed[i]*10)/10); } });
     const h = gpsHandoff;
     if(!h || !sameLogTarget(h.target, target)) return;
     Object.assign(h.result, {elevGain: Math.round(gain*10)/10, elevLoss: Math.round(loss*10)/10, elevProfile: prof, elevSource: 'dem'});

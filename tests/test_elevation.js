@@ -50,7 +50,7 @@ const wobble = i => [0, 2.5, -2, 3, -3, 1, -2.5, 2, -1, 0][i%10];
       asked.push(lats.length);
       // Terrain data: the same trail, but its true climb is 120 m and descent 72 m.
       r.fulfill({status:200, contentType:'application/json', headers:{'access-control-allow-origin':'*'},
-        body: JSON.stringify({elevation: lats.map(la=> +(1.2*height((la-LAT0)/M_LAT)).toFixed(1))})});
+        body: JSON.stringify({elevation: lats.map(la=> +((opts.terrain || (d=> 1.2*height(d)))((la-LAT0)/M_LAT)).toFixed(1))})});
     });
     await page.clock.install({time: new Date('2026-09-19T08:00:00')});
     await page.addInitScript(o=>{
@@ -103,14 +103,15 @@ const wobble = i => [0, 2.5, -2, 3, -3, 1, -2.5, 2, -1, 0][i%10];
     check('Log Performance has elevation gain / loss in ft', /Elevation gain \/ loss \(ft\)/.test(await txt(page, '#logPerfElevSection')));
     const g = +(await val(page, 'logPerfElevGainInput')), l = +(await val(page, 'logPerfElevLossInput'));
     // (The run starts at its first point after Start, 10 m along: terrain 1.2 m up -> 120 m, then down to 48 m.)
-    // (Terrain is read every ~20 m, so the top of the hill can fall between two readings: within 1-2%.)
-    check('...filled from the terrain data: about 118 m up = ~388 ft, 71 m down = ~234 ft', g>=383 && g<=393 && l>=229 && l<=238, `${g} / ${l}`);
+    // (Terrain is averaged over ~120 m of route, which rounds off the sharp top of this hill a little:
+    // within about 7%.)
+    check('...filled from the terrain data: about 118 m up = ~388 ft, 71 m down = ~234 ft', g>=360 && g<=393 && l>=210 && l<=238, `${g} / ${l}`);
     const G = g, Lo = l;
     check('...saying it was checked against terrain data', await shown(page, '#logPerfElevNote') && /terrain data/.test(await txt(page, '#logPerfElevNote')));
     await page.tap('#saveLogPerf'); await sleep(300);
     const stats = await txt(page, '#summaryStats');
     check('The Summary shows the same Elevation Gain and Loss', stats.includes(`Elevation Gain${G} ft`) && stats.includes(`Elevation Loss${Lo} ft`), stats);
-    check('...with an elevation profile, low to high', await shown(page, '#summaryElevProfile') && /Low 4 ft/.test(await txt(page, '#summaryElevProfile')) && /High 3(8[89]|9\d) ft/.test(await txt(page, '#summaryElevProfile')), await txt(page, '#summaryElevProfile'));
+    check('...with an elevation profile, low to high', await shown(page, '#summaryElevProfile') && /Low ([4-9]|1\d|2[0-5]) ft/.test(await txt(page, '#summaryElevProfile')) && /High 3[6-9]\d ft/.test(await txt(page, '#summaryElevProfile')), await txt(page, '#summaryElevProfile'));
     await page.clock.resume();
     await page.tap('#shareWorkoutBtn');
     let alt = '';
@@ -127,7 +128,40 @@ const wobble = i => [0, 2.5, -2, 3, -3, 1, -2.5, 2, -1, 0][i%10];
     check('In km, the tracker shows meters', /↑ \d+ m · ↓ \d+ m/.test(await txt(page, '#gpsElev')), await txt(page, '#gpsElev'));
     await finish(page);
     const gm = +(await val(page, 'logPerfElevGainInput')), lm = +(await val(page, 'logPerfElevLossInput'));
-    check('...and Log Performance asks in meters: about 118 up, 71 down', /\(m\)/.test(await txt(page, '#logPerfElevSection')) && gm>=117 && gm<=120 && lm>=70 && lm<=72, `${gm} / ${lm}`);
+    check('...and Log Performance asks in meters: about 118 up, 71 down', /\(m\)/.test(await txt(page, '#logPerfElevSection')) && gm>=110 && gm<=120 && lm>=64 && lm<=72, `${gm} / ${lm}`);
+    check('No page errors', errors.length===0, errors.join(' | '));
+    await page.context().close();
+  }
+
+  // ---- Terrain data that steps up and down from square to square on a flat road ----
+  // (Terrain data comes in 90 m squares, each a few metres off: counted as is, a flat run climbed
+  // ~100 ft. A real 4-mile run came out at 482 ft against a Garmin's 236.)
+  {
+    const steps = [0, 3, -2, 4, -3, 1, -3, 2, -1, 3];
+    const {page, errors} = await openApp({terrain: d=> 50 + steps[Math.floor(Math.max(0, d)/90) % 10]});
+    await trailRun(page);
+    await finish(page);
+    const g = +(await val(page, 'logPerfElevGainInput'));
+    check('Flat road, noisy terrain data: barely any climb counted (under 25 ft)', g < 25 && await shown(page, '#logPerfElevNote'), String(g));
+    check('No page errors', errors.length===0, errors.join(' | '));
+    await page.context().close();
+  }
+
+  // ---- A GPS dropout across a hill nobody ran over ----
+  {
+    // Flat ground, except a 40 m hill between 500 and 800 m -- where GPS dropped out (the route jumps
+    // straight from 450 m to 850 m, as when the screen was off).
+    const hill = d=> d>500 && d<800 ? 40*Math.sin(Math.PI*(d-500)/300) : 0;
+    const {page, errors} = await openApp({terrain: d=> 30 + hill(d)});
+    await tapTrack(page);
+    await page.evaluate(([la, ln])=> window.__fix(la, ln, 30), [LAT0, LNG0]);
+    await page.tap('#gpsStartBtn');
+    for(let i=1; i<=45; i++){ await page.clock.fastForward(3000); await page.evaluate(([la, ln])=> window.__fix(la, ln, 30), [LAT0 + i*10*M_LAT, LNG0]); }
+    await page.clock.fastForward(130000);
+    for(let i=85; i<=130; i++){ await page.clock.fastForward(3000); await page.evaluate(([la, ln])=> window.__fix(la, ln, 30), [LAT0 + i*10*M_LAT, LNG0]); }
+    await finish(page);
+    const g = +(await val(page, 'logPerfElevGainInput'));
+    check('A straight-line GPS gap doesn\'t count the hill under it (under 15 ft, not ~130)', g < 15 && await shown(page, '#logPerfElevNote'), String(g));
     check('No page errors', errors.length===0, errors.join(' | '));
     await page.context().close();
   }

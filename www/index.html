@@ -5719,29 +5719,29 @@ function plannedExercises(session, date){
     return null;
   };
   // (Still nothing new: anything else for the movement the user can do -- other equipment included.)
-  const anyUnused = m=>{
+  const anyUnused = (m, main)=>{
     for(const tier of EQUIP_ACCESS[equipment] || [equipment]) for(const k of (MOVEMENTS[m][tier] || [])){
-      if(!used.has(k) && fitsUser(k, equipment, level) && !EXERCISES[k].machine) return k;
+      if(!used.has(k) && fitsUser(k, equipment, level) && !EXERCISES[k].machine && (main || !PRIMARY_ONLY.has(k))) return k;
     }
     return null;
   };
   // ...or for the close movement, and the one close to that.
-  const anyUnusedAlong = m=>{
-    for(let k = 0; m && k<4; k++, m = BACKUP_MOVEMENT[m]){ const hit = anyUnused(m); if(hit) return hit; }
+  const anyUnusedAlong = (m, main)=>{
+    for(let k = 0; m && k<4; k++, m = BACKUP_MOVEMENT[m]){ const hit = anyUnused(m, main); if(hit) return hit; }
     return null;
   };
   const list = slots.map((slot, i)=>{
-    const options = movementOptions(slot.m, equipment, level);
+    const options = i===0 ? movementOptions(slot.m, equipment, level) : supportingOptions(slot.m, equipment, level);
     // The main lift changes every time its movement leads a workout (bench press, then dumbbell press,
     // then incline press...); the second lift with each of the plan's 4-week cycles; the rest every week.
     const rotation = i===0 ? leadCountBefore(slot.m, d) : (i===1 ? Math.floor(planWeek/4) : seed) + i + (isB ? 1 : 0);
     // A lift the user chose to keep, or a beginner's machine, comes before the rotation.
-    const kept = keptLiftFor(slot.m, equipment);
+    const kept = i===0 || !PRIMARY_ONLY.has(keptLiftFor(slot.m, equipment)) ? keptLiftFor(slot.m, equipment) : null;
     const machine = machineFirst && MACHINE_FIRST[slot.m];
     const key = (kept && !used.has(kept) && kept) || (machine && !used.has(machine) && machine)
       || unused(options, rotation)
       || (BACKUP_MOVEMENT[slot.m] && unused(movementOptions(BACKUP_MOVEMENT[slot.m], equipment, level, true), rotation))
-      || anyUnusedAlong(slot.m)
+      || anyUnusedAlong(slot.m, i===0)
       || options[rotation % options.length];
     used.add(key);
     const base = EXERCISES[key];
@@ -5817,6 +5817,21 @@ function leadCountBefore(movement, date){
   let count = before[movement] || 0;
   planWeekLeads(cfg, n).forEach((m, i)=>{ if(i<dow && m===movement) count++; });
   return count;
+}
+// The barbell squats are only ever a workout's main lift -- never a second squat after another one (a
+// back squat and a front squat in the same workout). A squat later in a workout is a leg press, a goblet
+// squat or the like: the movement's other options, topped up from the other equipment the user can reach.
+const PRIMARY_ONLY = new Set(['Back Squat','Front Squat']);
+function supportingOptions(movement, equipment, level){
+  const options = movementOptions(movement, equipment, level);
+  const own = options.filter(k=> !PRIMARY_ONLY.has(k));
+  if(own.length===options.length || own.length>=2) return own;
+  const more = [];
+  (EQUIP_ACCESS[equipment] || []).slice(1).forEach(tier=> (MOVEMENTS[movement][tier] || []).forEach(k=>{
+    if(!own.includes(k) && !more.includes(k) && !PRIMARY_ONLY.has(k) && !EXERCISES[k].machine && fitsUser(k, equipment, level)) more.push(k);
+  }));
+  const all = own.concat(more);
+  return all.length ? all : movementOptions(movement, equipment, level);
 }
 // "Keep this lift": the lift the user chose to stay on for a movement, instead of it changing
 // (kept with their standing exercise changes, as '__lock:<movement>').

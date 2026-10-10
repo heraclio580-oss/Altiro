@@ -205,13 +205,13 @@ function exercisesFor(o, title, date){
   return E.exercisesForSession({t:'strength', en:{title}}, date || new Date(2026,8,30));
 }
 const LIFTS = ['Full Body Strength','Full Body Strength B','Upper Body Strength','Lower Body Strength','Push Day Strength','Pull Day Strength','Upper Body Strength B'];
-let bwOnly = true, dbOnly = true, noAdvancedForBeginner = true;
+let bwOnly = true, dbOnly = true, noAdvancedForBeginner = true; const dbBad = new Set();
 for(let wkOffset=0; wkOffset<8; wkOffset++){
   const date = new Date(2026,8,30+wkOffset*7);
   for(const title of LIFTS){
     exercisesFor({days:[0,2,4], focus:4, eq:'bodyweight'}, title, date).forEach(ex=>{ if(!ex.bodyweight) bwOnly = false; });
     exercisesFor({days:[0,2,4], focus:4, eq:'dumbbells'}, title, date).forEach(ex=>{
-      if(!Object.values(E.MOVEMENTS).some(m=>m.dumbbells.includes(ex.key))) dbOnly = false;
+      if(!Object.values(E.MOVEMENTS).some(m=>m.dumbbells.includes(ex.key))){ dbOnly = false; dbBad.add(ex.key); }
     });
     exercisesFor({days:[0,2,4], focus:4, eq:'gym', level:'beginner'}, title, date).forEach(ex=>{
       if(E.EXERCISES[ex.key].minLevel) noAdvancedForBeginner = false;
@@ -219,7 +219,7 @@ for(let wkOffset=0; wkOffset<8; wkOffset++){
   }
 }
 check('Bodyweight-only plans only use bodyweight moves', bwOnly);
-check('Dumbbells-at-home plans never use gym-only equipment', dbOnly);
+check('Dumbbells-at-home plans never use gym-only equipment', dbOnly, [...dbBad].join(', '));
 check('Beginners don\'t get technical lifts (Pull-Up, Front Squat, ...)', noAdvancedForBeginner);
 const upperA = exercisesFor({days:[0,1,3,4], focus:4, eq:'gym'}, 'Upper Body Strength').map(e=>e.key);
 const upperB = exercisesFor({days:[0,1,3,4], focus:4, eq:'gym'}, 'Upper Body Strength B').map(e=>e.key);

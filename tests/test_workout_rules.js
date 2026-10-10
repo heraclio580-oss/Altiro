@@ -48,6 +48,7 @@ const exs = d => E.exercisesForSession(d.p, d.date);
 // Every split, level and kind of equipment, over a block and a half.
 const SPLITS = [['auto',[0,2,4]],['auto',[0,1,3,4]],['auto',[0,1,2,3,4]],['ppl',[0,1,2,3,4,5]],['bodypart',[0,1,2,3,4]],['bodypart',[0,2,4]],['full',[1,4]],['ppl',[1,4]]];
 const LEVELS = ['beginner','intermediate','advanced'], EQUIP = ['gym','dumbbells','kettlebells','bodyweight'];
+let primaryOnly = true, ex5 = '';
 let coreLast = true, armsLast = true, legsNoArms = true, counts = true, noWeightBw = true, ex1 = '', ex2 = '', ex3 = '', ex4 = '';
 const WANT = {beginner:4, intermediate:5, advanced:6};
 SPLITS.forEach(([split, days])=> LEVELS.forEach(level=> EQUIP.forEach(eq=> [0,1,2,4,5].forEach(n=>{
@@ -63,11 +64,13 @@ SPLITS.forEach(([split, days])=> LEVELS.forEach(level=> EQUIP.forEach(eq=> [0,1,
     // bodyweight-only back days run out of different moves one short.)
     if(d.wave.pos!=='recovery' && weights.length!==WANT[level] && !((d.wave.focus || eq==='bodyweight') && weights.length===WANT[level]-1)){ counts = false; ex4 = ex4 || `${level} ${d.p.en.title} (${weights.length}): ${keys.join(' > ')}`; }
     if(list.some(e=> e.bodyweight && e.pyramid)) noWeightBw = false;
+    if(keys.slice(1).some(k=> k==='Back Squat' || k==='Front Squat')){ primaryOnly = false; ex5 = ex5 || `${level} ${eq} ${d.p.en.title}: ${keys.join(' > ')}`; }
   });
 }))));
 check('Every lifting workout ends with a core finisher', coreLast, ex1);
 check('Arms are always the last of the weights (push days end with triceps, pull days with biceps)', armsLast, ex2);
 check('Leg days have no arm work', legsNoArms, ex3);
+check('Back Squat and Front Squat are only ever the main lift -- never both in one workout', primaryOnly, ex5);
 check('Lifts per workout by level: beginner 4, intermediate 5, advanced 6 (plus the core)', counts, ex4);
 check('Bodyweight moves never get weight (no pyramid on them)', noWeightBw);
 check('No behind-the-neck exercise anywhere in the catalog', !Object.keys(E.EXERCISES).some(k=> /behind/i.test(k)));

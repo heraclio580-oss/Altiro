@@ -12622,8 +12622,12 @@ function drawShareCard(canvas, d, format){
       const ir = d.routeImg.width/d.routeImg.height, br = CW/mapH;
       const sw = ir>br ? d.routeImg.height*br : d.routeImg.width, sh = ir>br ? d.routeImg.height : d.routeImg.width/br;
       b.drawImage(d.routeImg, (d.routeImg.width-sw)/2, (d.routeImg.height-sh)/2, sw, sh, P, y, CW, mapH);
-      b.fillStyle = 'rgba(255,255,255,0.6)'; b.font = MONO(16); b.textAlign = 'right';
-      b.fillText('© OpenStreetMap', W-P-16, y+mapH-14); b.textAlign = 'left';
+      // The map's credit, on a light chip so it reads on the light map.
+      b.font = MONO(16);
+      const credit = '© OpenStreetMap', cw = b.measureText(credit).width;
+      b.fillStyle = 'rgba(255,255,255,0.8)'; roundRect(b, W-P-16-cw-12, y+mapH-36, cw+24, 28, 14); b.fill();
+      b.fillStyle = '#3A3A3E'; b.textAlign = 'right';
+      b.fillText(credit, W-P-16, y+mapH-16); b.textAlign = 'left';
     } else drawRouteOnCanvas(b, d.routeSegs, P, y, CW, mapH);
     b.restore();
     roundRect(b, P, y, CW, mapH, 26); b.strokeStyle = LINE; b.lineWidth = 2; b.stroke();
@@ -12706,7 +12710,7 @@ async function routeMapImage(segs, w, h){
     const finish = img=>{ if(done) return; done = true; try{ if(map) map.remove(); }catch(e){} box.remove(); resolve(img); };
     setTimeout(()=> finish(null), 7000);
     try{
-      map = new ml.Map({container: box, style: mapStyleUrl(true), interactive: false, attributionControl: false, preserveDrawingBuffer: true,
+      map = new ml.Map({container: box, style: MAP_STYLE_URL, interactive: false, attributionControl: false, preserveDrawingBuffer: true,
         pixelRatio: 1, fadeDuration: 0, center: [segs[0][0][1], segs[0][0][0]], zoom: 13});
     }catch(e){ return finish(null); }
     map.on('load', ()=>{
@@ -12977,11 +12981,9 @@ function loadMapLib(){
   });
   return mapLibPromise;
 }
-// The maps in the app (the GPS tracker, a run's Summary) use OpenFreeMap's Liberty style -- streets, trails,
-// parks and buildings in full colour, the same in light and dark mode. The share card's picture keeps the
-// dark style, to suit its dark design.
+// Every map (the GPS tracker, a run's Summary, the share card's picture) uses OpenFreeMap's Liberty style --
+// streets, trails, parks and buildings in full colour, the same in light and dark mode.
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
-function mapStyleUrl(dark){ return `https://tiles.openfreemap.org/styles/${dark ? 'dark' : 'positron'}`; }
 function supportsWebGL(){
   try{ const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); }catch(e){ return false; }
 }
@@ -13025,7 +13027,7 @@ async function showRouteMap(el, segs, opts){
     const box = document.createElement('div');
     box.className = 'route-map-gl';
     el.appendChild(box);
-    const map = new maplibregl.Map({container: box, style: opts.dark!=null ? mapStyleUrl(opts.dark) : MAP_STYLE_URL, attributionControl:{compact:true},
+    const map = new maplibregl.Map({container: box, style: MAP_STYLE_URL, attributionControl:{compact:true},
       interactive: !!opts.interactive, center: segs.length ? [segs[0][0][1], segs[0][0][0]] : [-98.5, 39.8], zoom: segs.length ? 14 : 3, preserveDrawingBuffer: !!opts.capture});
     map.on('load', ()=>{
       addRouteLayers(map);

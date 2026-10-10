@@ -125,6 +125,8 @@ const T0 = new Date(2026, 8, 18, 8, 0).getTime(); // today (Fri 18th), 8:00
     check('The watch\'s copy of the GPS run is not added again, though it measured 4.03 mi to the phone\'s 3.62', !entries.some(e=> e.name==='Morning Run'), JSON.stringify(entries.map(e=>e.name)));
     check('...while a run at another time that day still comes in', entries.some(e=> e.name==='Evening Run'), JSON.stringify(entries.map(e=>e.name)));
     check('Both are marked filed', backend.db.strava_activities[201].applied_at && backend.db.strava_activities[202].applied_at);
+    const day = Object.values(backend.db.workout_logs).find(r=> r.log_date==='2026-09-18');
+    check('The GPS run takes the watch\'s distance: 4.03 mi', day.actual_run_distance===4.03, day.actual_run_distance);
     dom.window.close();
   }
 
@@ -152,6 +154,27 @@ const T0 = new Date(2026, 8, 18, 8, 0).getTime(); // today (Fri 18th), 8:00
     await wait(300);
     check('Saving the GPS run removes the watch\'s copy of it, so it counts once', !backend.db.manual_entries.e9, JSON.stringify(Object.keys(backend.db.manual_entries)));
     check('...but not the other run that day', !!backend.db.manual_entries.e8);
+    const day = Object.values(backend.db.workout_logs).find(r=> r.log_date==='2026-09-18');
+    check('...and the run keeps the watch\'s distance: 4.03 mi', day.actual_run_distance===4.03, day.actual_run_distance);
+    check('...saying so', /watch recorded this run too: using its 4\.03 mi/.test(doc.getElementById('toastMsg').textContent), doc.getElementById('toastMsg').textContent);
+    dom.window.close();
+  }
+  // ---- Already counted twice (from before runs kept their start time): merged on the next sign-in ----
+  {
+    const backend = makeBackend({connected:true});
+    const logId = backend.addLog('2026-09-18', {planned_type:'run', planned_title:'4.5 mile easy run', planned_detail:'4.5 mi', completed_override:true, actual_run_distance:3.62,
+      performance:{distance:3.62, time:45, source:'gps', route:['_p~iF~ps|U_ulLnnqC'], splits:[700, 690, 680]}});
+    backend.db.manual_entries.e7 = {id:'e7', workout_log_id: logId, name:'Morning Run', type:'run', volume:'4.03 mi · 44:59', notes:'', distance:4.03, duration_min:44.98,
+      performance:{distance:4.03, time:44.98, source:'strava', stravaId:401}};
+    backend.db.manual_entries.e6 = {id:'e6', workout_log_id: logId, name:'Afternoon Run', type:'run', volume:'3 mi · 27:00', notes:'', distance:3, duration_min:27,
+      performance:{distance:3, time:27, source:'strava', stravaId:402}};
+    const dom = new JSDOM(html, {runScripts:'dangerously', pretendToBeVisual:true, url:'https://example.com/Altiro/',
+      beforeParse(w){ w.supabase = {createClient: ()=> backend.createClient()}; w.__ALTIRO_TEST_TODAY__ = '2026-09-18'; }});
+    await wait(300);
+    const day = Object.values(backend.db.workout_logs).find(r=> r.log_date==='2026-09-18');
+    check('A GPS run and its watch copy (same day, same 45 minutes) are merged: the copy goes', !backend.db.manual_entries.e7, JSON.stringify(Object.keys(backend.db.manual_entries)));
+    check('...and the GPS run now has the watch\'s 4.03 mi', day.actual_run_distance===4.03, day.actual_run_distance);
+    check('...while a different run that day (27 minutes) stays', !!backend.db.manual_entries.e6);
     dom.window.close();
   }
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');

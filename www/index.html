@@ -3715,6 +3715,7 @@ const STR = {
     stravaCancelledToast: "Strava connection cancelled",
     stravaNeedsActivityToast: "Allow access to your activities to import runs",
     stravaImportedToast: "From Strava: {name} · {mi} mi",
+    watchNumbersToast: "Your watch recorded this run too: using its {mi}",
     stravaImportedManyToast: "Imported {count} runs from Strava",
     stravaUpToDateToast: "Already up to date",
     myLiftsLabel: "My Lifts",
@@ -4392,6 +4393,7 @@ const STR = {
     stravaCancelledToast: "Conexión con Strava cancelada",
     stravaNeedsActivityToast: "Permite el acceso a tus actividades para importar carreras",
     stravaImportedToast: "De Strava: {name} · {mi} mi",
+    watchNumbersToast: "Tu reloj también registró esta carrera: se usan sus {mi}",
     stravaImportedManyToast: "{count} carreras importadas de Strava",
     stravaUpToDateToast: "Ya está todo al día",
     myLiftsLabel: "Mis levantamientos",
@@ -14598,12 +14600,50 @@ function dayLoggedRuns(dd){
 // the same time (a run tracked in Altiro while the watch was recording too -- whatever the two measured),
 // or else one within 5% (or a quarter mile) of its distance, since the watch rarely matches to the
 // hundredth -- unless that one is known to have been at another time (a second run that day).
-function stravaMatchTarget(dd, miles, win){
+function stravaMatchTarget(dd, miles, win, minutes){
   const runs = dayLoggedRuns(dd);
   if(win){ const hit = runs.find(r=> sameTime(runWindow(r.perf), win)); if(hit) return hit.target; }
   const sameRun = d => d!=null && Math.abs(d-miles) <= Math.max(0.25, miles*0.05);
-  const hit = runs.find(r=> sameRun(r.dist) && !(win && runWindow(r.perf)));
+  let hit = runs.find(r=> sameRun(r.dist) && !(win && runWindow(r.perf)));
+  // A run tracked with GPS here before runs kept their start time: the same length of run is the same run.
+  if(!hit && minutes) hit = runs.find(r=> isPhoneGpsRun(r.perf) && !runWindow(r.perf) && sameDuration(r.perf.time, minutes));
   return hit ? hit.target : null;
+}
+const isPhoneGpsRun = perf => !!(perf && (perf.source==='gps' || perf.route) && !perf.stravaId);
+const sameDuration = (a, b)=> a>0 && b>0 && Math.abs(a-b) <= Math.max(1.5, 0.03*Math.max(a, b));
+// The watch's numbers win: a run tracked here that the watch recorded too takes the watch's distance
+// and time (a watch's GPS is steadier than a phone's), keeps its route and elevation, and links to
+// Strava. The phone's splits go -- they were measured by its own distance.
+function takeWatchNumbers(target, watch){
+  const resolved = resolveLogTarget(target);
+  if(!resolved) return false;
+  const prev = resolved.performance || {};
+  const perf = {...prev, distance: watch.distance, time: watch.time!=null ? watch.time : prev.time, notes: prev.notes || '',
+    source: prev.source || 'strava', stravaId: watch.stravaId, fromWatch: true};
+  if(watch.start){ perf.startedAt = watch.start; perf.finishedAt = watch.end; }
+  delete perf.splits; delete perf.lastSplit;
+  storeLoggedPerformance(target, resolved, perf);
+  applyLoggedPerformance(target, resolved, perf);
+  return true;
+}
+// Runs counted twice from before this matching (a GPS run here and the watch's copy from Strava, as its
+// own Logged Workout, on the same day and the same length): merged into one, with the watch's numbers.
+function mergeWatchDuplicates(){
+  let merged = 0;
+  const since = dateKey(new Date(TODAY_DATE.getTime() - STRAVA_LINK_BACKFILL_DAYS*86400000));
+  Object.keys(state.dayLog).filter(k=> k>=since).forEach(key=>{
+    const log = state.dayLog[key];
+    (log.manualEntries || []).filter(e=> e.type==='run' && e.performance && e.performance.source==='strava' && e.performance.stravaId).forEach(e=>{
+      const wp = e.performance, wtime = wp.time || e.durationMin, wwin = runWindow(wp);
+      const twin = dayLoggedRuns(getDayData(parseDateKey(key))).find(r=> !(r.target.kind==='entry' && r.target.id===e.id) && isPhoneGpsRun(r.perf)
+        && (wwin && runWindow(r.perf) ? sameTime(runWindow(r.perf), wwin) : sameDuration(r.perf.time, wtime)));
+      if(!twin) return;
+      takeWatchNumbers(twin.target, {distance: wp.distance!=null ? wp.distance : e.distance, time: wtime, stravaId: wp.stravaId, start: wwin && wwin.start, end: wwin && wwin.end});
+      deleteManualEntry(key, e.id);
+      merged++;
+    });
+  });
+  return merged;
 }
 // A Strava run's {start, end}, from its row.
 function stravaRowWindow(row){
@@ -14620,8 +14660,17 @@ function absorbStravaTwin(target, logged){
   const twin = log && (log.manualEntries || []).find(e=> !(target.kind==='entry' && e.id===target.id) && e.type==='run'
     && e.performance && e.performance.stravaId && sameTime(runWindow(e.performance), win));
   if(!twin) return;
-  if(!logged.stravaId) logged.stravaId = twin.performance.stravaId;
+  // The watch's numbers win (see takeWatchNumbers).
+  const wp = twin.performance;
+  logged.distance = wp.distance!=null ? wp.distance : twin.distance;
+  if(wp.time || twin.durationMin) logged.time = wp.time || twin.durationMin;
+  logged.stravaId = wp.stravaId;
+  logged.fromWatch = true;
+  const wwin = runWindow(wp);
+  if(wwin){ logged.startedAt = wwin.start; logged.finishedAt = wwin.end; }
+  delete logged.splits; delete logged.lastSplit;
   deleteManualEntry(target.dayKey, twin.id);
+  showToast(STR[state.lang].watchNumbersToast.replace('{mi}', `${toDispDist(logged.distance).toFixed(2)} ${useKm() ? 'km' : 'mi'}`));
 }
 // Ties an already-logged run to its Strava activity without touching what was logged. Returns true
 // when it added a link.
@@ -14652,8 +14701,13 @@ function fileStravaRun(row){
   const win = stravaRowWindow(row);
   // Already logged (by hand, tracked with GPS here, or the day was just marked done)? Keep what's there,
   // but tie it to its Strava activity so it still links back to Strava.
-  const match = stravaMatchTarget(dd, miles, win);
-  if(match){ linkStravaId(match, row.id); return false; }
+  const match = stravaMatchTarget(dd, miles, win, minutes);
+  if(match){
+    const r = resolveLogTarget(match);
+    // Not already tied to a Strava run: it takes the watch's numbers (see takeWatchNumbers).
+    if(r && !(r.performance && r.performance.stravaId)) takeWatchNumbers(match, {distance: miles, time: minutes, stravaId: row.id, start: win && win.start, end: win && win.end});
+    return false;
+  }
 
   const logged = {distance: miles, time: minutes, notes: '', source: 'strava', stravaId: row.id,
     ...(win ? {startedAt: win.start, finishedAt: win.end} : {})};
@@ -14703,7 +14757,7 @@ async function importStravaActivities(){
       const match = stravaMatchTarget(getDayData(parseDateKey(key)), miles, stravaRowWindow(row));
       if(match && linkStravaId(match, row.id)) linked++;
     });
-    if(linked && (!rows || !rows.length)) refreshViews();
+    if((mergeWatchDuplicates() || linked) && (!rows || !rows.length)) refreshViews();
   }catch(e){ /* best-effort */ }
   if(error || !rows || !rows.length) return 0;
   const imported = [];

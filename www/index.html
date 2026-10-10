@@ -1319,6 +1319,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .route-card .route-map{height:230px;}
 .route-card .splits{padding:10px 14px 12px;}
 .route-card .splits:empty{display:none;}
+.summary-strava{display:block;width:fit-content;margin:2px 20px 10px;}
 .gps-gap-note{margin:0;padding:10px 14px 14px;font-size:calc(12.5px * var(--fs, 1));line-height:1.5;color:var(--text-2);border-top:1px solid var(--divider-soft);}
 .split-row{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:calc(12.5px * var(--fs, 1));color:var(--text-2);padding:5px 0;}
 .split-row+.split-row{border-top:1px solid var(--divider-soft);}
@@ -2018,6 +2019,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="splits" id="summarySplits"></div>
       <p class="gps-gap-note" id="summaryGpsNote" hidden></p>
     </div>
+    <a class="strava-view-link summary-strava" id="summaryStravaLink" target="_blank" rel="noopener" data-i18n="viewOnStrava" hidden></a>
     <div id="summaryExercisesList" class="summary-exercises" hidden></div>
     <div class="summary-note" id="summaryReviewCard" hidden>
       <div class="st-label" data-i18n="rateWorkoutLabel"></div>
@@ -2031,7 +2033,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
     <div class="streak-band"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 2c1 3-3 4-3 7a3 3 0 0 0 6 0c0-1-1-1.5-1-2.5 1.5 1 2 2.8 2 4.5a4 4 0 1 1-8 0C6 7 9 6 10 2z"/></svg><div><div class="v" id="summaryStreakVal"></div><div class="l" data-i18n="streakLine"></div></div></div>
     <div class="footer-cta" style="border-top:none;background:transparent;margin-top:10px;">
       <button class="btn btn-ghost" id="shareWorkoutBtn" hidden><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V3M6 7l4-4 4 4M4 11v5h12v-5"/></svg><span data-i18n="shareWorkoutBtn"></span></button>
-      <button class="btn btn-primary" data-i18n="backToTodayBtn" data-go="home"></button>
+      <button class="btn btn-ghost" id="summaryEditBtn" type="button" hidden><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5l3 3L7 16H4v-3z"/></svg><span data-i18n="summaryEditBtn"></span></button>
+      <button class="btn btn-primary" id="summaryBackBtn" data-i18n="backToTodayBtn" data-go="home"></button>
     </div>
   </section>
 
@@ -3544,7 +3547,7 @@ const STR = {
     applyBtn: "Apply",
     toastUpdated: "Plan updated",
     workoutCompleteTitle: "Workout Complete",
-    backToTodayBtn: "Back to Today",
+    backToTodayBtn: "Back to Today", summaryBackBtn: "Back", summaryEditBtn: "Edit",
     shareWorkoutBtn: "Share workout", shareCardTitle: "Share your workout", shareFormatPost: "Post", shareFormatStory: "Story",
     gpsTrackBtn: "Track a run with GPS", gpsTrackInLog: "Track this run with GPS", gpsTitle: "GPS run",
     gpsFinding: "Finding GPS…", gpsGood: "GPS ready", gpsWeak: "Weak GPS signal", gpsPausedLabel: "Paused",
@@ -4223,7 +4226,7 @@ const STR = {
     applyBtn: "Aplicar",
     toastUpdated: "Plan actualizado",
     workoutCompleteTitle: "Entrenamiento completado",
-    backToTodayBtn: "Volver a hoy",
+    backToTodayBtn: "Volver a hoy", summaryBackBtn: "Volver", summaryEditBtn: "Editar",
     shareWorkoutBtn: "Compartir entrenamiento", shareCardTitle: "Comparte tu entrenamiento", shareFormatPost: "Publicación", shareFormatStory: "Historia",
     gpsTrackBtn: "Registrar carrera con GPS", gpsTrackInLog: "Registrar esta carrera con GPS", gpsTitle: "Carrera con GPS",
     gpsFinding: "Buscando GPS…", gpsGood: "GPS listo", gpsWeak: "Señal de GPS débil", gpsPausedLabel: "En pausa",
@@ -7118,6 +7121,7 @@ function moveSessionTo(fromIdx, toIdx){
 }
 
 /* ---------------- navigation ---------------- */
+let summaryView = null; // a done workout being looked back at on the Summary: {target, from} (see openWorkoutSummary)
 const SCREEN_IDS = ['welcome','onb-goal','onb-level','onb-days','onb-info','onb-focus','onb-intensity','onb-account','loading','home','week','progress','calendar','settings','summary','exercise-detail'];
 const TAB_SCREENS = ['home','week','progress','calendar','settings'];
 function elFor(id){return document.getElementById('screen-'+id);}
@@ -7158,6 +7162,7 @@ function showScreen(id){
   if(id==='calendar') renderCalendar();
   if(id==='progress') renderProgress();
   if(id==='settings') renderSettings();
+  if(id!=='summary') summaryView = null;
   if(id==='summary') renderSummary();
   if(id==='onb-focus'){ onbSlider.paint(); updateOnbSliderLabels(state.focusRatio); }
   if(id==='onb-intensity') renderOnbBaseline();
@@ -7916,6 +7921,8 @@ function renderHome(){
   document.getElementById('sessionDescTap').addEventListener('click', (e)=>{
     const lift = e.target.closest('[data-lift-key]');
     if(lift && (focusExtra || !isTodayDone())){ openWorkoutPreview(todayKey, focusExtra ? {kind:'extra', id: focusExtra.id} : null, {tuneKey: lift.getAttribute('data-lift-key')}); return; }
+    // Done: straight to what was done.
+    if(mainDone){ const t = {dayKey: todayKey, ...mainTarget}; const r = resolveLogTarget(t); if(r && r.performance){ openWorkoutSummary(t); return; } }
     openDayDetail(todayKey);
   });
   document.getElementById('homeMoreBtn').addEventListener('click', ()=>{
@@ -7947,7 +7954,7 @@ function renderHome(){
   // one still to do starts it.
   document.getElementById('homeEntriesWrap').querySelectorAll('[data-entry-id]').forEach(el=> el.addEventListener('click', e=>{
     if(e.target.closest('[data-del]')) return;
-    openLogPerformanceFor({dayKey: todayKey, kind:'entry', id: el.getAttribute('data-entry-id')});
+    openWorkoutSummary({dayKey: todayKey, kind:'entry', id: el.getAttribute('data-entry-id')});
   }));
   document.getElementById('homeEntriesWrap').querySelectorAll('[data-del]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -7963,7 +7970,7 @@ function renderHome(){
   if(homeExtraWrap){
     homeExtraWrap.querySelectorAll('[data-extra-id]').forEach(el=> el.addEventListener('click', e=>{
       if(e.target.closest('[data-del-extra], [data-start-extra]')) return;
-      openLogPerformanceFor({dayKey: todayKey, kind:'extra', id: el.getAttribute('data-extra-id')});
+      openWorkoutSummary({dayKey: todayKey, kind:'extra', id: el.getAttribute('data-extra-id')});
     }));
     homeExtraWrap.querySelectorAll('[data-start-extra]').forEach(btn=>{
       btn.addEventListener('click', ()=> openLogPerformance(btn.getAttribute('data-start-extra')));
@@ -8916,6 +8923,8 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   applyLoggedPerformance(logTarget, resolved, logged);
   document.getElementById('recordBtn').classList.remove('recording');
   refreshViews();
+  // Edited from its Summary: the Summary shows the new numbers.
+  if(summaryView && sameLogTarget(summaryView.target, logTarget)){ state._lastLogged = logged; renderSummary(); }
   showToast(STR[state.lang].workoutLoggedToast);
 });
 
@@ -9853,7 +9862,7 @@ document.getElementById('dayDetailPlanRow').addEventListener('click', ()=>{
   // tapping it shows what it will be instead.
   if(dd.p.t==='rest') return;
   if(dd.isFuture){ openWorkoutPreview(state.openDayKey); return; }
-  openLogPerformanceFor(primaryLogTarget(dd));
+  openWorkoutSummary(primaryLogTarget(dd));
 });
 
 /* ---------------- workout preview (a future workout) ---------------- */
@@ -10382,7 +10391,7 @@ function renderDayDetail(){
   })() : '');
   const doneOwn = extraWrap.querySelector('[data-done-own]');
   if(doneOwn){
-    doneOwn.addEventListener('click', e=>{ if(!e.target.closest('[data-del-own]')) openLogPerformanceFor(primaryLogTarget(dd)); });
+    doneOwn.addEventListener('click', e=>{ if(!e.target.closest('[data-del-own]')) openWorkoutSummary(primaryLogTarget(dd)); });
     doneOwn.querySelector('[data-del-own]').addEventListener('click', ()=>{
       const key = state.openDayKey;
       askDeleteWorkout(ST(dd.p).title, key, true, ()=> deleteDayWorkout(key));
@@ -10395,7 +10404,7 @@ function renderDayDetail(){
       if(e.target.closest('[data-del-extra], [data-start-extra], [data-mark-extra-done]')) return;
       const target = {dayKey: state.openDayKey, kind:'extra', id: el.getAttribute('data-extra-id')};
       if(dd.isFuture) openWorkoutPreview(state.openDayKey, {kind:'extra', id: target.id});
-      else openLogPerformanceFor(target);
+      else openWorkoutSummary(target);
     });
   });
   extraWrap.querySelectorAll('[data-start-extra]').forEach(btn=>{
@@ -10435,7 +10444,7 @@ function renderDayDetail(){
     entriesWrap.querySelectorAll('[data-entry-id]').forEach(el=>{
       el.addEventListener('click', (e)=>{
         if(e.target.closest('[data-del]')) return;
-        openLogPerformanceFor({dayKey: state.openDayKey, kind:'entry', id: el.getAttribute('data-entry-id')});
+        openWorkoutSummary({dayKey: state.openDayKey, kind:'entry', id: el.getAttribute('data-entry-id')});
       });
     });
   }
@@ -12359,11 +12368,37 @@ function getSummaryExercises(logged){
     return {name: res.name, result};
   });
 }
+// A done workout, opened from Today, the day sheet or Also today: straight to its Summary (stats, route,
+// elevation, splits) -- with Edit for changing what was logged. One with nothing logged to show (just
+// marked done) opens Log Performance as before.
+function currentScreenId(){ return SCREEN_IDS.find(s=>{ const el = elFor(s); return el && !el.hidden; }) || 'home'; }
+function openWorkoutSummary(target){
+  const r = resolveLogTarget(target);
+  if(!r || !r.completed || !r.performance){ openLogPerformanceFor(target); return; }
+  const from = currentScreenId();
+  if(!document.getElementById('dayDetailOverlay').hidden) closeDayDetail();
+  state._lastSession = r.session;
+  state._lastLogged = r.performance;
+  summaryView = {target, from: from==='summary' ? 'home' : from};
+  showScreen('summary');
+  document.getElementById('screen-summary').scrollTop = 0;
+}
+document.getElementById('summaryEditBtn').addEventListener('click', ()=>{ if(summaryView) openLogPerformanceFor(summaryView.target, 'revisit'); });
 function renderSummary(){
   const L = STR[state.lang];
   const session = state._lastSession || todaySession();
   const sessL = ST(session);
-  document.getElementById('summarySessTitle').textContent = `${sessL.title}${sessL.detail?', '+sessL.detail:''}`;
+  // Looking back at a done workout (see openWorkoutSummary): its name and day, Edit, and Back to wherever
+  // it was opened from -- no review to fill in again.
+  const viewing = !!summaryView;
+  document.getElementById('summarySessTitle').textContent = viewing
+    ? `${sessL.title} · ${fmtDayDate(summaryView.target.dayKey, state.lang)}`
+    : `${sessL.title}${sessL.detail?', '+sessL.detail:''}`;
+  document.getElementById('summaryEditBtn').hidden = !viewing;
+  const backBtn = document.getElementById('summaryBackBtn');
+  backBtn.setAttribute('data-go', viewing ? summaryView.from : 'home');
+  backBtn.setAttribute('data-i18n', viewing && summaryView.from!=='home' ? 'summaryBackBtn' : 'backToTodayBtn');
+  backBtn.textContent = L[backBtn.getAttribute('data-i18n')];
   const logged = state._lastLogged;
   const stats = getSummaryStats(session, session.t==='strength' ? liftIntensity() : runIntensity(), logged);
   document.getElementById('summaryStats').innerHTML = stats.map(s=>`<div class="cell"><div class="l">${s.l}</div><div class="v">${s.v}</div></div>`).join('');
@@ -12375,11 +12410,17 @@ function renderSummary(){
   const noteObj = SUMMARY_NOTE[session.t] || SUMMARY_NOTE.run;
   document.getElementById('summaryNote').textContent = noteObj[state.lang];
   document.getElementById('shareWorkoutBtn').hidden = !logged;
+  const stravaLinkEl = document.getElementById('summaryStravaLink');
+  stravaLinkEl.hidden = !(logged && logged.stravaId);
+  if(logged && logged.stravaId) stravaLinkEl.href = stravaActivityUrl(logged.stravaId);
   refreshStreak();
   document.getElementById('summaryStreakVal').textContent = `${state.streak} ${L.dayStreakSuffix}`;
   const progNoteEl = document.getElementById('summaryProgressNote');
   const reviewCardEl = document.getElementById('summaryReviewCard');
-  if(logged && !state._reviewSubmitted){
+  if(viewing){
+    reviewCardEl.hidden = true;
+    progNoteEl.hidden = true;
+  } else if(logged && !state._reviewSubmitted){
     // Right after finishing -- ask for the review before showing any progression result, since
     // the rating given here is what decides whether a met target actually counts as "advance".
     document.getElementById('reviewRatingSlider').value = 3;

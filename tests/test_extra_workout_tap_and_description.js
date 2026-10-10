@@ -62,6 +62,8 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   doc.querySelector('#dayDetailExtraWorkouts [data-extra-id]').click();
   await wait(20);
+  // (A done workout opens its Summary; Edit shows what was logged.)
+  if(!doc.getElementById('screen-summary').hidden){ doc.getElementById('summaryEditBtn').click(); await wait(30); }
   const weights = [...doc.querySelectorAll('#logPerfExercisesList .exercise-log-row[data-exercise-key="Bench"] [data-field="weight"]')].map(el=>el.value);
   console.log('Reopening shows the logged weights per set (100/110/120):', weights.join('/')==='100/110/120' ? 'OK' : `FAIL (${weights.join('/')})`);
   console.log('...with every set ticked off as done:', [...doc.querySelectorAll('#logPerfExercisesList .set-check-dot')].every(d=>d.classList.contains('checked')) ? 'OK' : 'FAIL');

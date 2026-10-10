@@ -46,10 +46,13 @@ function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok
   await wait(30);
   check('Once done it says Completed', !!card() && /Completed/.test(card().textContent));
 
-  // Tap the finished workout: it opens with what was logged.
+  // Tap the finished workout: its Summary, and Edit there opens what was logged.
   card().querySelector('.body').click();
   await wait(30);
-  check('Tapping the done workout opens it', doc.getElementById('logPerfOverlay').hidden===false);
+  check('Tapping the done workout opens its Summary', !doc.getElementById('screen-summary').hidden && doc.getElementById('logPerfOverlay').hidden);
+  doc.getElementById('summaryEditBtn').click();
+  await wait(30);
+  check('...and Edit there opens it', doc.getElementById('logPerfOverlay').hidden===false);
   check('...showing the weights logged (200/225)', rows().map(e=>e.value).join('/')==='200/225', rows().map(e=>e.value).join('/'));
   // Fix the second set and save.
   rows()[1].value = '235';
@@ -61,8 +64,11 @@ function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok
   check('After the fix it\'s still one workout, still Completed', doc.querySelectorAll('#homeExtraWorkoutsWrap [data-extra-id]').length===1 && /Completed/.test(card().textContent));
   card().querySelector('.body').click();
   await wait(30);
+  if(!doc.getElementById('screen-summary').hidden){ doc.getElementById('summaryEditBtn').click(); await wait(30); }
   check('...and reopening shows the fix (200/235)', rows().map(e=>e.value).join('/')==='200/235', rows().map(e=>e.value).join('/'));
   doc.getElementById('closeLogPerf').click();
+  await wait(20);
+  doc.getElementById('summaryBackBtn').click();
   await wait(20);
 
   // The trash on the card only deletes (with Undo), it doesn't open the workout.

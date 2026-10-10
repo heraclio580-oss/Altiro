@@ -198,13 +198,32 @@ const T0 = new Date(2026, 8, 18, 8, 0).getTime(); // today (Fri 18th), 8:00
     const backend = makeBackend({connected:false});
     backend.db.profiles.u1 = {id:'u1', own_since:'2026-09-01'};
     backend.db.planned_workouts = {pw1: {id:'pw1', user_id:'u1', log_date:'2026-09-18', session_type:'run', title:'4.5 mile easy run', detail:'4.5 mi',
-      completed:true, actual_distance:4.03, performance:{distance:4.03, time:44.98, source:'gps', stravaId:401}}};
+      completed:true, actual_distance:4.03, performance:{distance:4.03, time:44.98, source:'gps', stravaId:401, route:['_p~iF~ps|U_ulLnnqC'], splits:[700, 690, 680], splitUnit:'mi'}}};
     const dom = new JSDOM(html, {runScripts:'dangerously', pretendToBeVisual:true, url:'https://example.com/Altiro/',
       beforeParse(w){ w.supabase = {createClient: ()=> backend.createClient()}; w.__ALTIRO_TEST_TODAY__ = '2026-09-18'; }});
     await wait(300);
     const doc = dom.window.document;
     const title = doc.querySelector('#sessionCard .title').textContent;
     check('Creating your own workouts: the done run is the main card, not "Rest Day"', /4\.5 mile easy run, 4\.03 mi/.test(title) && doc.getElementById('homeAlsoToday').hidden, title);
+    // Tapping the done run goes straight to its Summary.
+    doc.getElementById('sessionDescTap').click();
+    await wait(50);
+    const shown = id=> !doc.getElementById(id).hidden;
+    check('Tapping the done run opens its Summary (not the day sheet, not the edit form)', shown('screen-summary') && doc.getElementById('dayDetailOverlay').hidden && doc.getElementById('logPerfOverlay').hidden);
+    check('...with its numbers, route and splits', /4\.03 mi/.test(doc.getElementById('summaryStats').textContent) && shown('summaryRouteCard') && /Mile 1/.test(doc.getElementById('summarySplits').textContent),
+      doc.getElementById('summaryStats').textContent.replace(/\s+/g,' ')+' | '+doc.getElementById('summarySplits').textContent);
+    check('...named with its day, and no review to fill in again', /4\.5 mile easy run · Friday, Sep 18/.test(doc.getElementById('summarySessTitle').textContent) && !shown('summaryReviewCard'), doc.getElementById('summarySessTitle').textContent);
+    check('...with Edit, and Back to Today', shown('summaryEditBtn') && doc.getElementById('summaryBackBtn').textContent==='Back to Today');
+    doc.getElementById('summaryEditBtn').click();
+    await wait(1000);
+    check('Edit opens what was logged, to change', shown('logPerfOverlay') && doc.getElementById('logPerfDistanceInput').value==='4.03', doc.getElementById('logPerfDistanceInput').value);
+    doc.getElementById('logPerfDistanceInput').value = '4.05';
+    doc.getElementById('saveLogPerf').click();
+    await wait(100);
+    check('...and saving it updates the Summary', shown('screen-summary') && /4\.05 mi/.test(doc.getElementById('summaryStats').textContent), doc.getElementById('summaryStats').textContent.replace(/\s+/g,' '));
+    doc.getElementById('summaryBackBtn').click();
+    await wait(50);
+    check('Back to Today goes back', shown('screen-home'));
     dom.window.close();
   }
   {

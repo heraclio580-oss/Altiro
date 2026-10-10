@@ -81,6 +81,7 @@ const text = el => (el ? el.textContent : '').replace(/\s+/g,' ').trim();
   go('home'); await wait(20);
   doc.querySelector('#weekStrip .day-cell.today').click(); await wait(20);
   doc.getElementById('dayDetailPlanRow').click(); await wait(20);
+  if(!doc.getElementById('screen-summary').hidden){ doc.getElementById('summaryEditBtn').click(); await wait(30); }
   check('...and reopening it shows what was done', !sheet.hidden && JSON.stringify(sets('Bench Press'))===JSON.stringify([['135','8'],['135','8']]) && doc.getElementById('logPerfAddExercise').hidden);
   await click('#closeLogPerf');
 

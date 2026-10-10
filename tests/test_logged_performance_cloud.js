@@ -178,6 +178,7 @@ async function signIn(dom, mode){
   await wait(20);
   docB.getElementById('dayDetailPlanRow').click();
   await wait(20);
+  if(!docB.getElementById('screen-summary').hidden){ docB.getElementById('summaryEditBtn').click(); await wait(30); }
   console.log('Session B: reopening the past workout shows what was logged (185 x 6):',
     docB.getElementById('logPerfWeightInput').value==='185' && docB.getElementById('logPerfRepsInput').value==='6' ? 'OK' : `FAIL (${docB.getElementById('logPerfWeightInput').value} x ${docB.getElementById('logPerfRepsInput').value})`);
   console.log('Session B: ...and its notes:', docB.getElementById('logPerfNotesInput').value==='Heavy day' ? 'OK' : `FAIL (${docB.getElementById('logPerfNotesInput').value})`);
@@ -188,6 +189,7 @@ async function signIn(dom, mode){
   await wait(20);
   docB.querySelector('#dayDetailEntries [data-entry-id]').click();
   await wait(20);
+  if(!docB.getElementById('screen-summary').hidden){ docB.getElementById('summaryEditBtn').click(); await wait(30); }
   console.log('Session B: reopening the logged entry shows its logged reps (50):', docB.getElementById('logPerfRepsInput').value==='50' ? 'OK' : `FAIL (${docB.getElementById('logPerfRepsInput').value})`);
 
   console.log('ALL DONE');

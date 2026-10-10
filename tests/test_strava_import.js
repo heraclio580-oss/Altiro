@@ -148,7 +148,8 @@ const text = (doc, id) => doc.getElementById(id).textContent;
   console.log('...saved with its Strava id:', shakeoutRow.performance && shakeoutRow.performance.stravaId===103 ? 'OK' : `FAIL (${JSON.stringify(shakeoutRow.performance)})`);
   const shakeoutEntry = doc.querySelector('#dayDetailOverlay [data-entry-id]');
   if(shakeoutEntry){ shakeoutEntry.click(); await wait(20); }
-  const shakeLink = doc.getElementById('logPerfStravaLink');
+  // (A done run opens its Summary, which links to it on Strava.)
+  const shakeLink = doc.getElementById('summaryStravaLink');
   console.log('...and opening it links back to that run on Strava:', !shakeLink.hidden && shakeLink.href==='https://www.strava.com/activities/103' ? 'OK' : `FAIL (${shakeLink.hidden} ${shakeLink.href})`);
   if(!doc.getElementById('logPerfOverlay').hidden) doc.getElementById('closeLogPerf').click();
   await wait(10);
@@ -159,7 +160,7 @@ const text = (doc, id) => doc.getElementById(id).textContent;
   console.log("Today's plan keeps its own name:", text(doc,'dayDetailPlanRow').includes('16 mile long run') ? 'OK' : `FAIL (${text(doc,'dayDetailPlanRow')})`);
   doc.getElementById('dayDetailPlanRow').click();
   await wait(20);
-  const viewLink = doc.getElementById('logPerfStravaLink');
+  const viewLink = doc.getElementById('summaryStravaLink');
   console.log('The imported run links back to it on Strava:', !viewLink.hidden && viewLink.textContent==='View on Strava' && viewLink.href==='https://www.strava.com/activities/101' ? 'OK' : `FAIL (${viewLink.hidden} ${viewLink.href})`);
   doc.getElementById('closeLogPerf').click();
   await wait(10);

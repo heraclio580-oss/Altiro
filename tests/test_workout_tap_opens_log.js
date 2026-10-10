@@ -65,10 +65,14 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   doc.getElementById('dayDetailPlanRow').click();
   await wait(20);
+  // (A done workout opens its Summary; Edit there shows what was logged.)
+  console.log('Reopening a done workout opens its Summary:', !doc.getElementById('screen-summary').hidden && !doc.getElementById('summaryEditBtn').hidden ? 'OK' : 'FAIL');
+  if(!doc.getElementById('screen-summary').hidden){ doc.getElementById('summaryEditBtn').click(); await wait(30); }
   console.log('Reopening shows what was actually logged (155), not the plan target:', doc.getElementById('logPerfWeightInput').value==='155' ? 'OK' : `FAIL (${doc.getElementById('logPerfWeightInput').value})`);
   console.log('...notes included:', doc.getElementById('logPerfNotesInput').value==='Knee felt fine' ? 'OK' : `FAIL (${doc.getElementById('logPerfNotesInput').value})`);
   doc.getElementById('closeLogPerf').click();
   await wait(10);
+  if(!doc.getElementById('screen-summary').hidden){ doc.getElementById('summaryBackBtn').click(); await wait(20); }
   doc.getElementById('closeDayDetail').click();
   await wait(10);
 
@@ -93,9 +97,11 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   console.log('Still exactly one logged entry after logging its performance:', doc.querySelectorAll('#dayDetailEntries [data-entry-id]').length===1 ? 'OK' : 'FAIL');
   doc.getElementById('dayDetailPlanRow').click(); // the day's headline IS that entry -- same record
   await wait(20);
+  if(!doc.getElementById('screen-summary').hidden){ doc.getElementById('summaryEditBtn').click(); await wait(30); }
   console.log('Tapping the day\'s headline (promoted from that entry) shows the same logged reps:', logPerfOpen() && doc.getElementById('logPerfRepsInput').value==='45' ? 'OK' : `FAIL (${doc.getElementById('logPerfRepsInput').value})`);
   doc.getElementById('closeLogPerf').click();
   await wait(10);
+  if(!doc.getElementById('screen-summary').hidden){ doc.getElementById('summaryBackBtn').click(); await wait(20); }
   doc.getElementById('closeDayDetail').click();
   await wait(10);
 
@@ -149,11 +155,13 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(20);
   doc.getElementById('dayDetailPlanRow').click();
   await wait(20);
+  if(!doc.getElementById('screen-summary').hidden){ doc.getElementById('summaryEditBtn').click(); await wait(30); }
   console.log("Tapping today's DONE workout reopens what was logged:", logPerfOpen() && doc.getElementById('logPerfNotesInput').value==='Good session' ? 'OK' : `FAIL (${doc.getElementById('logPerfNotesInput').value})`);
   doc.getElementById('logPerfNotesInput').value = 'Good session, added a note later';
   doc.getElementById('saveLogPerf').click();
   await wait(30);
-  console.log('Re-saving it stays put -- no second trip to the Summary screen:', doc.getElementById('screen-summary').hidden===true ? 'OK' : 'FAIL');
+  console.log('Re-saving it stays on its Summary -- no second review, no second recording:', !doc.getElementById('screen-summary').hidden && doc.getElementById('summaryReviewCard').hidden && !doc.getElementById('summaryEditBtn').hidden ? 'OK' : 'FAIL');
+  if(!doc.getElementById('screen-summary').hidden){ doc.getElementById('summaryBackBtn').click(); await wait(20); }
   doc.getElementById('closeDayDetail').click();
   await wait(10);
   console.log('Re-saving does not bump the streak again:', doc.getElementById('streakChip').textContent===streakAfterRecord ? 'OK' : `FAIL (${streakAfterRecord} -> ${doc.getElementById('streakChip').textContent})`);

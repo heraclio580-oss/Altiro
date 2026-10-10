@@ -107,6 +107,8 @@ function makeBackend(){
   go('calendar'); await wait(20);
   doc.querySelector('.mo-cell[data-date="2026-09-18"]').click(); await wait(20);
   doc.getElementById('dayDetailPlanRow').click(); await wait(30);
+  // (A done workout opens its Summary; Edit there shows what was logged.)
+  if(!doc.getElementById('screen-summary').hidden){ doc.getElementById('summaryEditBtn').click(); await wait(30); }
   check('Reopened: the workout time is there', doc.getElementById('logPerfTimeMInput').value==='30' && doc.getElementById('logPerfTimeNote').hidden, doc.getElementById('logPerfTimeMInput').value);
   const m = doc.getElementById('logPerfTimeMInput'); m.value = '45'; m.dispatchEvent(new w.Event('input', {bubbles:true}));
   doc.getElementById('saveLogPerf').click(); await wait(40);

@@ -193,6 +193,7 @@ const text = (doc, id) => doc.getElementById(id).textContent;
 
   // A second run today arrives later -- it's a separate run, so it's added alongside.
   backend.addStrava(105, '2026-09-18', 'Evening Run', 4828, 1500); // 3.0 mi
+  backend.db.strava_activities[105].start_date = '2026-09-18T23:30:00Z'; // in the evening, hours after the morning's run
   doc.getElementById('stravaSyncBtn').click();
   await wait(80);
   console.log('Sync now files the new run:', text(doc,'toastMsg')==='From Strava: Evening Run · 3.0 mi' ? 'OK' : `FAIL (${text(doc,'toastMsg')})`);

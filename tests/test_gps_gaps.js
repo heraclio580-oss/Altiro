@@ -96,6 +96,33 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195; // metres to degrees o
     check('No page errors', errors.length===0, errors.join(' | '));
     await page.close();
   }
+  // Pocket lock: the screen stays on but goes dark and ignores touches; GPS keeps coming in.
+  {
+    const {page, errors} = await openApp();
+    await tapTrack(page);
+    await sleep(100);
+    await fix(page, 0);
+    check('No pocket lock before the run starts', !(await shown(page, '#gpsLockBtn')));
+    await page.tap('#gpsStartBtn');
+    for(let i=1; i<=20; i++){ await page.clock.fastForward(1000); await fix(page, i*3); }
+    check('Once running, the pocket lock is offered', await shown(page, '#gpsLockBtn'));
+    await page.tap('#gpsLockBtn');
+    check('Tapping it darkens the screen, with the time and distance dimly shown', await shown(page, '#gpsPocket') && /^0:2\d$/.test(await txt(page, '#gpsPocketTime')) && /0\.04 mi/.test(await txt(page, '#gpsPocketDist')), (await txt(page, '#gpsPocketTime'))+' / '+(await txt(page, '#gpsPocketDist')));
+    check('...and keeps the screen awake', await page.evaluate(()=> window.__wake)>=1);
+    await page.mouse.click(195, 760); // where Pause is, under the dark screen
+    await page.mouse.click(40, 40);   // where Close is
+    for(let i=21; i<=40; i++){ await page.clock.fastForward(1000); await fix(page, i*3); }
+    check('Touches on the dark screen do nothing: still running, still locked, distance still counting', await shown(page, '#gpsPocket') && /0\.07 mi/.test(await txt(page, '#gpsPocketDist')), await txt(page, '#gpsPocketDist'));
+    const box = await page.locator('#gpsPocketUnlock').boundingBox();
+    await page.mouse.move(box.x + box.width/2, box.y + box.height/2);
+    await page.mouse.down(); await page.clock.fastForward(500); await page.mouse.up();
+    check('A short press on Unlock doesn\'t unlock', await shown(page, '#gpsPocket'));
+    await page.mouse.down(); await page.clock.fastForward(1600); await page.mouse.up();
+    await sleep(50);
+    check('Holding Unlock brings the tracker back, still running', !(await shown(page, '#gpsPocket')) && /Pause/i.test(await txt(page, '#gpsStartBtn')), await txt(page, '#gpsStartBtn'));
+    check('No page errors', errors.length===0, errors.join(' | '));
+    await page.close();
+  }
   // Steady GPS all the way: no note.
   {
     const {page, errors} = await openApp();

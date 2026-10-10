@@ -1307,6 +1307,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .route-card .route-map{height:230px;}
 .route-card .splits{padding:10px 14px 12px;}
 .route-card .splits:empty{display:none;}
+.gps-gap-note{margin:0;padding:10px 14px 14px;font-size:calc(12.5px * var(--fs, 1));line-height:1.5;color:var(--text-2);border-top:1px solid var(--divider-soft);}
 .split-row{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:calc(12.5px * var(--fs, 1));color:var(--text-2);padding:5px 0;}
 .split-row+.split-row{border-top:1px solid var(--divider-soft);}
 .split-row.best{color:var(--ok-icon);}
@@ -2003,6 +2004,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="route-map" id="summaryRouteMap"></div>
       <div class="elev-profile" id="summaryElevProfile" hidden></div>
       <div class="splits" id="summarySplits"></div>
+      <p class="gps-gap-note" id="summaryGpsNote" hidden></p>
     </div>
     <div id="summaryExercisesList" class="summary-exercises" hidden></div>
     <div class="summary-note" id="summaryReviewCard" hidden>
@@ -3533,6 +3535,10 @@ const STR = {
     gpsOpenSettings: "Open settings", gpsDiscardQ: "Discard this run?", gpsDiscardYes: "Discard", gpsDiscardKeep: "Keep it",
     gpsResumedToast: "Your run was paused. Tap Resume to carry on.", gpsTooShort: "Run a little farther first. There's nothing to save yet.",
     gpsNotifTitle: "Altiro is tracking your run", gpsNotifMsg: "Tap to go back to your run.", gpsRunTitle: "Run",
+    gpsGapLive: "GPS stopped while the screen was off, so that stretch will read short. Keep Altiro open with the screen on until you finish.",
+    gpsGapSummaryOne: "GPS dropped out for {total} during this run. That stretch is a straight line on the map, so the distance may read short.",
+    gpsGapSummary: "GPS dropped out {n} times during this run, {total} in all (longest {longest}). Those stretches are straight lines on the map, so the distance may read short.",
+    gpsGapSummaryScreen: "GPS stopped for {total} in all while the screen was off (longest {longest}). Those stretches are straight lines on the map, so the distance may read short. Keep Altiro open with the screen on while you run.",
     gpsFromTracker: "From your GPS run. Check it and save.", gpsSplitsLabel: "Splits", gpsMileN: "Mile {n}", gpsRouteLabel: "Route", gpsRecenter: "Re-center",
     locPromptTitle: "Track your runs with GPS",
     locPromptBody: "Allow location so Altiro can map and measure your runs, and show your local weather. It's only used while you track a run or check the weather.",
@@ -4205,6 +4211,10 @@ const STR = {
     gpsOpenSettings: "Abrir ajustes", gpsDiscardQ: "¿Descartar esta carrera?", gpsDiscardYes: "Descartar", gpsDiscardKeep: "Conservarla",
     gpsResumedToast: "Tu carrera quedó en pausa. Toca Seguir para continuar.", gpsTooShort: "Corre un poco más primero. Aún no hay nada que guardar.",
     gpsNotifTitle: "Altiro está registrando tu carrera", gpsNotifMsg: "Toca para volver a tu carrera.", gpsRunTitle: "Carrera",
+    gpsGapLive: "El GPS se detuvo mientras la pantalla estaba apagada, así que ese tramo marcará de menos. Deja Altiro abierta con la pantalla encendida hasta terminar.",
+    gpsGapSummaryOne: "El GPS se cortó durante {total} en esta carrera. Ese tramo es una línea recta en el mapa, así que la distancia puede marcar de menos.",
+    gpsGapSummary: "El GPS se cortó {n} veces en esta carrera, {total} en total (el más largo {longest}). Esos tramos son líneas rectas en el mapa, así que la distancia puede marcar de menos.",
+    gpsGapSummaryScreen: "El GPS se detuvo {total} en total mientras la pantalla estaba apagada (el más largo {longest}). Esos tramos son líneas rectas en el mapa, así que la distancia puede marcar de menos. Deja Altiro abierta con la pantalla encendida mientras corres.",
     gpsFromTracker: "De tu carrera con GPS. Revísala y guárdala.", gpsSplitsLabel: "Parciales", gpsMileN: "Milla {n}", gpsRouteLabel: "Ruta", gpsRecenter: "Centrar",
     locPromptTitle: "Registra tus carreras con GPS",
     locPromptBody: "Permite la ubicación para que Altiro mida tus carreras, las muestre en un mapa y te dé el clima local. Solo se usa mientras registras una carrera o consultas el clima.",
@@ -8838,6 +8848,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     logged.route = routeFrom.route; logged.splits = routeFrom.splits || [];
     if(routeFrom.lastSplit) logged.lastSplit = routeFrom.lastSplit;
     if(routeFrom.splitUnit) logged.splitUnit = routeFrom.splitUnit;
+    if(routeFrom.gpsStats) logged.gpsStats = routeFrom.gpsStats;
     if(!logged.source) logged.source = 'gps';
   }
   if(routeFrom && routeFrom.elevProfile) logged.elevProfile = routeFrom.elevProfile;
@@ -12967,7 +12978,17 @@ let gpsWatch = null;     // {kind:'web', id} | {kind:'native', id}
 let gpsMap = null, gpsMapReady = false, gpsMapFollow = true, gpsTick = null, gpsWakeLock = null, gpsLastFix = null, gpsSaveAt = 0;
 function newGpsRun(target){
   return {target: target || null, status:'idle', segs:[], distM:0, movingMs:0, runningSince:null, startedAt:null, splits:[], lastPt:null, newSeg:true, splitM: unitMeters(), splitUnit: distUnit(),
-    elevGain:0, elevLoss:0, elevSm:null, elevAnchor:null, elevSeen:false};
+    elevGain:0, elevLoss:0, elevSm:null, elevAnchor:null, elevSeen:false, stats: newGpsStats(), lastGoodT:null, hiddenAt:null};
+}
+// How well GPS kept up during a run, kept with it so a run that reads short can say why: fixes received,
+// weak ones skipped, and the dropouts -- stretches of more than GPS_GAP_S with no usable fix, which the
+// route crosses in a straight line (so the distance comes up short) -- and how long the screen was off.
+const GPS_GAP_S = 10;
+function newGpsStats(){ return {fixes:0, weak:0, gaps:0, gapS:0, maxGapS:0, hiddenS:0}; }
+function noteGpsGap(t){
+  if(!gps || gps.lastGoodT==null) return;
+  const gap = (t - gps.lastGoodT)/1000;
+  if(gap > GPS_GAP_S){ const st = gps.stats; st.gaps++; st.gapS += gap; st.maxGapS = Math.max(st.maxGapS, gap); }
 }
 function gpsElapsedMs(){ return gps ? gps.movingMs + (gps.status==='running' && gps.runningSince ? Date.now()-gps.runningSince : 0) : 0; }
 function saveGpsRun(force){
@@ -12996,6 +13017,7 @@ function loadGpsRun(){
     g.elevGain = g.elevGain || 0; g.elevLoss = g.elevLoss || 0; g.elevSm = null; g.elevAnchor = null;
     g.newSeg = true; g.lastPt = null; g.status = g.status==='idle' ? 'idle' : 'paused'; g.runningSince = null;
     if(!g.splitM){ g.splitM = MI_M; g.splitUnit = 'mi'; }
+    g.stats = {...newGpsStats(), ...(g.stats || {})}; g.lastGoodT = null; g.hiddenAt = null;
     return g;
   }catch(e){ return null; }
 }
@@ -13011,8 +13033,14 @@ function gpsSignalState(){
 function onGpsFix(lat, lng, acc, time, alt, altAcc){
   if(!isFinite(lat) || !isFinite(lng)) return;
   gpsLastFix = {lat, lng, acc: acc || 0, at: Date.now()};
+  if(gps && gps.status==='running'){
+    gps.stats.fixes++;
+    if((acc || 0) > GPS_MAX_ACCURACY_M) gps.stats.weak++;
+  }
   if(gps && gps.status==='running' && (acc || 0) <= GPS_MAX_ACCURACY_M){
     const t = time || Date.now();
+    noteGpsGap(t);
+    gps.lastGoodT = Math.max(gps.lastGoodT || 0, t);
     const p = [lat, lng, t];
     if(gps.newSeg || !gps.lastPt){
       gps.kf = {lat, lng, v: Math.max(acc || 0, 3)**2, t};
@@ -13119,7 +13147,18 @@ async function gpsKeepAwake(on){
   }catch(e){ gpsWakeLock = null; }
 }
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState==='visible' && gps && gps.status==='running'){ gpsWakeLock = null; gpsKeepAwake(true); }
+  if(!gps || gps.status!=='running') return;
+  if(document.visibilityState==='hidden'){ gps.hiddenAt = Date.now(); return; }
+  if(gps.hiddenAt){ gps.stats.hiddenS += (Date.now() - gps.hiddenAt)/1000; gps.hiddenAt = null; }
+  gpsWakeLock = null; gpsKeepAwake(true);
+  // Back on screen after GPS stopped coming in (the screen was off, or another app was open): say so,
+  // since that stretch is a straight line on the route and the distance will read short.
+  if(!nativeGeo() && gps.lastGoodT!=null && Date.now() - gps.lastGoodT > GPS_GAP_S*1000){
+    const note = document.getElementById('gpsNote');
+    note.textContent = STR[state.lang].gpsGapLive;
+    note.classList.add('alert');
+    note.hidden = false;
+  }
 });
 // target: the workout being recorded ({dayKey, kind, id}), or none -- a run nobody planned, which
 // becomes today's added "Run" when it's finished.
@@ -13215,6 +13254,7 @@ document.getElementById('gpsStartBtn').addEventListener('click', ()=>{
   if(!gps) return;
   if(gps.status==='running'){
     gpsCatchUp();
+    noteGpsGap(Date.now()); gps.lastGoodT = null;
     gps.movingMs = gpsElapsedMs(); gps.runningSince = null; gps.status = 'paused';
     gpsKeepAwake(false);
     announceRun('paused');
@@ -13222,6 +13262,7 @@ document.getElementById('gpsStartBtn').addEventListener('click', ()=>{
     announceRun(gps.status==='idle' ? 'started' : 'resumed');
     if(gps.status==='idle') gps.startedAt = Date.now();
     gps.status = 'running'; gps.runningSince = Date.now(); gps.newSeg = true; gps.lastPt = null;
+    gps.lastGoodT = Date.now();
     gpsMapFollow = true;
     gpsKeepAwake(true);
     startGpsWatch();
@@ -13320,7 +13361,8 @@ function finishGpsRun(msAtPress){
   const L = STR[state.lang];
   if(!gps) return;
   // The run's time stops when Finish is pressed, not when the hold completes.
-  if(gps.status==='running') gpsCatchUp();
+  if(gps.status==='running'){ gpsCatchUp(); noteGpsGap(Date.now()); }
+  if(gps.hiddenAt){ gps.stats.hiddenS += (Date.now() - gps.hiddenAt)/1000; gps.hiddenAt = null; }
   const ms = msAtPress || gpsElapsedMs(), mi = gps.distM/MI_M;
   if(mi < 0.01){ showToast(L.gpsTooShort); return; }
   const lastPart = gps.distM/gps.splitM - gps.splits.length;
@@ -13333,6 +13375,7 @@ function finishGpsRun(msAtPress){
     ...(gps.elevSeen ? {elevGain: Math.round(gps.elevGain*10)/10, elevLoss: Math.round(gps.elevLoss*10)/10, elevProfile: elevProfileFrom(gps.segs, p=> p[3])} : {}),
     lastSplit: lastPart>0.01 ? {dist: Math.round(lastPart*100)/100, sec: Math.max(1, Math.round(ms/1000 - gps.splits.reduce((a,b)=>a+b,0)))} : null,
     startedAt: gps.startedAt,
+    gpsStats: Object.fromEntries(Object.entries(gps.stats).map(([k, v])=> [k, Math.round(v)])),
   };
   let target = gps.target;
   if(!target){
@@ -13411,6 +13454,13 @@ function renderSummaryRoute(logged){
   box.innerHTML = splits.length ? `<div class="st-label">${L.gpsSplitsLabel}</div>` + splits.map(s=>
     `<div class="split-row${s.pace===best ? ' best' : ''}"><span>${escapeHtml(s.label)}</span><span>${fmtPaceSec(s.pace)}/${unit}</span></div>`).join('') : '';
   renderElevProfile(document.getElementById('summaryElevProfile'), logged.elevProfile);
+  // GPS that dropped out for a while (half a minute or more in all): the distance likely reads short.
+  const gs = logged.gpsStats, gapNote = document.getElementById('summaryGpsNote');
+  gapNote.hidden = !(gs && gs.gapS >= 30);
+  if(!gapNote.hidden){
+    gapNote.textContent = (gs.hiddenS >= gs.gapS/2 ? L.gpsGapSummaryScreen : gs.gaps===1 ? L.gpsGapSummaryOne : L.gpsGapSummary)
+      .replace('{total}', fmtClock(gs.gapS)).replace('{longest}', fmtClock(gs.maxGapS)).replace('{n}', gs.gaps);
+  }
   showRouteMap(document.getElementById('summaryRouteMap'), segs, {interactive: false}).then(m=>{ summaryMap = m; });
 }
 

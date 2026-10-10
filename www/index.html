@@ -5454,8 +5454,8 @@ const MOVEMENTS = {
   hpush:    {gym:['Bench Press','Dumbbell Bench Press','Incline Barbell Press','Chest Press Machine'], kettlebells:['Kettlebell Floor Press','Push-Up'], dumbbells:['Dumbbell Floor Press','Push-Up'], bodyweight:['Push-Up','Incline Push-Up','Decline Push-Up','Knee Push-Up']},
   chest2:   {gym:['Incline Dumbbell Press','Chest Fly','Cable Fly'], kettlebells:['Push-Up','Kettlebell Floor Press'], dumbbells:['Dumbbell Floor Fly','Push-Up'], bodyweight:['Incline Push-Up','Diamond Push-Up','Wall Push-Up']},
   vpush:    {gym:['Overhead Press','Arnold Press','Push Press','Shoulder Press Machine'], kettlebells:['Kettlebell Overhead Press','Kettlebell Push Press','Kettlebell Halo'], dumbbells:['Dumbbell Shoulder Press','Arnold Press'], bodyweight:['Pike Push-Up']},
-  hpull:    {gym:['Bent-Over Row','Seated Cable Row','T-Bar Row'], kettlebells:['Kettlebell Row','Kettlebell Gorilla Row'], dumbbells:['Dumbbell Row','Resistance Band Row'], bodyweight:['Inverted Row','Towel Row','Superman']},
-  vpull:    {gym:['Lat Pulldown','Pull-Up','Chin-Up','Assisted Pull-Up'], kettlebells:['Kettlebell High Pull','Kettlebell Pullover'], dumbbells:['Dumbbell Pullover'], bodyweight:['Prone Y-T-W Raise','Superman','Wall Angel']},
+  hpull:    {gym:['Bent-Over Row','Seated Cable Row','T-Bar Row'], kettlebells:['Kettlebell Row','Kettlebell Gorilla Row'], dumbbells:['Dumbbell Row','Resistance Band Row'], bodyweight:['Inverted Row','Towel Row','Superman','Resistance Band Row']},
+  vpull:    {gym:['Lat Pulldown','Pull-Up','Chin-Up','Assisted Pull-Up'], kettlebells:['Pull-Up','Chin-Up','Kettlebell Pullover','Kettlebell High Pull'], dumbbells:['Pull-Up','Chin-Up','Dumbbell Pullover'], bodyweight:['Pull-Up','Chin-Up','Prone Y-T-W Raise','Superman','Wall Angel']},
   arms:     {gym:['Bicep Curl','Triceps Pushdown','Hammer Curl'], kettlebells:['Kettlebell Curl','Kettlebell Overhead Triceps Extension'], dumbbells:['Bicep Curl','Overhead Triceps Extension','Hammer Curl'], bodyweight:['Bench Dip','Diamond Push-Up']},
   triceps:  {gym:['Triceps Pushdown','Overhead Triceps Extension','Skull Crusher','Triceps Dip','Assisted Dip'], kettlebells:['Kettlebell Overhead Triceps Extension','Bench Dip'], dumbbells:['Overhead Triceps Extension','Skull Crusher','Bench Dip'], bodyweight:['Bench Dip','Diamond Push-Up']},
   biceps:   {gym:['Bicep Curl','Preacher Curl','Hammer Curl','Concentration Curl'], kettlebells:['Kettlebell Curl'], dumbbells:['Bicep Curl','Hammer Curl','Concentration Curl','Preacher Curl'], bodyweight:['Chin-Up','Towel Row']},
@@ -5731,7 +5731,7 @@ function plannedExercises(session, date){
     return null;
   };
   const list = slots.map((slot, i)=>{
-    const options = i===0 ? movementOptions(slot.m, equipment, level) : supportingOptions(slot.m, equipment, level);
+    const options = homeBackOptions(slot.m, equipment, i===0 ? movementOptions(slot.m, equipment, level) : supportingOptions(slot.m, equipment, level));
     // The main lift changes every time its movement leads a workout (bench press, then dumbbell press,
     // then incline press...); the second lift with each of the plan's 4-week cycles; the rest every week.
     const rotation = i===0 ? leadCountBefore(slot.m, d) : (i===1 ? Math.floor(planWeek/4) : seed) + i + (isB ? 1 : 0);
@@ -5822,6 +5822,15 @@ function leadCountBefore(movement, date){
 // back squat and a front squat in the same workout). A squat later in a workout is a leg press, a goblet
 // squat or the like: the movement's other options, topped up from the other equipment the user can reach.
 const PRIMARY_ONLY = new Set(['Back Squat','Front Squat']);
+// Training at home, the back work is pull-ups and chin-ups, and rows with the dumbbells or kettlebells
+// the user has: when those fit the user, the plan picks only from them (the other moves stay as swaps,
+// and as what someone not yet doing pull-ups gets instead).
+const HOME_BACK = {vpull:['Pull-Up','Chin-Up'], hpull:['Dumbbell Row','Kettlebell Row','Kettlebell Gorilla Row']};
+function homeBackOptions(movement, equipment, options){
+  if(equipment==='gym' || !HOME_BACK[movement]) return options;
+  const main = options.filter(k=> HOME_BACK[movement].includes(k));
+  return main.length ? main : options;
+}
 function supportingOptions(movement, equipment, level){
   const options = movementOptions(movement, equipment, level);
   const own = options.filter(k=> !PRIMARY_ONLY.has(k));

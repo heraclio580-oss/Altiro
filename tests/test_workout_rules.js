@@ -147,6 +147,18 @@ check('...everyone else 5 lb on everything', E.weightStepFor('Bench Press')===5 
 E.setState({level:'beginner', weightUnit:'kg'});
 check('...in kg: 1 kg upper body, 2.5 kg legs', E.weightStepFor('Bench Press')===1 && E.weightStepFor('Back Squat')===2.5);
 
+// At home, back work is pull-ups and chin-ups, and rows with the user's dumbbells or kettlebells.
+const homeBack = eq => [0,1,2,4,5].flatMap(n=> liftDays({days:[0,1,2,3,4], level:'intermediate', eq, split:'bodypart'}, n)).flatMap(d=> exs(d));
+['dumbbells','kettlebells','bodyweight'].forEach(eq=>{
+  const list = homeBack(eq);
+  const vpull = list.filter(e=> e.movement==='vpull').map(e=>e.key), hpull = list.filter(e=> e.movement==='hpull').map(e=>e.key);
+  const rowsOk = eq==='bodyweight' || hpull.every(k=> /^(Dumbbell|Kettlebell)( Gorilla)? Row$/.test(k) || hpull.indexOf(k)>0);
+  check(`${eq}: back days use pull-ups and chin-ups${eq==='bodyweight' ? '' : ', and '+eq.replace(/s$/,'')+' rows'}`,
+    vpull.length && vpull.every(k=> k==='Pull-Up' || k==='Chin-Up') && rowsOk, [...new Set(vpull.concat(hpull))].join(', '));
+});
+const begHome = [0,1].flatMap(n=> liftDays({days:[0,1,2,3,4], level:'beginner', eq:'bodyweight', split:'bodypart'}, n)).flatMap(d=> exs(d));
+check('...a beginner not yet on pull-ups gets an easier back move instead', !begHome.some(e=> e.key==='Pull-Up' || e.key==='Chin-Up') && begHome.some(e=> e.movement==='vpull'), begHome.filter(e=>e.movement==='vpull').map(e=>e.key).join(', '));
+
 // The new machine moves have how-to steps in both languages.
 ['Chest Press Machine','Shoulder Press Machine','Assisted Pull-Up','Assisted Dip'].forEach(k=>{
   const i = html.indexOf(`  '${k}': {en:[`);

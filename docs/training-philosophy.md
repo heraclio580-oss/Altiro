@@ -502,7 +502,7 @@ Anything every plan must always — or must never — do.
 ## 9. Workout-building decisions (questionnaire, October 2026)
 
 Answers from the 38-question workout questionnaire. **Round 1** is how the plan builds each workout;
-**Round 2** adds the new setup and Adjust questions. ✅ marks what's in the app.
+**Round 2** adds the new setup and Adjust questions. Round 1 is in the app (October 2026).
 
 ### Round 1: how each workout is built
 
@@ -536,6 +536,14 @@ Answers from the 38-question workout questionnaire. **Round 1** is how the plan 
   - Easy: "Nice and easy: same reps, lighter weight."
   - Recovery (last day, 5+ days): mobility and stretching are the main part of the workout.
 - **Rest between sets:** main lift 2–3 min, other exercises 60–90 sec by default; users can change both.
+- **Barbell squats lead:** a back squat and a front squat are never in the same workout. Both are only
+  ever the main lift; a later squat is a leg press, goblet squat or similar.
+- **Back work at home:** pull-ups and chin-ups, and rows with the user's dumbbells or kettlebells.
+  Beginners not yet doing pull-ups get an easier back move.
+- **Settled after the sample weeks:** leg days end with calves and core, no arms; beginners keep 4 lifts
+  (shoulders come in at intermediate); a peak lift can repeat its variation; the recovery day is the main
+  lift, the next one, the last one and core, all lighter; in kg beginners go up 1 kg upper body, 2.5 kg
+  legs, everyone else 2.5 kg.
 
 ### Round 2: new setup and Adjust questions
 

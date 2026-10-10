@@ -3476,6 +3476,7 @@ const STR = {
     repeatDoneToast: "Copied into {weeks}",
     clearWeekBtn: "Clear",
     updateReady: "A new version of Altiro is ready.", updateBtn: "Update",
+    updateReadyTestApp: "A new test version of the app is out.", updateDownloadBtn: "Download",
     deleteWorkoutTitle: "Delete this workout?",
     deleteWorkoutSub: "{name} will be removed from {day}.",
     deleteWorkoutSubDone: "{name} will be removed from {day}, along with what you logged for it. This can't be undone.",
@@ -4154,6 +4155,7 @@ const STR = {
     repeatDoneToast: "Copiada en {weeks}",
     clearWeekBtn: "Borrar",
     updateReady: "Hay una nueva versión de Altiro.", updateBtn: "Actualizar",
+    updateReadyTestApp: "Hay una nueva versión de prueba de la app.", updateDownloadBtn: "Descargar",
     deleteWorkoutTitle: "¿Eliminar este entrenamiento?",
     deleteWorkoutSub: "{name} se quitará del {day}.",
     deleteWorkoutSubDone: "{name} se quitará del {day}, junto con lo que registraste. No se puede deshacer.",
@@ -16264,7 +16266,39 @@ async function checkForUpdate(){
     if(v && v.build && v.build!==APP_BUILD && !workoutInProgress()) document.getElementById('updateBar').hidden = false;
   }catch(e){ /* offline -- try again next time */ }
 }
-document.getElementById('updateBtn').addEventListener('click', ()=> location.reload());
+// The Android test app (installed from the android-test release, not a store) doesn't update itself:
+// it compares its own code's fingerprint with the latest one the website lists and, when a newer build
+// is out, offers a one-tap Download of it.
+const APK_ID = '__ALTIRO_APK_ID__';
+const TEST_APK_URL = 'https://github.com/heraclio580-oss/Altiro/releases/download/android-test/Altiro-test.apk';
+const SITE_VERSION_URL = 'https://heraclio580-oss.github.io/Altiro/version.json';
+let testAppUpdate = false;
+async function checkForTestAppUpdate(){
+  if(!isNativeShell() || APK_ID.startsWith('__') || !window.fetch || Date.now()-updateCheckAt < 60000) return;
+  updateCheckAt = Date.now();
+  try{
+    const res = await fetch(SITE_VERSION_URL+'?t='+Date.now(), {cache:'no-store'});
+    if(!res.ok) return;
+    const v = await res.json();
+    if(v && v.apk && v.apk!==APK_ID && !workoutInProgress()){
+      testAppUpdate = true;
+      const L = STR[state.lang];
+      const msg = document.querySelector('#updateBar span'), btn = document.getElementById('updateBtn');
+      msg.setAttribute('data-i18n', 'updateReadyTestApp'); msg.textContent = L.updateReadyTestApp;
+      btn.setAttribute('data-i18n', 'updateDownloadBtn'); btn.textContent = L.updateDownloadBtn;
+      document.getElementById('updateBar').hidden = false;
+    }
+  }catch(e){ /* offline -- try again next time */ }
+}
+document.getElementById('updateBtn').addEventListener('click', ()=>{
+  if(!testAppUpdate){ location.reload(); return; }
+  // Opens in the phone's browser, which downloads it; opening the file installs it over this one.
+  const a = document.createElement('a');
+  a.href = TEST_APK_URL; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+});
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') checkForTestAppUpdate(); });
+setTimeout(checkForTestAppUpdate, 5000);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') checkForUpdate(); });
 setTimeout(checkForUpdate, 5000);
 setInterval(()=>{ if(document.visibilityState==='visible') checkForUpdate(); }, 30*60*1000);

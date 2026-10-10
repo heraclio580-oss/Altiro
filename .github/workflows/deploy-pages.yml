@@ -27,7 +27,8 @@ jobs:
       - name: Stamp build
         run: |
           sed -i "s/__ALTIRO_BUILD__/${GITHUB_SHA}/" www/index.html
-          printf '{"build":"%s"}\n' "$GITHUB_SHA" > www/version.json
+          # (apk: the fingerprint of the app's code, which the Android test app compares with its own.)
+          printf '{"build":"%s","apk":"%s"}\n' "$GITHUB_SHA" "$(sh scripts/app-content-id.sh)" > www/version.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: www

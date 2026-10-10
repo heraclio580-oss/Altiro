@@ -194,6 +194,20 @@ const T0 = new Date(2026, 8, 18, 8, 0).getTime(); // today (Fri 18th), 8:00
     dom.window.close();
   }
   {
+    // The same, for someone creating their own workouts (no generated plan: every day is open).
+    const backend = makeBackend({connected:false});
+    backend.db.profiles.u1 = {id:'u1', own_since:'2026-09-01'};
+    backend.db.planned_workouts = {pw1: {id:'pw1', user_id:'u1', log_date:'2026-09-18', session_type:'run', title:'4.5 mile easy run', detail:'4.5 mi',
+      completed:true, actual_distance:4.03, performance:{distance:4.03, time:44.98, source:'gps', stravaId:401}}};
+    const dom = new JSDOM(html, {runScripts:'dangerously', pretendToBeVisual:true, url:'https://example.com/Altiro/',
+      beforeParse(w){ w.supabase = {createClient: ()=> backend.createClient()}; w.__ALTIRO_TEST_TODAY__ = '2026-09-18'; }});
+    await wait(300);
+    const doc = dom.window.document;
+    const title = doc.querySelector('#sessionCard .title').textContent;
+    check('Creating your own workouts: the done run is the main card, not "Rest Day"', /4\.5 mile easy run, 4\.03 mi/.test(title) && doc.getElementById('homeAlsoToday').hidden, title);
+    dom.window.close();
+  }
+  {
     // A run that came in from the watch on a day with nothing planned becomes the day's workout.
     const backend = makeBackend({connected:false});
     const logId = backend.addLog('2026-09-18', {planned_type:'run', planned_title:'Morning Run', planned_detail:'4.03 mi · 44:59'});

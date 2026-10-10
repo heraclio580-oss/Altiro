@@ -17,6 +17,7 @@ on:
       - 'resources/**'
       - 'scripts/native-config.js'
       - 'scripts/test-signing/**'
+      - 'scripts/app-content-id.sh'
       - 'capacitor.config.json'
       - 'package.json'
       - 'package-lock.json'
@@ -54,6 +55,8 @@ jobs:
         run: |
           sed -i "s/__ALTIRO_BUILD__/${GITHUB_SHA}/" www/index.html
           printf '{"build":"%s"}\n' "$GITHUB_SHA" > www/version.json
+          # The test app checks the website for a newer build of itself (see checkForTestAppUpdate).
+          sed -i "s/__ALTIRO_APK_ID__/$(sh scripts/app-content-id.sh)/" www/index.html
 
       - name: Create the Android project
         run: |

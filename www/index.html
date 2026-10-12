@@ -225,6 +225,7 @@ p.sub{font-family:var(--font-body);font-size:calc(13.5px * var(--fs, 1));line-he
 .btn-primary:disabled{background:var(--disabled-bg);color:var(--disabled-text);cursor:not-allowed;}
 .btn-ghost{background:transparent;color:var(--text-2);border:1px solid var(--border);}
 .btn-ghost:hover{color:var(--text);border-color:var(--hover-border);}
+.btn-text.missed-toggle{padding:4px 0;font-size:calc(13px * var(--fs, 1));color:var(--text-2);}
 .btn-text{background:none;border:none;font-family:var(--font-body);font-size:calc(12.5px * var(--fs, 1));color:var(--text-3);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px;}
 .btn-text:hover{color:var(--text-2);}
 
@@ -389,7 +390,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .overview-card{margin:14px 20px 0;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px 16px;}
 .overview-card .eyebrow{display:block;margin-bottom:12px;}
 .ov-row{margin-top:12px;}
-.ov-row:first-of-type{margin-top:0;}
+.ov-row:first-of-type,.ov-row.sr-only + .ov-row{margin-top:0;}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
 .ov-top{display:flex;justify-content:space-between;font-size:calc(12px * var(--fs, 1));color:var(--text-2);margin-bottom:6px;}
 .ov-top span:last-child{font-family:var(--font-mono);color:var(--text);font-weight:600;}
 .bar-track{height:6px;background:var(--well);border-radius:3px;overflow:hidden;}
@@ -525,9 +527,19 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .set-stepper{display:flex;align-items:center;gap:4px;margin-left:auto;padding-left:6px;}
 .set-stepper-btn{width:20px;height:20px;flex-shrink:0;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--text-2);font-size:calc(13px * var(--fs, 1));line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
 .set-stepper-btn:hover{border-color:var(--hover-border);color:var(--text);}
-.set-log-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
-.set-log-row .set-log-num{width:14px;flex-shrink:0;font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));color:var(--text-3);text-align:center;}
-.set-log-row .text-input{flex:1;min-width:0;}
+.set-log-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+/* (The set's number is on its check button, at the end of the row.) */
+.set-log-row .set-log-num{display:none;}
+.set-log-row .text-input{flex:1;min-width:0;height:38px;}
+/* Which box is which: the weight unit, then reps. */
+.set-log-head{display:flex;gap:6px;margin:0 0 3px;font-family:var(--font-mono);font-size:calc(10px * var(--fs, 1));letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
+.set-log-head span{flex:1;padding-left:12px;}
+.set-log-head span:last-child{flex:0 0 26px;padding:0;}
+/* A finished exercise folds to its name line (tap it to open it again). */
+.exercise-log-row.set-complete:not(.open) .set-rows,
+.exercise-log-row.set-complete:not(.open) .set-log-head,
+.exercise-log-row.set-complete:not(.open) .pyr-actions{display:none;}
+.exercise-log-row.set-complete:not(.open) .exercise-log-name{margin-bottom:0;}
 .set-log-row .set-check-dot{flex-shrink:0;}
 .exercise-log-row{padding:8px;border-radius:var(--r-md);border:1px solid transparent;transition:border-color .15s;cursor:pointer;}
 .exercise-log-row.current-exercise{border-color:var(--accent);background:var(--well);}
@@ -783,7 +795,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .fb-thanks{padding:14px 0 4px;}
 .fb-thanks-t{font-family:var(--font-display);font-weight:600;font-size:calc(18px * var(--fs, 1));color:var(--text);}
 .wp-step-amount{font-family:var(--font-mono);font-size:calc(12.5px * var(--fs, 1));color:var(--text-2);margin-left:6px;}
-#wpSkipWorkoutBtn[hidden],#wpDayOptionsBtn[hidden],#logPerfChangeExercisesBtn[hidden],#saveLiftsBtn[hidden]{display:none;}
+#missedBody[hidden],#homeOverview[hidden],#progEmpty[hidden],#progWeeksSection[hidden],#progActivitySection[hidden],#wpSkipWorkoutBtn[hidden],#wpDayOptionsBtn[hidden],#logPerfChangeExercisesBtn[hidden],#saveLiftsBtn[hidden]{display:none;}
 .sheet-panel{width:100%;max-height:88%;background:var(--sheet-bg);border:1px solid var(--divider);border-bottom:none;border-radius:28px 28px 0 0;padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));overflow-y:auto;animation:sheetUp .26s ease both;}
 @keyframes sheetUp{from{transform:translateY(24px);opacity:0.4;}to{transform:none;opacity:1;}}
 @media (prefers-reduced-motion: reduce){.sheet-panel{animation:none;}}
@@ -900,6 +912,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   color:var(--text-2);font-family:var(--font-body);font-size:calc(12.5px * var(--fs, 1));cursor:pointer;
 }
 .how-it-works-btn:hover{color:var(--text);border-color:var(--hover-border);}
+.adj-more-btn{display:flex;align-items:center;justify-content:space-between;width:100%;margin:6px 0 0;padding:14px 0;background:none;border:none;border-top:1px solid var(--border);color:var(--text-2);font-family:var(--font-mono);font-size:calc(12px * var(--fs, 1));letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;}
+.adj-more-btn svg{width:16px;height:16px;transition:transform .15s;}
+.adj-more-btn[aria-expanded="true"] svg{transform:rotate(180deg);}
+#adjMore[hidden],#adjPlanMore[hidden]{display:none;}
+.adj-apply-note{text-align:left;margin:14px 0 0;}
+.settings-list{border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;}
+.settings-list-row{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0 16px;background:none;border:none;border-top:1px solid var(--border);color:var(--text-2);font:inherit;font-size:calc(14px * var(--fs, 1));text-align:left;text-decoration:none;cursor:pointer;}
+.settings-list-row:first-child{border-top:none;}
+.settings-list-row:hover{color:var(--text);}
 .how-it-works-ic{width:14px;height:14px;display:flex;color:var(--accent-hover);flex-shrink:0;}
 .how-it-works-ic svg{width:14px;height:14px;}
 
@@ -1791,11 +1812,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="th-next" id="thNext"></div>
     </div>
 
+    <!-- Today's workout itself, right under Start: what it is and its exercises, before the week. -->
+    <div class="session-card" id="sessionCard"></div>
+
     <div class="checklist-card" id="homeChecklist" hidden></div>
 
-    <div class="overview-card">
+    <div class="overview-card" id="homeOverview">
       <span class="eyebrow" data-i18n="weekViewTitle"></span>
-      <div class="ov-row">
+      <!-- (The workouts count is the ring on the card above; kept here for screen readers only.) -->
+      <div class="ov-row sr-only">
         <div class="ov-top"><span data-i18n="workoutsLabel"></span><span id="ovWorkoutsVal"></span></div>
         <div class="bar-track"><div class="bar-fill" id="ovWorkoutsBar"></div></div>
       </div>
@@ -1807,8 +1832,6 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
     <div class="week-strip" id="weekStrip"></div>
     <div class="view-week-link"><button class="btn-text" data-i18n="viewFullWeekLink" data-go="week"></button></div>
-
-    <div class="session-card" id="sessionCard"></div>
   </section>
 
   <!-- 10. PLAN (week view) -->
@@ -1844,7 +1867,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <button class="iconbtn" data-open-adjust title="Adjust plan"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13.5 3a3.5 3.5 0 0 0-4.6 4.2L3 13.1V17h3.9l5.9-5.9A3.5 3.5 0 0 0 17 6.5l-2.6 2.6-2-2L15 4.4"/></svg></button>
     </div>
     <div class="pad" style="padding-top:18px;">
-      <div class="sheet-section">
+      <!-- Nothing logged yet: one short note instead of empty charts. -->
+      <div class="summary-note" id="progEmpty" hidden><p data-i18n="progEmptyNote"></p></div>
+      <div class="sheet-section" id="progWeeksSection">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div class="st-label" data-i18n="last4WeeksLabel" style="margin-bottom:0;"></div>
           <div style="display:flex;gap:6px;">
@@ -1855,7 +1880,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="barchart" id="progBarChart"></div>
         <div class="week-detail-card" id="progWeekDetail"></div>
       </div>
-      <div class="sheet-section" style="margin-top:26px;">
+      <div class="sheet-section" id="progActivitySection" style="margin-top:26px;">
         <div class="st-label" data-i18n="activityLabel"></div>
         <div id="progActivity"></div>
       </div>
@@ -1976,28 +2001,27 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
 
+      <!-- Help and feedback: one short list, not four separate buttons. -->
       <div class="sheet-section">
-        <div class="st-label" data-i18n="feedbackLabel"></div>
-        <button class="how-it-works-btn" id="openFeedbackBtn" type="button">
-          <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3.5 4.5h13v9H9l-3.5 3v-3h-2z"/></svg></span>
-          <span data-i18n="sendFeedbackBtn"></span>
-        </button>
-      </div>
-
-      <div class="sheet-section">
-        <div class="st-label" data-i18n="helpLabel"></div>
-        <button class="how-it-works-btn" id="settingsTutorialBtn" type="button">
-          <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 4.5v11l9-5.5z"/></svg></span>
-          <span data-i18n="seeHowItWorks"></span>
-        </button>
-        <a class="how-it-works-btn support-link" id="settingsSupportLink" href="support.html" target="_blank" rel="noopener" style="margin-top:8px;text-decoration:none;">
-          <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M7.8 7.8a2.3 2.3 0 0 1 4.4.9c0 1.5-2.2 1.9-2.2 3.1M10 14.4v.1"/></svg></span>
-          <span data-i18n="supportLink"></span>
-        </a>
-        <button class="how-it-works-btn" id="settingsTourBtn" type="button" style="margin-top:8px;">
-          <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.2" fill="currentColor"/></svg></span>
-          <span data-i18n="tourReplayBtn"></span>
-        </button>
+        <div class="st-label" data-i18n="helpFeedbackLabel"></div>
+        <div class="settings-list">
+          <button class="settings-list-row" id="settingsTourBtn" type="button">
+            <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.2" fill="currentColor"/></svg></span>
+            <span data-i18n="tourReplayBtn"></span>
+          </button>
+          <button class="settings-list-row" id="settingsTutorialBtn" type="button">
+            <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 4.5v11l9-5.5z"/></svg></span>
+            <span data-i18n="seeHowItWorks"></span>
+          </button>
+          <a class="settings-list-row support-link" id="settingsSupportLink" href="support.html" target="_blank" rel="noopener">
+            <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M7.8 7.8a2.3 2.3 0 0 1 4.4.9c0 1.5-2.2 1.9-2.2 3.1M10 14.4v.1"/></svg></span>
+            <span data-i18n="supportLink"></span>
+          </a>
+          <button class="settings-list-row" id="openFeedbackBtn" type="button">
+            <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3.5 4.5h13v9H9l-3.5 3v-3h-2z"/></svg></span>
+            <span data-i18n="sendFeedbackBtn"></span>
+          </button>
+        </div>
       </div>
 
       <button class="btn btn-ghost" style="margin-top:28px;" id="signOutBtn" data-i18n="signOutBtn"></button>
@@ -2348,12 +2372,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="iconbtn" id="closeAdjust"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       </div>
 
-      <div class="sheet-section" id="adjOwnSection">
-        <div class="toggle-row">
-          <div><div class="tt" data-i18n="ownWorkoutsTitle"></div><div class="ts" data-i18n="ownWorkoutsSub"></div></div>
-          <div class="toggle" id="adjOwnToggle" role="switch" tabindex="0"><div class="knob"></div></div>
-        </div>
-      </div>
+      <!-- The plan's main choices first; the occasional ones folded under "More options". -->
       <div id="adjPlanOptions">
       <div class="sheet-section">
         <div class="st-label" data-i18n="focusRatioLabel"></div>
@@ -2366,7 +2385,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
           </div>
         </div>
         <div class="slider-value" id="adjSliderLabel"></div>
-        <div class="footer-note" style="text-align:left;margin-top:8px;" data-i18n="focusRatioMidWeekNote"></div>
+      </div>
+
+      <div class="sheet-section">
+        <div class="st-label" data-i18n="trainingDaysLabel"></div>
+        <div class="chip-row" id="adjWeekdayChips"></div>
+        <div class="days-summary" id="adjDaysSummary"></div>
       </div>
 
       <div class="sheet-section">
@@ -2409,13 +2433,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         </button>
       </div>
 
-      <div class="sheet-section">
-        <div class="st-label" data-i18n="trainingDaysLabel"></div>
-        <div class="chip-row" id="adjWeekdayChips"></div>
-        <div class="days-summary" id="adjDaysSummary"></div>
-        <div class="footer-note" style="text-align:left;margin-top:8px;" data-i18n="trainingDaysMidWeekNote"></div>
       </div>
 
+      <button type="button" class="adj-more-btn" id="adjMoreBtn" aria-expanded="false" aria-controls="adjMore"><span data-i18n="adjMoreOptions"></span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l4 4 4-4"/></svg></button>
+      <div id="adjMore" hidden>
+      <div id="adjPlanMore">
       <div class="sheet-section" id="adjHardRunSection" hidden>
         <div class="st-label" data-i18n="longRunDayLabel"></div>
         <div class="chip-row" id="adjLongRunChips"></div>
@@ -2438,7 +2460,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjStartNote"></div>
       </div>
 
+
       </div>
+      <div class="sheet-section" id="adjOwnSection">
+        <div class="toggle-row">
+          <div><div class="tt" data-i18n="ownWorkoutsTitle"></div><div class="ts" data-i18n="ownWorkoutsSub"></div></div>
+          <div class="toggle" id="adjOwnToggle" role="switch" tabindex="0"><div class="knob"></div></div>
+        </div>
+      </div>
+      </div>
+      <div class="footer-note adj-apply-note" data-i18n="focusRatioMidWeekNote"></div>
       <button class="btn btn-primary sheet-apply" id="applyAdjust" data-i18n="applyBtn"></button>
     </div>
   </div>
@@ -2518,10 +2549,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <div class="sheet-section" id="dayDetailMissedSection" hidden>
-        <div class="st-label" id="missedWhyLabel"></div>
-        <div class="chip-row" id="missedReasonRow"></div>
-        <input type="text" class="text-input" id="missedNoteInput" style="margin-top:10px;">
-        <div class="footer-note" id="missedPauseNote" style="text-align:left;margin-top:8px;" hidden></div>
+        <!-- Folded to one link: most days don't need a reason. -->
+        <button type="button" class="btn-text missed-toggle" id="missedWhyLabel" aria-expanded="false" aria-controls="missedBody"></button>
+        <div id="missedBody" hidden>
+          <div class="chip-row" id="missedReasonRow" style="margin-top:10px;"></div>
+          <input type="text" class="text-input" id="missedNoteInput" style="margin-top:10px;">
+          <div class="footer-note" id="missedPauseNote" style="text-align:left;margin-top:8px;" hidden></div>
+        </div>
       </div>
 
       <div class="sheet-section" id="dayDetailCompleteSection">
@@ -3390,7 +3424,7 @@ const STR = {
     genderLabel: "Gender",
     weightLabel: "Weight",
     skipForNow: "Skip for now",
-    eyebrowFocus: "Focus Ratio",
+    eyebrowFocus: "Running vs. lifting",
     focusHeadline: "Where should the balance sit?",
     focusSub: "Slide anytime, even after today — this isn't locked in.",
     sliderRunningOnly: "Running Only",
@@ -3545,7 +3579,8 @@ const STR = {
     chooseDayPrompt: "Choose a day:",
     noLaterRestDays: "No open days left this week",
     adjustTitle: "Adjust Your Plan",
-    focusRatioLabel: "Focus Ratio",
+    focusRatioLabel: "Running vs. lifting",
+    adjMoreOptions: "More options",
     focusRatioMidWeekNote: "Applies to the rest of this week — days you've already done or missed stay as they are.",
     intensityLabel: "Intensity",
     runIntensityLabel: "Running intensity",
@@ -3776,6 +3811,9 @@ const STR = {
     feedbackAdjustBtn: "Adjust my plan",
     feedbackDoneBtn: "Done",
     helpLabel: "Help",
+    helpFeedbackLabel: "Help & feedback",
+    logRepsHead: "Reps",
+    progEmptyNote: "Your weeks, workouts, miles and lifts show up here as you log them. Finish today's workout to get started.",
     tutDone: "Done",
     notificationsTitle: "Workout reminders",
     notificationsSub: "A reminder on the days you have a workout",
@@ -4078,7 +4116,7 @@ const STR = {
     genderLabel: "Género",
     weightLabel: "Peso",
     skipForNow: "Omitir por ahora",
-    eyebrowFocus: "Proporción de enfoque",
+    eyebrowFocus: "Correr vs. pesas",
     focusHeadline: "¿Dónde debe estar el equilibrio?",
     focusSub: "Deslízalo cuando quieras, incluso después de hoy — esto no es definitivo.",
     sliderRunningOnly: "Solo correr",
@@ -4233,7 +4271,8 @@ const STR = {
     chooseDayPrompt: "Elige un día:",
     noLaterRestDays: "No quedan días libres esta semana",
     adjustTitle: "Ajusta tu plan",
-    focusRatioLabel: "Proporción de enfoque",
+    focusRatioLabel: "Correr vs. pesas",
+    adjMoreOptions: "Más opciones",
     focusRatioMidWeekNote: "Se aplica al resto de esta semana — los días que ya completaste o perdiste no cambian.",
     intensityLabel: "Intensidad",
     runIntensityLabel: "Intensidad al correr",
@@ -4464,6 +4503,9 @@ const STR = {
     feedbackAdjustBtn: "Ajustar mi plan",
     feedbackDoneBtn: "Listo",
     helpLabel: "Ayuda",
+    helpFeedbackLabel: "Ayuda y comentarios",
+    logRepsHead: "Reps",
+    progEmptyNote: "Tus semanas, entrenamientos, millas y pesas aparecen aquí a medida que los registres. Termina el entrenamiento de hoy para empezar.",
     tutDone: "Listo",
     notificationsTitle: "Recordatorios de entrenamiento",
     notificationsSub: "Un recordatorio los días que tienes entrenamiento",
@@ -6439,6 +6481,11 @@ function dayDataStatus(dd){
   return dd.isFuture ? 'upcoming' : dd.missed ? 'excused' : 'missed';
 }
 /* ---------------- missed workouts: why ---------------- */
+let missedOpenKey = null; // the day whose "Can't make it?" reasons were opened in Day Detail
+document.getElementById('missedWhyLabel').addEventListener('click', ()=>{
+  missedOpenKey = missedOpenKey===state.openDayKey ? null : state.openDayKey;
+  renderDayDetail();
+});
 const MISSED_REASONS = ['sick','injured','vacation','busy','rest','other'];
 // These pause the streak: a week that falls short because of them doesn't break it (see computeStreak).
 const STREAK_PAUSE_REASONS = ['sick','injured','vacation'];
@@ -8047,6 +8094,8 @@ function renderHome(){
   if(byTime) dPct = Math.min(100, Math.round((week.minutes/week.plannedMinutes)*100));
   document.getElementById('ovDistanceVal').textContent = byTime ? `${Math.round(week.minutes)}/${week.plannedMinutes} min` : (useKm() ? `${toDispDist(weekMileage).toFixed(1)}/${+toDispDist(distanceGoal).toFixed(1)} km` : `${weekMileage.toFixed(1)}/${distanceGoal} mi`);
   document.getElementById('ovDistanceBar').style.width = dPct+'%';
+  // (A week with no running in it -- weights only -- has no distance to show.)
+  document.getElementById('homeOverview').hidden = !(week.plannedDistance>0 || week.plannedMinutes>0 || weekMileage>0);
 
   const todayKey = dateKey(TODAY_DATE);
   // The workout the main card shows can itself be a logged workout or an added one (on a day with nothing
@@ -8799,6 +8848,7 @@ function openLogPerformanceFor(logTarget, mode){
       const removeHtml = building ? `<button type="button" class="live-remove" data-remove-ex title="${escapeHtml(STR[state.lang].liveRemoveTitle)}" aria-label="${escapeHtml(STR[state.lang].liveRemoveTitle)}">×</button>` : '';
       return `${ssHead}<div class="exercise-log-row${ssLab ? ' ss-member' : ''}" data-exercise-key="${escapeHtml(ex.key)}">
         <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}<span>${fmtExercisePrescription(shownEx)}</span>${stepperHtml}${removeHtml}</div>
+        <div class="set-log-head" aria-hidden="true"><span>${escapeHtml(state.weightUnit)}</span><span>${escapeHtml(STR[state.lang].logRepsHead)}</span><span></span></div>
         <div class="set-rows">${setRows}</div>
         ${ex.pyramid ? `<div class="pyr-actions">
           <button type="button" class="btn-text" data-pyr="fives">${STR[state.lang].pyrFivesBtn}</button>
@@ -8826,7 +8876,9 @@ function openLogPerformanceFor(logTarget, mode){
       refreshLogPerfRowState(rowEl, ex);
       // Tapping anywhere on an exercise -- its name, sets, or the weight/reps fields -- picks it
       // as the one being worked on right now, regardless of what order the list shows.
-      rowEl.addEventListener('click', ()=>{
+      // (A finished exercise is folded to its name line; tapping that line opens it again, to fix a number.)
+      rowEl.addEventListener('click', e=>{
+        if(rowEl.classList.contains('set-complete') && e.target.closest('.exercise-log-name') && !e.target.closest('button')) rowEl.classList.toggle('open');
         logPerfSelectedKey = ex.key;
         refreshLogPerfCurrentHighlight();
       });
@@ -10547,7 +10599,11 @@ function renderDayDetail(){
   const missedSection = document.getElementById('dayDetailMissedSection');
   missedSection.hidden = dd.p.t==='rest' || dayDataStatus(dd)==='done' || dd.isFuture;
   if(!missedSection.hidden){
-    document.getElementById('missedWhyLabel').textContent = dd.isToday ? L.missedTodayLabel : L.missedWhyLabel;
+    // (Open once there's a reason, or when they tap the link.)
+    const whyBtn = document.getElementById('missedWhyLabel'), open = !!dd.missed || missedOpenKey===dd.key;
+    whyBtn.textContent = dd.isToday ? L.missedTodayLabel : L.missedWhyLabel;
+    whyBtn.setAttribute('aria-expanded', open);
+    document.getElementById('missedBody').hidden = !open;
     const reasonRow = document.getElementById('missedReasonRow');
     reasonRow.innerHTML = MISSED_REASONS.map(r=>`<div class="chip ${dd.missed && dd.missed.reason===r ? 'sel' : ''}" data-missed-reason="${r}">${escapeHtml(L['missedReason_'+r])}</div>`).join('');
     const note = document.getElementById('missedNoteInput');
@@ -11330,6 +11386,10 @@ function renderProgress(){
   for(let o=state.progWindowEnd-(PROG_WEEKS_SHOWN-1); o<=state.progWindowEnd; o++) offsets.push(o);
   const weekData = offsets.map(o => ({offset:o, ...weekStats(o)}));
   const max = Math.max(7, ...weekData.map(w=>w.workouts));
+  const empty = state.progWindowEnd===0 && weekData.every(w=> !w.workouts && !w.distance && !w.minutes);
+  document.getElementById('progEmpty').hidden = !empty;
+  document.getElementById('progWeeksSection').hidden = empty;
+  document.getElementById('progActivitySection').hidden = empty;
 
   document.getElementById('progBarChart').innerHTML = weekData.map(w=>{
     const h = Math.max(6, Math.round((w.workouts/max)*100));
@@ -12255,6 +12315,8 @@ function openAdjustSheet(){
   renderAdjDaysChips();
   renderAdjBaseline();
   renderAdjStart();
+  const d = state.adjustDraft;
+  setAdjMore(!!(d.own || d.hardRunDay!=null || d.longRunDay!=null || holderRunLift(d).length));
   renderAdjOwn();
 }
 // "Create my own workouts" on: the generated plan's options don't apply, so they're put away.
@@ -12264,7 +12326,16 @@ function renderAdjOwn(){
   t.classList.toggle('on', own);
   t.setAttribute('aria-checked', own);
   document.getElementById('adjPlanOptions').hidden = own;
+  document.getElementById('adjPlanMore').hidden = own;
+  // (Their own workouts: the switch to turn it back off is under More options -- shown.)
+  if(own) setAdjMore(true);
 }
+// "More options": the occasional choices, folded away -- open when one of them is already in use.
+function setAdjMore(open){
+  document.getElementById('adjMore').hidden = !open;
+  document.getElementById('adjMoreBtn').setAttribute('aria-expanded', open);
+}
+document.getElementById('adjMoreBtn').addEventListener('click', ()=> setAdjMore(document.getElementById('adjMore').hidden));
 document.getElementById('adjOwnToggle').addEventListener('click', ()=>{
   if(!state.adjustDraft) return;
   state.adjustDraft.own = !state.adjustDraft.own;
@@ -16062,16 +16133,18 @@ const TOUR_STEPS = [
   {key:'session',  screen:'home', target: ()=> document.getElementById('sessionCard'), top:true},
   {key:'plan',     screen:'week', target: ()=> document.querySelector('#weekList .plan-row') && [...document.querySelectorAll('#weekList .plan-row[data-week-idx="0"]')], top:true},
   {key:'adjust',   screen:'week', target: ()=> document.querySelector('#screen-week [data-open-adjust]')},
-  {key:'own',      sheet:true, try:true, target: ()=> document.getElementById('adjOwnSection')},
   {key:'focus',    sheet:true, try:true, target: ()=> adjSection('adjSliderTrack')},
+  {key:'days',     sheet:true, try:true, target: ()=> adjSection('adjWeekdayChips')},
   {key:'intensity',sheet:true, try:true, target: ()=> adjSection('adjIntensityTabs')},
   {key:'miles',    sheet:true, try:true, target: ()=> document.getElementById('adjMilesSection')},
   {key:'mile',     sheet:true, try:true, target: ()=> document.getElementById('adjMileSection')},
   {key:'equip',    sheet:true, try:true, target: ()=> document.getElementById('adjEquipSection')},
-  {key:'days',     sheet:true, try:true, target: ()=> adjSection('adjWeekdayChips')},
+  // (Under More options -- opened for it.)
+  {key:'own',      sheet:true, try:true, target: ()=>{ setAdjMore(true); return document.getElementById('adjOwnSection'); }},
   {key:'apply',    sheet:true, target: ()=> document.getElementById('applyAdjust'), save:true},
   {key:'calendar', screen:'calendar', target: ()=> document.getElementById('calGrid'), top:true},
-  {key:'progress', screen:'progress', target: ()=> document.getElementById('progBarChart')?.closest('.sheet-section'), top:true},
+  // (Nothing logged yet: the note that stands in for the charts.)
+  {key:'progress', screen:'progress', target: ()=> !document.getElementById('progEmpty').hidden ? document.getElementById('progEmpty') : document.getElementById('progWeeksSection'), top:true},
   {key:'classes',  screen:'settings', target: ()=> settingsSection('myClassesList')},
   {key:'reminders',screen:'settings', try:true, target: ()=> settingsSection('notifToggle')},
   {key:'strava',   screen:'settings', target: ()=> settingsSection('stravaConnectBtn')},

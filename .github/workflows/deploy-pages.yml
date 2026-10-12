@@ -29,6 +29,15 @@ jobs:
           sed -i "s/__ALTIRO_BUILD__/${GITHUB_SHA}/" www/index.html
           # (apk: the fingerprint of the app's code, which the Android test app compares with its own.)
           printf '{"build":"%s","apk":"%s"}\n' "$GITHUB_SHA" "$(sh scripts/app-content-id.sh)" > www/version.json
+      # The published page without its code comments and extra whitespace (about a quarter less to
+      # download); the source keeps them.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Shrink the page
+        run: |
+          npm install --prefix /tmp/esb --no-save esbuild@0.24.0
+          NODE_PATH=/tmp/esb/node_modules node scripts/minify-inline.js www/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: www

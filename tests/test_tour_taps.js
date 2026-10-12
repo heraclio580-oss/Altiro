@@ -41,11 +41,6 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
   check('On an explaining stop, tapping the spotlighted button does nothing', await page.evaluate(()=> document.getElementById('logPerfOverlay').hidden && !document.getElementById('tourOverlay').hidden));
 
   // "Try it" stops: real taps change the choice.
-  await nextUntil('Intensity');
-  const tab = page.locator('#adjIntensityTabs > *').first();
-  await tab.tap();
-  await sleep(200);
-  check('Intensity: a tap picks it', await tab.evaluate(el=> el.classList.contains('sel') || el.classList.contains('active') || el.getAttribute('aria-selected')==='true'), await tab.evaluate(el=>el.className));
   await nextUntil('Training days');
   const before = await page.evaluate(()=> document.querySelectorAll('#adjWeekdayChips .chip.sel').length);
   await page.locator('#adjWeekdayChips .chip:not(.sel)').first().tap();
@@ -54,6 +49,11 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
   await page.locator('#adjWeekdayChips .chip.sel').first().tap();
   await sleep(200);
   check('...and a tap on a chosen day takes it off', await page.evaluate(()=> document.querySelectorAll('#adjWeekdayChips .chip.sel').length)===before);
+  await nextUntil('Intensity');
+  const tab = page.locator('#adjIntensityTabs > *').first();
+  await tab.tap();
+  await sleep(200);
+  check('Intensity: a tap picks it', await tab.evaluate(el=> el.classList.contains('sel') || el.classList.contains('active') || el.getAttribute('aria-selected')==='true'), await tab.evaluate(el=>el.className));
   await nextUntil('Save your choices');
   await page.tap('#tourNext');
   await sleep(400);

@@ -39,8 +39,7 @@ window.Element.prototype.getBoundingClientRect = function(){
   // Switch to a 6-day plan (Mon-Sat) so Saturday has real content, not just Rest Day, for a meaningful swap test.
   goPill('onb-days');
   await wait(20);
-  const sixChip = [...doc.querySelectorAll('#dayCountChips .chip')].find(c=>c.getAttribute('data-count')==='6');
-  sixChip.click();
+  for(let d=0; d<7; d++){ const c = doc.querySelector(`#weekdayChips .chip[data-weekday="${d}"]`); if(c.classList.contains('sel') !== [0,1,2,3,4,5].includes(d)) c.click(); }
   await wait(10);
 
   goPill('week');

@@ -15,7 +15,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   // Use a 5-day plan (Mon-Fri) so Sat/Sun are real, past-and-future rest days to inspect.
   goPill('onb-days');
   await wait(20);
-  [...doc.querySelectorAll('#dayCountChips .chip')].find(c=>c.getAttribute('data-count')==='5').click();
+  for(let d=0; d<7; d++){ const c = doc.querySelector(`#weekdayChips .chip[data-weekday="${d}"]`); if(c.classList.contains('sel') !== [0,1,2,3,4].includes(d)) c.click(); }
   await wait(10);
 
   // --- Home week strip: a past rest day (Sunday, idx 6 is Sat/Sun rest since Mon-Fri training) ---

@@ -641,6 +641,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 #classKindSelect{appearance:auto;}
 .manual-entry{display:flex;align-items:center;gap:10px;background:var(--well);border:1px solid var(--border);border-radius:var(--r-md);padding:9px 10px;margin-top:8px;}
 .manual-entry.editable{cursor:pointer;}
+/* A workout's exercises: a full-width line of their own under its name and buttons. */
+.manual-entry{flex-wrap:wrap;}
+.manual-entry > .r-exercise-list{flex:0 0 calc(100% - 36px);max-width:calc(100% - 36px);margin:0 0 0 36px;min-width:0;}
 .manual-entry.editable:hover{border-color:var(--hover-border);}
 .manual-entry .ic{width:26px;height:26px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--text-2);flex-shrink:0;}
 .manual-entry .ic svg{width:14px;height:14px;}
@@ -2422,6 +2425,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjHardRunNote"></div>
       </div>
 
+      <div class="sheet-section" id="adjRunLiftSection" hidden>
+        <div class="st-label" data-i18n="runLiftDaysLabel"></div>
+        <div class="chip-row" id="adjRunLiftChips"></div>
+        <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjRunLiftNote"></div>
+      </div>
+
       <div class="sheet-section">
         <div class="st-label" data-i18n="adjStartLabel"></div>
         <div class="chip-row" id="adjStartChips"></div>
@@ -3555,6 +3564,9 @@ const STR = {
     longRunDayLabel: "Long run day",
     longRunDayNoteAuto: "Your long run goes at the weekend (or your last run day of the week). Pick a day to always have it then.",
     longRunDayNote: "Your long run goes on {day}, unless a hard class is that day.",
+    runLiftDaysLabel: "Run + lift days",
+    runLiftDaysNoteNone: "Tap the days you want a lifting workout on as well as your run. Each run stays as planned; the lifting goes with it.",
+    runLiftDaysNote: "Run + lift on {days}: each of those days has its run and a lifting workout. Heavy leg days are kept off the day before your faster run and long run.",
     hardRunDayLabel: "Faster run day", hardRunDayAuto: "Auto",
     hardRunDayNoteAuto: "Your week's faster run (tempo, intervals, hills or fartlek) goes early in the week, away from the long run. Pick a day to always have it then.",
     hardRunDayNote: "Your week's faster run (tempo, intervals, hills or fartlek) goes on {day}, unless a hard class is that day.",
@@ -4240,6 +4252,9 @@ const STR = {
     longRunDayLabel: "Día de la carrera larga",
     longRunDayNoteAuto: "Tu carrera larga va el fin de semana (o tu último día de carrera de la semana). Elige un día para tenerla siempre ese día.",
     longRunDayNote: "Tu carrera larga va el {day}, salvo que ese día tengas una clase intensa.",
+    runLiftDaysLabel: "Días de correr + pesas",
+    runLiftDaysNoteNone: "Toca los días en que quieres un entrenamiento de pesas además de tu carrera. Cada carrera sigue como está planeada; las pesas van con ella.",
+    runLiftDaysNote: "Correr + pesas el {days}: cada uno de esos días tiene su carrera y un entrenamiento de pesas. Los días fuertes de piernas no van el día antes de tu carrera rápida ni de la larga.",
     hardRunDayLabel: "Día de la carrera rápida", hardRunDayAuto: "Auto",
     hardRunDayNoteAuto: "La carrera rápida de la semana (tempo, intervalos, cuestas o fartlek) va al principio de la semana, lejos de la carrera larga. Elige un día para tenerla siempre ese día.",
     hardRunDayNote: "La carrera rápida de la semana (tempo, intervalos, cuestas o fartlek) va el {day}, salvo que ese día tengas una clase intensa.",
@@ -4741,6 +4756,13 @@ const STRENGTH_FOCUS_OPTIONS = [
 function runIntensity(){ return state.intensityIdx; }
 function liftIntensity(){ return state.liftIntensityIdx ?? state.intensityIdx; }
 function hasRunAndLift(focus){ return focus>0 && focus<4; }
+// "Run + lift days": training days that get a lifting workout on top of the run -- never in a weights-only
+// plan (it has no runs to pair one with).
+function runLiftDays(days, focus){
+  days = days || state.trainingDays; focus = focus ?? state.focusRatio;
+  if(focus>=4) return [];
+  return (state.runLiftDays||[]).filter(d=> Number.isInteger(d) && days.includes(d)).sort((a,b)=>a-b);
+}
 function planConfig(overrides){
   return {
     days: state.trainingDays.slice().sort((a,b)=>a-b),
@@ -4759,6 +4781,8 @@ function planConfig(overrides){
     hardRunDay: Number.isInteger(state.hardRunDay) && state.trainingDays.includes(state.hardRunDay) ? state.hardRunDay : null,
     // ...and for the long run.
     longRunDay: Number.isInteger(state.longRunDay) && state.trainingDays.includes(state.longRunDay) ? state.longRunDay : null,
+    // The days that get a lifting workout as well as the run (see generatePlanWeek).
+    runLiftDays: runLiftDays(),
     // Hard weekly classes the plan works around (see classLoadFor), and the plan's first Monday to
     // tell which weeks each one is in.
     ...planClassLoad(),
@@ -4830,6 +4854,17 @@ function splitTrainingDays(n, focus, goal){
   }
   const minority = n<=2 ? 0 : Math.max(1, Math.floor(n*0.3));
   return focus===1 ? {runs:n-minority, lifts:minority} : {runs:minority, lifts:n-minority};
+}
+// How many runs and lifting workouts a week holds: run + lift days (both) count as both -- at least that
+// many runs, and the other days split as usual.
+function planCounts(n, focus, goal, both){
+  const runs = Math.max(splitTrainingDays(n, focus, goal).runs, both||0);
+  return {runs, lifts: n - runs + (both||0)};
+}
+// A setup's run + lift days (the Adjust draft's, or the saved settings'): its own training days only, and
+// none in a weights-only plan.
+function holderRunLift(holder){
+  return holder.focusRatio>=4 ? [] : (holder.runLiftDays||[]).filter(d=> (holder.trainingDays||[]).includes(d));
 }
 function roundHalf(x){ return Math.round(x*2)/2; }
 // Where the plan's weekly mileage starts: the miles the user runs now (the middle of the range they
@@ -5088,11 +5123,12 @@ const COMPANION = {
 // there's a weekend training day. At most 7 sessions, so trying every arrangement is cheap -- and it's
 // remembered, since it only depends on the days and the kinds of sessions.
 const placementCache = new Map();
-function placeSessions(days, items, load, hardRunDay, longRunDay){
+function placeSessions(days, items, load, hardRunDay, longRunDay, runOnly){
   load = load || {};
   if(hardRunDay==null) hardRunDay = null;
   if(longRunDay==null) longRunDay = null;
-  const cacheKey = days.join(',')+'|'+items.map(it=>it.sig).join(',')+'|'+JSON.stringify(load)+'|'+hardRunDay+'|'+longRunDay;
+  runOnly = runOnly || [];
+  const cacheKey = days.join(',')+'|'+items.map(it=>it.sig).join(',')+'|'+JSON.stringify(load)+'|'+hardRunDay+'|'+longRunDay+'|'+runOnly.join(',');
   if(placementCache.has(cacheKey)) return placementCache.get(cacheKey);
   const hasWeekend = days.includes(5) || days.includes(6);
   const lastDay = days[days.length-1];
@@ -5131,6 +5167,8 @@ function placeSessions(days, items, load, hardRunDay, longRunDay){
       // The week's fast run: on the day the user chose (above everything but a hard class that day), else early.
       if(it.role==='quality') c += hardRunDay!=null ? (d===hardRunDay ? 0 : 40) : 0.3*d;
       if(it.role==='easyLong') c += 0.2*Math.abs(d-3);
+      // A run + lift day always has its run.
+      if(it.kind==='lift' && runOnly.includes(d)) c += 100;
       // Around a hard class (jiu-jitsu, wrestling, spin...): not the long run or a fast run that day,
       // or heavy legs with a leg-heavy class, or heavy upper body with climbing -- and nothing hard the
       // day after, nor the long run the day before.
@@ -5169,14 +5207,71 @@ function placeSessions(days, items, load, hardRunDay, longRunDay){
   return best;
 }
 
+// Which lifting workout goes on which lifting day, once the runs are in place (a plan with run + lift
+// days): the same rules as placeSessions -- the same muscles not two days running, heavy legs not the day
+// before a hard run or with the long run, the peak mid-week, around hard classes. slots: the lifting days
+// in order; runByDay: each day's run.
+const liftPlacementCache = new Map();
+function placeLifts(slots, items, runByDay, load){
+  const cacheKey = slots.join(',')+'|'+items.map(it=>it.sig).join(',')+'|'+JSON.stringify(Object.keys(runByDay).map(d=>[d, runByDay[d].role, runByDay[d].hard]))+'|'+JSON.stringify(load);
+  if(liftPlacementCache.has(cacheKey)) return liftPlacementCache.get(cacheKey);
+  const mid = (items.length-1)/2;
+  function cost(assign){
+    let c = 0;
+    const byDay = {};
+    slots.forEach((d,i)=>{ byDay[d] = assign[i]; });
+    const pos = assign.findIndex(it=>it.peak);
+    if(pos>=0) c += 3*Math.abs(pos-mid) + (pos<mid ? 0.1 : 0);
+    slots.forEach(d=>{
+      const it = byDay[d], nd = d===6 ? 0 : d+1, pd = d===0 ? 6 : d-1, w = d===6 ? 0.5 : 1;
+      const next = byDay[nd], nextRun = runByDay[nd], prevRun = runByDay[pd], run = runByDay[d];
+      if(next){ if(next.group===it.group) c += 4*w; else if(next.legs && it.legs) c += 2*w; }
+      if(it.legs && nextRun && nextRun.hard) c += 6*w;
+      if(it.legs && prevRun && prevRun.hard) c += 3;
+      if(it.legs && run && run.role==='long') c += 5;
+      const cl = load[d], before = load[pd];
+      if(cl){
+        if(cl.legs && it.legs) c += 5;
+        if((cl.hard || cl.legs) && it.peak) c += 2;
+        if(cl.upper && !it.legs) c += 3;
+      }
+      if(before && before.legs && it.legs) c += 2;
+    });
+    return c;
+  }
+  let best = items.slice(), bestCost = Infinity;
+  const used = new Array(items.length).fill(false), assign = [];
+  (function search(pos){
+    if(pos===slots.length){
+      const c = cost(assign);
+      if(c < bestCost){ bestCost = c; best = assign.slice(); }
+      return;
+    }
+    const tried = new Set();
+    items.forEach((it,i)=>{
+      if(used[i] || tried.has(it.sig)) return;
+      tried.add(it.sig);
+      used[i] = true; assign.push(it);
+      search(pos+1);
+      used[i] = false; assign.pop();
+    });
+  })(0);
+  liftPlacementCache.set(cacheKey, best);
+  return best;
+}
+
 // Generates plan week n (0 = the week the plan started) as 7 day slots, Monday first: {p, c} where p
-// is the day's session (a Rest Day off the training days) and c an optional short companion session.
+// is the day's session (a Rest Day off the training days) and c an optional short companion session --
+// and on a run + lift day, x: its lifting workout (with xWave, its place in the week's wave).
 function generatePlanWeek(cfg, n){
   const days = cfg.days;
   const week = Array.from({length:7}, ()=>({p:ses('rest','Rest Day','','Día de descanso',''), c:null}));
   if(!days.length) return week;
   const recovery = isRecoveryWeek(n);
-  const {runs, lifts} = splitTrainingDays(days.length, cfg.focus, cfg.goal);
+  // Run + lift days are run days that also get a lifting workout: at least that many runs, and the rest
+  // of the days split as usual.
+  const both = (cfg.runLiftDays||[]).filter(d=> days.includes(d));
+  const {runs, lifts} = planCounts(days.length, cfg.focus, cfg.goal, both.length);
 
   // The running week's building block: one fast session (tempo or intervals), a longer easy run, the
   // long run, and -- with 4 or more runs -- a short recovery run the day after it; any more are easy.
@@ -5223,7 +5318,12 @@ function generatePlanWeek(cfg, n){
   const freeOfClass = d => d!=null && !(classLoad[d] && classLoad[d].hard) ? d : null;
   const longRunDay = freeOfClass(cfg.longRunDay);
   const hardRunDay = cfg.hardRunDay!==longRunDay ? freeOfClass(cfg.hardRunDay) : null;
-  const placed = placeSessions(days, items, classLoad, hardRunDay, longRunDay).slice();
+  // With run + lift days, the runs (and which other days are lifting days) are placed first, then the
+  // lifting workouts over every lifting day.
+  const liftItems = items.filter(it=>it.kind==='lift');
+  const holders = both.length ? Array.from({length: days.length - runs}, ()=>({kind:'lift', legs:false, hard:false, group:'any', sig:'lift:any'})) : [];
+  const placed = (both.length ? placeSessions(days, items.filter(it=>it.kind==='run').concat(holders), classLoad, hardRunDay, longRunDay, both)
+    : placeSessions(days, items, classLoad, hardRunDay, longRunDay)).slice();
   // A fast run with nowhere to go but a hard class's day (too few run days) is an easy run instead.
   days.forEach((d,i)=>{ if(placed[i].role==='quality' && classLoad[d] && classLoad[d].hard) placed[i] = {...placed[i], sub:'easy', hard:false}; });
   // A short run that can't be the day after the long run is simply a short easy run -- and the longer
@@ -5238,6 +5338,17 @@ function generatePlanWeek(cfg, n){
       if(el>rec) [placed[rec], placed[el]] = [placed[el], placed[rec]];
     }
   }
+  // Then each lifting day's workout (a run + lift day's goes with its run, as x).
+  const extraLift = {};
+  if(both.length){
+    const slots = days.filter((d,i)=> placed[i].kind==='lift' || both.includes(d));
+    const runByDay = {};
+    days.forEach((d,i)=>{ if(placed[i].kind==='run') runByDay[d] = placed[i]; });
+    placeLifts(slots, liftItems, runByDay, classLoad).forEach((it, k)=>{
+      if(both.includes(slots[k])) extraLift[slots[k]] = it;
+      else placed[days.indexOf(slots[k])] = it;
+    });
+  }
   let easyCount = 0, runOrder = 0;
   days.forEach((d,i)=>{
     const it = placed[i];
@@ -5247,39 +5358,46 @@ function generatePlanWeek(cfg, n){
       else if(['tempo','intervals','fartlek','hills'].includes(it.sub)) p = qualityRunFor(it.sub, it.mi, n);
       else p = runSessionFor(it.sub, it.mi);
       runOrder++;
-      const c = it.role==='long' ? COMPANION.foam()
+      // (A run + lift day's lifting workout is its pairing -- no add-on as well.)
+      const c = extraLift[d] ? null
+        : it.role==='long' ? COMPANION.foam()
         : it.role==='quality' ? COMPANION.hips()
         : (easyCount++ % 2 ? COMPANION.mobility() : COMPANION.core());
       week[d] = {p, c};
+      if(extraLift[d]) week[d].x = liftSessionFor(extraLift[d].split, cfg, recovery);
     } else {
       // (The core work is part of every lifting workout now -- its finisher -- so the add-on is mobility.)
       week[d] = {p: liftSessionFor(it.split, cfg, recovery), c: COMPANION.mobility()};
     }
   });
-  // The lifting days' weekly wave (see liftWave), in day order.
+  // The lifting days' weekly wave (see liftWave), in day order -- a run + lift day's lifting workout
+  // keeps its own (xWave).
   const liftDays = days.filter((d,i)=>placed[i].kind==='lift');
-  liftWave(liftDays.map(d=>placed[days.indexOf(d)]), cfg, n).forEach((w,i)=>{
+  const allLiftDays = days.filter((d,i)=>placed[i].kind==='lift' || extraLift[d]);
+  const liftAt = d => extraLift[d] ? {get: ()=>week[d].x, set: v=>{ week[d].x = v; }, wave: ()=>week[d].xWave}
+    : {get: ()=>week[d].p, set: v=>{ week[d].p = v; }, wave: ()=>week[d].wave};
+  liftWave(allLiftDays.map(d=> extraLift[d] || placed[days.indexOf(d)]), cfg, n).forEach((w,i)=>{
     // Lifting on the same day as a hard class (when there's no other day for it) is one of the week's
     // light days.
     // (Even the week's peak, when there's no other day for it -- then there's no top single that week.)
-    const cl = classLoad[liftDays[i]];
-    week[liftDays[i]].wave = cl && (cl.hard || cl.legs) ? {...w, pos:'light', focus:null, classDay:true} : w;
+    const cl = classLoad[allLiftDays[i]];
+    week[allLiftDays[i]][extraLift[allLiftDays[i]] ? 'xWave' : 'wave'] = cl && (cl.hard || cl.legs) ? {...w, pos:'light', focus:null, classDay:true} : w;
   });
   // Full body days take turns leading with a different body part, carrying on from week to week; the
   // week's peak day leads with the part its peak lift belongs to.
-  const fullDays = liftDays.filter(d=> /^Full Body Strength/.test(week[d].p.en.title));
+  const fullDays = allLiftDays.filter(d=> /^Full Body Strength/.test(liftAt(d).get().en.title));
   if(fullDays.length){
     const parts = fullDays.map((_, i)=> FULL_FOCUS_ROTATION[(n*fullDays.length + i) % FULL_FOCUS_ROTATION.length]);
-    const peakAt = fullDays.findIndex(d=> week[d].wave && week[d].wave.focus);
-    const peakPart = peakAt>=0 ? FOCUS_PART[week[fullDays[peakAt]].wave.focus.movement] : null;
+    const peakAt = fullDays.findIndex(d=> liftAt(d).wave() && liftAt(d).wave().focus);
+    const peakPart = peakAt>=0 ? FOCUS_PART[liftAt(fullDays[peakAt]).wave().focus.movement] : null;
     if(peakPart && parts[peakAt]!==peakPart){
       const j = parts.indexOf(peakPart);
       if(j>=0) parts[j] = parts[peakAt];
       parts[peakAt] = peakPart;
     }
     fullDays.forEach((d, i)=>{
-      const p = week[d].p;
-      week[d].p = ses('strength', p.en.title, `${p.en.detail} · ${FULL_FOCUS_LABEL.en[parts[i]]}`, p.es.title, `${p.es.detail} · ${FULL_FOCUS_LABEL.es[parts[i]]}`);
+      const p = liftAt(d).get();
+      liftAt(d).set(ses('strength', p.en.title, `${p.en.detail} · ${FULL_FOCUS_LABEL.en[parts[i]]}`, p.es.title, `${p.es.detail} · ${FULL_FOCUS_LABEL.es[parts[i]]}`));
     });
   }
   // Running and lifting go hand in hand: in a plan with both, a lifting day is followed by an easy
@@ -5343,7 +5461,10 @@ function liftWave(lifts, cfg, n){
 // own for that day (moved there, or added by the user).
 function liftWaveFor(session, date){
   const e = planWeekFor(date)[(date.getDay()+6)%7];
-  return e && e.wave && e.p.en.title===session.en.title ? e.wave : null;
+  if(!e) return null;
+  if(e.wave && e.p.en.title===session.en.title) return e.wave;
+  // (A run + lift day's lifting workout.)
+  return e.xWave && e.x && e.x.en.title===session.en.title ? e.xWave : null;
 }
 const planWeekCache = new Map();
 function generatedWeek(cfg, n){
@@ -6061,6 +6182,8 @@ const defaultState = () => ({
   hiddenLifts:[], // lift keys taken off Progress -> Your lifts; their logged workouts stay
   hardRunDay: null, // the weekday (0 = Monday) for the week's faster run, or null: the plan picks
   longRunDay: null, // the same, for the long run
+  runLiftDays: [], // training days (0 = Monday) that get a lifting workout as well as the run (see generatePlanWeek)
+  runLiftSkips: [], // dates (YYYY-MM-DD) whose run + lift day lifting workout was taken off (see planLiftFor)
   exerciseSwaps:{}, // "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'} -- see applyStandingSwaps()
   week:null,
   todayCompleted:false,
@@ -6348,12 +6471,59 @@ function addExtraWorkout(key, session){
   return entry;
 }
 function deleteExtraWorkout(key, id){
+  // The plan's lifting workout on a run + lift day, not started yet: taken off that day.
+  if(id===PLAN_LIFT_ID){ skipPlanLift(key, true); return; }
   const log = state.dayLog[key];
   if(!log) return;
   const entry = (log.extraWorkouts||[]).find(w=>w.id===id);
+  // (Once started it's a real Additional Workout -- deleting it takes it off the day too, so it doesn't come back.)
+  const x = entry && planLiftFor(parseDateKey(key));
+  if(x && planLiftExtra(key, x)===entry) skipPlanLift(key, true);
   log.extraWorkouts = (log.extraWorkouts||[]).filter(w=>w.id!==id);
   if(entry && entry.supabaseId) cloudDeleteExtraWorkout(entry.supabaseId);
 }
+/* ---------------- run + lift days ---------------- */
+// On a run + lift day (Adjust -> "Run + lift days") the plan's lifting workout goes with the day's run: it's
+// listed with the day's other workouts (Home's "Also today", Day Detail), and made a real Additional Workout
+// the moment it's started, changed or marked done -- so it's logged, synced and kept like any other.
+const PLAN_LIFT_ID = 'planlift';
+// The plan's lifting workout for a run + lift day, from today on -- or null (not one, taken off that day,
+// or the user's own workouts from then on).
+function planLiftFor(date){
+  const key = dateKey(date);
+  if(key < dateKey(TODAY_DATE) || beforePlanStart(date)) return null;
+  if(state.ownSince && key >= state.ownSince) return null;
+  if((state.runLiftSkips||[]).includes(key)) return null;
+  const e = planWeekFor(date)[(date.getDay()+6)%7];
+  return e && e.x ? e.x : null;
+}
+// It, once made real: the day's Additional Workout of the same name.
+function planLiftExtra(key, x){
+  return ((state.dayLog[key]||{}).extraWorkouts||[]).find(w=> w.session && w.session.t==='strength' && w.session.en.title===x.en.title) || null;
+}
+function planLiftExtraFor(key){
+  const x = planLiftFor(parseDateKey(key));
+  return x ? planLiftExtra(key, x) : null;
+}
+// It, still to be made real -- as an Additional Workout-shaped item (id PLAN_LIFT_ID) to list with the others.
+function pendingPlanLift(key){
+  const x = planLiftFor(parseDateKey(key));
+  return x && !planLiftExtra(key, x) ? {id: PLAN_LIFT_ID, session: x, completed: false, notes: '', pending: true} : null;
+}
+// The real Additional Workout's id for an item from the list (making it, for the pending one).
+function realizePlanLift(key, id){
+  if(id!==PLAN_LIFT_ID) return id;
+  const x = planLiftFor(parseDateKey(key));
+  if(!x) return id;
+  return (planLiftExtra(key, x) || addExtraWorkout(key, cloneSession(x))).id;
+}
+function skipPlanLift(key, on){
+  const skips = (state.runLiftSkips||[]).filter(k=> k!==key && k >= dateKey(TODAY_DATE)); // (old ones aren't needed)
+  if(on) skips.push(key);
+  state.runLiftSkips = skips.sort();
+  saveProfileToCloud();
+}
+
 /* ---------------- classes ---------------- */
 // Classes the user goes to -- jiu-jitsu Fridays at 3, spin on Tuesdays -- set up once from Create Workout
 // and shown on those days every week next to the plan's workout (state.classes). Doing one is recorded
@@ -7010,6 +7180,7 @@ function snapshotDay(key){
     log: state.dayLog[key], logCopy: cloneData(state.dayLog[key]),
     idx, slot: w ? cloneData({p: w.p, c: w.c, completed: w.completed, isCustom: w.isCustom}) : null,
     todayCompleted: state.todayCompleted,
+    liftSkipped: (state.runLiftSkips||[]).includes(key),
   };
 }
 function restoreDay(key, snap){
@@ -7021,6 +7192,7 @@ function restoreDay(key, snap){
   } else delete state.dayLog[key];
   if(snap.slot && state.week[snap.idx]) Object.assign(state.week[snap.idx], snap.slot);
   state.todayCompleted = snap.todayCompleted;
+  if((state.runLiftSkips||[]).includes(key)!==snap.liftSkipped) skipPlanLift(key, snap.liftSkipped);
   state.doneCount = computeDoneCount();
 }
 function commitPendingDelete(){
@@ -7562,7 +7734,7 @@ function renderLiftSplitNote(prefix, holder){
   const el = document.getElementById(prefix+'LiftSplitNote');
   if(!el) return;
   const L = STR[state.lang];
-  const lifts = splitTrainingDays((holder.trainingDays||[]).length, holder.focusRatio, state.goal).lifts;
+  const lifts = planCounts((holder.trainingDays||[]).length, holder.focusRatio, state.goal, holderRunLift(holder).length).lifts;
   if(!lifts){ el.textContent = ''; return; }
   const level = LEVEL_PLAN[state.level] ? state.level : 'intermediate';
   const names = liftSplitFor(lifts, level, holder.liftSplit || 'auto').map(k=>{
@@ -7577,7 +7749,7 @@ function milesOptionKey(miles){
 }
 function renderBaselineChips(prefix, holder, onChange){
   document.getElementById(prefix+'MilesSection').hidden = holder.focusRatio>=4;
-  document.getElementById(prefix+'EquipSection').hidden = holder.focusRatio<=0;
+  document.getElementById(prefix+'EquipSection').hidden = holder.focusRatio<=0 && !holderRunLift(holder).length;
   renderChipRow(prefix+'MilesChips', milesOptionsShown(), milesOptionKey(holder.weeklyMiles), k=>{ holder.weeklyMiles = Number(k); onChange(); });
   renderChipRow(prefix+'EquipChips', EQUIPMENT_OPTIONS, holder.equipment, k=>{ holder.equipment = k; onChange(); });
   renderMileSection(prefix, holder);
@@ -7739,7 +7911,7 @@ function setupSliders(){
     document.getElementById('adjSliderFill'),
     ()=> state.adjustDraft ? state.adjustDraft.focusRatio : state.focusRatio,
     (v)=>{ if(state.adjustDraft) state.adjustDraft.focusRatio=v; },
-    (v)=>{ document.getElementById('adjSliderLabel').textContent = FOCUS_LABELS[state.lang][v]; renderAdjBaseline(); if(state.adjustDraft){ renderAdjIntensityTabs(); renderAdjHardRunChips(); } }
+    (v)=>{ document.getElementById('adjSliderLabel').textContent = FOCUS_LABELS[state.lang][v]; renderAdjBaseline(); if(state.adjustDraft){ renderAdjIntensityTabs(); renderAdjHardRunChips(); renderAdjRunLiftChips(); } }
   );
 }
 
@@ -7800,6 +7972,8 @@ function renderHome(){
   // Today's own workout done (or nothing planned) and another one still to do today -- a run planned for
   // later: that one takes the main card, so what's next is what shows.
   const ownEff = todaySession(), ownDone = ownEff.t!=='rest' && isTodayDone();
+  // (On a run + lift day, the run done: the lifting workout is next -- made real, so it takes the main card.)
+  if(ownDone) realizePlanLift(dateKey(TODAY_DATE), PLAN_LIFT_ID);
   const focusExtra = (ownEff.t==='rest' || ownDone)
     ? ((state.dayLog[dateKey(TODAY_DATE)] && state.dayLog[dateKey(TODAY_DATE)].extraWorkouts) || []).find(w=> !w.completed && w.session && w.session.t!=='class' && w.session.t!=='rest')
     : null;
@@ -7863,6 +8037,9 @@ function renderHome(){
   // (Classes have their own section below.)
   const todayExtras = ((state.dayLog[todayKey] && state.dayLog[todayKey].extraWorkouts) || []).filter(w=> !(w.session && w.session.t==='class') && w!==focusExtra
     && !(mainTarget.kind==='extra' && w.id===mainTarget.id));
+  // (A run + lift day's lifting workout, not started yet.)
+  const todayLift = pendingPlanLift(todayKey);
+  if(todayLift) todayExtras.unshift(todayLift);
   // A run that's done shows what was actually run, not what was planned.
   let mainDetail = effL.detail;
   if(!focusExtra && eff.t==='run' && mainDone){
@@ -7914,12 +8091,12 @@ function renderHome(){
         <div class="body">
           <div class="n">${escapeHtml(wL.title)}</div>
           <div class="v">${escapeHtml(wL.detail||'')}</div>
-          ${exerciseListHtml(w.session)}
         </div>
         ${w.completed
           ? `<span class="r-inline-btn" style="display:flex;align-items:center;gap:4px;color:var(--ok-icon);font-size:11px;white-space:nowrap;">${ICONS.checkSm}${L.recordDoneLabel}</span>`
           : `<button class="btn-text" data-start-extra="${w.id}" type="button" style="white-space:nowrap;">${L.startWorkoutBtn}</button>`}
         <button class="del" data-del-extra="${w.id}" type="button">${ICONS.trash}</button>
+        ${exerciseListHtml(w.session)}
       </div>`;
     }).join('')}</div>` : ''}
     <div id="homeEntriesWrap">${todayEntries.map(en=>`
@@ -7988,14 +8165,14 @@ function renderHome(){
   if(homeExtraWrap){
     homeExtraWrap.querySelectorAll('[data-extra-id]').forEach(el=> el.addEventListener('click', e=>{
       if(e.target.closest('[data-del-extra], [data-start-extra]')) return;
-      openWorkoutSummary({dayKey: todayKey, kind:'extra', id: el.getAttribute('data-extra-id')});
+      openWorkoutSummary({dayKey: todayKey, kind:'extra', id: realizePlanLift(todayKey, el.getAttribute('data-extra-id'))});
     }));
     homeExtraWrap.querySelectorAll('[data-start-extra]').forEach(btn=>{
-      btn.addEventListener('click', ()=> openLogPerformance(btn.getAttribute('data-start-extra')));
+      btn.addEventListener('click', ()=> openLogPerformance(realizePlanLift(todayKey, btn.getAttribute('data-start-extra'))));
     });
     homeExtraWrap.querySelectorAll('[data-del-extra]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        const id = btn.getAttribute('data-del-extra'), w = findExtraWorkout(todayKey, id);
+        const id = btn.getAttribute('data-del-extra'), w = id===PLAN_LIFT_ID ? todayLift : findExtraWorkout(todayKey, id);
         askDeleteWorkout(w ? ST(w.session).title : '', todayKey, !!(w && w.completed), ()=> deleteExtraWorkout(todayKey, id));
       });
     });
@@ -9400,6 +9577,8 @@ function planListRowHtml(weekIdx, i, date){
   const draggable = !dd.completed;
   const flatIdx = weekIdx*7+i;
   const classes = classItemsFor(dd.key); // shown under the day's workout, with their times
+  // ...and a run + lift day's lifting workout, under its run.
+  const liftX = planLiftFor(date), lift = liftX && (planLiftExtra(dd.key, liftX) || {session: liftX, completed: false});
 
   // "Done" is a plain green dot now, matching the same minimal dot language Home's week strip and
   // the Calendar month grid already use -- it used to be a separate checkmark badge sitting right
@@ -9427,6 +9606,7 @@ function planListRowHtml(weekIdx, i, date){
           ${draggable ? `<span class="drag-handle" title="${L.dragHandleHint}">${ICONS.grip}</span>` : ''}
         </div>
       </div>
+      ${lift ? (()=>{ const xL = ST(lift.session); return `<div class="prow-class prow-lift ${lift.completed?'done':''}">${ICONS.strength}<span>${escapeHtml(xL.title)}</span><span class="prow-class-t">${escapeHtml((xL.detail||'').split(' · ')[0])}</span></div>`; })() : ''}
       ${classes.map(it=>{ const cL = ST(it.session); return `<div class="prow-class ${it.done?'done':''}">${ICONS.class}<span>${escapeHtml(cL.title)}</span><span class="prow-class-t">${escapeHtml((cL.detail||'').split(' · ')[0])}</span></div>`; }).join('')}
     </div>
     <button type="button" class="prow-add" title="${L.planAddWorkoutLabel}">${ICONS.plus}<span>${L.planAddWorkoutLabel}</span></button>
@@ -9932,6 +10112,13 @@ function closeWorkoutPreview(){
 // The workout being previewed: the day's own (which may really be its first Additional Workout, on a
 // day with nothing else planned), or one of its Additional Workouts.
 function previewedWorkout(){
+  // A run + lift day's lifting workout not made real yet (once it is, it's that Additional Workout).
+  if(wp.target.kind==='planlift'){
+    const x = planLiftFor(parseDateKey(wp.dayKey));
+    const w = x && planLiftExtra(wp.dayKey, x);
+    if(w){ wp.target = {kind:'extra', id: w.id}; return previewedWorkout(); }
+    return x ? {session: x, c: null, extra: null, planLift: true} : null;
+  }
   if(wp.target.kind==='extra'){
     const w = findExtraWorkout(wp.dayKey, wp.target.id);
     return w ? {session: w.session, c: null, extra: w} : null;
@@ -9959,7 +10146,7 @@ function renderWorkoutPreview(){
   document.getElementById('wpDayLabel').textContent = `${DAY_NAMES_FULL[state.lang][dow]}, ${MONTHS_SHORT[state.lang][date.getMonth()]} ${date.getDate()}`;
   document.getElementById('wpIcon').innerHTML = TYPE_ICON[session.t] || '';
   document.getElementById('wpTitle').textContent = sL.title;
-  const wave = session.t==='strength' && !r.extra ? liftWaveFor(session, date) : null;
+  const wave = session.t==='strength' && (!r.extra || r.extra===planLiftExtraFor(wp.dayKey)) ? liftWaveFor(session, date) : null;
   document.getElementById('wpDetail').innerHTML = escapeHtml([sL.detail, wave ? L['wave_'+(wave.deload ? 'deload' : wave.pos)] : ''].filter(Boolean).join(' · ')) + (wave ? termBtn(wave.deload ? 'deload' : 'wave') : '');
 
   const runSection = document.getElementById('wpRunSection');
@@ -10092,6 +10279,11 @@ function exerciseChooserHtml(ex, count){
 // Saves an exercise list as this one workout's own (it stops following the plan's weekly picks).
 function saveWorkoutExercises(r, list){
   const clean = list.map(ex=>{ const c = {...ex}; delete c.swappedFrom; delete c.pyramid; return c; });
+  if(r.planLift){
+    const id = realizePlanLift(wp.dayKey, PLAN_LIFT_ID);
+    wp.target = {kind:'extra', id};
+    r = {...r, extra: findExtraWorkout(wp.dayKey, id)};
+  }
   if(r.extra){
     r.extra.session = {...r.extra.session, exercises: clean};
     if(r.extra.supabaseId) cloudSetExtraWorkoutExercises(r.extra.supabaseId, clean);
@@ -10193,7 +10385,8 @@ document.getElementById('wpExerciseSection').addEventListener('click', (e)=>{
 // Day Detail's "reset to suggested plan" brings it back), or removes an Additional Workout.
 document.getElementById('wpSkipWorkoutBtn').addEventListener('click', ()=>{
   const r = previewedWorkout();
-  if(r && r.extra) deleteExtraWorkout(wp.dayKey, r.extra.id);
+  if(r && r.planLift) skipPlanLift(wp.dayKey, true);
+  else if(r && r.extra) deleteExtraWorkout(wp.dayKey, r.extra.id);
   else if(r){
     const rest = ses('rest','Rest Day','','Día de descanso','');
     writeDaySlot(parseDateKey(wp.dayKey), {p: rest, c: null, completed: false, isCustom: true});
@@ -10359,7 +10552,9 @@ function renderDayDetail(){
   // already done at the bottom, under "Done".)
   // (A past day keeps it in the list too: that's where a forgotten one gets marked done.)
   const ddExtrasAll = dd.extraWorkouts.filter(w=> !(w.session && w.session.t==='class') && (dd.isPast || w.id!==dd.primaryExtraId) && w!==ddPending);
-  const ddExtras = [...ddExtrasAll.filter(w=>!w.completed), ...ddExtrasAll.filter(w=>w.completed)];
+  // (A run + lift day's lifting workout, not started yet, first.)
+  const ddLift = pendingPlanLift(dd.key);
+  const ddExtras = [...(ddLift ? [ddLift] : []), ...ddExtrasAll.filter(w=>!w.completed), ...ddExtrasAll.filter(w=>w.completed)];
   extraSection.hidden = ddExtras.length===0 && !ddPending;
   const classesHtml = classRowsHtml(state.openDayKey);
   document.getElementById('dayDetailClassSection').hidden = !classesHtml;
@@ -10388,10 +10583,10 @@ function renderDayDetail(){
       <div class="body">
         <div class="n">${escapeHtml(effL.title)}</div>
         <div class="v">${escapeHtml(effL.detail||'')}</div>
-        ${exerciseListHtml(w.session, dd.date)}
       </div>
       ${startOrDone}
       <button class="del" data-del-extra="${w.id}" type="button">${ICONS.trash}</button>
+      ${exerciseListHtml(w.session, dd.date)}
     </div>`;
   }).join('') + (ddPending ? (()=>{
     // The day's own workout, already done, listed with the other finished ones.
@@ -10420,14 +10615,15 @@ function renderDayDetail(){
   extraWrap.querySelectorAll('[data-extra-id]').forEach(el=>{
     el.addEventListener('click', (e)=>{
       if(e.target.closest('[data-del-extra], [data-start-extra], [data-mark-extra-done]')) return;
-      const target = {dayKey: state.openDayKey, kind:'extra', id: el.getAttribute('data-extra-id')};
-      if(dd.isFuture) openWorkoutPreview(state.openDayKey, {kind:'extra', id: target.id});
-      else openWorkoutSummary(target);
+      const id = el.getAttribute('data-extra-id');
+      // (A future run + lift day's lifting workout is previewed as the plan has it, and only made real if changed.)
+      if(dd.isFuture) openWorkoutPreview(state.openDayKey, id===PLAN_LIFT_ID ? {kind:'planlift'} : {kind:'extra', id});
+      else openWorkoutSummary({dayKey: state.openDayKey, kind:'extra', id: realizePlanLift(state.openDayKey, id)});
     });
   });
   extraWrap.querySelectorAll('[data-start-extra]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      const id = btn.getAttribute('data-start-extra');
+      const id = realizePlanLift(state.openDayKey, btn.getAttribute('data-start-extra'));
       closeDayDetail();
       openLogPerformance(id);
     });
@@ -10441,7 +10637,7 @@ function renderDayDetail(){
   });
   extraWrap.querySelectorAll('[data-del-extra]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      const key = state.openDayKey, id = btn.getAttribute('data-del-extra'), w = findExtraWorkout(key, id);
+      const key = state.openDayKey, id = btn.getAttribute('data-del-extra'), w = id===PLAN_LIFT_ID ? ddLift : findExtraWorkout(key, id);
       askDeleteWorkout(w ? ST(w.session).title : '', key, !!(w && w.completed), ()=> deleteExtraWorkout(key, id));
     });
   });
@@ -12030,7 +12226,7 @@ document.getElementById('confirmDeleteAccount').addEventListener('click', async 
 /* ---------------- adjust sheet ---------------- */
 function openAdjustSheet(){
   ensureWeek();
-  state.adjustDraft = {own: !!state.ownWorkouts, focusRatio: state.focusRatio, intensityIdx: state.focusRatio>=4 ? liftIntensity() : state.intensityIdx, liftIntensityIdx: state.liftIntensityIdx ?? null, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, liftSplit: state.liftSplit, mileTime: state.mileTime, hardRunDay: state.hardRunDay, longRunDay: state.longRunDay};
+  state.adjustDraft = {own: !!state.ownWorkouts, focusRatio: state.focusRatio, intensityIdx: state.focusRatio>=4 ? liftIntensity() : state.intensityIdx, liftIntensityIdx: state.liftIntensityIdx ?? null, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, liftSplit: state.liftSplit, mileTime: state.mileTime, hardRunDay: state.hardRunDay, longRunDay: state.longRunDay, runLiftDays: (state.runLiftDays||[]).slice()};
   document.getElementById('adjustOverlay').hidden = false;
   highlightNav('adjust');
   adjSlider.paint();
@@ -12067,7 +12263,7 @@ document.getElementById('closeAdjust').addEventListener('click', closeAdjustShee
 // Running-only or weights-only: one Intensity row. Both: Running intensity, then Lifting intensity.
 function renderAdjIntensityTabs(){
   const L = STR[state.lang], d = state.adjustDraft;
-  const both = hasRunAndLift(d.focusRatio);
+  const both = hasRunAndLift(d.focusRatio) || d.focusRatio<=0 && holderRunLift(d).length>0;
   document.getElementById('adjIntensityLabel').textContent = both ? L.runIntensityLabel : L.intensityLabel;
   renderIntensityTabs('adjIntensityTabs', d.focusRatio>=4 ? LIFT_INTENSITY : INTENSITY, d.intensityIdx, idx=>{ d.intensityIdx = idx; renderAdjIntensityTabs(); });
   document.getElementById('adjLiftIntensitySection').hidden = !both;
@@ -12078,6 +12274,7 @@ function renderAdjDaysChips(){
   const draft = state.adjustDraft;
   renderDayChips('adjWeekdayChips', draft, 0, renderAdjDaysChips);
   renderAdjHardRunChips();
+  renderAdjRunLiftChips();
   renderLiftSplitNote('adj', draft);
   document.getElementById('adjDaysSummary').textContent = draft.trainingDays.length===0
     ? L.noTrainingDaysNote
@@ -12091,7 +12288,7 @@ function renderAdjDaysChips(){
 function renderAdjHardRunChips(){
   const L = STR[state.lang], d = state.adjustDraft;
   const days = d.trainingDays.slice().sort((a,b)=>a-b);
-  const runDays = splitTrainingDays(days.length, d.focusRatio, state.goal).runs;
+  const runDays = planCounts(days.length, d.focusRatio, state.goal, holderRunLift(d).length).runs;
   const show = !d.own && runDays>=2;
   document.getElementById('adjHardRunSection').hidden = !show;
   if(!show) return;
@@ -12112,6 +12309,30 @@ function renderAdjHardRunChips(){
     document.getElementById(noteId).textContent = d[own]==null ? autoNote : dayNote.replace('{day}', dayName(d[own]));
   });
 }
+// "Run + lift days": the training days that get a lifting workout as well as the run -- tap each one. Shown
+// whenever the plan has runs (not weights only, not their own workouts).
+function renderAdjRunLiftChips(){
+  const L = STR[state.lang], d = state.adjustDraft;
+  const days = d.trainingDays.slice().sort((a,b)=>a-b);
+  const show = !d.own && d.focusRatio<4 && days.length>0;
+  document.getElementById('adjRunLiftSection').hidden = !show;
+  if(!show) return;
+  const picked = holderRunLift(d);
+  const el = document.getElementById('adjRunLiftChips');
+  el.innerHTML = days.map(i=> `<div class="chip ${picked.includes(i) ? 'sel' : ''}" data-run-lift-day="${i}">${escapeHtml(DAY_NAMES_SHORT[state.lang][i])}</div>`).join('');
+  el.querySelectorAll('[data-run-lift-day]').forEach(c=> c.addEventListener('click', ()=>{
+    const i = Number(c.getAttribute('data-run-lift-day'));
+    const now = holderRunLift(d);
+    d.runLiftDays = now.includes(i) ? now.filter(x=>x!==i) : now.concat(i).sort((a,b)=>a-b);
+    renderAdjRunLiftChips();
+    // (Lifting's own settings -- equipment, split, intensity -- show once there's lifting in the plan.)
+    renderAdjBaseline();
+    renderAdjIntensityTabs();
+    renderAdjHardRunChips();
+  }));
+  const names = picked.map(i=> DAY_NAMES_SHORT[state.lang][i]).join(' · ');
+  document.getElementById('adjRunLiftNote').textContent = picked.length ? L.runLiftDaysNote.replace('{days}', names) : L.runLiftDaysNoteNone;
+}
 document.getElementById('applyAdjust').addEventListener('click', ()=>{
   const d = state.adjustDraft;
   // Their own workouts from today on; or back to a generated plan, which starts fresh from today (the
@@ -12127,6 +12348,7 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
   state.liftSplit = d.liftSplit || 'auto';
   state.hardRunDay = d.hardRunDay!=null && d.trainingDays.includes(d.hardRunDay) ? d.hardRunDay : null;
   state.longRunDay = d.longRunDay!=null && d.trainingDays.includes(d.longRunDay) ? d.longRunDay : null;
+  state.runLiftDays = (d.runLiftDays||[]).filter(x=> d.trainingDays.includes(x)).sort((a,b)=>a-b);
   const newMile = d.mileTime || null;
   if(newMile!==state.mileTime){ state.mileTime = newMile; reseedRunPaces(); }
   // A chosen start date starts the plan over from that day. Otherwise a new starting mileage restarts
@@ -14213,6 +14435,8 @@ async function loadProfileFromCloud(){
   if(data.lift_split) state.liftSplit = data.lift_split;
   if('hard_run_day' in data) state.hardRunDay = Number.isInteger(data.hard_run_day) ? data.hard_run_day : null;
   if('long_run_day' in data) state.longRunDay = Number.isInteger(data.long_run_day) ? data.long_run_day : null;
+  if('run_lift_days' in data) state.runLiftDays = Array.isArray(data.run_lift_days) ? data.run_lift_days.filter(Number.isInteger) : [];
+  if('run_lift_skips' in data) state.runLiftSkips = Array.isArray(data.run_lift_skips) ? data.run_lift_skips : [];
   if(data.mile_time_sec) state.mileTime = Number(data.mile_time_sec);
   if(data.jog_baseline && typeof data.jog_baseline==='object') state.jogBaseline = data.jog_baseline;
   if(data.exercise_swaps && typeof data.exercise_swaps==='object') state.exerciseSwaps = data.exercise_swaps;
@@ -14265,6 +14489,8 @@ async function saveProfileToCloud(){
       lift_split: state.liftSplit,
       hard_run_day: state.hardRunDay,
       long_run_day: state.longRunDay,
+      run_lift_days: state.runLiftDays,
+      run_lift_skips: state.runLiftSkips,
       jog_baseline: state.jogBaseline,
       mile_time_sec: state.mileTime,
       classes: state.classes,
@@ -14272,7 +14498,12 @@ async function saveProfileToCloud(){
       updated_at: new Date().toISOString(),
     };
     let { error } = await sb.from('profiles').update(payload).eq('id', state.userId);
-    // The newest columns first (the run-day choices), so everything else still saves before they exist.
+    // The newest columns first (run + lift days, then the run-day choices), so everything else still saves
+    // before they exist.
+    if(error){
+      delete payload.run_lift_days; delete payload.run_lift_skips;
+      ({ error } = await sb.from('profiles').update(payload).eq('id', state.userId));
+    }
     if(error){
       delete payload.hard_run_day; delete payload.long_run_day;
       ({ error } = await sb.from('profiles').update(payload).eq('id', state.userId));
@@ -14281,7 +14512,7 @@ async function saveProfileToCloud(){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes','own_since','distance_unit','hidden_lifts','badges','hard_run_day','long_run_day'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes','own_since','distance_unit','hidden_lifts','badges','hard_run_day','long_run_day','run_lift_days','run_lift_skips'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }

@@ -359,3 +359,5 @@ alter table profiles add column if not exists hidden_lifts jsonb;     -- lift ke
 alter table profiles add column if not exists badges jsonb;           -- earned badges {id: date} and best-effort top threes (see checkBadges)
 alter table profiles add column if not exists hard_run_day smallint;  -- the weekday (0 = Monday) for the week's faster run, or null: the plan picks
 alter table profiles add column if not exists long_run_day smallint;  -- the same, for the long run
+alter table profiles add column if not exists run_lift_days smallint[];  -- training days (0 = Monday) that get a lifting workout as well as the run
+alter table profiles add column if not exists run_lift_skips text[];  -- dates (YYYY-MM-DD) whose run + lift day lifting workout was taken off

@@ -75,7 +75,6 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   const go = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
   go('adjust'); await wait(20);
   for(let i=0;i<4;i++) doc.getElementById('adjSliderThumb').dispatchEvent(new dom.window.KeyboardEvent('keydown', {key:'ArrowRight', bubbles:true}));
-  doc.querySelector('#adjDayCountChips .chip[data-count="5"]').click();
   for(let pass=0; pass<2; pass++) for(let d=0; d<7; d++){
     const chip = doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`);
     const want = d<5;

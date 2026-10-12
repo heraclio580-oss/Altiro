@@ -357,3 +357,5 @@ create policy "own push subscriptions" on push_subscriptions
 --   $$);
 alter table profiles add column if not exists hidden_lifts jsonb;     -- lift keys taken off Progress -> Your lifts (their workouts stay logged)
 alter table profiles add column if not exists badges jsonb;           -- earned badges {id: date} and best-effort top threes (see checkBadges)
+alter table profiles add column if not exists hard_run_day smallint;  -- the weekday (0 = Monday) for the week's faster run, or null: the plan picks
+alter table profiles add column if not exists long_run_day smallint;  -- the same, for the long run

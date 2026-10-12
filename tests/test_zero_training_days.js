@@ -21,8 +21,6 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   await wait(10);
   console.log('All 7 weekday chips can be deselected (no minimum-1 guard on the Adjust page):',
     [0,1,2,3,4,5,6].every(i=>!weekdayChip(i).classList.contains('sel')) ? 'OK' : 'FAIL');
-  console.log('Day-count chips show none selected (0 matches no 2-6 preset):',
-    ![...doc.querySelectorAll('#adjDayCountChips .chip')].some(c=>c.classList.contains('sel')) ? 'OK' : 'FAIL');
   console.log('Summary shows a friendly "plan each day yourself" note instead of "0 days a week":',
     doc.getElementById('adjDaysSummary').textContent.includes('0') === false ? 'OK' : `FAIL (${doc.getElementById('adjDaysSummary').textContent})`);
 

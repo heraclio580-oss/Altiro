@@ -93,7 +93,6 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   go('adjust');
   await wait(10);
   for(let i=0;i<4;i++) doc.getElementById('adjSliderThumb').dispatchEvent(new window.KeyboardEvent('keydown', {key:'ArrowRight', bubbles:true}));
-  doc.querySelector('#adjDayCountChips .chip[data-count="4"]').click();
   for(let pass=0; pass<2; pass++) for(let d=0; d<7; d++){
     const chip = doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`);
     const want = [0,1,2,4].includes(d);

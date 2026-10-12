@@ -32,18 +32,17 @@ function dump(doc){
 
   goPill('adjust'); await wait(20);
   console.log('Outdoor hike toggle is gone from the Adjust sheet:', !doc.getElementById('outdoorToggle') ? 'OK' : 'FAIL');
-  console.log('Training Days section is present instead:', !!doc.getElementById('adjDayCountChips') && !!doc.getElementById('adjWeekdayChips') ? 'OK' : 'FAIL');
-
-  const countChips = () => [...doc.querySelectorAll('#adjDayCountChips .chip')];
-  console.log('Day-count chips render 2-6:', countChips().map(c=>c.textContent).join(',')==='2,3,4,5,6' ? 'OK' : `FAIL (${countChips().map(c=>c.textContent).join(',')})`);
-  console.log('Default 3-day preset (Mon/Wed/Fri) is pre-selected:', countChips().find(c=>c.textContent==='3').classList.contains('sel') ? 'OK' : 'FAIL');
+  // Training days are just the day chips: tapping them sets how many and which (no 2-6 count chips).
+  console.log('Training Days: the seven day chips, and no count chips:', !doc.getElementById('adjDayCountChips') && doc.querySelectorAll('#adjWeekdayChips .chip').length===7 ? 'OK' : 'FAIL');
+  const selDays = () => [...doc.querySelectorAll('#adjWeekdayChips .chip')].map((c,i)=> c.classList.contains('sel') ? i : null).filter(i=> i!=null).join(',');
+  const setDays = days => { for(let d=0; d<7; d++){ const c = doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`); if(c.classList.contains('sel') !== days.includes(d)) c.click(); } };
 
   const weekdayChip = i => doc.querySelectorAll('#adjWeekdayChips .chip')[i];
   console.log('Mon/Wed/Fri weekday chips are pre-selected:', [0,2,4].every(i=>weekdayChip(i).classList.contains('sel')) && [1,3,5,6].every(i=>!weekdayChip(i).classList.contains('sel')) ? 'OK' : 'FAIL');
   console.log('Days summary reads "3":', doc.getElementById('adjDaysSummary').textContent.includes('3') ? 'OK' : `FAIL (${doc.getElementById('adjDaysSummary').textContent})`);
 
   // --- Closing without Apply must NOT touch real state ---
-  countChips().find(c=>c.textContent==='5').click();
+  setDays([0,1,2,3,4]);
   await wait(10);
   doc.getElementById('closeAdjust').click();
   await wait(10);
@@ -91,8 +90,8 @@ function dump(doc){
   goPill('home'); await wait(20);
   const before = (() => { goPill('week'); return dump(doc); })();
   goPill('adjust'); await wait(20);
-  console.log('Reopening Adjust shows the ORIGINAL 3-day selection (previous draft was discarded):', countChips().find(c=>c.textContent==='3').classList.contains('sel') ? 'OK' : 'FAIL');
-  countChips().find(c=>c.textContent==='5').click();
+  console.log('Reopening Adjust shows the ORIGINAL 3-day selection (previous draft was discarded):', selDays()==='0,2,4' ? 'OK' : `FAIL (${selDays()})`);
+  setDays([0,1,2,3,4]);
   await wait(10);
   console.log('Picking "5" selects Mon-Fri:', [0,1,2,3,4].every(i=>weekdayChip(i).classList.contains('sel')) && ![5,6].some(i=>weekdayChip(i).classList.contains('sel')) ? 'OK' : 'FAIL');
   doc.getElementById('applyAdjust').click();
@@ -108,10 +107,10 @@ function dump(doc){
 
   // --- Manually toggling individual weekday chips (not just presets) ---
   goPill('adjust'); await wait(20);
-  console.log('Adjust now shows the committed 5-day selection:', countChips().find(c=>c.textContent==='5').classList.contains('sel') ? 'OK' : 'FAIL');
+  console.log('Adjust now shows the committed 5-day selection:', selDays()==='0,1,2,3,4' ? 'OK' : `FAIL (${selDays()})`);
   weekdayChip(5).click(); // add Saturday -> 6 days, which the count chip is selected by length alone
   await wait(10);
-  console.log('Manually adding Saturday moves the count selection to "6" (selection tracks count, not a fixed preset):', countChips().find(c=>c.textContent==='6').classList.contains('sel') && weekdayChip(5).classList.contains('sel') ? 'OK' : 'FAIL');
+  console.log('Manually adding Saturday makes it 6 days', selDays()==='0,1,2,3,4,5' && /6/.test(doc.getElementById('adjDaysSummary').textContent) ? 'OK' : `FAIL (${selDays()} / ${doc.getElementById('adjDaysSummary').textContent})`);
   weekdayChip(0).click(); // remove Monday
   await wait(10);
   console.log('Removing a day works too:', !weekdayChip(0).classList.contains('sel') ? 'OK' : 'FAIL');

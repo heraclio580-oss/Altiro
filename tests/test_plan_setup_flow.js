@@ -63,11 +63,8 @@ function openSession(backend){
   for(let i=0;i<2;i++) doc.getElementById('adjSliderThumb').dispatchEvent(new dom.window.KeyboardEvent('keydown', {key:'ArrowLeft', bubbles:true}));
   await wait(10);
   console.log('Moving to Running Only hides the equipment question:', doc.getElementById('adjEquipSection').hidden ? 'OK' : 'FAIL');
-  doc.querySelector('#adjDayCountChips .chip[data-count="5"]').click();
-  await wait(5);
-  // Preset for 5 is Mon-Fri; make it Tue, Wed, Thu, Sat, Sun.
-  for(const d of [0,4]) doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`).click();
-  for(const d of [5,6]) doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`).click();
+  // Tue, Wed, Thu, Sat, Sun.
+  for(let d=0; d<7; d++){ const c = doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`); if(c.classList.contains('sel') !== [1,2,3,5,6].includes(d)) c.click(); }
   doc.querySelector('#adjMilesChips .chip[data-key="25"]').click();
   await wait(5);
   doc.getElementById('applyAdjust').click();

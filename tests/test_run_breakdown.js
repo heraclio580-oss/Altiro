@@ -37,9 +37,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   // Running only, 5 days (Tue-Thu, Sat, Sun), 21-30 mi a week, High intensity.
   await adjust(()=>{
     for(let i=0;i<2;i++) doc.getElementById('adjSliderThumb').dispatchEvent(new window.KeyboardEvent('keydown', {key:'ArrowLeft', bubbles:true}));
-    doc.querySelector('#adjDayCountChips .chip[data-count="5"]').click();
-    for(const d of [0,4]) doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`).click();
-    for(const d of [5,6]) doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`).click();
+    for(let d=0; d<7; d++){ const c = doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`); if(c.classList.contains('sel') !== [1,2,3,5,6].includes(d)) c.click(); }
     doc.querySelector('#adjMilesChips .chip[data-key="25"]').click();
     doc.querySelector('#adjIntensityTabs .tab-btn[data-idx="2"]').click(); // High: two hard sessions a week
   });

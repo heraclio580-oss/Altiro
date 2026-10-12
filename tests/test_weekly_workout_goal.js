@@ -55,7 +55,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   // Five training days: Monday-Friday (Tuesday already has its logged run; Friday stays skipped).
   go('adjust');
   await wait(10);
-  doc.querySelector('#adjDayCountChips .chip[data-count="5"]').click();
+  for(let d=0; d<7; d++){ const c = doc.querySelector(`#adjWeekdayChips .chip[data-weekday="${d}"]`); if(c.classList.contains('sel') !== [0,1,2,3,4].includes(d)) c.click(); }
   doc.getElementById('applyAdjust').click();
   await home();
   console.log('Five training days: the goal follows (Friday still skipped):', tile()==='1/4' ? 'OK' : `FAIL (${tile()})`);

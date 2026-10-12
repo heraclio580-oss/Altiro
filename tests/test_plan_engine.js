@@ -26,7 +26,7 @@ function check(label, ok, detail){
 }
 function setup(o){
   E.setState({trainingDays:o.days, focusRatio:o.focus ?? 0, goal:o.goal ?? null, level:o.level ?? 'intermediate', intensityIdx:o.int ?? 1,
-    weeklyMiles:o.miles ?? null, equipment:o.eq ?? 'gym', jogBaseline:o.jog ?? null, planStart:o.planStart ?? '2026-09-28', lang:'en', progression:{}, classes:o.classes ?? []});
+    weeklyMiles:o.miles ?? null, equipment:o.eq ?? 'gym', jogBaseline:o.jog ?? null, planStart:o.planStart ?? '2026-09-28', lang:'en', progression:{}, classes:o.classes ?? [], hardRunDay:o.hardRunDay ?? null, longRunDay:o.longRunDay ?? null});
   return n => E.generatePlanWeek(E.planConfig(), n);
 }
 const miles = d => d.p.t==='run' ? parseFloat(d.p.en.detail) : 0;
@@ -291,6 +291,33 @@ check('Standing swaps and skips apply to every generated workout', swapsApplied)
   // Easy classes, and classes not started yet, change nothing.
   const same = (a, b) => a.map(title).join()===b.map(title).join() && a.map(d=>d.wave ? d.wave.pos : '').join()===b.map(d=>d.wave ? d.wave.pos : '').join();
   check('Yoga and Pilates don\'t change the plan', same(base, setup({days:[0,2,4,5], focus:2, miles:25, classes:[...cls('yoga',[4]), ...cls('pilates',[0,2])]})(1)));
+  // The user's own day for the week's faster run.
+  const FAST = /Tempo Run|Interval Run|Fartlek Run|Hill Repeats/;
+  const fastDay = w => w.findIndex(d=> FAST.test(d.p.en.title));
+  const auto = [0,1,2].map(n=> fastDay(setup({days:[0,1,2,3,5], miles:25, int:2})(n)));
+  const onTue = [0,1,2].map(n=> fastDay(setup({days:[0,1,2,3,5], miles:25, int:2, hardRunDay:1})(n)));
+  const onWed = [0,1,2].map(n=> fastDay(setup({days:[0,1,2,3,5], miles:25, int:2, hardRunDay:2})(n)));
+  check('Faster run day: Auto puts it early in the week (Monday here)', auto.every(d=> d===0), auto.join());
+  check('...choosing Tuesday puts it on Tuesday every week', onTue.every(d=> d===1), onTue.join());
+  check('...choosing Wednesday, on Wednesday', onWed.every(d=> d===2), onWed.join());
+  const longStays = setup({days:[0,1,2,3,5], miles:25, int:2, hardRunDay:2})(1);
+  check('...and the long run stays where it was (Saturday)', /Long Run/.test(longStays[5].p.en.title), longStays.map(d=>d.p.en.title).join(' | '));
+  const classWeek = setup({days:[0,1,2,3,5], miles:25, int:2, hardRunDay:2, classes:cls('jiujitsu',[2])})(1);
+  check('A hard class on the chosen day: the faster run moves to another day that week (not lost)', fastDay(classWeek)>=0 && fastDay(classWeek)!==2, classWeek.map(d=>d.p.en.title).join(' | '));
+  const gone = setup({days:[0,2,3,5], miles:25, int:2, hardRunDay:1})(1);
+  check('A chosen day that is no longer a training day is ignored', fastDay(gone)>=0, gone.map(d=>d.p.en.title).join(' | '));
+
+  // ...and for the long run.
+  const longDay = w => w.findIndex(d=> /Long Run/.test(d.p.en.title));
+  const longSat = [1,2].map(n=> longDay(setup({days:[0,1,2,3,5], miles:25, int:2})(n)));
+  const longThu = [1,2].map(n=> longDay(setup({days:[0,1,2,3,5], miles:25, int:2, longRunDay:3})(n)));
+  check('Long run day: Auto puts it at the weekend (Saturday here)', longSat.every(d=> d===5), longSat.join());
+  check('...choosing Thursday puts it on Thursday every week', longThu.every(d=> d===3), longThu.join());
+  const both = setup({days:[0,1,2,3,5], miles:25, int:2, longRunDay:3, hardRunDay:1})(1);
+  check('...together with a faster run day: both where chosen', longDay(both)===3 && fastDay(both)===1, both.map(d=>d.p.en.title).join(' | '));
+  const sameDay = setup({days:[0,1,2,3,5], miles:25, int:2, longRunDay:3, hardRunDay:3})(1);
+  check('...the same day for both: the long run keeps it, the faster run goes elsewhere', longDay(sameDay)===3 && fastDay(sameDay)>=0 && fastDay(sameDay)!==3, sameDay.map(d=>d.p.en.title).join(' | '));
+
   check('A class only shapes the weeks from when it starts', same(setup({days:[0,2,4,5], focus:2, miles:25})(0), setup({days:[0,2,4,5], focus:2, miles:25, classes:cls('jiujitsu',[4],'2026-10-05')})(0))
     && !same(base, setup({days:[0,2,4,5], focus:2, miles:25, classes:cls('jiujitsu',[4],'2026-10-05')})(1)));
 }

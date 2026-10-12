@@ -2410,11 +2410,18 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
       <div class="sheet-section">
         <div class="st-label" data-i18n="trainingDaysLabel"></div>
-        <div class="chip-row" id="adjDayCountChips"></div>
-        <div class="label" style="margin-top:14px;" data-i18n="whichDaysLabel"></div>
         <div class="chip-row" id="adjWeekdayChips"></div>
         <div class="days-summary" id="adjDaysSummary"></div>
         <div class="footer-note" style="text-align:left;margin-top:8px;" data-i18n="trainingDaysMidWeekNote"></div>
+      </div>
+
+      <div class="sheet-section" id="adjHardRunSection" hidden>
+        <div class="st-label" data-i18n="longRunDayLabel"></div>
+        <div class="chip-row" id="adjLongRunChips"></div>
+        <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjLongRunNote"></div>
+        <div class="st-label" style="margin-top:14px;" data-i18n="hardRunDayLabel"></div>
+        <div class="chip-row" id="adjHardRunChips"></div>
+        <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjHardRunNote"></div>
       </div>
 
       <div class="sheet-section">
@@ -3547,6 +3554,12 @@ const STR = {
     applyBtn: "Apply",
     toastUpdated: "Plan updated",
     workoutCompleteTitle: "Workout Complete",
+    longRunDayLabel: "Long run day",
+    longRunDayNoteAuto: "Your long run goes at the weekend (or your last run day of the week). Pick a day to always have it then.",
+    longRunDayNote: "Your long run goes on {day}, unless a hard class is that day.",
+    hardRunDayLabel: "Faster run day", hardRunDayAuto: "Auto",
+    hardRunDayNoteAuto: "Your week's faster run (tempo, intervals, hills or fartlek) goes early in the week, away from the long run. Pick a day to always have it then.",
+    hardRunDayNote: "Your week's faster run (tempo, intervals, hills or fartlek) goes on {day}, unless a hard class is that day.",
     backToTodayBtn: "Back to Today", summaryBackBtn: "Back", summaryEditBtn: "Edit",
     shareWorkoutBtn: "Share workout", shareCardTitle: "Share your workout", shareFormatPost: "Post", shareFormatStory: "Story",
     gpsTrackBtn: "Track a run with GPS", gpsTrackInLog: "Track this run with GPS", gpsTitle: "GPS run",
@@ -4226,6 +4239,12 @@ const STR = {
     applyBtn: "Aplicar",
     toastUpdated: "Plan actualizado",
     workoutCompleteTitle: "Entrenamiento completado",
+    longRunDayLabel: "Día de la carrera larga",
+    longRunDayNoteAuto: "Tu carrera larga va el fin de semana (o tu último día de carrera de la semana). Elige un día para tenerla siempre ese día.",
+    longRunDayNote: "Tu carrera larga va el {day}, salvo que ese día tengas una clase intensa.",
+    hardRunDayLabel: "Día de la carrera rápida", hardRunDayAuto: "Auto",
+    hardRunDayNoteAuto: "La carrera rápida de la semana (tempo, intervalos, cuestas o fartlek) va al principio de la semana, lejos de la carrera larga. Elige un día para tenerla siempre ese día.",
+    hardRunDayNote: "La carrera rápida de la semana (tempo, intervalos, cuestas o fartlek) va el {day}, salvo que ese día tengas una clase intensa.",
     backToTodayBtn: "Volver a hoy", summaryBackBtn: "Volver", summaryEditBtn: "Editar",
     shareWorkoutBtn: "Compartir entrenamiento", shareCardTitle: "Comparte tu entrenamiento", shareFormatPost: "Publicación", shareFormatStory: "Historia",
     gpsTrackBtn: "Registrar carrera con GPS", gpsTrackInLog: "Registrar esta carrera con GPS", gpsTitle: "Carrera con GPS",
@@ -4745,6 +4764,10 @@ function planConfig(overrides){
     // way to choosing the split).
     strengthFocus: 'allround',
     liftSplit: LIFT_SPLIT_OPTIONS.some(o=>o.key===state.liftSplit) ? state.liftSplit : 'auto',
+    // The day the user wants the week's faster run on (tempo, intervals, hills...), or null to let the plan pick.
+    hardRunDay: Number.isInteger(state.hardRunDay) && state.trainingDays.includes(state.hardRunDay) ? state.hardRunDay : null,
+    // ...and for the long run.
+    longRunDay: Number.isInteger(state.longRunDay) && state.trainingDays.includes(state.longRunDay) ? state.longRunDay : null,
     // Hard weekly classes the plan works around (see classLoadFor), and the plan's first Monday to
     // tell which weeks each one is in.
     ...planClassLoad(),
@@ -5074,9 +5097,11 @@ const COMPANION = {
 // there's a weekend training day. At most 7 sessions, so trying every arrangement is cheap -- and it's
 // remembered, since it only depends on the days and the kinds of sessions.
 const placementCache = new Map();
-function placeSessions(days, items, load){
+function placeSessions(days, items, load, hardRunDay, longRunDay){
   load = load || {};
-  const cacheKey = days.join(',')+'|'+items.map(it=>it.sig).join(',')+'|'+JSON.stringify(load);
+  if(hardRunDay==null) hardRunDay = null;
+  if(longRunDay==null) longRunDay = null;
+  const cacheKey = days.join(',')+'|'+items.map(it=>it.sig).join(',')+'|'+JSON.stringify(load)+'|'+hardRunDay+'|'+longRunDay;
   if(placementCache.has(cacheKey)) return placementCache.get(cacheKey);
   const hasWeekend = days.includes(5) || days.includes(6);
   const lastDay = days[days.length-1];
@@ -5110,9 +5135,10 @@ function placeSessions(days, items, load){
       if(next) c += pairCost(it, next) * (d===6 ? 0.5 : 1);
       // Long run Saturday morning (or Sunday); the short recovery run the day after it; the week's fast
       // session early; the longer easy run mid-week.
-      if(it.role==='long') c += hasWeekend ? (d===5 ? 0 : d===6 ? 1 : 8) : (lastDay-d);
+      if(it.role==='long') c += longRunDay!=null ? (d===longRunDay ? 0 : 40) : hasWeekend ? (d===5 ? 0 : d===6 ? 1 : 8) : (lastDay-d);
       if(it.role==='recovery'){ const prev = byDay[d===0 ? 6 : d-1]; c += prev && prev.role==='long' ? 0 : 2; }
-      if(it.role==='quality') c += 0.3*d;
+      // The week's fast run: on the day the user chose (above everything but a hard class that day), else early.
+      if(it.role==='quality') c += hardRunDay!=null ? (d===hardRunDay ? 0 : 40) : 0.3*d;
       if(it.role==='easyLong') c += 0.2*Math.abs(d-3);
       // Around a hard class (jiu-jitsu, wrestling, spin...): not the long run or a fast run that day,
       // or heavy legs with a leg-heavy class, or heavy upper body with climbing -- and nothing hard the
@@ -5200,7 +5226,13 @@ function generatePlanWeek(cfg, n){
   });
 
   const classLoad = classLoadFor(cfg, n);
-  const placed = placeSessions(days, items, classLoad).slice();
+  // The user's own days for the long run and the fast run -- each giving way in a week with a hard class
+  // that day (the long run doesn't go with one; the fast run would only become easy), and the fast run to
+  // the long run if they're the same day.
+  const freeOfClass = d => d!=null && !(classLoad[d] && classLoad[d].hard) ? d : null;
+  const longRunDay = freeOfClass(cfg.longRunDay);
+  const hardRunDay = cfg.hardRunDay!==longRunDay ? freeOfClass(cfg.hardRunDay) : null;
+  const placed = placeSessions(days, items, classLoad, hardRunDay, longRunDay).slice();
   // A fast run with nowhere to go but a hard class's day (too few run days) is an easy run instead.
   days.forEach((d,i)=>{ if(placed[i].role==='quality' && classLoad[d] && classLoad[d].hard) placed[i] = {...placed[i], sub:'easy', hard:false}; });
   // A short run that can't be the day after the long run is simply a short easy run -- and the longer
@@ -6036,6 +6068,8 @@ const defaultState = () => ({
   classes:[], // recurring classes {id, kind, name, days (0 = Mon), time 'HH:MM', minutes, from, skips} -- see classItemsFor()
   badges:null, // earned badges {id: dateKey} and the best efforts' top three; null until worked out (see checkBadges)
   hiddenLifts:[], // lift keys taken off Progress -> Your lifts; their logged workouts stay
+  hardRunDay: null, // the weekday (0 = Monday) for the week's faster run, or null: the plan picks
+  longRunDay: null, // the same, for the long run
   exerciseSwaps:{}, // "every workout" exercise changes: {exerciseKey: replacementKey | 'skip'} -- see applyStandingSwaps()
   week:null,
   todayCompleted:false,
@@ -7405,10 +7439,11 @@ function selectLevel(k){
 // The "how many days" + "which days" chip rows, shared by onboarding and the Adjust sheet. `holder` is
 // whichever object owns the trainingDays being edited (state itself, or the Adjust sheet's draft);
 // minDays is the fewest days a tap may leave selected.
+// (Adjust has no count chips: tapping the days themselves sets how many and which.)
 function renderDayChips(countId, weekdayId, holder, minDays, onChange){
-  const countEl = document.getElementById(countId);
-  countEl.innerHTML = [2,3,4,5,6].map(n=>`<div class="chip ${holder.trainingDays.length===n?'sel':''}" data-count="${n}">${n}</div>`).join('');
-  countEl.querySelectorAll('.chip').forEach(c=>{
+  const countEl = countId && document.getElementById(countId);
+  if(countEl) countEl.innerHTML = [2,3,4,5,6].map(n=>`<div class="chip ${holder.trainingDays.length===n?'sel':''}" data-count="${n}">${n}</div>`).join('');
+  if(countEl) countEl.querySelectorAll('.chip').forEach(c=>{
     c.addEventListener('click', ()=>{
       holder.trainingDays = DAY_COUNT_PRESETS[parseInt(c.getAttribute('data-count'),10)].slice();
       onChange();
@@ -7721,7 +7756,7 @@ function setupSliders(){
     document.getElementById('adjSliderFill'),
     ()=> state.adjustDraft ? state.adjustDraft.focusRatio : state.focusRatio,
     (v)=>{ if(state.adjustDraft) state.adjustDraft.focusRatio=v; },
-    (v)=>{ document.getElementById('adjSliderLabel').textContent = FOCUS_LABELS[state.lang][v]; renderAdjBaseline(); if(state.adjustDraft) renderAdjIntensityTabs(); }
+    (v)=>{ document.getElementById('adjSliderLabel').textContent = FOCUS_LABELS[state.lang][v]; renderAdjBaseline(); if(state.adjustDraft){ renderAdjIntensityTabs(); renderAdjHardRunChips(); } }
   );
 }
 
@@ -12012,7 +12047,7 @@ document.getElementById('confirmDeleteAccount').addEventListener('click', async 
 /* ---------------- adjust sheet ---------------- */
 function openAdjustSheet(){
   ensureWeek();
-  state.adjustDraft = {own: !!state.ownWorkouts, focusRatio: state.focusRatio, intensityIdx: state.focusRatio>=4 ? liftIntensity() : state.intensityIdx, liftIntensityIdx: state.liftIntensityIdx ?? null, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, liftSplit: state.liftSplit, mileTime: state.mileTime};
+  state.adjustDraft = {own: !!state.ownWorkouts, focusRatio: state.focusRatio, intensityIdx: state.focusRatio>=4 ? liftIntensity() : state.intensityIdx, liftIntensityIdx: state.liftIntensityIdx ?? null, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, liftSplit: state.liftSplit, mileTime: state.mileTime, hardRunDay: state.hardRunDay, longRunDay: state.longRunDay};
   document.getElementById('adjustOverlay').hidden = false;
   highlightNav('adjust');
   adjSlider.paint();
@@ -12058,13 +12093,42 @@ function renderAdjIntensityTabs(){
 function renderAdjDaysChips(){
   const L = STR[state.lang];
   const draft = state.adjustDraft;
-  renderDayChips('adjDayCountChips', 'adjWeekdayChips', draft, 0, renderAdjDaysChips);
+  renderDayChips(null, 'adjWeekdayChips', draft, 0, renderAdjDaysChips);
+  renderAdjHardRunChips();
   renderLiftSplitNote('adj', draft);
   document.getElementById('adjDaysSummary').textContent = draft.trainingDays.length===0
     ? L.noTrainingDaysNote
     : `${draft.trainingDays.length} ${L.daysSelectedSuffix}`;
 }
 
+// "Long run day" and "Faster run day": which of the run days the week's long run, and its tempo /
+// intervals / hills, go on -- Auto lets the plan pick (the long run at the weekend, the faster run early
+// in the week). The same day can't be both: picking one for the other clears it there. Shown when the
+// plan has at least two run days.
+function renderAdjHardRunChips(){
+  const L = STR[state.lang], d = state.adjustDraft;
+  const days = d.trainingDays.slice().sort((a,b)=>a-b);
+  const runDays = splitTrainingDays(days.length, d.focusRatio, state.goal).runs;
+  const show = !d.own && runDays>=2;
+  document.getElementById('adjHardRunSection').hidden = !show;
+  if(!show) return;
+  if(d.hardRunDay!=null && !days.includes(d.hardRunDay)) d.hardRunDay = null;
+  if(d.longRunDay!=null && !days.includes(d.longRunDay)) d.longRunDay = null;
+  const dayName = i=> state.lang==='es' ? DAY_NAMES_FULL.es[i].toLowerCase() : DAY_NAMES_FULL.en[i];
+  [['long', 'longRunDay', 'hardRunDay', 'adjLongRunChips', 'adjLongRunNote', L.longRunDayNoteAuto, L.longRunDayNote],
+   ['hard', 'hardRunDay', 'longRunDay', 'adjHardRunChips', 'adjHardRunNote', L.hardRunDayNoteAuto, L.hardRunDayNote]].forEach(([kind, own, other, rowId, noteId, autoNote, dayNote])=>{
+    const chip = (key, label)=> `<div class="chip ${(d[own] ?? 'auto')===key ? 'sel' : ''}" data-${kind}-day="${key}">${escapeHtml(label)}</div>`;
+    const el = document.getElementById(rowId);
+    el.innerHTML = chip('auto', L.hardRunDayAuto) + days.map(i=> chip(i, DAY_NAMES_SHORT[state.lang][i])).join('');
+    el.querySelectorAll(`[data-${kind}-day]`).forEach(c=> c.addEventListener('click', ()=>{
+      const k = c.getAttribute(`data-${kind}-day`);
+      d[own] = k==='auto' ? null : Number(k);
+      if(d[own]!=null && d[other]===d[own]) d[other] = null;
+      renderAdjHardRunChips();
+    }));
+    document.getElementById(noteId).textContent = d[own]==null ? autoNote : dayNote.replace('{day}', dayName(d[own]));
+  });
+}
 document.getElementById('applyAdjust').addEventListener('click', ()=>{
   const d = state.adjustDraft;
   // Their own workouts from today on; or back to a generated plan, which starts fresh from today (the
@@ -12078,6 +12142,8 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
   state.trainingDays = d.trainingDays.slice();
   state.equipment = d.equipment;
   state.liftSplit = d.liftSplit || 'auto';
+  state.hardRunDay = d.hardRunDay!=null && d.trainingDays.includes(d.hardRunDay) ? d.hardRunDay : null;
+  state.longRunDay = d.longRunDay!=null && d.trainingDays.includes(d.longRunDay) ? d.longRunDay : null;
   const newMile = d.mileTime || null;
   if(newMile!==state.mileTime){ state.mileTime = newMile; reseedRunPaces(); }
   // A chosen start date starts the plan over from that day. Otherwise a new starting mileage restarts
@@ -14162,6 +14228,8 @@ async function loadProfileFromCloud(){
   if(data.weekly_miles!=null) state.weeklyMiles = Number(data.weekly_miles);
   if(data.equipment) state.equipment = data.equipment;
   if(data.lift_split) state.liftSplit = data.lift_split;
+  if('hard_run_day' in data) state.hardRunDay = Number.isInteger(data.hard_run_day) ? data.hard_run_day : null;
+  if('long_run_day' in data) state.longRunDay = Number.isInteger(data.long_run_day) ? data.long_run_day : null;
   if(data.mile_time_sec) state.mileTime = Number(data.mile_time_sec);
   if(data.jog_baseline && typeof data.jog_baseline==='object') state.jogBaseline = data.jog_baseline;
   if(data.exercise_swaps && typeof data.exercise_swaps==='object') state.exerciseSwaps = data.exercise_swaps;
@@ -14212,18 +14280,25 @@ async function saveProfileToCloud(){
       hidden_lifts: state.hiddenLifts,
       ...(badgesReady ? {badges: state.badges} : {}), // (never before they're worked out: that would wipe saved ones)
       lift_split: state.liftSplit,
+      hard_run_day: state.hardRunDay,
+      long_run_day: state.longRunDay,
       jog_baseline: state.jogBaseline,
       mile_time_sec: state.mileTime,
       classes: state.classes,
       own_since: state.ownWorkouts ? state.ownSince : null,
       updated_at: new Date().toISOString(),
     };
-    const { error } = await sb.from('profiles').update(payload).eq('id', state.userId);
+    let { error } = await sb.from('profiles').update(payload).eq('id', state.userId);
+    // The newest columns first (the run-day choices), so everything else still saves before they exist.
+    if(error){
+      delete payload.hard_run_day; delete payload.long_run_day;
+      ({ error } = await sb.from('profiles').update(payload).eq('id', state.userId));
+    }
     if(error){
       // Columns added by newer migrations may not exist yet on this project's live database --
       // retry without them so the rest of the profile (streak, totals, etc.) still saves instead of
       // the whole update silently failing over one missing column.
-      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes','own_since','distance_unit','hidden_lifts','badges'].forEach(k=>{ delete payload[k]; });
+      ['last_counted_date','weekly_miles','equipment','plan_start','exercise_swaps','strength_focus','jog_baseline','mile_time_sec','plan_start_date','lift_intensity_idx','lift_split','classes','own_since','distance_unit','hidden_lifts','badges','hard_run_day','long_run_day'].forEach(k=>{ delete payload[k]; });
       await sb.from('profiles').update(payload).eq('id', state.userId);
     }
   }catch(e){ /* best-effort; local state remains the source of truth for this session */ }

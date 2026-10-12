@@ -91,6 +91,8 @@ check('No run + lift days: the plan is exactly as before', JSON.stringify(week({
   doc.querySelector('#adjRunLiftChips [data-run-lift-day="2"]').click();
   check('Tapping Mon and Wed picks them, and says what it does', chips().join(',')==='MON*,TUE,WED*,THU,SAT' && /Run \+ lift on MON · WED/.test(doc.getElementById('adjRunLiftNote').textContent), doc.getElementById('adjRunLiftNote').textContent);
   check('...and lifting\'s settings show (equipment, split, lifting intensity)', shown('adjEquipSection') && shown('adjLiftIntensitySection'));
+  check('The slider says it\'s running plus lifting, not "Running only"', doc.getElementById('adjSliderLabel').textContent==='Running + 2 lifting days', doc.getElementById('adjSliderLabel').textContent);
+  check('...and the lifting intensity is for those days', /run \+ lift days \(MON · WED\)/.test(doc.getElementById('adjLiftIntensityNote').textContent), doc.getElementById('adjLiftIntensityNote').textContent);
   doc.getElementById('applyAdjust').click(); await wait(20);
 
   // Signing in redraws the setup screens (language, focus preview) with the saved plan -- a run + lift day

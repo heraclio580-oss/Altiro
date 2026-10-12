@@ -2375,7 +2375,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div id="adjLiftIntensitySection" hidden>
           <div class="st-label" style="margin-top:14px;" data-i18n="liftIntensityLabel"></div>
           <div class="tabs-row" id="adjLiftIntensityTabs"></div>
-          <div class="footer-note" style="text-align:left;margin-top:8px;" data-i18n="liftIntensityNote"></div>
+          <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjLiftIntensityNote"></div>
         </div>
       </div>
 
@@ -3551,6 +3551,8 @@ const STR = {
     runIntensityLabel: "Running intensity",
     liftIntensityLabel: "Lifting intensity",
     liftIntensityNote: "Set separately from your running, so heavy lifting and an easy run or walk never clash.",
+    focusRunPlusLift: "Running + {n} lifting days",
+    liftIntensityNoteRunLift: "For the lifting on your run + lift days ({days}) — set separately from your running.",
     trainingDaysLabel: "Training Days",
     trainingDaysMidWeekNote: "Applies to the rest of this week — days you've already done or missed stay as they are.",
     editNameTitle: "Edit Name",
@@ -4239,6 +4241,8 @@ const STR = {
     runIntensityLabel: "Intensidad al correr",
     liftIntensityLabel: "Intensidad en pesas",
     liftIntensityNote: "Aparte de la de correr, para que levantar pesado y una carrera o caminata suave no choquen.",
+    focusRunPlusLift: "Correr + {n} días de pesas",
+    liftIntensityNoteRunLift: "Para las pesas de tus días de correr + pesas ({days}), aparte de la de correr.",
     trainingDaysLabel: "Días de entrenamiento",
     trainingDaysMidWeekNote: "Se aplica al resto de esta semana — los días que ya completaste o perdiste no cambian.",
     editNameTitle: "Editar nombre",
@@ -12272,6 +12276,13 @@ function renderAdjIntensityTabs(){
   document.getElementById('adjIntensityLabel').textContent = both ? L.runIntensityLabel : L.intensityLabel;
   renderIntensityTabs('adjIntensityTabs', d.focusRatio>=4 ? LIFT_INTENSITY : INTENSITY, d.intensityIdx, idx=>{ d.intensityIdx = idx; renderAdjIntensityTabs(); });
   document.getElementById('adjLiftIntensitySection').hidden = !both;
+  // Running only with run + lift days: the lifting there is what the lifting settings are for -- say so,
+  // rather than "Running only" sitting over them.
+  const runLift = d.focusRatio<=0 ? holderRunLift(d) : [];
+  document.getElementById('adjSliderLabel').textContent = runLift.length
+    ? L.focusRunPlusLift.replace('{n}', runLift.length) : FOCUS_LABELS[state.lang][d.focusRatio];
+  document.getElementById('adjLiftIntensityNote').textContent = runLift.length
+    ? L.liftIntensityNoteRunLift.replace('{days}', runLift.map(i=> DAY_NAMES_SHORT[state.lang][i]).join(' · ')) : L.liftIntensityNote;
   renderIntensityTabs('adjLiftIntensityTabs', LIFT_INTENSITY, d.liftIntensityIdx ?? d.intensityIdx, idx=>{ d.liftIntensityIdx = idx; renderAdjIntensityTabs(); });
 }
 function renderAdjDaysChips(){

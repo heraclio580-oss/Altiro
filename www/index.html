@@ -391,6 +391,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .overview-card .eyebrow{display:block;margin-bottom:12px;}
 .ov-row{margin-top:12px;}
 .ov-row:first-of-type,.ov-row.sr-only + .ov-row{margin-top:0;}
+.th-week{position:relative;margin:14px 0 2px;}
+.th-week .ov-top{font-size:calc(12px * var(--fs, 1));color:var(--text-2);}
 .sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
 .ov-top{display:flex;justify-content:space-between;font-size:calc(12px * var(--fs, 1));color:var(--text-2);margin-bottom:6px;}
 .ov-top span:last-child{font-family:var(--font-mono);color:var(--text);font-weight:600;}
@@ -1808,30 +1810,28 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         </div>
         <div class="th-ring" id="thRing"></div>
       </div>
+      <!-- This week: workouts (the ring above, and here for screen readers) and distance. -->
+      <div class="th-week" id="homeOverview">
+        <div class="ov-row sr-only">
+          <div class="ov-top"><span data-i18n="workoutsLabel"></span><span id="ovWorkoutsVal"></span></div>
+          <div class="bar-track"><div class="bar-fill" id="ovWorkoutsBar"></div></div>
+        </div>
+        <div class="ov-row">
+          <div class="ov-top"><span id="ovDistanceLabel" data-i18n="statDistance"></span><span id="ovDistanceVal"></span></div>
+          <div class="bar-track"><div class="bar-fill" id="ovDistanceBar"></div></div>
+        </div>
+      </div>
       <button class="th-start" id="recordBtn" type="button"><span class="th-start-ic" id="recordIcon"></span><span id="recordLabel"></span></button>
       <div class="th-next" id="thNext"></div>
     </div>
 
-    <!-- Today's workout itself, right under Start: what it is and its exercises, before the week. -->
-    <div class="session-card" id="sessionCard"></div>
-
     <div class="checklist-card" id="homeChecklist" hidden></div>
-
-    <div class="overview-card" id="homeOverview">
-      <span class="eyebrow" data-i18n="weekViewTitle"></span>
-      <!-- (The workouts count is the ring on the card above; kept here for screen readers only.) -->
-      <div class="ov-row sr-only">
-        <div class="ov-top"><span data-i18n="workoutsLabel"></span><span id="ovWorkoutsVal"></span></div>
-        <div class="bar-track"><div class="bar-fill" id="ovWorkoutsBar"></div></div>
-      </div>
-      <div class="ov-row">
-        <div class="ov-top"><span id="ovDistanceLabel" data-i18n="statDistance"></span><span id="ovDistanceVal"></span></div>
-        <div class="bar-track"><div class="bar-fill" id="ovDistanceBar"></div></div>
-      </div>
-    </div>
 
     <div class="week-strip" id="weekStrip"></div>
     <div class="view-week-link"><button class="btn-text" data-i18n="viewFullWeekLink" data-go="week"></button></div>
+
+    <!-- Today's workout: what it is and its exercises. -->
+    <div class="session-card" id="sessionCard"></div>
   </section>
 
   <!-- 10. PLAN (week view) -->
@@ -16128,7 +16128,8 @@ const settingsSection = id => { const el = document.getElementById(id); return e
 const TOUR_STEPS = [
   {key:'today',    screen:'home', target: ()=> document.getElementById('todayHero')},
   {key:'start',    screen:'home', target: ()=> document.getElementById('recordBtn')},
-  {key:'week',     screen:'home', target: ()=> document.querySelector('#screen-home .overview-card')},
+  // (The week's numbers, in the Start card: the ring, and the distance when the week has running.)
+  {key:'week',     screen:'home', target: ()=> !document.getElementById('homeOverview').hidden ? document.getElementById('homeOverview') : document.getElementById('thRing')},
   {key:'strip',    screen:'home', target: ()=> document.getElementById('weekStrip')},
   {key:'session',  screen:'home', target: ()=> document.getElementById('sessionCard'), top:true},
   {key:'plan',     screen:'week', target: ()=> document.querySelector('#weekList .plan-row') && [...document.querySelectorAll('#weekList .plan-row[data-week-idx="0"]')], top:true},

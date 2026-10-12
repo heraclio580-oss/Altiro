@@ -24,14 +24,14 @@ const E = new Function(`
   return {setState: s => { state = s; }, generatePlanWeek, planConfig};
 `)();
 function week(o, n){
-  E.setState({trainingDays:o.days, focusRatio:o.focus ?? 0, goal:null, level:o.level ?? 'intermediate', intensityIdx:2, weeklyMiles:25, equipment:'gym',
+  E.setState({trainingDays:o.days, focusRatio:o.focus ?? 1, goal:null, level:o.level ?? 'intermediate', intensityIdx:2, weeklyMiles:25, equipment:'gym',
     planStart:'2026-09-28', lang:'en', progression:{}, classes:[], hardRunDay:o.hard ?? null, longRunDay:null, runLiftDays:o.both ?? []});
   return E.generatePlanWeek(E.planConfig(), n);
 }
 const RUNS = [0,1,2,3,5];
-const plain = week({days:RUNS}, 0);
+const plain = week({days:RUNS, focus:0}, 0);
 const all = week({days:RUNS, both:RUNS}, 0);
-check('Running only, Mon-Thu + Sat, every day run + lift: every run stays as it was',
+check('Mostly running, Mon-Thu + Sat, every day run + lift: the runs are Running only\'s, unchanged',
   RUNS.every(d=> all[d].p.t==='run' && all[d].p.en.title===plain[d].p.en.title && all[d].p.en.detail===plain[d].p.en.detail),
   RUNS.map(d=> all[d].p.en.title).join(','));
 check('...and each of those days has a lifting workout too', RUNS.every(d=> all[d].x && all[d].x.t==='strength'), RUNS.map(d=> all[d].x && all[d].x.en.title).join(','));
@@ -61,6 +61,8 @@ check('Balanced + Tue/Thu run + lift: those cover its lifting days -- every day 
 const mixed = week({days:RUNS, focus:3, both:[1,3]}, 0);
 check('Mostly lifting + Tue/Thu run + lift: still lifting-only days for the rest of its lifting',
   [1,3].every(d=> mixed[d].p.t==='run' && mixed[d].x) && RUNS.filter(d=> mixed[d].p.t==='strength').length===2, RUNS.map(d=> mixed[d].p.en.title+(mixed[d].x ? '+'+mixed[d].x.en.title : '')).join(' | '));
+const only = week({days:RUNS, focus:0, both:[0,1,2,3]}, 0);
+check('Running only: run + lift days are ignored -- just running', JSON.stringify(only)===JSON.stringify(plain));
 const heavy = week({days:RUNS, focus:4, both:[1,3]}, 0);
 check('Weights only: run + lift days do nothing (no runs to pair with)', RUNS.every(d=> heavy[d].p.t==='strength' && !heavy[d].x));
 check('No run + lift days: the plan is exactly as before', JSON.stringify(week({days:RUNS, both:[]}, 3))===JSON.stringify(week({days:RUNS}, 3)));
@@ -84,15 +86,14 @@ check('No run + lift days: the plan is exactly as before', JSON.stringify(week({
     if(chip.classList.contains('sel')!==want && (pass===0 ? !want : want)) chip.click();
   }
   await wait(10);
+  check('Running only: no "Run + lift days", no lifting settings', !shown('adjRunLiftSection') && !shown('adjEquipSection') && !shown('adjLiftIntensitySection'));
+  key('ArrowRight'); await wait(10); // Mostly running
   const chips = () => [...doc.querySelectorAll('#adjRunLiftChips [data-run-lift-day]')].map(c=> c.textContent + (c.classList.contains('sel') ? '*' : ''));
   check('Adjust has "Run + lift days" with each training day', shown('adjRunLiftSection') && chips().join(',')==='MON,TUE,WED,THU,SAT', chips().join(','));
-  check('Running only: no equipment / lifting split yet', !shown('adjEquipSection'));
   doc.querySelector('#adjRunLiftChips [data-run-lift-day="0"]').click();
   doc.querySelector('#adjRunLiftChips [data-run-lift-day="2"]').click();
   check('Tapping Mon and Wed picks them, and says what it does', chips().join(',')==='MON*,TUE,WED*,THU,SAT' && /Run \+ lift on MON · WED/.test(doc.getElementById('adjRunLiftNote').textContent), doc.getElementById('adjRunLiftNote').textContent);
-  check('...and lifting\'s settings show (equipment, split, lifting intensity)', shown('adjEquipSection') && shown('adjLiftIntensitySection'));
-  check('The slider says it\'s running plus lifting, not "Running only"', doc.getElementById('adjSliderLabel').textContent==='Running + 2 lifting days', doc.getElementById('adjSliderLabel').textContent);
-  check('...and the lifting intensity is for those days', /run \+ lift days \(MON · WED\)/.test(doc.getElementById('adjLiftIntensityNote').textContent), doc.getElementById('adjLiftIntensityNote').textContent);
+  check('...with lifting\'s settings (equipment, split, lifting intensity)', shown('adjEquipSection') && shown('adjLiftIntensitySection'));
   doc.getElementById('applyAdjust').click(); await wait(20);
 
   // Signing in redraws the setup screens (language, focus preview) with the saved plan -- a run + lift day
@@ -147,9 +148,19 @@ check('No run + lift days: the plan is exactly as before', JSON.stringify(week({
   go('week'); await wait(20);
   check('Undo brings it back', lifted(0,2));
 
-  // Weights only: the choice goes away.
+  // Running only overrides them: just running (they're kept for moving back).
   go('adjust'); await wait(10);
   check('Reopening Adjust shows Mon + Wed chosen', chips().join(',')==='MON*,TUE,WED*,THU,SAT', chips().join(','));
+  key('ArrowLeft'); await wait(10);
+  check('Slider to Running only: "Run + lift days" and the lifting settings go away', !shown('adjRunLiftSection') && !shown('adjLiftIntensitySection') && !shown('adjEquipSection'));
+  doc.getElementById('applyAdjust').click(); await wait(20);
+  go('week'); await wait(20);
+  check('...and the plan is just running: no lifting on Plan', !doc.querySelector('#weekList .prow-lift') && ![...doc.querySelectorAll('#weekList .prow-title')].some(t=>/Strength/.test(t.textContent)));
+  go('adjust'); await wait(10);
+  key('ArrowRight'); await wait(10);
+  check('Back to Mostly running: Mon + Wed are still chosen', chips().join(',')==='MON*,TUE,WED*,THU,SAT', chips().join(','));
+
+  // Weights only: the choice goes away.
   for(let i=0;i<4;i++) key('ArrowRight');
   await wait(10);
   check('Weights only: no "Run + lift days"', !shown('adjRunLiftSection'));

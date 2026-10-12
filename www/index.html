@@ -3551,8 +3551,6 @@ const STR = {
     runIntensityLabel: "Running intensity",
     liftIntensityLabel: "Lifting intensity",
     liftIntensityNote: "Set separately from your running, so heavy lifting and an easy run or walk never clash.",
-    focusRunPlusLift: "Running + {n} lifting days",
-    liftIntensityNoteRunLift: "For the lifting on your run + lift days ({days}) — set separately from your running.",
     trainingDaysLabel: "Training Days",
     trainingDaysMidWeekNote: "Applies to the rest of this week — days you've already done or missed stay as they are.",
     editNameTitle: "Edit Name",
@@ -4241,8 +4239,6 @@ const STR = {
     runIntensityLabel: "Intensidad al correr",
     liftIntensityLabel: "Intensidad en pesas",
     liftIntensityNote: "Aparte de la de correr, para que levantar pesado y una carrera o caminata suave no choquen.",
-    focusRunPlusLift: "Correr + {n} días de pesas",
-    liftIntensityNoteRunLift: "Para las pesas de tus días de correr + pesas ({days}), aparte de la de correr.",
     trainingDaysLabel: "Días de entrenamiento",
     trainingDaysMidWeekNote: "Se aplica al resto de esta semana — los días que ya completaste o perdiste no cambian.",
     editNameTitle: "Editar nombre",
@@ -4760,11 +4756,11 @@ const STRENGTH_FOCUS_OPTIONS = [
 function runIntensity(){ return state.intensityIdx; }
 function liftIntensity(){ return state.liftIntensityIdx ?? state.intensityIdx; }
 function hasRunAndLift(focus){ return focus>0 && focus<4; }
-// "Run + lift days": training days that get a lifting workout on top of the run -- never in a weights-only
-// plan (it has no runs to pair one with).
+// "Run + lift days": training days that get a lifting workout on top of the run -- only in a plan with both
+// (Running only is just running; Weights only has no runs to pair one with).
 function runLiftDays(days, focus){
   days = days || state.trainingDays; focus = focus ?? state.focusRatio;
-  if(focus>=4) return [];
+  if(!hasRunAndLift(focus)) return [];
   return (state.runLiftDays||[]).filter(d=> Number.isInteger(d) && days.includes(d)).sort((a,b)=>a-b);
 }
 function planConfig(overrides){
@@ -4868,9 +4864,9 @@ function planCounts(n, focus, goal, both){
   return {runs: n - liftOnly, lifts: liftOnly + both};
 }
 // A setup's run + lift days (the Adjust draft's, or the saved settings'): its own training days only, and
-// none in a weights-only plan.
+// only in a plan with both running and lifting (they're kept, though, for moving back to one).
 function holderRunLift(holder){
-  return holder.focusRatio>=4 ? [] : (holder.runLiftDays||[]).filter(d=> (holder.trainingDays||[]).includes(d));
+  return !hasRunAndLift(holder.focusRatio) ? [] : (holder.runLiftDays||[]).filter(d=> (holder.trainingDays||[]).includes(d));
 }
 function roundHalf(x){ return Math.round(x*2)/2; }
 // Where the plan's weekly mileage starts: the miles the user runs now (the middle of the range they
@@ -7755,7 +7751,7 @@ function milesOptionKey(miles){
 }
 function renderBaselineChips(prefix, holder, onChange){
   document.getElementById(prefix+'MilesSection').hidden = holder.focusRatio>=4;
-  document.getElementById(prefix+'EquipSection').hidden = holder.focusRatio<=0 && !holderRunLift(holder).length;
+  document.getElementById(prefix+'EquipSection').hidden = holder.focusRatio<=0;
   renderChipRow(prefix+'MilesChips', milesOptionsShown(), milesOptionKey(holder.weeklyMiles), k=>{ holder.weeklyMiles = Number(k); onChange(); });
   renderChipRow(prefix+'EquipChips', EQUIPMENT_OPTIONS, holder.equipment, k=>{ holder.equipment = k; onChange(); });
   renderMileSection(prefix, holder);
@@ -12272,17 +12268,11 @@ document.getElementById('closeAdjust').addEventListener('click', closeAdjustShee
 // Running-only or weights-only: one Intensity row. Both: Running intensity, then Lifting intensity.
 function renderAdjIntensityTabs(){
   const L = STR[state.lang], d = state.adjustDraft;
-  const both = hasRunAndLift(d.focusRatio) || d.focusRatio<=0 && holderRunLift(d).length>0;
+  const both = hasRunAndLift(d.focusRatio);
   document.getElementById('adjIntensityLabel').textContent = both ? L.runIntensityLabel : L.intensityLabel;
   renderIntensityTabs('adjIntensityTabs', d.focusRatio>=4 ? LIFT_INTENSITY : INTENSITY, d.intensityIdx, idx=>{ d.intensityIdx = idx; renderAdjIntensityTabs(); });
   document.getElementById('adjLiftIntensitySection').hidden = !both;
-  // Running only with run + lift days: the lifting there is what the lifting settings are for -- say so,
-  // rather than "Running only" sitting over them.
-  const runLift = d.focusRatio<=0 ? holderRunLift(d) : [];
-  document.getElementById('adjSliderLabel').textContent = runLift.length
-    ? L.focusRunPlusLift.replace('{n}', runLift.length) : FOCUS_LABELS[state.lang][d.focusRatio];
-  document.getElementById('adjLiftIntensityNote').textContent = runLift.length
-    ? L.liftIntensityNoteRunLift.replace('{days}', runLift.map(i=> DAY_NAMES_SHORT[state.lang][i]).join(' · ')) : L.liftIntensityNote;
+  document.getElementById('adjLiftIntensityNote').textContent = L.liftIntensityNote;
   renderIntensityTabs('adjLiftIntensityTabs', LIFT_INTENSITY, d.liftIntensityIdx ?? d.intensityIdx, idx=>{ d.liftIntensityIdx = idx; renderAdjIntensityTabs(); });
 }
 function renderAdjDaysChips(){
@@ -12326,11 +12316,11 @@ function renderAdjHardRunChips(){
   });
 }
 // "Run + lift days": the training days that get a lifting workout as well as the run -- tap each one. Shown
-// whenever the plan has runs (not weights only, not their own workouts).
+// for a plan with both running and lifting (not Running only or Weights only, not their own workouts).
 function renderAdjRunLiftChips(){
   const L = STR[state.lang], d = state.adjustDraft;
   const days = d.trainingDays.slice().sort((a,b)=>a-b);
-  const show = !d.own && d.focusRatio<4 && days.length>0;
+  const show = !d.own && hasRunAndLift(d.focusRatio) && days.length>0;
   document.getElementById('adjRunLiftSection').hidden = !show;
   if(!show) return;
   const picked = holderRunLift(d);

@@ -51,9 +51,16 @@ for(const n of [0,1,2,4,5]) for(const both of [[0,1,2,3,5],[0,2,3],[1,3],[2],[0,
 check('A heavy leg day isn\'t put the day before a hard run (when the week leaves room)', legsOk, legsBad);
 const two = week({days:RUNS, both:[1,3]}, 0);
 check('Just Tue + Thu: lifting on those two, the other days plain runs', [1,3].every(d=> two[d].x) && [0,2,5].every(d=> !two[d].x && two[d].p.t==='run'));
-const mixed = week({days:RUNS, focus:2, both:[1,3]}, 0);
-check('Balanced plan + Tue/Thu run + lift: those two are runs with lifting, still some lifting-only days',
-  [1,3].every(d=> mixed[d].p.t==='run' && mixed[d].x) && RUNS.some(d=> mixed[d].p.t==='strength'), RUNS.map(d=> mixed[d].p.en.title+(mixed[d].x ? '+'+mixed[d].x.en.title : '')).join(' | '));
+const mostly = week({days:RUNS, focus:1, both:[0,1,2,3]}, 0);
+check('Mostly running + lifting Mon-Thu: Saturday stays a run -- the long run -- with no lifting',
+  mostly[5].p.t==='run' && /Long Run/.test(mostly[5].p.en.title) && !mostly[5].x && [0,1,2,3].every(d=> mostly[d].p.t==='run' && mostly[d].x),
+  RUNS.map(d=> mostly[d].p.en.title+(mostly[d].x ? '+'+mostly[d].x.en.title : '')).join(' | '));
+const balanced = week({days:RUNS, focus:2, both:[1,3]}, 0);
+check('Balanced + Tue/Thu run + lift: those cover its lifting days -- every day a run',
+  RUNS.every(d=> balanced[d].p.t==='run') && [1,3].every(d=> balanced[d].x), RUNS.map(d=> balanced[d].p.en.title+(balanced[d].x ? '+'+balanced[d].x.en.title : '')).join(' | '));
+const mixed = week({days:RUNS, focus:3, both:[1,3]}, 0);
+check('Mostly lifting + Tue/Thu run + lift: still lifting-only days for the rest of its lifting',
+  [1,3].every(d=> mixed[d].p.t==='run' && mixed[d].x) && RUNS.filter(d=> mixed[d].p.t==='strength').length===2, RUNS.map(d=> mixed[d].p.en.title+(mixed[d].x ? '+'+mixed[d].x.en.title : '')).join(' | '));
 const heavy = week({days:RUNS, focus:4, both:[1,3]}, 0);
 check('Weights only: run + lift days do nothing (no runs to pair with)', RUNS.every(d=> heavy[d].p.t==='strength' && !heavy[d].x));
 check('No run + lift days: the plan is exactly as before', JSON.stringify(week({days:RUNS, both:[]}, 3))===JSON.stringify(week({days:RUNS}, 3)));
@@ -98,6 +105,10 @@ check('No run + lift days: the plan is exactly as before', JSON.stringify(week({
   check('Plan: Monday and Wednesday show a lifting workout under the run', lifted(0,0) && lifted(0,2) && /Run/.test(row(0,0)), row(0,0)+' | '+row(0,2));
   check('...the other run days don\'t', !lifted(0,1) && !lifted(0,3) && !lifted(0,5));
   check('...next week too', lifted(1,0) && lifted(1,2));
+
+  go('calendar'); await wait(20);
+  const cal = d => (doc.querySelector(`#calGrid .mo-cell[data-date="${d}"] .mo-desc-a`) || {textContent:''}).textContent;
+  check('Calendar: a run + lift day shows its lifting workout as +1', /\+1/.test(cal('2026-10-14')) && !/\+/.test(cal('2026-10-13')), cal('2026-10-14')+' / '+cal('2026-10-13'));
 
   // Today (Monday): the lifting workout is under "Also today", ready to start.
   go('home'); await wait(20);

@@ -4855,11 +4855,13 @@ function splitTrainingDays(n, focus, goal){
   const minority = n<=2 ? 0 : Math.max(1, Math.floor(n*0.3));
   return focus===1 ? {runs:n-minority, lifts:minority} : {runs:minority, lifts:n-minority};
 }
-// How many runs and lifting workouts a week holds: run + lift days (both) count as both -- at least that
-// many runs, and the other days split as usual.
+// How many runs and lifting workouts a week holds. Run + lift days (both) count as both, and toward the
+// lifting days the plan's focus asks for: only when it asks for more than that are there lifting-only days
+// too -- every other day is a run (so "Mostly running" + lifting Mon-Thu keeps Saturday's long run).
 function planCounts(n, focus, goal, both){
-  const runs = Math.max(splitTrainingDays(n, focus, goal).runs, both||0);
-  return {runs, lifts: n - runs + (both||0)};
+  both = both || 0;
+  const liftOnly = Math.max(0, splitTrainingDays(n, focus, goal).lifts - both);
+  return {runs: n - liftOnly, lifts: liftOnly + both};
 }
 // A setup's run + lift days (the Adjust draft's, or the saved settings'): its own training days only, and
 // none in a weights-only plan.
@@ -9831,7 +9833,8 @@ function calendarDescHtml(dd){
   // Everything else that day, not counting whichever record the headline itself is (see primaryLogTarget).
   const head = primaryLogTarget(dd);
   const more = dd.extraWorkouts.filter(w=> !(head.kind==='extra' && head.id===w.id)).length
-    + dd.manualEntries.filter(e=> !(head.kind==='entry' && head.id===e.id)).length + unrecorded;
+    + dd.manualEntries.filter(e=> !(head.kind==='entry' && head.id===e.id)).length + unrecorded
+    + (pendingPlanLift(dd.key) ? 1 : 0); // (a run + lift day's lifting workout, not started yet)
   return `<span class="mo-desc">
       <span class="mo-desc-t">${escapeHtml(title)}</span>
       ${amount || more ? `<span class="mo-desc-a">${escapeHtml(amount)}${more ? `${amount?' ':''}+${more}` : ''}</span>` : ''}

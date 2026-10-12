@@ -5626,7 +5626,20 @@ const GYM_ONLY = new Set(['Back Squat','Front Squat','Leg Press','Inverted Row',
 // machine: "Keep this lift", or a swap).
 const MACHINE_FIRST = {hpush:'Chest Press Machine', vpush:'Shoulder Press Machine', squat:'Leg Press', vpull:'Assisted Pull-Up', triceps:'Assisted Dip'};
 const MACHINE_WEEKS = 4;
-function fitsVenue(key, equipment){ return equipment==='gym' ? !HOME_ONLY.has(key) : !GYM_ONLY.has(key); }
+// Whether a lift can be done with the user's equipment: in a gym, anything but the home stand-ins; at home,
+// a bodyweight move or one listed for their equipment (or what it also covers, see EQUIP_ACCESS) -- so a
+// barbell, cable or machine lift kept or swapped in at the gym doesn't follow them home.
+function fitsVenue(key, equipment){
+  if(equipment==='gym') return !HOME_ONLY.has(key);
+  if(GYM_ONLY.has(key)) return false;
+  const def = EXERCISES[key];
+  if(!def || def.bodyweight) return true; // (the mobility moves, and bodyweight lifts)
+  return (EQUIP_ACCESS[equipment] || [equipment]).some(eq=> venueLifts(eq).has(key));
+}
+const venueLiftSets = {};
+function venueLifts(equipment){
+  return venueLiftSets[equipment] || (venueLiftSets[equipment] = new Set(Object.values(MOVEMENTS).flatMap(m=> m[equipment] || [])));
+}
 // Each movement pattern's options by the equipment the user has. A workout slot cycles through the
 // options its equipment allows -- the first two slots of a workout (its main lifts) once per 4-week
 // block, so they can actually be progressed; the rest every week, for variety.
@@ -5830,9 +5843,11 @@ function exerciseFromKey(key, like){
 // The user's standing ("every workout") changes: {exerciseKey: replacementKey | 'skip'}. They apply to
 // every exercise the plan chose (fromPlan), including ones copied into a workout the user changed --
 // never to exercises the user typed in themselves. The returned list's .skipped names what was left out.
+// (A swap to a lift their equipment can't do -- one chosen at the gym, now training at home -- waits until
+// they're back with the equipment for it.)
 function standingSwapFor(key){
   const swap = state.exerciseSwaps && state.exerciseSwaps[key];
-  return swap && (swap==='skip' || exerciseDef(swap)) ? swap : null;
+  return swap && (swap==='skip' || exerciseDef(swap) && fitsVenue(swap, planEquipment())) ? swap : null;
 }
 function applyStandingSwaps(list){
   const out = [], skipped = [];

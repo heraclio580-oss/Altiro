@@ -86,6 +86,12 @@ check('No run + lift days: the plan is exactly as before', JSON.stringify(week({
   check('...and lifting\'s settings show (equipment, split, lifting intensity)', shown('adjEquipSection') && shown('adjLiftIntensitySection'));
   doc.getElementById('applyAdjust').click(); await wait(20);
 
+  // Signing in redraws the setup screens (language, focus preview) with the saved plan -- a run + lift day
+  // has no add-on, which used to break that preview and with it signing in.
+  let threw = null;
+  try{ go('onb-focus'); await wait(20); doc.querySelector('.lang-btn[data-lang="es"]').click(); doc.querySelector('.lang-btn[data-lang="en"]').click(); }catch(e){ threw = e; }
+  check('Setup\'s plan preview (redrawn when signing in) works with run + lift days', !threw && /(paired with|combinad).*(strength|fuerza)/i.test(doc.getElementById('onbPreview').textContent), threw ? threw.message : doc.getElementById('onbPreview').textContent);
+
   go('week'); await wait(20);
   const row = (w, d) => (doc.querySelector(`.plan-row[data-week-idx="${w}"][data-day="${d}"]`) || {textContent:''}).textContent.replace(/\s+/g,' ');
   const lifted = (w, d) => !!doc.querySelector(`.plan-row[data-week-idx="${w}"][data-day="${d}"] .prow-lift`);

@@ -7879,16 +7879,18 @@ function previewCardsHtml(focusIdx){
   const d = generatePlanWeek(planConfig({focus: focusIdx, days: state.trainingDays.length ? state.trainingDays.slice().sort((a,b)=>a-b) : [0,2,4]}), 0).find(x => x.p.t !== 'rest');
   if(!d) return '';
   const L = STR[state.lang];
-  const pL = d.p[state.lang], cL = d.c[state.lang];
+  // (Paired with its add-on -- or, on a run + lift day, which has none, its lifting workout.)
+  const pair = d.c || d.x || null;
+  const pL = d.p[state.lang], cL = pair && pair[state.lang];
   return `
     <div class="preview-card primary">
       <span class="ic">${TYPE_ICON[d.p.t]}</span>
       <div class="body"><div class="k">${L.todaysSessionLabel}</div><div class="v">${pL.title}${pL.detail?', '+pL.detail:''}</div></div>
     </div>
-    <div class="preview-card">
-      <span class="ic">${TYPE_ICON[d.c.t]}</span>
+    ${cL ? `<div class="preview-card">
+      <span class="ic">${TYPE_ICON[pair.t]}</span>
       <div class="body"><div class="k">${L.pairedWithLabel}</div><div class="v">${cL.title}${cL.detail?', '+cL.detail:''}</div></div>
-    </div>`;
+    </div>` : ''}`;
 }
 function updateOnbSliderLabels(v){
   document.getElementById('onbSliderLabel').textContent = FOCUS_LABELS[state.lang][v];

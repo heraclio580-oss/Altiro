@@ -46,7 +46,7 @@ function check(label, ok, detail){
 
   // ---- personalizing: the real Adjust sheet, one choice at a time ----
   await next();
-  check('Next opens Adjust on its first choice: running or lifting', adjustOpen() && title()==='Running or lifting' && /Adjust/i.test(section()), title());
+  check('Next opens Adjust on its first choice: your own workouts, or the plan', adjustOpen() && title()==='Your own workouts' && /Adjust/i.test(section()), title());
   check('...which can be changed right there (taps go through)', !tapsBlocked() && /Try it/.test(doc.getElementById('tourTry').textContent) && !doc.getElementById('tourTry').hidden);
   await back();
   check('Back out of Adjust closes it, unsaved', !adjustOpen() && title()==='Make it yours');
@@ -57,9 +57,8 @@ function check(label, ok, detail){
   // Add a fourth training day, inside the spotlight.
   const free = [...doc.querySelectorAll('#adjWeekdayChips .chip')].find(c=>!c.classList.contains('sel'));
   free.click(); await wait(20);
-  while(title()!=='Your own workouts'){ await next(); adjSeen.push(title()); if(adjSeen.length>8) break; }
-  check('Each choice in turn (the occasional one, under More options, last)', adjSeen.join(' > ')==='Running or lifting > Training days > Intensity > Weekly miles > Equipment and split > Your own workouts', adjSeen.join(' > '));
-  check('...with More options opened for it', !doc.getElementById('adjMore').hidden);
+  while(title()!=='Equipment and split'){ await next(); adjSeen.push(title()); if(adjSeen.length>8) break; }
+  check('Each choice in turn, top to bottom', adjSeen.join(' > ')==='Your own workouts > Running or lifting > Training days > Intensity > Weekly miles > Equipment and split', adjSeen.join(' > '));
   await next();
   check('Then: save your choices', title()==='Save your choices' && tapsBlocked());
   await next();

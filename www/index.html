@@ -917,7 +917,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .adj-more-btn{display:flex;align-items:center;justify-content:space-between;width:100%;margin:6px 0 0;padding:14px 0;background:none;border:none;border-top:1px solid var(--border);color:var(--text-2);font-family:var(--font-mono);font-size:calc(12px * var(--fs, 1));letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;}
 .adj-more-btn svg{width:16px;height:16px;transition:transform .15s;}
 .adj-more-btn[aria-expanded="true"] svg{transform:rotate(180deg);}
-#adjMore[hidden],#adjPlanMore[hidden]{display:none;}
+#adjMore[hidden],#adjPlanMore[hidden],#adjMoreWrap[hidden],#adjMoreBtn[hidden]{display:none;}
 .adj-apply-note{text-align:left;margin:14px 0 0;}
 .settings-list{border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;}
 .settings-list-row{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0 16px;background:none;border:none;border-top:1px solid var(--border);color:var(--text-2);font:inherit;font-size:calc(14px * var(--fs, 1));text-align:left;text-decoration:none;cursor:pointer;}
@@ -2372,7 +2372,14 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="iconbtn" id="closeAdjust"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       </div>
 
-      <!-- The plan's main choices first; the occasional ones folded under "More options". -->
+      <!-- First: no generated plan at all -- one switch and they're set. -->
+      <div class="sheet-section" id="adjOwnSection">
+        <div class="toggle-row">
+          <div><div class="tt" data-i18n="ownWorkoutsTitle"></div><div class="ts" data-i18n="ownWorkoutsSub"></div></div>
+          <div class="toggle" id="adjOwnToggle" role="switch" tabindex="0"><div class="knob"></div></div>
+        </div>
+      </div>
+      <!-- Then the plan's main choices; the occasional ones folded under "More options". -->
       <div id="adjPlanOptions">
       <div class="sheet-section">
         <div class="st-label" data-i18n="focusRatioLabel"></div>
@@ -2436,6 +2443,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <button type="button" class="adj-more-btn" id="adjMoreBtn" aria-expanded="false" aria-controls="adjMore"><span data-i18n="adjMoreOptions"></span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l4 4 4-4"/></svg></button>
+      <div id="adjMoreWrap">
       <div id="adjMore" hidden>
       <div id="adjPlanMore">
       <div class="sheet-section" id="adjHardRunSection" hidden>
@@ -2460,13 +2468,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="footer-note" style="text-align:left;margin-top:8px;" id="adjStartNote"></div>
       </div>
 
-
       </div>
-      <div class="sheet-section" id="adjOwnSection">
-        <div class="toggle-row">
-          <div><div class="tt" data-i18n="ownWorkoutsTitle"></div><div class="ts" data-i18n="ownWorkoutsSub"></div></div>
-          <div class="toggle" id="adjOwnToggle" role="switch" tabindex="0"><div class="knob"></div></div>
-        </div>
       </div>
       </div>
       <div class="footer-note adj-apply-note" data-i18n="focusRatioMidWeekNote"></div>
@@ -12316,7 +12318,7 @@ function openAdjustSheet(){
   renderAdjBaseline();
   renderAdjStart();
   const d = state.adjustDraft;
-  setAdjMore(!!(d.own || d.hardRunDay!=null || d.longRunDay!=null || holderRunLift(d).length));
+  setAdjMore(!!(d.hardRunDay!=null || d.longRunDay!=null || holderRunLift(d).length));
   renderAdjOwn();
 }
 // "Create my own workouts" on: the generated plan's options don't apply, so they're put away.
@@ -12325,10 +12327,10 @@ function renderAdjOwn(){
   const t = document.getElementById('adjOwnToggle');
   t.classList.toggle('on', own);
   t.setAttribute('aria-checked', own);
+  // (Their own workouts: none of the plan's choices apply -- just the switch, and Apply.)
   document.getElementById('adjPlanOptions').hidden = own;
-  document.getElementById('adjPlanMore').hidden = own;
-  // (Their own workouts: the switch to turn it back off is under More options -- shown.)
-  if(own) setAdjMore(true);
+  document.getElementById('adjMoreBtn').hidden = own;
+  document.getElementById('adjMoreWrap').hidden = own;
 }
 // "More options": the occasional choices, folded away -- open when one of them is already in use.
 function setAdjMore(open){
@@ -16134,14 +16136,13 @@ const TOUR_STEPS = [
   {key:'session',  screen:'home', target: ()=> document.getElementById('sessionCard'), top:true},
   {key:'plan',     screen:'week', target: ()=> document.querySelector('#weekList .plan-row') && [...document.querySelectorAll('#weekList .plan-row[data-week-idx="0"]')], top:true},
   {key:'adjust',   screen:'week', target: ()=> document.querySelector('#screen-week [data-open-adjust]')},
+  {key:'own',      sheet:true, try:true, target: ()=> document.getElementById('adjOwnSection')},
   {key:'focus',    sheet:true, try:true, target: ()=> adjSection('adjSliderTrack')},
   {key:'days',     sheet:true, try:true, target: ()=> adjSection('adjWeekdayChips')},
   {key:'intensity',sheet:true, try:true, target: ()=> adjSection('adjIntensityTabs')},
   {key:'miles',    sheet:true, try:true, target: ()=> document.getElementById('adjMilesSection')},
   {key:'mile',     sheet:true, try:true, target: ()=> document.getElementById('adjMileSection')},
   {key:'equip',    sheet:true, try:true, target: ()=> document.getElementById('adjEquipSection')},
-  // (Under More options -- opened for it.)
-  {key:'own',      sheet:true, try:true, target: ()=>{ setAdjMore(true); return document.getElementById('adjOwnSection'); }},
   {key:'apply',    sheet:true, target: ()=> document.getElementById('applyAdjust'), save:true},
   {key:'calendar', screen:'calendar', target: ()=> document.getElementById('calGrid'), top:true},
   // (Nothing logged yet: the note that stands in for the charts.)

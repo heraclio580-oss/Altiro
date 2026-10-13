@@ -3,14 +3,13 @@
 These two commands get the store apps (iPhone and Android) ready to build. You only need them for the
 store apps. The website updates by itself whenever code is pushed.
 
-> **Before your very first build:** ask Claude to **"set up watches and health"** first (Capacitor 8 upgrade,
-> Apple Health / Health Connect for watches and steps). See section 4 of `docs/launch-checklist.md`.
+> The app is on **Capacitor 8** (with Apple Health / Health Connect), which needs **Node.js 22 or newer**.
 
 ## 1. Install the tools (first time only)
 
 | Tool | Where | Notes |
 |---|---|---|
-| **Node.js** (LTS version, 20 or newer) | https://nodejs.org | Comes with `npm`. Use the big "LTS" download button. |
+| **Node.js** (LTS version, 22 or newer) | https://nodejs.org | Comes with `npm`. Use the big "LTS" download button. |
 | **Git** | https://git-scm.com/downloads | On a Mac it may already be there: type `git --version` in Terminal. |
 | **Android Studio** | https://developer.android.com/studio | For the Android app. Works on Windows, Mac or Linux. |
 | **Xcode** + CocoaPods | Mac App Store (Xcode), then `sudo gem install cocoapods` in Terminal | For the iPhone app. **Mac only.** |

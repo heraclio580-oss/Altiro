@@ -312,6 +312,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .streak-chip.hot{border-color:var(--accent);color:var(--text);}
 .weather-chip svg{width:13px;height:13px;color:var(--weather-icon);}
 .streak-chip svg{width:13px;height:13px;color:var(--accent);}
+.steps-chip{cursor:default;}
+.steps-chip svg{color:var(--text-2);}
+#stepsChip[hidden],#healthRow[hidden],#healthConnectBtn[hidden],#healthOffBtn[hidden]{display:none;}
 
 /* ---------- record button ---------- */
 /* Today: the day's hero -- a nudge, this week's progress ring, and one clear Start button */
@@ -1790,6 +1793,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="chip-strip">
         <button class="weather-chip" id="weatherChip" type="button"></button>
         <button class="streak-chip" id="streakChip" type="button"></button>
+        <span class="streak-chip steps-chip" id="stepsChip" hidden></span>
       </div>
     </div>
 
@@ -1976,6 +1980,15 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
       <div class="sheet-section">
         <div class="st-label" data-i18n="connectedAppsLabel"></div>
+        <!-- Apple Health / Health Connect: the store app only (see syncHealth). -->
+        <div id="healthRow" hidden style="margin-bottom:16px;">
+          <div class="toggle-row">
+            <div><div class="tt" id="healthTitle"></div><div class="ts" id="healthStatusText"></div></div>
+            <button class="strava-btn secondary" id="healthSyncBtn" type="button" data-i18n="stravaSyncBtn" hidden></button>
+          </div>
+          <button class="btn btn-ghost" id="healthConnectBtn" type="button" style="margin-top:8px;width:100%;"></button>
+          <button class="btn-text" id="healthOffBtn" type="button" data-i18n="healthOffBtn" hidden></button>
+        </div>
         <div class="toggle-row">
           <div>
             <div class="tt">Strava</div>
@@ -3200,6 +3213,7 @@ const supabaseReady = new Promise((resolve)=>{
 
 /* ---------------- icons ---------------- */
 const ICONS = {
+  steps: '<svg viewBox="0 0 20 20" fill="currentColor"><ellipse cx="7" cy="6" rx="2.2" ry="3.2"/><ellipse cx="13" cy="10" rx="2.2" ry="3.2"/><circle cx="7" cy="11.6" r="1.3"/><circle cx="13" cy="15.6" r="1.3"/></svg>',
   link: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 0 0-4.2-4.2l-1 1"/><path d="M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 0 0 4.2 4.2l1-1"/></svg>',
   run: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 15l3.5-4 2.5 2 3-5.5M13 4l2 2-2 2M15.5 9l1.5 1.5-2 2"/><circle cx="14" cy="4" r="1.4" fill="currentColor" stroke="none"/></svg>',
   strength: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="3" height="6" rx="0.5"/><rect x="15" y="7" width="3" height="6" rx="0.5"/><rect x="6" y="9" width="8" height="2" rx="0.3"/></svg>',
@@ -3814,6 +3828,23 @@ const STR = {
     feedbackDoneBtn: "Done",
     helpLabel: "Help",
     helpFeedbackLabel: "Help & feedback",
+    healthRunName: "Run",
+    healthOffSub: "Runs from your watch (Apple Watch, Garmin, Samsung, Fitbit...) and your daily steps, straight from your phone.",
+    healthOnSub: "Runs from your watch come in on their own.",
+    healthOnStepsSub: "Runs from your watch come in on their own. Today: {steps} steps.",
+    healthUnavailableIos: "Apple Health isn't available on this device.",
+    healthUnavailableAndroid: "Install Health Connect from the Play Store, then come back and connect it.",
+    healthConnectBtn: "Connect {name}",
+    healthOffBtn: "Turn off",
+    healthConnectedToast: "{name} connected. Runs from your watch will come in on their own.",
+    healthImportedToast: "Run from your watch added: {dist}",
+    healthImportedManyToast: "{count} runs from your watch added",
+    healthUpToDateToast: "You're up to date",
+    healthFailedToast: "Couldn't connect to {name}. Try again.",
+    healthDeniedToast: "Altiro wasn't given access. You can allow it in {name}.",
+    healthOffToast: "{name} turned off. To remove Altiro's access completely, use the {name} app.",
+    stepsLabel: "steps",
+    statCalories: "Calories",
     logRepsHead: "Reps",
     progEmptyNote: "Your weeks, workouts, miles and lifts show up here as you log them. Finish today's workout to get started.",
     tutDone: "Done",
@@ -4506,6 +4537,23 @@ const STR = {
     feedbackDoneBtn: "Listo",
     helpLabel: "Ayuda",
     helpFeedbackLabel: "Ayuda y comentarios",
+    healthRunName: "Carrera",
+    healthOffSub: "Las carreras de tu reloj (Apple Watch, Garmin, Samsung, Fitbit...) y tus pasos del día, directo desde tu teléfono.",
+    healthOnSub: "Las carreras de tu reloj llegan solas.",
+    healthOnStepsSub: "Las carreras de tu reloj llegan solas. Hoy: {steps} pasos.",
+    healthUnavailableIos: "Apple Health no está disponible en este dispositivo.",
+    healthUnavailableAndroid: "Instala Health Connect desde Play Store y vuelve para conectarlo.",
+    healthConnectBtn: "Conectar {name}",
+    healthOffBtn: "Desactivar",
+    healthConnectedToast: "{name} conectado. Las carreras de tu reloj llegarán solas.",
+    healthImportedToast: "Carrera de tu reloj añadida: {dist}",
+    healthImportedManyToast: "{count} carreras de tu reloj añadidas",
+    healthUpToDateToast: "Todo al día",
+    healthFailedToast: "No se pudo conectar con {name}. Inténtalo de nuevo.",
+    healthDeniedToast: "Altiro no recibió acceso. Puedes permitirlo en {name}.",
+    healthOffToast: "{name} desactivado. Para quitarle el acceso a Altiro por completo, usa la app {name}.",
+    stepsLabel: "pasos",
+    statCalories: "Calorías",
     logRepsHead: "Reps",
     progEmptyNote: "Tus semanas, entrenamientos, millas y pesas aparecen aquí a medida que los registres. Termina el entrenamiento de hoy para empezar.",
     tutDone: "Listo",
@@ -8074,6 +8122,7 @@ function renderHome(){
   const streakChip = document.getElementById('streakChip');
   streakChip.innerHTML = `${ICONS.flame}<span>${state.streak} ${L.dayStreakSuffix}</span>`;
   streakChip.classList.toggle('hot', state.streak>0);
+  renderStepsChip();
 
   // Distance reads through weekStats() (the same override-aware source Progress's week-detail card
   // uses) rather than the old state.mileage accumulator, which only a handful of call sites ever
@@ -12215,6 +12264,7 @@ function renderSettings(){
   renderMyClasses();
   document.getElementById('themeToggle').classList.toggle('on', state.theme==='light');
   renderStravaSettings();
+  renderHealthSettings();
 }
 // Email is the account's real login credential (changing it needs Supabase's own confirmation
 // flow to be done safely), so only the display name is editable here.
@@ -12635,6 +12685,10 @@ function fmtDurationClock(totalMin){
   const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = totalSec%60;
   return h>0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
 }
+// Calories burned, for a run that came from the watch with them (Apple Health / Health Connect).
+function calorieStats(logged){
+  return logged && logged.calories > 0 ? [{l: STR[state.lang].statCalories, v: `${Math.round(logged.calories)} kcal`}] : [];
+}
 function getSummaryStats(session, intensityIdx, logged){
   const L = STR[state.lang];
   const tier = INTENSITY[intensityIdx];
@@ -12649,7 +12703,7 @@ function getSummaryStats(session, intensityIdx, logged){
       if(min) stats.push({l:L.statTime, v:fmtDurationClock(min)});
       if(mi) stats.push({l:L.statDistance, v:mi.toFixed(1)+' mi'});
       stats.push({l:L.effortLabel, v:L.effortEasy});
-      stats.push(...elevStats(logged));
+      stats.push(...elevStats(logged), ...calorieStats(logged));
       return stats;
     }
     const dist = (logged && logged.distance!=null) ? logged.distance : (plannedMilesOf(session) || 3);
@@ -12663,6 +12717,7 @@ function getSummaryStats(session, intensityIdx, logged){
         {l:L.statTime, v:fmtDurationClock(totalMin)},
         {l:L.statPace, v:paceStr},
         ...elevStats(logged),
+        ...calorieStats(logged),
         ...(getProgressionTarget(session, intensityIdx) && state._reviewSubmitted ? [{l:L.statProgress, v:fmtPace(getProgressionTarget(session, intensityIdx).pace)+'/mi'}] : []),
       ];
     }
@@ -12675,6 +12730,7 @@ function getSummaryStats(session, intensityIdx, logged){
       {l:L.statPace, v:paceStr},
       {l:L.statTempoTarget, v:tgt},
       ...elevStats(logged),
+      ...calorieStats(logged),
     ];
     if(target && state._reviewSubmitted) stats.push({l:L.statProgress, v:fmtPace(target.pace)+'/mi'});
     return stats;
@@ -15052,7 +15108,7 @@ function stravaMatchTarget(dd, miles, win, minutes){
   if(!hit && minutes) hit = runs.find(r=> isPhoneGpsRun(r.perf) && !runWindow(r.perf) && sameDuration(r.perf.time, minutes));
   return hit ? hit.target : null;
 }
-const isPhoneGpsRun = perf => !!(perf && (perf.source==='gps' || perf.route) && !perf.stravaId);
+const isPhoneGpsRun = perf => !!(perf && (perf.source==='gps' || perf.route) && !perf.stravaId && !perf.healthId);
 const sameDuration = (a, b)=> a>0 && b>0 && Math.abs(a-b) <= Math.max(1.5, 0.03*Math.max(a, b));
 // The watch's numbers win: a run tracked here that the watch recorded too takes the watch's distance
 // and time (a watch's GPS is steadier than a phone's), keeps its route and elevation, and links to
@@ -15062,7 +15118,11 @@ function takeWatchNumbers(target, watch){
   if(!resolved) return false;
   const prev = resolved.performance || {};
   const perf = {...prev, distance: watch.distance, time: watch.time!=null ? watch.time : prev.time, notes: prev.notes || '',
-    source: prev.source || 'strava', stravaId: watch.stravaId, fromWatch: true};
+    source: prev.source || watch.source || 'strava', fromWatch: true};
+  // (Which copy of it the watch's numbers came from: Strava, or Apple Health / Health Connect.)
+  if(watch.stravaId) perf.stravaId = watch.stravaId;
+  if(watch.healthId) perf.healthId = watch.healthId;
+  if(watch.calories) perf.calories = watch.calories;
   if(watch.start){ perf.startedAt = watch.start; perf.finishedAt = watch.end; }
   delete perf.splits; delete perf.lastSplit;
   storeLoggedPerformance(target, resolved, perf);
@@ -15076,12 +15136,12 @@ function mergeWatchDuplicates(){
   const since = dateKey(new Date(TODAY_DATE.getTime() - STRAVA_LINK_BACKFILL_DAYS*86400000));
   Object.keys(state.dayLog).filter(k=> k>=since).forEach(key=>{
     const log = state.dayLog[key];
-    (log.manualEntries || []).filter(e=> e.type==='run' && e.performance && e.performance.source==='strava' && e.performance.stravaId).forEach(e=>{
+    (log.manualEntries || []).filter(e=> e.type==='run' && e.performance && (e.performance.source==='strava' && e.performance.stravaId || e.performance.source==='health' && e.performance.healthId)).forEach(e=>{
       const wp = e.performance, wtime = wp.time || e.durationMin, wwin = runWindow(wp);
       const twin = dayLoggedRuns(getDayData(parseDateKey(key))).find(r=> !(r.target.kind==='entry' && r.target.id===e.id) && isPhoneGpsRun(r.perf)
         && (wwin && runWindow(r.perf) ? sameTime(runWindow(r.perf), wwin) : sameDuration(r.perf.time, wtime)));
       if(!twin) return;
-      takeWatchNumbers(twin.target, {distance: wp.distance!=null ? wp.distance : e.distance, time: wtime, stravaId: wp.stravaId, start: wwin && wwin.start, end: wwin && wwin.end});
+      takeWatchNumbers(twin.target, {distance: wp.distance!=null ? wp.distance : e.distance, time: wtime, stravaId: wp.stravaId, healthId: wp.healthId, source: wp.source, start: wwin && wwin.start, end: wwin && wwin.end});
       deleteManualEntry(key, e.id);
       merged++;
     });
@@ -15101,13 +15161,14 @@ function absorbStravaTwin(target, logged){
   if(!win) return;
   const log = state.dayLog[target.dayKey];
   const twin = log && (log.manualEntries || []).find(e=> !(target.kind==='entry' && e.id===target.id) && e.type==='run'
-    && e.performance && e.performance.stravaId && sameTime(runWindow(e.performance), win));
+    && e.performance && (e.performance.stravaId || e.performance.healthId) && sameTime(runWindow(e.performance), win));
   if(!twin) return;
   // The watch's numbers win (see takeWatchNumbers).
   const wp = twin.performance;
   logged.distance = wp.distance!=null ? wp.distance : twin.distance;
   if(wp.time || twin.durationMin) logged.time = wp.time || twin.durationMin;
-  logged.stravaId = wp.stravaId;
+  if(wp.stravaId) logged.stravaId = wp.stravaId;
+  if(wp.healthId) logged.healthId = wp.healthId;
   logged.fromWatch = true;
   const wwin = runWindow(wp);
   if(wwin){ logged.startedAt = wwin.start; logged.finishedAt = wwin.end; }
@@ -15137,23 +15198,31 @@ const stravaActivityUrl = id => `https://www.strava.com/activities/${encodeURICo
 // watch's distance rarely matches to the hundredth, so anything within 5% (or a quarter mile) of a run
 // already logged that day counts as the same run.
 function fileStravaRun(row){
-  const key = String(row.local_date).slice(0,10);
-  const miles = +(Number(row.distance_m||0)/1609.344).toFixed(2);
-  const minutes = row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null;
+  return fileWatchRun({key: String(row.local_date).slice(0,10), miles: +(Number(row.distance_m||0)/1609.344).toFixed(2),
+    minutes: row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null, win: stravaRowWindow(row), name: row.name,
+    source: 'strava', stravaId: row.id});
+}
+// A run from a watch -- through Strava, or Apple Health / Health Connect: {key, miles, minutes, win, name,
+// source, stravaId | healthId}. The same run coming in both ways counts once (matched by its time).
+function fileWatchRun(run){
+  const {key, miles, minutes, win} = run;
+  const ids = {...(run.stravaId ? {stravaId: run.stravaId} : {}), ...(run.healthId ? {healthId: run.healthId} : {})};
   const dd = getDayData(parseDateKey(key));
-  const win = stravaRowWindow(row);
-  // Already logged (by hand, tracked with GPS here, or the day was just marked done)? Keep what's there,
-  // but tie it to its Strava activity so it still links back to Strava.
+  // Already logged (by hand, tracked with GPS here, from the watch another way, or the day was just
+  // marked done)? Keep what's there, but tie it to this copy so it links back to it.
   const match = stravaMatchTarget(dd, miles, win, minutes);
   if(match){
     const r = resolveLogTarget(match);
-    // Not already tied to a Strava run: it takes the watch's numbers (see takeWatchNumbers).
-    if(r && !(r.performance && r.performance.stravaId)) takeWatchNumbers(match, {distance: miles, time: minutes, stravaId: row.id, start: win && win.start, end: win && win.end});
+    const perf = r && (r.performance || (r.record && r.record.performance));
+    // Not from the watch yet: it takes the watch's numbers (see takeWatchNumbers). Already from the watch
+    // (the other way in): only the missing link is added.
+    if(r && !(perf && (perf.stravaId || perf.healthId))) takeWatchNumbers(match, {distance: miles, time: minutes, ...ids, source: run.source, calories: run.calories, start: win && win.start, end: win && win.end});
+    else if(r && perf && (Object.keys(ids).some(k=> !perf[k]) || run.calories && !perf.calories)) storeLoggedPerformance(match, r, {...perf, ...ids, ...(run.calories && !perf.calories ? {calories: run.calories} : {})});
     return false;
   }
 
-  const logged = {distance: miles, time: minutes, notes: '', source: 'strava', stravaId: row.id,
-    ...(win ? {startedAt: win.start, finishedAt: win.end} : {})};
+  const logged = {distance: miles, time: minutes, notes: '', source: run.source, ...ids,
+    ...(win ? {startedAt: win.start, finishedAt: win.end} : {}), ...(run.calories ? {calories: run.calories} : {})};
   // The day's planned run, or else its first Additional Workout run, if no distance is logged on it
   // yet -- otherwise this is an extra run that day, filed as its own Logged Workout.
   let target = null;
@@ -15176,7 +15245,7 @@ function fileStravaRun(row){
   } else {
     const volume = [`${miles} mi`, minutes!=null ? fmtDurationClock(minutes) : ''].filter(Boolean).join(' · ');
     // Keeps the Strava id with it, so this run links back to Strava too.
-    logCompletedEntry(key, {name: row.name || 'Run', type:'run', volume, notes:'', distance: miles, durationMin: minutes, performance: logged});
+    logCompletedEntry(key, {name: run.name || 'Run', type:'run', volume, notes:'', distance: miles, durationMin: minutes, performance: logged});
   }
   return true;
 }
@@ -15366,7 +15435,145 @@ document.getElementById('stravaDisconnectBtn').addEventListener('click', async (
   showToast(STR[state.lang].stravaDisconnectedToast);
 });
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState==='visible') syncStrava();
+  if(document.visibilityState==='visible'){ syncStrava(); syncHealth(); }
+});
+
+/* ---------------- Apple Health / Health Connect ---------------- */
+// In the store app: runs from any watch that shares with Apple Health (iPhone) or Health Connect (Android)
+// -- Apple Watch, Garmin, Samsung, Fitbit, Coros, Polar... -- come in on their own, filed like runs from
+// Strava (see fileWatchRun: the same run arriving both ways counts once), and today's steps show on Home.
+// Read-only. Turning it on is this phone's choice (health permissions belong to the device).
+const HEALTH_READ = ['workouts', 'steps', 'distance', 'calories', 'totalCalories'];
+const HEALTH_RUN_TYPES = ['running', 'runningTreadmill', 'trackAndField', 'wheelchairRunPace'];
+const HEALTH_LOOKBACK_DAYS = 7; // a watch can pass a run on hours, or a day or two, after it
+const HEALTH_RESYNC_MS = 60*1000, HEALTH_OPEN_SYNC_MS = 5*60*1000;
+let health = {status:'idle', steps:null, lastSyncAt:0}; // status: 'idle' | 'syncing' | 'unavailable'
+function nativeHealth(){ return isNativeShell() && window.Capacitor.Plugins && window.Capacitor.Plugins.Health || null; }
+function healthIsIos(){ try{ return window.Capacitor.getPlatform()==='ios'; }catch(e){ return false; } }
+function healthName(){ return healthIsIos() ? 'Apple Health' : 'Health Connect'; }
+const healthKey = k => `altiro_health_${k}_${state.userId || 'guest'}`;
+function healthOn(){ try{ return localStorage.getItem(healthKey('on'))==='1'; }catch(e){ return false; } }
+function setHealthOn(on){ try{ if(on) localStorage.setItem(healthKey('on'), '1'); else localStorage.removeItem(healthKey('on')); }catch(e){} }
+// Workouts already looked at on this phone -- filed, or deleted since (so a deleted one doesn't come back).
+function healthSeen(){ try{ return JSON.parse(localStorage.getItem(healthKey('seen')) || '[]'); }catch(e){ return []; } }
+function markHealthSeen(ids){
+  if(!ids.length) return;
+  try{ localStorage.setItem(healthKey('seen'), JSON.stringify([...new Set([...healthSeen(), ...ids])].slice(-400))); }catch(e){}
+}
+// Already filed (on any device): a logged run carrying its id.
+function healthIdLogged(id){
+  return Object.values(state.dayLog).some(log=> log && [log.performance, ...(log.extraWorkouts||[]).map(w=>w.performance), ...(log.manualEntries||[]).map(e=>e.performance)]
+    .some(p=> p && p.healthId===id));
+}
+async function importHealthWorkouts(H){
+  const now = new Date(), from = new Date(now.getTime() - HEALTH_LOOKBACK_DAYS*86400000);
+  const res = await H.queryWorkouts({startDate: from.toISOString(), endDate: now.toISOString(), limit: 100, ascending: true});
+  const seen = new Set(healthSeen()), looked = [], imported = [];
+  ((res && res.workouts) || []).forEach(w=>{
+    if(!HEALTH_RUN_TYPES.includes(w.workoutType)) return; // (runs only, as from Strava)
+    const id = w.platformId || `${w.sourceId || ''}|${w.startDate}`;
+    if(seen.has(id)) return;
+    const start = Date.parse(w.startDate), end = Date.parse(w.endDate), meters = Number(w.totalDistance) || 0;
+    if(!isFinite(start) || meters < 160) return; // no distance yet: looked at again next time
+    looked.push(id);
+    if(healthIdLogged(id)) return;
+    const run = {key: dateKey(new Date(start)), miles: +(meters/1609.344).toFixed(2), minutes: w.duration ? +(w.duration/60).toFixed(2) : null,
+      win: {start, end: isFinite(end) ? end : start + (Number(w.duration)||0)*1000}, name: STR[state.lang].healthRunName, source: 'health', healthId: id,
+      calories: Number(w.totalEnergyBurned) > 0 ? Math.round(Number(w.totalEnergyBurned)) : null};
+    if(fileWatchRun(run)) imported.push(run);
+  });
+  markHealthSeen(looked);
+  return imported;
+}
+async function readTodaySteps(H){
+  const now = new Date(), sod = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const res = await H.queryAggregated({dataType: 'steps', startDate: sod.toISOString(), endDate: now.toISOString(), bucket: 'day', aggregation: 'sum'});
+  return Math.round(((res && res.samples) || []).reduce((t, x)=> t + (Number(x.value) || 0), 0));
+}
+// On opening the app (and coming back to it), at most once a minute unless forced, and every 5 minutes
+// while it's open.
+async function syncHealth(opts){
+  const H = nativeHealth();
+  if(!H || !healthOn() || health.status==='syncing') return null;
+  if(!(opts && opts.force) && Date.now()-health.lastSyncAt < HEALTH_RESYNC_MS) return null;
+  health.lastSyncAt = Date.now();
+  health.status = 'syncing';
+  renderHealthSettings();
+  let imported = [];
+  try{ imported = await importHealthWorkouts(H); }catch(e){ /* best-effort */ }
+  try{ health.steps = await readTodaySteps(H); }catch(e){ /* steps not allowed, or none */ }
+  health.status = 'idle';
+  renderHealthSettings();
+  renderStepsChip();
+  if(imported.length){
+    refreshViews();
+    const L = STR[state.lang], r = imported[0];
+    showToast(imported.length===1
+      ? L.healthImportedToast.replace('{dist}', `${toDispDist(r.miles).toFixed(1)} ${useKm() ? 'km' : 'mi'}`)
+      : L.healthImportedManyToast.replace('{count}', imported.length));
+  }
+  return imported.length;
+}
+setInterval(()=>{
+  if(document.visibilityState==='visible' && healthOn() && Date.now()-health.lastSyncAt >= HEALTH_OPEN_SYNC_MS) syncHealth();
+}, 60*1000);
+async function connectHealth(){
+  const H = nativeHealth();
+  if(!H) return;
+  const L = STR[state.lang], name = healthName();
+  try{
+    const a = await H.isAvailable();
+    if(!a || !a.available){ health.status = 'unavailable'; renderHealthSettings(); return; }
+    const st = await H.requestAuthorization({read: HEALTH_READ, write: []});
+    // (Android says what was allowed; iPhone never does -- Apple keeps that private -- so there it's tried.)
+    if(!healthIsIos() && st && Array.isArray(st.readAuthorized) && !st.readAuthorized.includes('workouts')){
+      showToast(L.healthDeniedToast.replace('{name}', name));
+      return;
+    }
+  }catch(e){ showToast(L.healthFailedToast.replace('{name}', name)); return; }
+  setHealthOn(true);
+  health.status = 'idle';
+  const n = await syncHealth({force:true});
+  if(!n) showToast(L.healthConnectedToast.replace('{name}', name));
+}
+function renderHealthSettings(){
+  const row = document.getElementById('healthRow');
+  if(!row) return;
+  const H = nativeHealth();
+  row.hidden = !H;
+  if(!H) return;
+  const L = STR[state.lang], on = healthOn(), name = healthName();
+  document.getElementById('healthTitle').textContent = name;
+  document.getElementById('healthStatusText').textContent = health.status==='syncing' ? L.stravaSyncingSub
+    : health.status==='unavailable' ? (healthIsIos() ? L.healthUnavailableIos : L.healthUnavailableAndroid)
+    : on ? (health.steps!=null ? L.healthOnStepsSub.replace('{steps}', health.steps.toLocaleString(state.lang==='es' ? 'es' : 'en-US')) : L.healthOnSub)
+    : L.healthOffSub;
+  const connect = document.getElementById('healthConnectBtn');
+  connect.textContent = L.healthConnectBtn.replace('{name}', name);
+  connect.hidden = on;
+  document.getElementById('healthSyncBtn').hidden = !on;
+  document.getElementById('healthOffBtn').hidden = !on;
+  connect.disabled = document.getElementById('healthSyncBtn').disabled = health.status==='syncing';
+}
+// Today's steps, on Home next to the streak.
+function renderStepsChip(){
+  const chip = document.getElementById('stepsChip');
+  if(!chip) return;
+  const show = !!nativeHealth() && healthOn() && health.steps!=null;
+  chip.hidden = !show;
+  if(show) chip.innerHTML = `${ICONS.steps}<span>${health.steps.toLocaleString(state.lang==='es' ? 'es' : 'en-US')} ${STR[state.lang].stepsLabel}</span>`;
+}
+document.getElementById('healthConnectBtn').addEventListener('click', connectHealth);
+document.getElementById('healthSyncBtn').addEventListener('click', async ()=>{
+  const n = await syncHealth({force:true});
+  if(n===0) showToast(STR[state.lang].healthUpToDateToast);
+});
+document.getElementById('healthOffBtn').addEventListener('click', ()=>{
+  setHealthOn(false);
+  health.steps = null;
+  renderHealthSettings();
+  renderStepsChip();
+  showToast(STR[state.lang].healthOffToast.replace(/\{name\}/g, healthName()));
 });
 
 document.getElementById('googleSignInBtn').addEventListener('click', async function(){
@@ -15423,6 +15630,7 @@ function enterSignedIn(user){
     // loaded (a returning user's plan already exists, there's nothing to "build").
     showScreen('home');
     startStravaSync();
+    syncHealth({force:true});
     badgesReady = true;
     checkBadges();
   })();

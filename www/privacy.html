@@ -38,7 +38,7 @@ a{color:var(--text);text-underline-offset:3px;}
 <main>
   <div class="brand">Altiro</div>
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated October 6, 2026</p>
+  <p class="updated">Last updated October 13, 2026</p>
 
   <p>Altiro builds you a running and strength training plan and keeps track of the workouts you do. This page
   explains what information Altiro keeps, why, who else handles it, and how to remove it.</p>
@@ -105,6 +105,45 @@ a{color:var(--text);text-underline-offset:3px;}
     </ul>
   </div>
 
+  <h2 id="health">Apple Health and Health Connect</h2>
+  <div class="card">
+    <p>In the Altiro phone app you can choose to connect <b>Apple Health</b> (iPhone) or <b>Health Connect</b>
+    (Android). It's optional and off until you turn it on in <b>Settings → Connected Apps</b>. It lets runs
+    recorded on your watch (Apple Watch, Garmin, Samsung, Fitbit and others that share with your phone's health
+    app) count toward your plan, and shows your steps for today.</p>
+    <h3>What Altiro reads</h3>
+    <ul>
+      <li><b>Workouts:</b> their type, start and end time and duration, from the last 7 days. Altiro uses only
+        runs.</li>
+      <li><b>Distance</b> and <b>calories burned</b> during those workouts, so a run comes in with its distance
+        and calories.</li>
+      <li><b>Steps</b>, for today's step count.</li>
+    </ul>
+    <p>Altiro only reads. It never writes to, changes or deletes anything in Apple Health or Health Connect, and
+    it doesn't read any other health data (no heart rate, sleep, weight or anything else).</p>
+    <h3>What Altiro keeps, and how it's used</h3>
+    <ul>
+      <li>A run from your health app is saved to your training log like a run you log yourself: its date, start
+        and end time, distance, time and calories, plus the health app's ID for it so the same run is never added
+        twice.
+        Workouts that aren't runs aren't saved.</li>
+      <li>Your step count is read on your phone each time you open Altiro and shown there. It isn't saved to our
+        servers.</li>
+      <li>Health data is used only to log your runs to your plan and show your progress and steps back to you.
+        It is <b>never</b> sold, shared with or shown to anyone else, used for advertising or marketing, or used
+        to train artificial intelligence or machine learning models. Altiro's use of information received from
+        Health Connect follows the Health Connect Permissions policy, including its Limited Use requirements.</li>
+    </ul>
+    <h3>Turning it off</h3>
+    <ul>
+      <li>In Altiro: <b>Settings → Connected Apps → Turn off</b>. Altiro stops reading straight away.</li>
+      <li>To remove Altiro's access completely: on iPhone, open the <b>Health</b> app → your profile →
+        <b>Apps</b> → <b>Altiro</b>; on Android, open <b>Health Connect</b> → <b>App permissions</b> →
+        <b>Altiro</b>.</li>
+      <li>Runs already in your training log stay there as your own logs until you delete them or your account.</li>
+    </ul>
+  </div>
+
   <h2>Why we use it</h2>
   <ul>
     <li>To build and adjust your plan, and show your progress.</li>
@@ -118,6 +157,8 @@ a{color:var(--text);text-underline-offset:3px;}
   <ul>
     <li><b>Supabase</b> hosts Altiro's database, sign-in and server functions.</li>
     <li><b>Strava</b>, only if you connect it, as described above.</li>
+    <li><b>Apple Health</b> or <b>Health Connect</b>, only if you connect it, as described above. They run on your
+      phone; Altiro reads from them there and doesn't send them anything.</li>
     <li><b>Resend</b> delivers the email that lets the Altiro team know you sent feedback.</li>
     <li><b>OpenFreeMap</b> provides the street maps shown under your runs' routes. Like any map service it
       receives requests for the map area being shown (and your IP address); it doesn't receive your route or
@@ -130,7 +171,7 @@ a{color:var(--text);text-underline-offset:3px;}
       you turn on workout reminders on the website or home-screen app. It delivers each reminder to your
       device; the message is encrypted so only your device can read it. In the App Store and Google Play apps,
       reminders are scheduled on your phone itself and no push service is involved.</li>
-    <li><b>GitHub Pages</b> serves the website version of Altiro and <b>Google Fonts</b> serves its fonts.
+    <li><b>GitHub Pages</b> serves the website version of Altiro (getaltiro.app) and <b>Google Fonts</b> serves its fonts.
       Like any website, they receive standard request information such as your IP address.</li>
   </ul>
 

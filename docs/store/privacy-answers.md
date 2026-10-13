@@ -20,7 +20,7 @@ For every data type below: **Used for tracking? No.** **Linked to the user? Yes*
 |---|---|---|
 | Contact Info → **Email Address** | account sign-in | App Functionality |
 | Contact Info → **Name** | name shown in the app | App Functionality |
-| Health & Fitness → **Fitness** | workouts, runs (including from Strava), sets, weights, reps, times, records, plan settings | App Functionality |
+| Health & Fitness → **Fitness** | workouts, runs (including from Strava and from Apple Health), sets, weights, reps, times, records, plan settings | App Functionality |
 | Health & Fitness → **Health** | body weight, if the user enters it (optional) | App Functionality |
 | User Content → **Customer Support** | feedback messages sent from the app | Customer Support |
 | User Content → **Other User Content** | workout notes, missed-workout notes, classes | App Functionality |
@@ -55,6 +55,38 @@ Gameplay, Sensitive Info, Usage Data, Crash Data, Performance Data, Advertising 
 service providers processing data on Altiro's behalf (OpenFreeMap too, for the map tiles) (or at the user's request), which Google doesn't
 count as sharing.
 
+## Apple Health and Health Connect (the store apps)
+
+Altiro **reads** workouts (runs only are kept), the distance and calories during them, and today's steps. It
+never writes. Runs it reads are saved to the user's log (already covered by **Fitness** above); steps are
+shown on the phone and not stored on our servers.
+
+**Apple:**
+- Nothing new in App Privacy beyond **Health & Fitness → Fitness** above.
+- App Store Connect → the App ID (**Certificates, Identifiers & Profiles → Identifiers → com.altiro.app**) needs
+  the **HealthKit** capability ticked. Codemagic's automatic signing can do this too.
+- App Review guideline 5.1.3: HealthKit data isn't used for advertising, isn't shared, isn't stored in iCloud,
+  and there's a privacy policy (https://getaltiro.app/privacy.html#health).
+
+**Google Play → App content → Health Connect** (shown once the app uses Health Connect permissions). Declare
+these five permissions and why:
+
+| Permission | Why Altiro needs it |
+|---|---|
+| `READ_EXERCISE` | To find runs recorded on the user's watch, so they're logged to their training plan. |
+| `READ_DISTANCE` | The distance of those runs. |
+| `READ_ACTIVE_CALORIES_BURNED` | Calories burned during those runs, saved and shown with each run (and read together with the distance). |
+| `READ_TOTAL_CALORIES_BURNED` | The same, from devices that only record total calories. |
+| `READ_STEPS` | To show the user's steps for today on the Today screen. |
+
+- Use case: **Fitness / activity tracking**. Altiro doesn't write any data.
+- Privacy policy URL: https://getaltiro.app/privacy.html#health (the app also shows it from Health Connect's
+  permission screen).
+- Google may ask for a short video showing the feature: record Settings → Connected Apps → Connect Health
+  Connect → allow → a run from your watch appearing in the plan. Upload it to YouTube as **Unlisted**.
+- The Data safety form above already covers it (**Fitness info**). Health Connect data is never shared or
+  sold, and isn't used for ads or AI.
+
 ## Ratings
 
 **Apple age rating questionnaire:** every content question → **None** / **No**. Unrestricted web access → **No**.
@@ -68,7 +100,8 @@ user-to-user communication, sharing location with other users and digital purcha
 ## Other Google Play declarations
 - Ads: **No ads**.
 - App access: **Some functionality is restricted** → give the reviewer the demo account (see review-notes.md).
-- Health apps declaration: **Fitness** (activity and exercise tracking). Not a medical device.
+- Health apps declaration: **Fitness** (activity and exercise tracking). Not a medical device. Also tick
+  that the app uses **Health Connect** (see the Health Connect section above).
 - Government app: No. Financial features: None. News app: No.
 
 ## Location permissions (GPS run tracking)

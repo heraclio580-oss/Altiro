@@ -56,25 +56,27 @@ Done: sign-up emails now go out through Resend from `no-reply@getaltiro.app`, so
 
 ## 4. Build the apps on your computer
 
-> **Before the first build, tell Claude: "set up watches and health".** That's the step below marked ⌚; doing
-> it before the first build means nothing has to be rebuilt.
-
-- [ ] ⌚ **Watches, steps and health (with Claude, before the first build):**
-  1. Upgrade the app framework from Capacitor 6 to **Capacitor 8** (needed for the health plugins).
-  2. Add **Apple Health** (iPhone) and **Google Health Connect** (Android): runs and workouts from almost any
-     watch (Apple Watch, Garmin via Garmin Connect, Samsung, Fitbit, Coros, Polar...) without Strava, plus
-     **daily steps**. Claude updates the privacy policy and the store privacy forms for health data.
-  3. Meanwhile, **apply to the Garmin Connect Developer Program** (free, reviewed by Garmin, can take weeks):
-     developer.garmin.com → Connect Developer Program. Have the website, privacy policy
-     (https://getaltiro.app/privacy.html) and a short description of Altiro ready. Once
-     approved, Claude adds direct Garmin sync and **sending Altiro's planned workouts to the watch**.
-  4. Later, only if users ask: a watch app of its own (Apple Watch, Wear OS, Garmin Connect IQ).
-  (Until then, watches already work through Strava: watch → Garmin Connect/Strava → Altiro.)
+- [x] ⌚ **Watches, steps and health:** done. The app is on **Capacitor 8** with **Apple Health** (iPhone) and
+  **Health Connect** (Android): runs from almost any watch (Apple Watch, Garmin via Garmin Connect, Samsung,
+  Fitbit, Coros, Polar...) come in without Strava, plus today's **steps** on Today (Settings → Connected Apps →
+  Connect). The privacy policy and `docs/store/privacy-answers.md` cover it. Your part:
+  - **Apple:** in the developer portal, tick **HealthKit** on the App ID `com.altiro.app` (Codemagic's
+    automatic signing can do it too).
+  - **Google Play:** fill in the **Health Connect** declaration (App content) with the five permissions and
+    reasons in `docs/store/privacy-answers.md`.
+  - **Test it:** on Android, connect Health Connect and check a run from your watch shows up. Garmin Connect
+    must share with Health Connect first: update Garmin Connect, then **More → Settings → Health Connect** and
+    allow it to write data, including **workouts / exercise** (steps and workouts are separate permissions).
+  - **Garmin Connect Developer Program** (direct Garmin sync, sending planned workouts to the watch): Garmin
+    has paused new applications. Watch https://developer.garmin.com/gc-developer-program/overview for it to
+    reopen; until then Garmin works through Health Connect / Apple Health and Strava.
+  - Later, only if users ask: a watch app of its own (Apple Watch, Wear OS, Garmin Connect IQ).
 
 - [ ] **iPhone app:** no Mac, so build it in the cloud with **Codemagic** (free tier: 500 build minutes a
   month on their Macs). It builds straight from the GitHub repo and can upload to App Store Connect. Do the
   Android app first; set this up once the Apple Developer account is approved.
-- [ ] **Android app:** Android Studio (free, Windows, Mac or Linux).
+- [ ] **Android app:** Android Studio (free, Windows, Mac or Linux), or ask Claude to build the Play Store upload
+  file on GitHub. Needs **Node.js 22** or newer and Java 21 (Android Studio includes it).
 - [ ] In the project folder: `npm install`, then `npm run cap:sync`, then `npx cap open ios` or
   `npx cap open android`. The README has the details. Run `npm run cap:sync` again after every update.
 - [ ] **Generate the app icons and splash screens:** `npm run assets` (the source images are in `resources/`).

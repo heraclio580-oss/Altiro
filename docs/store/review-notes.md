@@ -41,4 +41,4 @@ runs in Health, the connection still shows today's steps.
 Health: Altiro gives general training guidance, not medical advice. The Terms of Use include a health
 disclaimer (Settings → Terms of use).
 
-Contact: altiro580@gmail.com
+Contact: support@getaltiro.app

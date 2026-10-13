@@ -10,7 +10,7 @@ Links you'll need:
 - Privacy policy: https://getaltiro.app/privacy.html
 - Terms of use: https://getaltiro.app/terms.html
 - Account deletion page (Google Play asks for this): https://getaltiro.app/delete-account.html
-- Support email: altiro580@gmail.com
+- Support email: support@getaltiro.app
 
 ---
 

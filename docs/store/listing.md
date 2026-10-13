@@ -63,7 +63,7 @@ Welcome to Altiro: your running and strength plan in one app.
 **Marketing URL (optional):** https://getaltiro.app/
 **Privacy policy URL:** https://getaltiro.app/privacy.html
 **Account deletion URL (Google Play):** https://getaltiro.app/delete-account.html
-**Contact email:** altiro580@gmail.com
+**Contact email:** support@getaltiro.app
 
 ---
 

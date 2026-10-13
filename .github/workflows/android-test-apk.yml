@@ -40,13 +40,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22   # Capacitor 8 needs Node 22
           cache: npm
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21   # Capacitor 8's Android project builds with Java 21
 
       - name: Install packages
         run: npm ci
@@ -93,7 +93,10 @@ jobs:
           name: Altiro-test-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
+      # (Only builds from main replace the test app on people's phones; a build of another branch -- started
+      # by hand, to check it builds -- is kept with its run instead.)
       - name: Post it on the android-test release
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

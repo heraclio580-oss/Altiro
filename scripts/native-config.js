@@ -5,6 +5,10 @@
 //   altiro:// links open the app -- how Strava's sign-in, and the "Open Altiro" button shown after
 //   confirming an email, hand the user back to the store app (see handleAppLink in www/index.html).
 //   iOS permission text (Photos, for saving workout cards; location, for GPS runs) and background location.
+//   Apple Health (iOS) and Health Connect (Android), for runs and workouts from any watch and daily steps:
+//   the HealthKit entitlement and its permission text; on Android only the five health permissions Altiro
+//   reads (the plugin declares dozens), Android 8+ (Health Connect's minimum) and the privacy policy link
+//   Health Connect shows on its permission screen.
 const fs = require('fs');
 const path = require('path');
 const root = process.env.ALTIRO_NATIVE_ROOT || path.join(__dirname, '..');
@@ -28,6 +32,8 @@ if(fs.existsSync(plist)){
     NSPhotoLibraryUsageDescription: 'Altiro saves your workout cards to Photos so you can share them.',
     NSLocationWhenInUseUsageDescription: 'Altiro uses your location to map and measure your runs, and for your local weather.',
     NSLocationAlwaysAndWhenInUseUsageDescription: 'Altiro keeps tracking a run you started while your phone is locked, so the whole run is measured.',
+    NSHealthShareUsageDescription: 'Altiro reads your workouts and steps from Apple Health, so runs from your watch count toward your plan.',
+    NSHealthUpdateUsageDescription: 'Altiro only reads from Apple Health. It never writes to it.',
   };
   s = fs.readFileSync(plist, 'utf8');
   const missing = Object.keys(TEXT_KEYS).filter(k=> !s.includes(`<key>${k}</key>`));
@@ -45,6 +51,32 @@ if(fs.existsSync(plist)){
     fs.writeFileSync(plist, s); changed++;
     console.log('iOS: allowed location in the background (for runs being tracked)');
   } else console.log('iOS: background location already allowed');
+  // Apple Health: the HealthKit entitlement (Xcode's "HealthKit" capability), set up without Xcode.
+  const ent = path.join(root, 'ios', 'App', 'App', 'App.entitlements');
+  if(!fs.existsSync(ent) || !fs.readFileSync(ent, 'utf8').includes('com.apple.developer.healthkit')){
+    fs.writeFileSync(ent, `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+\t<key>com.apple.developer.healthkit</key>
+\t<true/>
+\t<key>com.apple.developer.healthkit.access</key>
+\t<array/>
+</dict>
+</plist>
+`); changed++;
+    console.log('iOS: added the HealthKit entitlement (App.entitlements)');
+  } else console.log('iOS: HealthKit entitlement already set');
+  const pbx = path.join(root, 'ios', 'App', 'App.xcodeproj', 'project.pbxproj');
+  if(fs.existsSync(pbx)){
+    let p = fs.readFileSync(pbx, 'utf8');
+    if(!p.includes('CODE_SIGN_ENTITLEMENTS')){
+      p = p.replace(/(\n(\t+)INFOPLIST_FILE = App\/Info\.plist;)/g, '\n$2CODE_SIGN_ENTITLEMENTS = App/App.entitlements;$1');
+      if(!p.includes('CODE_SIGN_ENTITLEMENTS')) throw new Error("iOS: couldn't find the App target's build settings");
+      fs.writeFileSync(pbx, p); changed++;
+      console.log('iOS: the App target signs with App.entitlements');
+    } else console.log('iOS: entitlements already in the build settings');
+  }
 } else console.log('iOS: no ios/ project here (run `npx cap add ios` first) -- skipped');
 
 const manifest = path.join(root, 'android', 'app', 'src', 'main', 'AndroidManifest.xml');
@@ -58,6 +90,43 @@ if(fs.existsSync(manifest)){
     fs.writeFileSync(manifest, s); changed++;
     console.log('Android: added the altiro:// intent filter to AndroidManifest.xml');
   } else console.log('Android: altiro:// intent filter already set');
+  // Health Connect: only the permissions Altiro reads. The health plugin declares many more (weight, sleep,
+  // blood pressure, writes...); Google Play wants each declared health permission justified, so the rest
+  // are removed from the merged manifest.
+  const HEALTH_KEEP = ['READ_EXERCISE', 'READ_STEPS', 'READ_DISTANCE', 'READ_ACTIVE_CALORIES_BURNED', 'READ_TOTAL_CALORIES_BURNED'];
+  const pluginManifest = path.join(root, 'node_modules', '@capgo', 'capacitor-health', 'android', 'src', 'main', 'AndroidManifest.xml');
+  if(fs.existsSync(pluginManifest)){
+    s = fs.readFileSync(manifest, 'utf8');
+    const declared = [...new Set((fs.readFileSync(pluginManifest, 'utf8').match(/android\.permission\.health\.[A-Z_]+/g) || []).map(x=> x.split('.').pop()))];
+    const drop = declared.filter(x=> !HEALTH_KEEP.includes(x) && !s.includes(`android.permission.health.${x}"`));
+    if(drop.length){
+      if(!s.includes('xmlns:tools=')) s = s.replace(/<manifest\b/, '<manifest xmlns:tools="http://schemas.android.com/tools"');
+      const lines = drop.map(x=> `    <uses-permission android:name="android.permission.health.${x}" tools:node="remove" />`).join('\n');
+      s = s.replace(/(<manifest\b[^>]*>)/, `$1\n    <!-- Health Connect: only what Altiro reads (see scripts/native-config.js). -->\n${lines}`);
+      fs.writeFileSync(manifest, s); changed++;
+      console.log(`Android: kept ${HEALTH_KEEP.length} Health Connect permissions, removed ${drop.length} unused ones`);
+    } else console.log('Android: Health Connect permissions already trimmed');
+  }
+  const strings = path.join(root, 'android', 'app', 'src', 'main', 'res', 'values', 'strings.xml');
+  if(fs.existsSync(strings)){
+    let x = fs.readFileSync(strings, 'utf8');
+    if(!x.includes('health_connect_privacy_policy_url')){
+      x = x.replace(/<\/resources>/, '    <string name="health_connect_privacy_policy_url">https://getaltiro.app/privacy.html#health</string>\n</resources>');
+      fs.writeFileSync(strings, x); changed++;
+      console.log("Android: Health Connect's privacy policy link set");
+    } else console.log("Android: Health Connect's privacy policy link already set");
+  }
+  // Health Connect needs Android 8 (API 26) or newer.
+  const vars = path.join(root, 'android', 'variables.gradle');
+  if(fs.existsSync(vars)){
+    let v = fs.readFileSync(vars, 'utf8');
+    const m = v.match(/minSdkVersion = (\d+)/);
+    if(m && +m[1] < 26){
+      v = v.replace(/minSdkVersion = \d+/, 'minSdkVersion = 26');
+      fs.writeFileSync(vars, v); changed++;
+      console.log('Android: minimum Android version raised to 8.0 (API 26) for Health Connect');
+    } else console.log('Android: minimum Android version already 8.0 or newer');
+  }
 } else console.log('Android: no android/ project here (run `npx cap add android` first) -- skipped');
 
 console.log(changed ? 'Done.' : 'Nothing to change.');

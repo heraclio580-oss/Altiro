@@ -9,7 +9,7 @@ collects, these answers need updating too.
 - **Linked to the user:** yes, for anything stored with their account.
 - **Encrypted in transit:** yes (HTTPS everywhere).
 - **Users can delete their data:** yes, in the app (Settings → Delete account) and at
-  https://heraclio580-oss.github.io/Altiro/delete-account.html.
+  https://getaltiro.app/delete-account.html.
 
 ## Apple: App Store Connect → App Privacy
 

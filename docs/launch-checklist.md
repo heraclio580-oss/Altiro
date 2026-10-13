@@ -6,10 +6,10 @@ ones.
 
 Links you'll need:
 
-- Live app: https://heraclio580-oss.github.io/Altiro/
-- Privacy policy: https://heraclio580-oss.github.io/Altiro/privacy.html
-- Terms of use: https://heraclio580-oss.github.io/Altiro/terms.html
-- Account deletion page (Google Play asks for this): https://heraclio580-oss.github.io/Altiro/delete-account.html
+- Live app: https://getaltiro.app/
+- Privacy policy: https://getaltiro.app/privacy.html
+- Terms of use: https://getaltiro.app/terms.html
+- Account deletion page (Google Play asks for this): https://getaltiro.app/delete-account.html
 - Support email: altiro580@gmail.com
 
 ---
@@ -66,7 +66,7 @@ Done: sign-up emails now go out through Resend from `no-reply@getaltiro.app`, so
      **daily steps**. Claude updates the privacy policy and the store privacy forms for health data.
   3. Meanwhile, **apply to the Garmin Connect Developer Program** (free, reviewed by Garmin, can take weeks):
      developer.garmin.com → Connect Developer Program. Have the website, privacy policy
-     (https://heraclio580-oss.github.io/Altiro/privacy.html) and a short description of Altiro ready. Once
+     (https://getaltiro.app/privacy.html) and a short description of Altiro ready. Once
      approved, Claude adds direct Garmin sync and **sending Altiro's planned workouts to the watch**.
   4. Later, only if users ask: a watch app of its own (Apple Watch, Wear OS, Garmin Connect IQ).
   (Until then, watches already work through Strava: watch → Garmin Connect/Strava → Altiro.)
@@ -114,8 +114,7 @@ Everything to paste in is ready in `docs/store/`: `listing.md` (text, English an
 
 - [ ] **Submit Altiro for Strava's review.** Until Strava approves it, only 1 athlete (you) can connect.
   The screenshots they ask for are in `strava-review/`. Developer page: https://www.strava.com/settings/api.
-- [ ] Check the **Authorization Callback Domain** stays `heraclio580-oss.github.io` (or your new domain if you
-  move the site).
+- [x] **Authorization Callback Domain** is `getaltiro.app` (the website's own domain since the move).
 
 ## 8. Legal and business (decide before launch)
 

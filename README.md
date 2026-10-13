@@ -1,6 +1,6 @@
 # Altiro
 
-**Live: https://heraclio580-oss.github.io/Altiro/**
+**Live: https://getaltiro.app/**
 
 A fitness training app: adaptive weekly plans, real workout logging, and
 progression programming. This repo is the migration target for the
@@ -77,7 +77,7 @@ integrations.
 
 ## Run it
 
-**Live site:** https://heraclio580-oss.github.io/Altiro/ — auto-deploys via
+**Live site:** https://getaltiro.app/ — auto-deploys via
 GitHub Actions (`.github/workflows/deploy-pages.yml`) on every push to `main`.
 
 Or run it locally — it's a single static HTML file, no build step required:

@@ -51,18 +51,18 @@ AND
 
 Altiro gives general training guidance, not medical advice. Check with a doctor before starting a new exercise program.
 
-Privacy: https://heraclio580-oss.github.io/Altiro/privacy.html
-Terms: https://heraclio580-oss.github.io/Altiro/terms.html
+Privacy: https://getaltiro.app/privacy.html
+Terms: https://getaltiro.app/terms.html
 
 **What's new (first release)** [4000]
 Welcome to Altiro: your running and strength plan in one app.
 
 **Category:** Health & Fitness (secondary: Sports)
 
-**Support URL:** https://heraclio580-oss.github.io/Altiro/support.html
-**Marketing URL (optional):** https://heraclio580-oss.github.io/Altiro/
-**Privacy policy URL:** https://heraclio580-oss.github.io/Altiro/privacy.html
-**Account deletion URL (Google Play):** https://heraclio580-oss.github.io/Altiro/delete-account.html
+**Support URL:** https://getaltiro.app/support.html
+**Marketing URL (optional):** https://getaltiro.app/
+**Privacy policy URL:** https://getaltiro.app/privacy.html
+**Account deletion URL (Google Play):** https://getaltiro.app/delete-account.html
 **Contact email:** altiro580@gmail.com
 
 ---
@@ -116,8 +116,8 @@ Y ADEMÁS
 
 Altiro ofrece una guía general de entrenamiento, no consejo médico. Consulta a un médico antes de empezar un nuevo programa de ejercicio.
 
-Privacidad: https://heraclio580-oss.github.io/Altiro/privacy.html
-Términos: https://heraclio580-oss.github.io/Altiro/terms.html#es
+Privacidad: https://getaltiro.app/privacy.html
+Términos: https://getaltiro.app/terms.html#es
 
 **Novedades (primera versión)** [4000]
 Bienvenido a Altiro: tu plan de correr y de fuerza en una sola app.

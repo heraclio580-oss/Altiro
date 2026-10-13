@@ -12,7 +12,7 @@ template per email type, so both languages go in each). Paste them in the Supaba
 
 `{{ .ConfirmationURL }}` and `{{ .Email }}` are filled in by Supabase -- leave them as they are. The
 link goes back to the app because the Site URL / Redirect URLs are set to
-https://heraclio580-oss.github.io/Altiro/ (Authentication -> URL Configuration).
+https://getaltiro.app/ (Authentication -> URL Configuration).
 
 The logo loads from the live site (`www/icons/icon-192.png`), since Gmail doesn't show images
 embedded in the email itself.

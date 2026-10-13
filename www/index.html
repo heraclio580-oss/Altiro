@@ -3117,7 +3117,7 @@ function makeOfflineSupabaseStub(){
 let sb = makeOfflineSupabaseStub();
 // Where an email link (or Google) sends people back to: this site, or the hosted app from the native
 // shell. Supabase only honors it if it's listed under Authentication -> URL Configuration -> Redirect URLs.
-const APP_URL = 'https://heraclio580-oss.github.io/Altiro/';
+const APP_URL = 'https://getaltiro.app/';
 function authRedirectUrl(){
   return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^/]*$/, '') : APP_URL;
 }
@@ -16708,7 +16708,7 @@ async function checkForUpdate(){
 // is out, offers a one-tap Download of it.
 const APK_ID = '__ALTIRO_APK_ID__';
 const TEST_APK_URL = 'https://github.com/heraclio580-oss/Altiro/releases/download/android-test/Altiro-test.apk';
-const SITE_VERSION_URL = 'https://heraclio580-oss.github.io/Altiro/version.json';
+const SITE_VERSION_URL = 'https://getaltiro.app/version.json';
 let testAppUpdate = false;
 async function checkForTestAppUpdate(){
   if(!isNativeShell() || APK_ID.startsWith('__') || !window.fetch || Date.now()-updateCheckAt < 60000) return;

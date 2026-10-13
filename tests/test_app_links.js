@@ -59,7 +59,7 @@ async function open(opts){
     go('settings'); await wait(20);
     doc.getElementById('stravaConnectBtn').click(); await wait(30);
     const auth = log.invokes.find(c=>c.body && c.body.action==='authorize_url');
-    check('Connecting Strava from the app: Strava sends the reply to the website\'s callback page', auth && auth.body.redirect_uri==='https://heraclio580-oss.github.io/Altiro/strava-callback.html', auth && auth.body.redirect_uri);
+    check('Connecting Strava from the app: Strava sends the reply to the website\'s callback page', auth && auth.body.redirect_uri==='https://getaltiro.app/strava-callback.html', auth && auth.body.redirect_uri);
     check('The app listens for altiro:// links', typeof listeners.appUrlOpen==='function');
     listeners.appUrlOpen({url:'altiro://strava-callback?state=native&code=abc123&scope=read,activity:read_all'}); await wait(40);
     const connect = log.invokes.find(c=>c.body && c.body.action==='connect');
@@ -68,12 +68,12 @@ async function open(opts){
   }
   // ---- the callback page, from the app ----
   {
-    const dom = new JSDOM(callback, { runScripts: 'dangerously', url: 'https://heraclio580-oss.github.io/Altiro/strava-callback.html?state=native&code=abc123&scope=read' });
+    const dom = new JSDOM(callback, { runScripts: 'dangerously', url: 'https://getaltiro.app/strava-callback.html?state=native&code=abc123&scope=read' });
     await wait(20);
     const a = dom.window.document.getElementById('back');
     check('The website\'s callback page sends a reply for the app back to the app (with a button too)', !a.hidden && a.getAttribute('href')==='altiro://strava-callback?state=native&code=abc123&scope=read' && /Open Altiro/.test(a.textContent));
     check('...and keeps nothing for the website', dom.window.localStorage.getItem('altiro_strava_callback')===null);
-    const web = new JSDOM(callback, { runScripts: 'dangerously', url: 'https://heraclio580-oss.github.io/Altiro/strava-callback.html?code=xyz&scope=read' });
+    const web = new JSDOM(callback, { runScripts: 'dangerously', url: 'https://getaltiro.app/strava-callback.html?code=xyz&scope=read' });
     await wait(20);
     check('From the website itself: as before', web.window.document.getElementById('back').hidden && /xyz/.test(web.window.localStorage.getItem('altiro_strava_callback')||''));
   }
@@ -90,7 +90,7 @@ async function open(opts){
     check('A sign-up in the app says so (for the confirmation link)', su && su.options.data && su.options.data.signup_source==='app', JSON.stringify(su && su.options));
   }
   {
-    const {doc} = await open({native:false, signedIn:true, metadata:{signup_source:'app'}, url:'https://heraclio580-oss.github.io/Altiro/#access_token=x&refresh_token=y&type=signup'});
+    const {doc} = await open({native:false, signedIn:true, metadata:{signup_source:'app'}, url:'https://getaltiro.app/#access_token=x&refresh_token=y&type=signup'});
     const ov = doc.getElementById('appHandoffOverlay');
     check('Confirmed in the browser: "Email confirmed -- Open Altiro"', !ov.hidden && doc.getElementById('appHandoffOpen').getAttribute('href')==='altiro://confirmed' && /Go back to the Altiro app/.test(ov.textContent));
     check('...without signing in on the website', !doc.getElementById('screen-welcome').hidden);
@@ -98,7 +98,7 @@ async function open(opts){
     check('...or carry on in the browser', ov.hidden && !doc.getElementById('screen-home').hidden);
   }
   {
-    const {doc} = await open({native:false, signedIn:true, metadata:{signup_source:'web'}, url:'https://heraclio580-oss.github.io/Altiro/#access_token=x&refresh_token=y&type=signup'});
+    const {doc} = await open({native:false, signedIn:true, metadata:{signup_source:'web'}, url:'https://getaltiro.app/#access_token=x&refresh_token=y&type=signup'});
     check('A website sign-up confirmed: straight in, as before', doc.getElementById('appHandoffOverlay').hidden && !doc.getElementById('screen-home').hidden);
   }
   {

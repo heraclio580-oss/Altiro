@@ -25,7 +25,7 @@ async function open(opts){
 (async () => {
   {
     const {dom, doc, fetched} = await open({native:true, stamp:'aaa111', latest:'bbb222'});
-    check('A test app older than the latest build asks the website which build is latest', fetched.some(u=> u.startsWith('https://heraclio580-oss.github.io/Altiro/version.json')), fetched.join(', '));
+    check('A test app older than the latest build asks the website which build is latest', fetched.some(u=> u.startsWith('https://getaltiro.app/version.json')), fetched.join(', '));
     const bar = doc.getElementById('updateBar');
     check('...and shows "A new test version of the app is out" with Download', !bar.hidden && /new test version/.test(bar.textContent) && doc.getElementById('updateBtn').textContent==='Download', bar.textContent);
     let opened = null;

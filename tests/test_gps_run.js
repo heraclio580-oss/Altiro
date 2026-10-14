@@ -168,6 +168,36 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195; // metres to degrees o
     await ctx.close();
   }
 
+  // ---- A run planned for today: "Track a run with GPS" on Today records that run, not a second one ----
+  {
+    const {page, errors} = await openApp();
+    await page.evaluate(()=>{
+      const doc = document;
+      doc.getElementById('addTodayWorkoutBtn').click();
+      doc.getElementById('manualNameInput').value = '3 mile run';
+      doc.getElementById('manualNameInput').dispatchEvent(new Event('input', {bubbles:true}));
+      [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='run').click();
+      doc.getElementById('saveManualEntry').click();
+    });
+    await sleep(100);
+    await tapTrack(page);
+    await fix(page, 0);
+    await page.tap('#gpsStartBtn');
+    for(let i=1; i<=60; i++){ await page.clock.fastForward(2000); await fix(page, i*10); }
+    await page.evaluate(()=> document.getElementById('gpsHoldFinish').dispatchEvent(new PointerEvent('pointerdown', {bubbles:true})));
+    await page.clock.fastForward(1300);
+    await sleep(100);
+    await page.tap('#saveLogPerf');
+    await sleep(300);
+    check('Tracked from Today: it\'s logged as today\'s "3 mile run"', /3 mile run/.test(await txt(page, '#summarySessTitle')), await txt(page, '#summarySessTitle'));
+    await page.tap('#summaryBackBtn');
+    await sleep(200);
+    check('...done on the Today card, with no second "Run" under "Also today"', /3 mile run, 0\.37 mi/.test(await txt(page, '#sessionCard .title')) && !(await shown(page, '#homeAlsoToday')),
+      `${await txt(page, '#sessionCard .title')} | ${await txt(page, '#homeAlsoToday')}`);
+    check('No page errors', errors.length===0, errors.join(' | '));
+    await page.context().close();
+  }
+
   // ---- A planned run: Log Performance offers GPS ----
   {
     const {page, errors} = await openApp();

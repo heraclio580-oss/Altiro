@@ -3652,7 +3652,7 @@ const STR = {
     shareText: "Just finished {title} with Altiro.",
     streakLine: "Current streak — keep it going",
     dayStreakSuffix: "WEEK STREAK",
-    statDistance: "Distance", statTime: "Time", statPace: "Pace", statTempoTarget: "Tempo Target",
+    statDistance: "Distance", statTime: "Time", statPace: "Pace",
     statTotalVolume: "Total Volume", statSetsReps: "Sets x Reps", statTopSet: "Top Set",
     statExerciseCount: "Exercises",
     statElevGain: "Elevation Gain", statAvgPace: "Avg Pace",
@@ -4361,7 +4361,7 @@ const STR = {
     shareText: "Acabo de terminar {title} con Altiro.",
     streakLine: "Días activos actuales — sigue así",
     dayStreakSuffix: "SEMANAS SEGUIDAS",
-    statDistance: "Distancia", statTime: "Tiempo", statPace: "Ritmo", statTempoTarget: "Objetivo de ritmo",
+    statDistance: "Distancia", statTime: "Tiempo", statPace: "Ritmo",
     statTotalVolume: "Volumen total", statSetsReps: "Series x Reps", statTopSet: "Serie máxima",
     statExerciseCount: "Ejercicios",
     statElevGain: "Desnivel positivo", statAvgPace: "Ritmo promedio",
@@ -8060,6 +8060,7 @@ function runLoading(){
 
 /* ---------------- home ---------------- */
 let homeMoreOpen = false; // the Today card's More panel
+let homeGpsTarget = null; // what Today's "Track a run with GPS" records (set as Today is drawn)
 function renderHome(){
   ensureWeek();
   const L = STR[state.lang];
@@ -8167,6 +8168,8 @@ function renderHome(){
     if(perf && perf.distance!=null) mainDetail = [`${perf.distance} mi`, perf.time ? fmtDurationClock(perf.time) : ''].filter(Boolean).join(' · ');
   }
   const todayClasses = classRowsHtml(todayKey);
+  // Tracking a run from here records today's run, while it's still to do -- otherwise it's an added run.
+  homeGpsTarget = eff.t==='run' && !mainDone ? {dayKey: todayKey, ...mainTarget} : null;
   document.getElementById('sessionCard').innerHTML = `
     <div class="session-desc-tap" id="sessionDescTap">
       <div class="top-row">
@@ -9225,7 +9228,11 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     if(l>=0) logged.elevLoss = Math.round(fromDispElev(l)*10)/10;
     if(logged.elevGain==null && logged.elevLoss==null) delete logged.elevProfile;
   }
-  if(gpsRes){ setGpsHandoff(null); absorbStravaTwin(logTarget, logged); }
+  if(gpsRes){
+    setGpsHandoff(null); absorbStravaTwin(logTarget, logged);
+    // The watch's copy, held while this waited to be saved, comes in now (and is matched to it).
+    setTimeout(()=>{ syncHealth({force: true}); if(strava.connected) importStravaActivities(); }, 0);
+  }
   document.getElementById('logPerfOverlay').hidden = true;
   if(!resolved){ startWorkout(logged); return; }
   storeLoggedPerformance(logTarget, resolved, logged);
@@ -12710,25 +12717,13 @@ function getSummaryStats(session, intensityIdx, logged){
     const totalMin = (logged && logged.time) ? logged.time : dist*tier.pace;
     const paceMin = dist>0 ? totalMin/dist : tier.pace;
     const paceStr = fmtPace(paceMin)+'/mi';
-    if(logged && logged.route && logged.route.length){
-      // Tracked with GPS: the exact distance and time, to the second.
-      return [
-        {l:L.statDistance, v:(+dist).toFixed(2)+' mi'},
-        {l:L.statTime, v:fmtDurationClock(totalMin)},
-        {l:L.statPace, v:paceStr},
-        ...elevStats(logged),
-        ...calorieStats(logged),
-        ...(getProgressionTarget(session, intensityIdx) && state._reviewSubmitted ? [{l:L.statProgress, v:fmtPace(getProgressionTarget(session, intensityIdx).pace)+'/mi'}] : []),
-      ];
-    }
-    const lo = tier.pace+0.4, hi = tier.pace-0.2;
-    const tgt = `${fmtPace(hi)}–${fmtPace(lo)}/mi`;
+    // Tracked with GPS, or from a watch: the exact distance and time, to the second.
+    const exact = !!(logged && (logged.route && logged.route.length || logged.stravaId || logged.healthId));
     const target = getProgressionTarget(session, intensityIdx);
     const stats = [
-      {l:L.statDistance, v:dist.toFixed(1)+' mi'},
-      {l:L.statTime, v:fmtTime(totalMin)},
+      {l:L.statDistance, v:(+dist).toFixed(exact ? 2 : 1)+' mi'},
+      {l:L.statTime, v:exact ? fmtDurationClock(totalMin) : fmtTime(totalMin)},
       {l:L.statPace, v:paceStr},
-      {l:L.statTempoTarget, v:tgt},
       ...elevStats(logged),
       ...calorieStats(logged),
     ];
@@ -13964,7 +13959,7 @@ document.getElementById('logPerfGpsBtn').addEventListener('click', ()=>{
   stopWorkoutClock();
   openGpsTracker(target);
 });
-document.addEventListener('click', e=>{ if(e.target.closest && e.target.closest('#trackRunBtn')) openGpsTracker(null); }); // Today's button is re-drawn with the page
+document.addEventListener('click', e=>{ if(e.target.closest && e.target.closest('#trackRunBtn')) openGpsTracker(homeGpsTarget); }); // Today's button is re-drawn with the page
 
 // ---- the route after the run: Summary map + splits ----
 let summaryMap = null;
@@ -15087,6 +15082,16 @@ function runWindow(perf){
 // the phone at slightly different moments).
 const RUN_OVERLAP_SLACK_MS = 5*60*1000;
 const sameTime = (a, b)=> !!(a && b && a.start < b.end + RUN_OVERLAP_SLACK_MS && b.start < a.end + RUN_OVERLAP_SLACK_MS);
+// A run being tracked with GPS here, or finished and not saved yet: its {start, end}. The watch's copy of
+// it waits until it's saved (it's matched to it then) -- filed before, it would take the day's planned run
+// and the GPS run would be a second one.
+const GPS_HOLD_MS = 6*3600*1000;
+function gpsPendingWindow(){
+  if(gps && gps.startedAt) return {start: gps.startedAt, end: Date.now()};
+  const r = gpsHandoff && gpsHandoff.result;
+  if(r && r.startedAt && Date.now() - (Number(r.finishedAt) || 0) < GPS_HOLD_MS) return {start: Number(r.startedAt), end: Number(r.finishedAt) || Date.now()};
+  return null;
+}
 // The day's logged runs: [{target, dist, perf}].
 function dayLoggedRuns(dd){
   const out = [];
@@ -15143,6 +15148,21 @@ function mergeWatchDuplicates(){
       if(!twin) return;
       takeWatchNumbers(twin.target, {distance: wp.distance!=null ? wp.distance : e.distance, time: wtime, stravaId: wp.stravaId, healthId: wp.healthId, source: wp.source, start: wwin && wwin.start, end: wwin && wwin.end});
       deleteManualEntry(key, e.id);
+      merged++;
+    });
+    // The watch's copy that took the day's planned run (or an added one) while the GPS run -- at the same
+    // time -- went in as a run of its own: the planned run keeps the watch's numbers and takes the GPS
+    // run's route and elevation, and the other one goes.
+    const runs = dayLoggedRuns(getDayData(parseDateKey(key)));
+    runs.filter(w=> w.target.kind!=='entry' && w.perf && (w.perf.stravaId || w.perf.healthId) && !w.perf.route).forEach(w=>{
+      const wwin = runWindow(w.perf);
+      const g = wwin && runs.find(r=> r.target.kind!=='primary' && isPhoneGpsRun(r.perf) && sameTime(runWindow(r.perf), wwin));
+      const resolved = g && resolveLogTarget(w.target);
+      if(!resolved) return;
+      const extra = {};
+      ['route', 'elevGain', 'elevLoss', 'elevProfile', 'gpsStats'].forEach(k=>{ if(g.perf[k]!=null) extra[k] = g.perf[k]; });
+      storeLoggedPerformance(w.target, resolved, {...w.perf, ...extra});
+      if(g.target.kind==='extra') deleteExtraWorkout(key, g.target.id); else deleteManualEntry(key, g.target.id);
       merged++;
     });
   });
@@ -15272,8 +15292,9 @@ async function importStravaActivities(){
     if((mergeWatchDuplicates() || linked) && (!rows || !rows.length)) refreshViews();
   }catch(e){ /* best-effort */ }
   if(error || !rows || !rows.length) return 0;
-  const imported = [];
+  const imported = [], pending = gpsPendingWindow();
   for(const row of rows){
+    if(pending && sameTime(pending, stravaRowWindow(row))) continue; // (see gpsPendingWindow)
     // Claim the run before filing it, so two devices syncing at the same moment can't both file it.
     const { data: claimed } = await sb.from('strava_activities')
       .update({applied_at: new Date().toISOString()}).eq('id', row.id).is('applied_at', null).select('id');
@@ -15468,17 +15489,19 @@ function healthIdLogged(id){
 async function importHealthWorkouts(H){
   const now = new Date(), from = new Date(now.getTime() - HEALTH_LOOKBACK_DAYS*86400000);
   const res = await H.queryWorkouts({startDate: from.toISOString(), endDate: now.toISOString(), limit: 100, ascending: true});
-  const seen = new Set(healthSeen()), looked = [], imported = [];
+  const seen = new Set(healthSeen()), looked = [], imported = [], pending = gpsPendingWindow();
   ((res && res.workouts) || []).forEach(w=>{
     if(!HEALTH_RUN_TYPES.includes(w.workoutType)) return; // (runs only, as from Strava)
     const id = w.platformId || `${w.sourceId || ''}|${w.startDate}`;
     if(seen.has(id)) return;
     const start = Date.parse(w.startDate), end = Date.parse(w.endDate), meters = Number(w.totalDistance) || 0;
     if(!isFinite(start) || meters < 160) return; // no distance yet: looked at again next time
+    const win = {start, end: isFinite(end) ? end : start + (Number(w.duration)||0)*1000};
+    if(pending && sameTime(pending, win)) return; // (see gpsPendingWindow: looked at again once it's saved)
     looked.push(id);
     if(healthIdLogged(id)) return;
     const run = {key: dateKey(new Date(start)), miles: +(meters/1609.344).toFixed(2), minutes: w.duration ? +(w.duration/60).toFixed(2) : null,
-      win: {start, end: isFinite(end) ? end : start + (Number(w.duration)||0)*1000}, name: STR[state.lang].healthRunName, source: 'health', healthId: id,
+      win, name: STR[state.lang].healthRunName, source: 'health', healthId: id,
       calories: Number(w.totalEnergyBurned) > 0 ? Math.round(Number(w.totalEnergyBurned)) : null};
     if(fileWatchRun(run)) imported.push(run);
   });
@@ -15501,10 +15524,12 @@ async function syncHealth(opts){
   renderHealthSettings();
   let imported = [];
   try{ imported = await importHealthWorkouts(H); }catch(e){ /* best-effort */ }
+  const merged = mergeWatchDuplicates();
   try{ health.steps = await readTodaySteps(H); }catch(e){ /* steps not allowed, or none */ }
   health.status = 'idle';
   renderHealthSettings();
   renderStepsChip();
+  if(merged && !imported.length) refreshViews();
   if(imported.length){
     refreshViews();
     const L = STR[state.lang], r = imported[0];

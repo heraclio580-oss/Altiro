@@ -15115,9 +15115,34 @@ function stravaMatchTarget(dd, miles, win, minutes){
 }
 const isPhoneGpsRun = perf => !!(perf && (perf.source==='gps' || perf.route) && !perf.stravaId && !perf.healthId);
 const sameDuration = (a, b)=> a>0 && b>0 && Math.abs(a-b) <= Math.max(1.5, 0.03*Math.max(a, b));
+// The phone's splits, re-measured to the watch's distance and time (miles: what the watch measured):
+// where the phone measured the run a little long, its mile marks came a little early. {splits, lastSplit}
+// in the unit the run was tracked in, or null.
+function rescaleSplits(perf, miles, minutes){
+  const sp = perf && perf.splits, ls = perf && perf.lastSplit;
+  if(!sp || !sp.length || !(miles>0)) return null;
+  const lsDist = ls ? (ls.dist!=null ? ls.dist : ls.mi) || 0 : 0;
+  // The phone's run: [units, seconds] at each of its marks.
+  const pts = [[0, 0]];
+  sp.forEach((sec, i)=> pts.push([i+1, pts[i][1] + sec]));
+  if(lsDist>0 && ls.sec>0) pts.push([sp.length + lsDist, pts[pts.length-1][1] + ls.sec]);
+  const [phoneU, phoneS] = pts[pts.length-1];
+  const unitMi = perf.splitUnit==='km' ? 1/1.609344 : 1;
+  const watchU = miles/unitMi, watchS = minutes>0 ? minutes*60 : phoneS;
+  const k = watchU/phoneU, ts = watchS/phoneS;
+  const at = u=>{ // seconds at the watch's u units, along the phone's run stretched to the watch's
+    const x = u/k;
+    for(let i=1; i<pts.length; i++) if(x <= pts[i][0]) return (pts[i-1][1] + (pts[i][1]-pts[i-1][1])*(x-pts[i-1][0])/(pts[i][0]-pts[i-1][0]))*ts;
+    return watchS;
+  };
+  const whole = Math.floor(watchU + 1e-9), out = [];
+  for(let n=1; n<=whole; n++) out.push(Math.round(at(n) - at(n-1)));
+  const rest = Math.round((watchU - whole)*100)/100;
+  return {splits: out, lastSplit: rest>=0.01 ? {dist: rest, sec: Math.max(1, Math.round(watchS - at(whole)))} : null};
+}
 // The watch's numbers win: a run tracked here that the watch recorded too takes the watch's distance
 // and time (a watch's GPS is steadier than a phone's), keeps its route and elevation, and links to
-// Strava. The phone's splits go -- they were measured by its own distance.
+// Strava. The phone's splits are re-measured to the watch's distance (see rescaleSplits).
 function takeWatchNumbers(target, watch){
   const resolved = resolveLogTarget(target);
   if(!resolved) return false;
@@ -15130,6 +15155,8 @@ function takeWatchNumbers(target, watch){
   if(watch.calories) perf.calories = watch.calories;
   if(watch.start){ perf.startedAt = watch.start; perf.finishedAt = watch.end; }
   delete perf.splits; delete perf.lastSplit;
+  const re = rescaleSplits(prev, perf.distance, perf.time);
+  if(re){ perf.splits = re.splits; if(re.lastSplit) perf.lastSplit = re.lastSplit; }
   storeLoggedPerformance(target, resolved, perf);
   applyLoggedPerformance(target, resolved, perf);
   return true;
@@ -15160,7 +15187,9 @@ function mergeWatchDuplicates(){
       const resolved = g && resolveLogTarget(w.target);
       if(!resolved) return;
       const extra = {};
-      ['route', 'elevGain', 'elevLoss', 'elevProfile', 'gpsStats'].forEach(k=>{ if(g.perf[k]!=null) extra[k] = g.perf[k]; });
+      ['route', 'elevGain', 'elevLoss', 'elevProfile', 'gpsStats', 'splitUnit'].forEach(k=>{ if(g.perf[k]!=null) extra[k] = g.perf[k]; });
+      const re = rescaleSplits(g.perf, w.perf.distance!=null ? w.perf.distance : w.dist, w.perf.time);
+      if(re){ extra.splits = re.splits; if(re.lastSplit) extra.lastSplit = re.lastSplit; }
       storeLoggedPerformance(w.target, resolved, {...w.perf, ...extra});
       if(g.target.kind==='extra') deleteExtraWorkout(key, g.target.id); else deleteManualEntry(key, g.target.id);
       merged++;
@@ -15192,7 +15221,9 @@ function absorbStravaTwin(target, logged){
   logged.fromWatch = true;
   const wwin = runWindow(wp);
   if(wwin){ logged.startedAt = wwin.start; logged.finishedAt = wwin.end; }
+  const re = rescaleSplits(logged, logged.distance, logged.time);
   delete logged.splits; delete logged.lastSplit;
+  if(re){ logged.splits = re.splits; if(re.lastSplit) logged.lastSplit = re.lastSplit; }
   deleteManualEntry(target.dayKey, twin.id);
   showToast(STR[state.lang].watchNumbersToast.replace('{mi}', `${toDispDist(logged.distance).toFixed(2)} ${useKm() ? 'km' : 'mi'}`));
 }

@@ -120,7 +120,7 @@ const dayRow = backend => Object.values(backend.db.workout_logs).find(r=> r.log_
     backend.addLog(DAY, {planned_type:'run', planned_title:'3mile run', planned_detail:'3 mi', completed_override:true, actual_run_distance:3.27,
       performance:{distance:3.27, time:36.11, source:'health', healthId:'garmin-1', calories:502, startedAt:T0+15000, finishedAt:T0+15000+2166500}});
     backend.db.planned_workouts = {pw1: {id:'pw1', user_id:'u1', log_date:DAY, session_type:'run', title:'Run', detail:'3.3 mi', completed:true, actual_distance:3.30,
-      performance:{distance:3.30, time:36.13, source:'gps', route:ROUTE, splits:[675, 647, 646], splitUnit:'mi', elevGain:47.9, elevLoss:48.8, startedAt:T0, finishedAt:T0+2168000}}};
+      performance:{distance:3.30, time:36.13, source:'gps', route:ROUTE, splits:[675, 647, 646], lastSplit:{dist:0.3, sec:200}, splitUnit:'mi', elevGain:47.9, elevLoss:48.8, startedAt:T0, finishedAt:T0+2168000}}};
     const {dom} = open(backend);
     await wait(500);
     const doc = dom.window.document, row = dayRow(backend);
@@ -129,6 +129,15 @@ const dayRow = backend => Object.values(backend.db.workout_logs).find(r=> r.log_
     check('...the planned run keeps the Garmin\'s 3.27 mi, 36:06 and calories', row.actual_run_distance===3.27 && row.performance.time===36.11 && row.performance.calories===502, JSON.stringify(row.performance));
     check('...and takes the GPS run\'s route and elevation', JSON.stringify(row.performance.route)===JSON.stringify(ROUTE) && row.performance.elevGain===47.9, JSON.stringify(row.performance));
     check('...one run on Today', /3mile run, 3\.27 mi · 36:0\d/.test(doc.querySelector('#sessionCard .title').textContent), doc.querySelector('#sessionCard .title').textContent);
+    // The GPS run's splits, re-measured to the Garmin's 3.27 mi in 36:06: three miles, then the last 0.27 --
+    // adding up to the Garmin's time.
+    const sp = row.performance.splits || [], ls = row.performance.lastSplit;
+    check('...with its mile splits, re-measured to the Garmin\'s distance: 3 miles, then 0.27 mi', sp.length===3 && ls && ls.dist===0.27
+      && Math.abs(sp.reduce((a,b)=>a+b, 0) + ls.sec - 2166.5) <= 2 && sp.every(x=> x>630 && x<700), JSON.stringify([sp, ls]));
+    doc.getElementById('sessionDescTap').click();
+    await wait(50);
+    const splitsText = doc.getElementById('summarySplits').textContent.replace(/\s+/g,' ');
+    check('...shown on its Summary', !doc.getElementById('screen-summary').hidden && /Mile 1\s?1\d:\d\d\/mi.*Mile 3\s?1\d:\d\d\/mi.*0\.27 mi\s?1\d:\d\d\/mi/.test(splitsText), splitsText);
     dom.window.close();
   }
 
@@ -137,7 +146,7 @@ const dayRow = backend => Object.values(backend.db.workout_logs).find(r=> r.log_
     const backend = makeBackend({connected:false});
     backend.addLog(DAY, {planned_type:'run', planned_title:'3mile run', planned_detail:'3 mi'});
     const {dom, H} = open(backend, {target:{dayKey:DAY, kind:'primary', id:null},
-      result:{distance:3.30, time:36.13, route:ROUTE, splits:[675, 647, 646], splitUnit:'mi', elevGain:47.9, elevLoss:48.8, startedAt:T0, finishedAt:T0+2168000}});
+      result:{distance:3.30, time:36.13, route:ROUTE, splits:[675, 647, 646], lastSplit:{dist:0.3, sec:200}, splitUnit:'mi', elevGain:47.9, elevLoss:48.8, startedAt:T0, finishedAt:T0+2168000}});
     await wait(500);
     const doc = dom.window.document;
     check('(set-up) Health Connect was looked at', H.queries>=1);
@@ -151,6 +160,7 @@ const dayRow = backend => Object.values(backend.db.workout_logs).find(r=> r.log_
     const row = dayRow(backend);
     check('Saved: then the Garmin\'s copy comes in, as the same run -- 3.27 mi, with its calories', row.actual_run_distance===3.27 && row.performance.healthId==='garmin-1' && row.performance.calories===502, JSON.stringify(row.performance));
     check('...keeping the GPS route', JSON.stringify(row.performance.route)===JSON.stringify(ROUTE));
+    check('...and its splits, re-measured to 3.27 mi', (row.performance.splits||[]).length===3 && row.performance.lastSplit && row.performance.lastSplit.dist===0.27, JSON.stringify([row.performance.splits, row.performance.lastSplit]));
     check('...and no second run', !Object.keys(backend.db.manual_entries).length && !Object.keys(backend.db.planned_workouts || {}).length,
       JSON.stringify([backend.db.manual_entries, backend.db.planned_workouts]));
     dom.window.close();

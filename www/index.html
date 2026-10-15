@@ -800,7 +800,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .fb-thanks{padding:14px 0 4px;}
 .fb-thanks-t{font-family:var(--font-display);font-weight:600;font-size:calc(18px * var(--fs, 1));color:var(--text);}
 .wp-step-amount{font-family:var(--font-mono);font-size:calc(12.5px * var(--fs, 1));color:var(--text-2);margin-left:6px;}
-#missedBody[hidden],#homeOverview[hidden],#progEmpty[hidden],#progWeeksSection[hidden],#progActivitySection[hidden],#wpSkipWorkoutBtn[hidden],#wpDayOptionsBtn[hidden],#logPerfChangeExercisesBtn[hidden],#saveLiftsBtn[hidden]{display:none;}
+#missedBody[hidden],#homeOverview[hidden],#progEmpty[hidden],#progWeeksSection[hidden],#progActivitySection[hidden],#stepsSection[hidden],#wpSkipWorkoutBtn[hidden],#wpDayOptionsBtn[hidden],#logPerfChangeExercisesBtn[hidden],#saveLiftsBtn[hidden]{display:none;}
 .sheet-panel{width:100%;max-height:88%;background:var(--sheet-bg);border:1px solid var(--divider);border-bottom:none;border-radius:28px 28px 0 0;padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));overflow-y:auto;animation:sheetUp .26s ease both;}
 @keyframes sheetUp{from{transform:translateY(24px);opacity:0.4;}to{transform:none;opacity:1;}}
 @media (prefers-reduced-motion: reduce){.sheet-panel{animation:none;}}
@@ -1371,6 +1371,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .elev-profile svg{display:block;width:100%;height:84px;}
 .elev-profile .ep-area{fill:var(--accent-tint);}
 .elev-profile .ep-line{fill:none;stroke:var(--accent-hover);stroke-width:2;stroke-linejoin:round;}
+.steps-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.steps-head .lang-btn{padding:6px 10px;font-size:calc(11px * var(--fs, 1));}
+.steps-now{margin-top:12px;}
+.steps-now .sn-label{font-family:var(--font-mono);font-size:calc(10.5px * var(--fs, 1));letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);}
+.steps-now b{display:block;font-family:var(--font-display);font-weight:800;font-size:calc(30px * var(--fs, 1));line-height:1.1;color:var(--text);margin-top:3px;font-variant-numeric:tabular-nums;}
+.steps-now .sn-sub{font-size:calc(13px * var(--fs, 1));color:var(--text-2);margin-top:2px;}
+#stepsChart{gap:6px;}
 .bw-now{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;}
 .bw-now b{font-family:var(--font-display);font-weight:800;font-size:calc(30px * var(--fs, 1));line-height:1;color:var(--text);}
 .bw-now .u{font-family:var(--font-mono);font-size:calc(12px * var(--fs, 1));color:var(--text-3);}
@@ -1895,6 +1902,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section" id="progActivitySection" style="margin-top:26px;">
         <div class="st-label" data-i18n="activityLabel"></div>
         <div id="progActivity"></div>
+      </div>
+      <div class="sheet-section" id="stepsSection" style="margin-top:26px;" hidden>
+        <div class="steps-head">
+          <div class="st-label" data-i18n="stepsSectionLabel" style="margin-bottom:0;"></div>
+          <div class="lang-toggle" id="stepViewToggle" role="group">
+            <button class="lang-btn" data-step-view="day" type="button" data-i18n="stepViewDay"></button><button class="lang-btn" data-step-view="week" type="button" data-i18n="stepViewWeek"></button><button class="lang-btn" data-step-view="month" type="button" data-i18n="stepViewMonth"></button>
+          </div>
+        </div>
+        <div class="steps-now" id="stepsNow"></div>
+        <div class="barchart" id="stepsChart"></div>
       </div>
       <div class="sheet-section" id="bodyWeightSection" style="margin-top:26px;">
         <div class="st-label" data-i18n="bodyWeightLabel"></div>
@@ -3763,6 +3780,8 @@ const STR = {
     prBestBadge: "PR",
     liftProgressLabel: "Your lifts",
     bodyWeightLabel: "Body weight", bwLogBtn: "Log weight", bwSavedToast: "Weight saved",
+    stepsSectionLabel: "Steps", stepViewDay: "Day", stepViewWeek: "Week", stepViewMonth: "Month",
+    stepsThisWeek: "This week", stepsWeekOf: "Week of {date}", stepsAvgDay: "{n} a day on average", steps7dAvg: "7-day average: {n}",
     bwEmpty: "Log your weight to see how it changes over time. Weigh in at the same time of day, like first thing in the morning.",
     bwSince: "{change} since {date}", bwSame: "No change since {date}", bwToday: "Today",
     liftProgressEmpty: "Log a workout with its weights and each lift shows up here, with a chart of your progress.",
@@ -4475,6 +4494,8 @@ const STR = {
     prBestBadge: "RP",
     liftProgressLabel: "Tus levantamientos",
     bodyWeightLabel: "Peso corporal", bwLogBtn: "Registrar peso", bwSavedToast: "Peso guardado",
+    stepsSectionLabel: "Pasos", stepViewDay: "Día", stepViewWeek: "Semana", stepViewMonth: "Mes",
+    stepsThisWeek: "Esta semana", stepsWeekOf: "Semana del {date}", stepsAvgDay: "{n} al día de media", steps7dAvg: "Media de 7 días: {n}",
     bwEmpty: "Registra tu peso para ver cómo cambia con el tiempo. Pésate a la misma hora del día, por ejemplo al despertar.",
     bwSince: "{change} desde el {date}", bwSame: "Sin cambios desde el {date}", bwToday: "Hoy",
     liftProgressEmpty: "Registra un entrenamiento con sus pesos y cada levantamiento aparecerá aquí, con una gráfica de tu progreso.",
@@ -11502,6 +11523,7 @@ function renderProgress(){
   renderActivity();
   renderTrophyCase();
   renderLiftProgress();
+  renderSteps();
   renderBodyWeight();
   renderPRs();
 }
@@ -15621,7 +15643,7 @@ const HEALTH_READ = ['workouts', 'steps', 'distance', 'calories', 'totalCalories
 const HEALTH_RUN_TYPES = ['running', 'runningTreadmill', 'trackAndField', 'wheelchairRunPace'];
 const HEALTH_LOOKBACK_DAYS = 7; // a watch can pass a run on hours, or a day or two, after it
 const HEALTH_RESYNC_MS = 60*1000, HEALTH_OPEN_SYNC_MS = 5*60*1000;
-let health = {status:'idle', steps:null, lastSyncAt:0}; // status: 'idle' | 'syncing' | 'unavailable'
+let health = {status:'idle', steps:null, lastSyncAt:0, stepHistAt:0}; // status: 'idle' | 'syncing' | 'unavailable'
 function nativeHealth(){ return isNativeShell() && window.Capacitor.Plugins && window.Capacitor.Plugins.Health || null; }
 function healthIsIos(){ try{ return window.Capacitor.getPlatform()==='ios'; }catch(e){ return false; } }
 function healthName(){ return healthIsIos() ? 'Apple Health' : 'Health Connect'; }
@@ -15679,6 +15701,11 @@ async function syncHealth(opts){
   try{ imported = await importHealthWorkouts(H); }catch(e){ /* best-effort */ }
   const merged = mergeWatchDuplicates();
   try{ health.steps = await readTodaySteps(H); }catch(e){ /* steps not allowed, or none */ }
+  if((opts && opts.force) || Date.now() - health.stepHistAt >= STEP_HISTORY_MS){
+    try{ saveStepHistory(await readStepHistory(H)); health.stepHistAt = Date.now(); }catch(e){ /* steps not allowed */ }
+  }
+  if(health.steps!=null) saveStepHistory({[dateKey(new Date())]: health.steps});
+  renderSteps();
   health.status = 'idle';
   renderHealthSettings();
   renderStepsChip();
@@ -15734,6 +15761,90 @@ function renderHealthSettings(){
   connect.disabled = document.getElementById('healthSyncBtn').disabled = health.status==='syncing';
 }
 // Today's steps, on Home next to the streak.
+/* ---------------- steps on Progress ---------------- */
+// Day / Week / Month step totals from Apple Health / Health Connect, in the store app with it on. Read
+// on the phone and kept on it, never sent to Altiro's servers (see privacy.html#health).
+const STEP_HISTORY_MONTHS = 6, STEP_HISTORY_MS = 10*60*1000;
+let stepView = 'day', stepPick = null; // the bar picked (its index), or null: the current day/week/month
+function stepHistory(){ try{ return JSON.parse(localStorage.getItem(healthKey('steps')) || '{}') || {}; }catch(e){ return {}; } }
+function saveStepHistory(days){
+  const since = dateKey(new Date(new Date().getFullYear(), new Date().getMonth() - STEP_HISTORY_MONTHS, 1));
+  const all = {...stepHistory(), ...days};
+  Object.keys(all).forEach(k=>{ if(k < since) delete all[k]; });
+  try{ localStorage.setItem(healthKey('steps'), JSON.stringify(all)); }catch(e){}
+}
+async function readStepHistory(H){
+  const now = new Date(), from = new Date(now.getFullYear(), now.getMonth() - (STEP_HISTORY_MONTHS-1), 1);
+  const res = await H.queryAggregated({dataType: 'steps', startDate: from.toISOString(), endDate: now.toISOString(), bucket: 'day', aggregation: 'sum'});
+  const days = {};
+  ((res && res.samples) || []).forEach(x=>{
+    const t = Date.parse(x.startDate); // (a day starts at midnight here; its middle says which day it is)
+    if(isFinite(t)){ const k = dateKey(new Date(t + 12*3600*1000)); days[k] = (days[k] || 0) + Math.round(Number(x.value) || 0); }
+  });
+  return days;
+}
+// The bars for a view, oldest first: [{label, total, avg, title, current}].
+function stepBars(view, hist){
+  const L = STR[state.lang], loc = state.lang==='es' ? 'es-ES' : 'en-US', today = new Date(TODAY_DATE);
+  const sumDays = (from, to)=>{ let total = 0, n = 0; for(let d = new Date(from); d <= to; d.setDate(d.getDate()+1)){ const v = hist[dateKey(d)]; if(v>0){ total += v; n++; } } return {total, avg: n ? Math.round(total/n) : 0}; };
+  const out = [];
+  if(view==='day'){
+    for(let i=6; i>=0; i--){
+      const d = new Date(today); d.setDate(d.getDate()-i);
+      const v = hist[dateKey(d)] || 0;
+      out.push({label: d.toLocaleDateString(loc, {weekday: 'short'}), total: v, current: i===0,
+        title: i===0 ? L.bwToday : d.toLocaleDateString(loc, {weekday: 'short', month: 'short', day: 'numeric'})});
+    }
+  } else if(view==='week'){
+    const mon = new Date(today); mon.setDate(mon.getDate() - (mon.getDay()+6)%7);
+    for(let i=7; i>=0; i--){
+      const a = new Date(mon); a.setDate(a.getDate() - 7*i);
+      const b = new Date(a); b.setDate(b.getDate()+6);
+      const r = sumDays(a, b < today ? b : today);
+      out.push({label: a.toLocaleDateString(loc, {month: 'numeric', day: 'numeric'}), ...r, current: i===0,
+        title: i===0 ? L.stepsThisWeek : L.stepsWeekOf.replace('{date}', a.toLocaleDateString(loc, {month: 'short', day: 'numeric'}))});
+    }
+  } else {
+    for(let i=STEP_HISTORY_MONTHS-1; i>=0; i--){
+      const a = new Date(today.getFullYear(), today.getMonth()-i, 1), b = new Date(today.getFullYear(), today.getMonth()-i+1, 0);
+      const r = sumDays(a, b < today ? b : today);
+      out.push({label: a.toLocaleDateString(loc, {month: 'short'}), ...r, current: i===0,
+        title: a.toLocaleDateString(loc, {month: 'long', year: 'numeric'})});
+    }
+  }
+  return out;
+}
+function renderSteps(){
+  const sec = document.getElementById('stepsSection');
+  if(!sec) return;
+  const hist = nativeHealth() && healthOn() ? stepHistory() : {};
+  sec.hidden = !Object.values(hist).some(v=> v>0);
+  if(sec.hidden) return;
+  const L = STR[state.lang], fmt = n=> Math.round(n).toLocaleString(state.lang==='es' ? 'es-ES' : 'en-US');
+  sec.querySelectorAll('[data-step-view]').forEach(b=> b.classList.toggle('active', b.dataset.stepView===stepView));
+  const bars = stepBars(stepView, hist), pick = stepPick!=null && bars[stepPick] ? stepPick : bars.length-1, sel = bars[pick];
+  let sub = '';
+  if(stepView==='day'){
+    const week = bars.filter(b=> b.total>0);
+    if(week.length > 1) sub = L.steps7dAvg.replace('{n}', fmt(week.reduce((t, b)=> t + b.total, 0) / week.length));
+  } else if(sel.avg) sub = L.stepsAvgDay.replace('{n}', fmt(sel.avg));
+  document.getElementById('stepsNow').innerHTML = `<div class="sn-label">${escapeHtml(sel.title)}</div><b>${fmt(sel.total)}</b>${sub ? `<div class="sn-sub">${sub}</div>` : ''}`;
+  const max = Math.max(1, ...bars.map(b=> b.total));
+  document.getElementById('stepsChart').innerHTML = bars.map((b, i)=> `<div class="bar-col${b.current ? ' current' : ''}${i===pick ? ' selected' : ''}" data-step-bar="${i}">
+      <div class="col-bar" style="height:${Math.max(4, Math.round(b.total/max*100))}%;"></div><div class="col-label">${escapeHtml(b.label)}</div></div>`).join('');
+}
+document.getElementById('stepViewToggle').addEventListener('click', e=>{
+  const b = e.target.closest('[data-step-view]');
+  if(!b) return;
+  stepView = b.dataset.stepView; stepPick = null;
+  renderSteps();
+});
+document.getElementById('stepsChart').addEventListener('click', e=>{
+  const b = e.target.closest('[data-step-bar]');
+  if(!b) return;
+  stepPick = Number(b.dataset.stepBar);
+  renderSteps();
+});
 function renderStepsChip(){
   const chip = document.getElementById('stepsChip');
   if(!chip) return;
@@ -15747,10 +15858,12 @@ document.getElementById('healthSyncBtn').addEventListener('click', async ()=>{
   if(n===0) showToast(STR[state.lang].healthUpToDateToast);
 });
 document.getElementById('healthOffBtn').addEventListener('click', ()=>{
+  try{ localStorage.removeItem(healthKey('steps')); }catch(e){}
   setHealthOn(false);
-  health.steps = null;
+  health.steps = null; health.stepHistAt = 0;
   renderHealthSettings();
   renderStepsChip();
+  renderSteps();
   showToast(STR[state.lang].healthOffToast.replace(/\{name\}/g, healthName()));
 });
 

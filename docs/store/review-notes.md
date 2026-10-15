@@ -36,7 +36,7 @@ Apple Health / Health Connect: Settings → Connected Apps → **Connect Apple H
 Health Connect** (Android). Optional. Altiro only reads: runs recorded by the user's watch from the last 7
 days (with their distance and calories), so they're logged to the plan, and today's step count, shown on
 Today. It never writes health data, doesn't share it, and doesn't use it for ads. If the test device has no
-runs in Health, the connection still shows today's steps.
+runs in Health, the connection still shows today's steps (Home) and step totals (Progress).
 
 Health: Altiro gives general training guidance, not medical advice. The Terms of Use include a health
 disclaimer (Settings → Terms of use).

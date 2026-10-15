@@ -57,9 +57,10 @@ count as sharing.
 
 ## Apple Health and Health Connect (the store apps)
 
-Altiro **reads** workouts (runs only are kept), the distance and calories during them, and today's steps. It
-never writes. Runs it reads are saved to the user's log (already covered by **Fitness** above); steps are
-shown on the phone and not stored on our servers.
+Altiro **reads** workouts (runs only are kept), the distance and calories during them, and daily step totals (last 6 months).
+It never writes. Runs it reads are saved to the user's log (already covered by **Fitness** above); steps are
+shown on the phone (today's count on Home; daily, weekly and monthly totals on Progress), kept only on
+the phone, and not stored on our servers.
 
 **Apple:**
 - Nothing new in App Privacy beyond **Health & Fitness → Fitness** above.
@@ -77,7 +78,7 @@ these five permissions and why:
 | `READ_DISTANCE` | The distance of those runs. |
 | `READ_ACTIVE_CALORIES_BURNED` | Calories burned during those runs, saved and shown with each run (and read together with the distance). |
 | `READ_TOTAL_CALORIES_BURNED` | The same, from devices that only record total calories. |
-| `READ_STEPS` | To show the user's steps for today on the Today screen. |
+| `READ_STEPS` | To show the user's steps: today's count on the Today screen, and daily, weekly and monthly totals on Progress. |
 
 - Use case: **Fitness / activity tracking**. Altiro doesn't write any data.
 - Privacy policy URL: https://getaltiro.app/privacy.html#health (the app also shows it from Health Connect's

@@ -1371,6 +1371,14 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .elev-profile svg{display:block;width:100%;height:84px;}
 .elev-profile .ep-area{fill:var(--accent-tint);}
 .elev-profile .ep-line{fill:none;stroke:var(--accent-hover);stroke-width:2;stroke-linejoin:round;}
+.bw-now{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;}
+.bw-now b{font-family:var(--font-display);font-weight:800;font-size:calc(30px * var(--fs, 1));line-height:1;color:var(--text);}
+.bw-now .u{font-family:var(--font-mono);font-size:calc(12px * var(--fs, 1));color:var(--text-3);}
+.bw-now .bw-change{font-size:calc(13px * var(--fs, 1));color:var(--text-2);}
+.bw-chart{margin-top:12px;padding:0;}
+.bw-chart svg{width:100%;height:80px;display:block;}
+.bw-log-row{display:flex;gap:8px;margin-top:12px;}
+.bw-log-row .btn{width:auto;flex:0 0 auto;padding:0 18px;}
 .elev-profile .ep-meta{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));color:var(--text-3);margin-top:4px;}
 .rest-bar{position:sticky;bottom:8px;z-index:5;display:flex;align-items:center;gap:6px;margin:12px 0 4px;padding:10px 10px 10px 14px;border-radius:16px;background:var(--card-2);border:1px solid var(--accent);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.35);}
 .rest-bar[hidden]{display:none;}
@@ -1887,6 +1895,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section" id="progActivitySection" style="margin-top:26px;">
         <div class="st-label" data-i18n="activityLabel"></div>
         <div id="progActivity"></div>
+      </div>
+      <div class="sheet-section" id="bodyWeightSection" style="margin-top:26px;">
+        <div class="st-label" data-i18n="bodyWeightLabel"></div>
+        <div id="bwSummary"></div>
+        <div class="elev-profile bw-chart" id="bwChart" hidden></div>
+        <div class="bw-log-row">
+          <input type="number" inputmode="decimal" step="0.1" min="0" class="text-input" id="bwInput" aria-label="Weight">
+          <button class="btn btn-ghost" id="bwLogBtn" type="button" data-i18n="bwLogBtn"></button>
+        </div>
+        <div id="bwList"></div>
       </div>
       <div class="sheet-section" style="margin-top:26px;">
         <div class="st-label" data-i18n="liftProgressLabel"></div>
@@ -3744,6 +3762,9 @@ const STR = {
     noPrsLoggedLabel: "No PRs logged yet — add your first lift below.",
     prBestBadge: "PR",
     liftProgressLabel: "Your lifts",
+    bodyWeightLabel: "Body weight", bwLogBtn: "Log weight", bwSavedToast: "Weight saved",
+    bwEmpty: "Log your weight to see how it changes over time. Weigh in at the same time of day, like first thing in the morning.",
+    bwSince: "{change} since {date}", bwSame: "No change since {date}", bwToday: "Today",
     liftProgressEmpty: "Log a workout with its weights and each lift shows up here, with a chart of your progress.",
     liftEstMaxShort: "Est. max",
     liftNew: "New",
@@ -4453,6 +4474,9 @@ const STR = {
     noPrsLoggedLabel: "Aún no hay récords registrados — agrega tu primero abajo.",
     prBestBadge: "RP",
     liftProgressLabel: "Tus levantamientos",
+    bodyWeightLabel: "Peso corporal", bwLogBtn: "Registrar peso", bwSavedToast: "Peso guardado",
+    bwEmpty: "Registra tu peso para ver cómo cambia con el tiempo. Pésate a la misma hora del día, por ejemplo al despertar.",
+    bwSince: "{change} desde el {date}", bwSame: "Sin cambios desde el {date}", bwToday: "Hoy",
     liftProgressEmpty: "Registra un entrenamiento con sus pesos y cada levantamiento aparecerá aquí, con una gráfica de tu progreso.",
     liftEstMaxShort: "Máx. est.",
     liftNew: "Nuevo",
@@ -6309,6 +6333,7 @@ const defaultState = () => ({
   dayLog:{},
   progression:{},
   prs:[],
+  bodyWeights:[], // [{date:'YYYY-MM-DD', weight, unit}], oldest first: one per day
   openDayKey:null,
   planWeeksLoaded:PLAN_INITIAL_WEEKS,
   notifications:false, // workout reminders (web push) -- on only once this device has allowed them
@@ -11477,6 +11502,7 @@ function renderProgress(){
   renderActivity();
   renderTrophyCase();
   renderLiftProgress();
+  renderBodyWeight();
   renderPRs();
 }
 
@@ -12203,6 +12229,86 @@ function applyPRToProgression(exercise, value){
   const target = {weight: value, reps: (existing && existing.reps) || 5};
   saveExerciseTarget(exercise, target);
 }
+/* ---------------- body weight ---------------- */
+// One weigh-in a day (logging again that day replaces it), shown on Progress: the latest, the change
+// since the first, a chart and the recent ones. The weight from setup is the first one.
+const LB_PER_KG = 2.20462262;
+function bwInUnit(e){
+  const w = Number(e.weight);
+  if((e.unit||'lb')===state.weightUnit) return w;
+  return state.weightUnit==='kg' ? w/LB_PER_KG : w*LB_PER_KG;
+}
+const fmtBw = w=> (Math.round(w*10)/10).toLocaleString(state.lang==='es' ? 'es-ES' : 'en-US', {maximumFractionDigits: 1});
+function fmtBwDate(key){
+  if(key===dateKey(TODAY_DATE)) return STR[state.lang].bwToday;
+  const d = parseDateKey(key), opts = {month:'short', day:'numeric'};
+  if(d.getFullYear()!==TODAY_DATE.getFullYear()) opts.year = 'numeric';
+  return d.toLocaleDateString(state.lang==='es' ? 'es-ES' : 'en-US', opts);
+}
+function renderBodyWeight(){
+  const L = STR[state.lang], list = state.bodyWeights, u = state.weightUnit;
+  document.getElementById('bwInput').placeholder = u;
+  const sum = document.getElementById('bwSummary');
+  if(!list.length){
+    sum.innerHTML = state.weight
+      ? `<div class="bw-now"><b>${fmtBw(Number(state.weight))}</b><span class="u">${u}</span></div><div class="footer-note" style="text-align:left;margin-top:6px;">${L.bwEmpty}</div>`
+      : `<div class="footer-note" style="text-align:left;padding:2px 0;">${L.bwEmpty}</div>`;
+  } else {
+    const first = list[0], last = list[list.length-1], diff = bwInUnit(last) - bwInUnit(first);
+    const change = Math.abs(diff) < 0.05 ? L.bwSame.replace('{date}', fmtBwDate(first.date))
+      : L.bwSince.replace('{change}', `${diff>0 ? '+' : '−'}${fmtBw(Math.abs(diff))} ${u}`).replace('{date}', fmtBwDate(first.date));
+    sum.innerHTML = `<div class="bw-now"><b>${fmtBw(bwInUnit(last))}</b><span class="u">${u}</span>${list.length>1 ? `<span class="bw-change">${change}</span>` : ''}</div>`;
+  }
+  // The chart: each weigh-in where it falls in time.
+  const chart = document.getElementById('bwChart');
+  chart.hidden = list.length < 2;
+  if(list.length >= 2){
+    const W = 300, H = 80, t0 = parseDateKey(list[0].date).getTime(), span = Math.max(parseDateKey(list[list.length-1].date).getTime() - t0, 1);
+    const vals = list.map(bwInUnit), lo = Math.min(...vals), hi = Math.max(...vals), vs = Math.max(hi-lo, u==='kg' ? 1 : 2);
+    const mid = (hi+lo)/2;
+    const pts = list.map((e, i)=> `${((parseDateKey(e.date).getTime()-t0)/span*W).toFixed(1)},${(H/2 - (vals[i]-mid)/vs*(H-16)).toFixed(1)}`).join(' ');
+    chart.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polygon class="ep-area" points="0,${H} ${pts} ${W},${H}"/><polyline class="ep-line" points="${pts}" vector-effect="non-scaling-stroke"/></svg>
+      <div class="ep-meta"><span>${fmtBwDate(list[0].date)}</span><span>${fmtBw(lo)}–${fmtBw(hi)} ${u}</span><span>${fmtBwDate(list[list.length-1].date)}</span></div>`;
+  } else chart.innerHTML = '';
+  const listEl = document.getElementById('bwList');
+  listEl.innerHTML = list.slice(-6).reverse().map(e=> `<div class="manual-entry">
+      <div class="body"><div class="n">${fmtBw(bwInUnit(e))} ${u}</div><div class="v">${fmtBwDate(e.date)}</div></div>
+      <button class="del" data-bw-del="${e.date}" type="button" aria-label="Delete">${ICONS.trash}</button>
+    </div>`).join('');
+}
+function logBodyWeight(weight, key){
+  key = key || dateKey(TODAY_DATE);
+  // The first weigh-in: the weight from setup goes in first, on the day the account was made.
+  if(!state.bodyWeights.length && state.weight > 0 && state.profileCreatedAt){
+    const setupKey = dateKey(new Date(state.profileCreatedAt));
+    if(setupKey < key){ const seed = {date: setupKey, weight: Number(state.weight), unit: state.weightUnit}; state.bodyWeights.push(seed); cloudSaveBodyWeight(seed); }
+  }
+  const entry = {date: key, weight, unit: state.weightUnit};
+  state.bodyWeights = state.bodyWeights.filter(e=> e.date!==key).concat(entry).sort((a, b)=> a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  cloudSaveBodyWeight(entry);
+  // The profile keeps the latest.
+  const latest = state.bodyWeights[state.bodyWeights.length-1];
+  if(latest===entry){ state.weight = weight; saveProfileToCloud(); }
+}
+document.getElementById('bwLogBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('bwInput'), w = parseFloat(input.value);
+  const max = state.weightUnit==='kg' ? 450 : 1000;
+  if(!(w > 0 && w < max)){ input.style.borderColor = 'var(--accent)'; input.focus(); return; }
+  input.style.borderColor = '';
+  logBodyWeight(Math.round(w*10)/10);
+  input.value = '';
+  renderBodyWeight();
+  showToast(STR[state.lang].bwSavedToast);
+});
+document.getElementById('bwInput').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('bwLogBtn').click(); });
+document.getElementById('bwList').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-bw-del]');
+  if(!btn) return;
+  const key = btn.getAttribute('data-bw-del');
+  state.bodyWeights = state.bodyWeights.filter(x=> x.date!==key);
+  cloudDeleteBodyWeight(key);
+  renderBodyWeight();
+});
 function renderPRs(){
   const L = STR[state.lang];
   document.getElementById('prExerciseInput').placeholder = L.prExercisePlaceholder;
@@ -14568,6 +14674,7 @@ async function loadProfileFromCloud(){
   if(data.gender) state.gender = data.gender;
   if(data.weight!=null) state.weight = data.weight;
   if(data.weight_unit) state.weightUnit = data.weight_unit;
+  if(data.created_at) state.profileCreatedAt = data.created_at;
   if(data.distance_unit==='mi' || data.distance_unit==='km'){ state.distUnit = data.distance_unit; try{ localStorage.setItem('altiro_dist_unit', data.distance_unit); }catch(e){} }
   if(data.full_name) state.userName = data.full_name;
   if(data.streak!=null) state.streak = data.streak;
@@ -14852,6 +14959,21 @@ async function cloudInsertPR(pr){
 async function cloudDeletePR(supabaseId){
   if(!state.userId || !supabaseId) return;
   try{ await sb.from('personal_records').delete().eq('id', supabaseId); }catch(e){ /* best-effort */ }
+}
+async function cloudSaveBodyWeight(e){
+  if(!state.userId) return;
+  try{ await sb.from('body_weights').upsert({user_id: state.userId, log_date: e.date, weight: e.weight, unit: e.unit}, {onConflict: 'user_id,log_date'}); }catch(err){ /* best-effort */ }
+}
+async function cloudDeleteBodyWeight(key){
+  if(!state.userId) return;
+  try{ await sb.from('body_weights').delete().eq('user_id', state.userId).eq('log_date', key); }catch(err){ /* best-effort */ }
+}
+async function loadBodyWeightsFromCloud(){
+  if(!state.userId) return;
+  try{
+    const { data, error } = await sb.from('body_weights').select('log_date, weight, unit').eq('user_id', state.userId).order('log_date', {ascending: true});
+    if(!error && data) state.bodyWeights = data.map(r=> ({date: String(r.log_date).slice(0, 10), weight: Number(r.weight), unit: r.unit || 'lb'})).sort((a, b)=> a.date < b.date ? -1 : 1);
+  }catch(err){ /* (no table yet: none) */ }
 }
 async function loadPRsFromCloud(){
   if(!state.userId) return;
@@ -15678,7 +15800,7 @@ function enterSignedIn(user){
   const promise = (async ()=>{
     const profile = await loadProfileFromCloud(); // rebuilds state.week, which the workout data below is merged into
     applyPendingSignup(user, profile);
-    await Promise.all([loadWorkoutDataFromCloud(), loadPRsFromCloud()]);
+    await Promise.all([loadWorkoutDataFromCloud(), loadPRsFromCloud(), loadBodyWeightsFromCloud()]);
     await loadReminderSettings();
     applyLang();
     // Straight to Home, not the "Building your plan" loading screen -- that screen's animation ends

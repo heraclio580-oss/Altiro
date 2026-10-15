@@ -166,6 +166,22 @@ drop policy if exists "own personal records" on personal_records;
 create policy "own personal records" on personal_records
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- body_weights: the user's weigh-ins (Progress -> Body weight), one per day -- logging again that day
+-- replaces it. The weight from setup is the first one.
+create table if not exists body_weights (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  log_date date not null,
+  weight numeric not null,
+  unit text default 'lb',
+  created_at timestamptz default now(),
+  unique (user_id, log_date)
+);
+alter table body_weights enable row level security;
+drop policy if exists "own body weights" on body_weights;
+create policy "own body weights" on body_weights
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 -- ---------------------------------------------------------------------------
 -- Strava: runs recorded on a watch (Garmin -> Strava) imported automatically.
 -- strava_connections holds each user's Strava tokens. RLS is on with NO policies, so the browser can

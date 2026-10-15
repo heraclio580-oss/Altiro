@@ -748,6 +748,14 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .mv-photo[data-speed="0.5"] .mv-photo-end{animation-duration:6s;}
 .mv-photo[data-speed="0"] .mv-photo-end{animation-play-state:paused;}
 @keyframes mvPhotoSwap{0%,30%{opacity:0}45%,80%{opacity:1}95%,100%{opacity:0}}
+/* Three photos (start, middle, end): start -> middle -> end -> middle -> start. */
+.mv-photo-mid{opacity:0;animation:mvPhotoMid 4.5s ease-in-out infinite;}
+.mv-photo-end.mv-photo-end3{animation:mvPhotoEnd3 4.5s ease-in-out infinite;}
+.mv-photo[data-speed="0.5"] .mv-photo-mid,.mv-photo[data-speed="0.5"] .mv-photo-end3{animation-duration:9s;}
+.mv-photo[data-speed="0"] .mv-photo-mid{animation-play-state:paused;}
+@keyframes mvPhotoMid{0%,12%{opacity:0}24%,76%{opacity:1}88%,100%{opacity:0}}
+@keyframes mvPhotoEnd3{0%,36%{opacity:0}48%,64%{opacity:1}76%,100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){ .mv-photo:not([data-speed]) .mv-photo-mid{animation:none;} }
 @media (prefers-reduced-motion: reduce){ .mv-photo:not([data-speed]) .mv-photo-end{animation:none;} }
 .md-stage .mv-photo{height:auto;aspect-ratio:var(--ratio);max-height:min(52vh,420px);}
 .md-stage{margin:4px 0 12px;border-radius:18px;background:var(--card);border:1px solid var(--divider-soft);overflow:hidden;}
@@ -16231,7 +16239,8 @@ function mvViewBox(key, thumb){
 // A move's figure, drawn at its first pose; mvKick() sets every one on screen moving.
 // Photo demos: two pictures of a move (start and end position, same camera), in www/demos/ named after
 // the exercise -- "Back Squat" -> back-squat-start.webp / back-squat-end.webp. The app fades between
-// them in a loop. An exercise with photos shows them; one without keeps its drawn figure. Each lists the
+// them in a loop. A move with a third, in-between picture (mid: ...-mid.webp) goes start -> middle ->
+// end and back; a hold (still: a plank) has just the one, ...-start.webp. An exercise with photos shows them; one without keeps its drawn figure. Each lists the
 // photos' shape (width / height), the part of them a small thumbnail centers on, and -- for a move with
 // no drawn figure -- its form cues.
 const DEMO_PHOTOS = new Map([
@@ -16259,6 +16268,9 @@ const DEMO_PHOTOS = new Map([
   ['Overhead Press', {ratio: 440/889, focus: '50% 22%', cues: {
     en: ['Bar on the front of your shoulders, grip just outside them', 'Brace your core and squeeze your glutes', 'Press straight up, then bring your head through', 'Lock out with the bar over your mid-foot'],
     es: ['Barra sobre la parte delantera de los hombros, agarre justo por fuera', 'Abdomen y glúteos firmes', 'Empuja recto hacia arriba y luego mete la cabeza', 'Bloquea con la barra sobre el centro del pie']}}],
+  ['Deadlift', {ratio: 440/665, focus: '50% 50%', mid: true, cues: {
+    en: ['Bar over mid-foot, shins close, grip just outside your legs', 'Flat back, chest up, shoulders over the bar', 'Push the floor away, keeping the bar against your legs', 'Stand tall with hips through, then lower the same way'],
+    es: ['Barra sobre el centro del pie, espinillas cerca, agarre justo por fuera de las piernas', 'Espalda recta, pecho arriba, hombros sobre la barra', 'Empuja el suelo, con la barra pegada a las piernas', 'Termina erguido con la cadera adelante y baja igual']}}],
   ['Dumbbell Shoulder Press', {ratio: 440/889, focus: '50% 25%', cues: {
     en: ['Dumbbells at shoulder height, palms forward', 'Brace your core, sit tall', 'Press straight up until your arms are straight', 'Lower with control back to your shoulders'],
     es: ['Mancuernas a la altura de los hombros, palmas al frente', 'Abdomen firme, espalda recta', 'Empuja hacia arriba hasta estirar los brazos', 'Baja con control hasta los hombros']}}],
@@ -16487,7 +16499,7 @@ const hasHowTo = key => hasDemo(key) || !!HOWTO[key];
 function moveDemoSvg(key, cls){
   if(DEMO_PHOTOS.has(key)){
     const src = `demos/${demoSlug(key)}`, ph = DEMO_PHOTOS.get(key);
-    return `<span class="mv-photo ${cls}" style="--ratio:${ph.ratio.toFixed(3)};--focus:${ph.focus}" data-move="${escapeHtml(key)}" aria-hidden="true"><img src="${src}-start.webp" alt="" loading="lazy" decoding="async"><img class="mv-photo-end" src="${src}-end.webp" alt="" loading="lazy" decoding="async"></span>`;
+    return `<span class="mv-photo ${cls}" style="--ratio:${ph.ratio.toFixed(3)};--focus:${ph.focus}" data-move="${escapeHtml(key)}" aria-hidden="true"><img src="${src}-start.webp" alt="" loading="lazy" decoding="async">${ph.mid ? `<img class="mv-photo-mid" src="${src}-mid.webp" alt="" loading="lazy" decoding="async">` : ''}${ph.still ? '' : `<img class="mv-photo-end${ph.mid ? ' mv-photo-end3' : ''}" src="${src}-end.webp" alt="" loading="lazy" decoding="async">`}</span>`;
   }
   const move = MOVES[key];
   if(!move) return '';

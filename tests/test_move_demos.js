@@ -43,8 +43,13 @@ check('Every joint bends the way the body does', !wrongWay.length, [...new Set(w
 // Photo demos: two pictures per move in www/demos/, named after the exercise.
 const PHOTOS = [...html.match(/const DEMO_PHOTOS = new Map\(\[([\s\S]*?)\n\]\);/)[1].matchAll(/^\s*\['([^']+)',\s*\{/gm)].map(m=> m[1]);
 const slug = k => k.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-const missing = PHOTOS.flatMap(k=> ['start', 'end'].map(e=> `${slug(k)}-${e}.webp`)).filter(f=> !fs.existsSync(path.join(__dirname, '..', 'www', 'demos', f)));
+// (A hold -- still: true -- has just the start picture.)
+const STILL = [...html.match(/const DEMO_PHOTOS = new Map\(\[([\s\S]*?)\n\]\);/)[1].matchAll(/^\s*\['([^']+)',\s*\{[^\n]*still: true/gm)].map(m=> m[1]);
+const missing = PHOTOS.flatMap(k=> (STILL.includes(k) ? ['start'] : ['start', 'end']).map(e=> `${slug(k)}-${e}.webp`)).filter(f=> !fs.existsSync(path.join(__dirname, '..', 'www', 'demos', f)));
 check(`Every photo demo has both of its pictures (${PHOTOS.length} with photos)`, PHOTOS.length && !missing.length, missing.join(', '));
+// ...and a move with a middle picture too (start -> middle -> end and back): that one as well.
+const WITH_MID = [...html.match(/const DEMO_PHOTOS = new Map\(\[([\s\S]*?)\n\]\);/)[1].matchAll(/^\s*\['([^']+)',\s*\{[^\n]*mid: true/gm)].map(m=> m[1]);
+check(`Three-picture demos have their middle one (${WITH_MID.join(', ')})`, WITH_MID.includes('Deadlift') && WITH_MID.every(k=> fs.existsSync(path.join(__dirname, '..', 'www', 'demos', `${slug(k)}-mid.webp`))));
 check('Each demo has form cues in English and Spanish', DEMO_KEYS.every(k=> MOVES[k].cues.en.length>=3 && MOVES[k].cues.en.length===MOVES[k].cues.es.length));
 
 (async () => {
@@ -121,6 +126,13 @@ check('Each demo has form cues in English and Spanish', DEMO_KEYS.every(k=> MOVE
     return n < 3 || !shown || doc.getElementById('mdCuesSection').hidden;
   });
   check('Every photo demo opens with its pictures and form cues', !noCues.length, noCues.join(', '));
+  {
+    const b = doc.createElement('button'); b.setAttribute('data-demo', 'Deadlift'); doc.body.appendChild(b); b.click(); b.remove();
+    const imgs = [...doc.querySelectorAll('#mdStage .mv-photo img')].map(i=> i.getAttribute('src')).join(' ');
+    check('The deadlift plays its three pictures: start, middle, top', imgs==='demos/deadlift-start.webp demos/deadlift-mid.webp demos/deadlift-end.webp'
+      && doc.querySelector('#mdStage .mv-photo-mid') && doc.querySelector('#mdStage .mv-photo-end3'), imgs);
+    doc.getElementById('closeMoveDemo').click();
+  }
 
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(0);

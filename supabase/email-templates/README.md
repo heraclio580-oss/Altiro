@@ -16,3 +16,8 @@ https://getaltiro.app/ (Authentication -> URL Configuration).
 
 The logo loads from the live site (`www/icons/icon-192.png`), since Gmail doesn't show images
 embedded in the email itself.
+
+Each file is only the email's visible content (a `<div>`, no `<html>`/`<head>`), plain ASCII with
+accented letters as HTML codes (`&#241;` for ñ), and no hidden preview line. The first versions -- full
+HTML pages with a hidden preview line -- arrived in Gmail with everything above "Button not working?"
+missing.

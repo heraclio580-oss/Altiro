@@ -1,7 +1,8 @@
 # Altiro email templates (Supabase Auth)
 
 Branded versions of the emails Supabase Auth sends, in English with Spanish below (Supabase has one
-template per email type, so both languages go in each). Paste them in the Supabase dashboard:
+template per email type, so both languages go in each). Paste them in the Supabase dashboard **on a computer** (pasted on a phone, Supabase's editor kept only the
+last part of each template), and check the Preview tab shows the logo before saving:
 **Authentication -> Emails -> Templates** (or **Authentication -> Email Templates**), one per tab.
 
 | Tab | Subject | Body (paste the whole file) |

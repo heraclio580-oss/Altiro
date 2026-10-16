@@ -1420,6 +1420,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .share-sq.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff);}
 .share-sq:active{transform:scale(0.96);}
 .summary-note{margin:20px 20px 0;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--r-lg);padding:13px 14px;}
+.recovery-note .rn-head{font-family:var(--font-display);font-weight:600;font-size:calc(12px * var(--fs, 1));letter-spacing:0.05em;text-transform:uppercase;color:var(--text);margin-bottom:8px;}
+.recovery-note .rn-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;}
+.recovery-note .rn-list li{font-size:calc(13px * var(--fs, 1));line-height:1.5;color:var(--text-2);}
+.recovery-note .rn-list b{color:var(--text);font-weight:600;}
 .summary-note p{font-size:calc(13px * var(--fs, 1));line-height:1.5;color:var(--text-2);margin:0;}
 
 .streak-band{margin:18px 20px 0;background:var(--ok-bg);border:1px solid var(--ok-border);border-radius:var(--r-lg);padding:12px 14px;display:flex;align-items:center;gap:10px;}
@@ -2109,7 +2113,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <textarea class="text-input" id="reviewNotesInput" rows="2" style="margin-top:12px;"></textarea>
       <button class="btn btn-primary" id="submitReviewBtn" style="width:100%;margin-top:12px;" data-i18n="submitReviewBtn"></button>
     </div>
-    <div class="summary-note"><p id="summaryNote"></p></div>
+    <div class="summary-note recovery-note" id="summaryRecovery"><div class="rn-head" id="summaryRecoveryHead"></div><ul class="rn-list" id="summaryRecoveryList"></ul></div>
     <div class="summary-note" id="summaryProgressNote" style="border-left-color:var(--ok-border);" hidden><p id="summaryProgressMsg"></p></div>
     <div class="streak-band"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 2c1 3-3 4-3 7a3 3 0 0 0 6 0c0-1-1-1.5-1-2.5 1.5 1 2 2.8 2 4.5a4 4 0 1 1-8 0C6 7 9 6 10 2z"/></svg><div><div class="v" id="summaryStreakVal"></div><div class="l" data-i18n="streakLine"></div></div></div>
     <div class="footer-cta" style="border-top:none;background:transparent;margin-top:10px;">
@@ -4841,13 +4845,67 @@ const FOCUS_POINTS = {
   hike: {en:['Footing','Steady pace','Hydration'], es:['Pisada','Ritmo constante','Hidratación']},
   interval: {en:['Pacing effort','Fast recovery','Consistent rounds'], es:['Dosificar el esfuerzo','Recuperación rápida','Rondas constantes']},
 };
-const SUMMARY_NOTE = {
-  run: {en:"Nice work — that's another session logged. Your legs may feel it tomorrow.", es:"Buen trabajo — otra sesión registrada. Puede que lo sientas mañana en las piernas."},
-  strength: {en:"Solid session. That's strength you get to keep.", es:"Buena sesión. Esa fuerza es tuya para quedártela."},
-  hike: {en:"Time outside counts too. Well done.", es:"El tiempo al aire libre también cuenta. Bien hecho."},
-  interval: {en:"Rounds done. That's real work.", es:"Rondas completas. Eso es trabajo real."},
-  class: {en:"Class done. Showing up is the hard part.", es:"Clase hecha. Presentarse es lo difícil."},
+// After a workout: how to recover for the next one -- one tip each to rehydrate, refuel and rest, for
+// that kind of workout, a different one from day to day. (A long run -- an hour, or 6 mi / 10 km -- gets
+// the longer-run drink tip.)
+const RECOVERY_TIPS = {
+  head: {en:'Recover for your next workout', es:'Recupérate para tu próximo entrenamiento'},
+  labels: {drink: {en:'Rehydrate', es:'Hidrátate'}, eat: {en:'Refuel', es:'Recarga'}, rest: {en:'Rest', es:'Descansa'}},
+  run: {
+    drink: [
+      {en:'Sip water over the next hour, about 2–3 cups (500–700 ml), more if it was hot or you sweated a lot.', es:'Bebe agua poco a poco durante la próxima hora, unos 2–3 vasos (500–700 ml); más si hizo calor o sudaste mucho.'},
+      {en:'Drink to thirst over the next couple of hours. Pale yellow means you\'re caught up.', es:'Bebe según la sed durante las próximas horas. Si la orina es amarillo claro, vas bien.'},
+    ],
+    drinkLong: [
+      {en:'After a long run, replace salt as well as water: an electrolyte drink, or water with a salty snack.', es:'Tras una carrera larga, repón sal además de agua: una bebida con electrolitos, o agua con algo salado.'},
+    ],
+    eat: [
+      {en:'Within an hour or two, eat carbs with some protein, like yogurt and fruit, eggs on toast, or a sandwich.', es:'En una o dos horas, come carbohidratos con algo de proteína: yogur con fruta, huevos con pan tostado o un sándwich.'},
+      {en:'Refill your energy with a proper meal today: rice, potatoes or pasta, plus a protein like chicken, fish, beans or eggs.', es:'Recarga energía con una comida completa: arroz, papas o pasta, con proteína como pollo, pescado, frijoles o huevos.'},
+    ],
+    rest: [
+      {en:'Walk for 5 minutes, then stretch your calves, hamstrings and hips while you cool down.', es:'Camina 5 minutos y luego estira pantorrillas, isquiotibiales y cadera mientras te enfrías.'},
+      {en:'Aim for 7–9 hours of sleep tonight. That\'s when your legs rebuild.', es:'Intenta dormir 7–9 horas esta noche. Es cuando tus piernas se recuperan.'},
+      {en:'Keep tomorrow easy if your legs feel heavy: a walk or light mobility helps them bounce back.', es:'Si mañana sientes las piernas pesadas, tómalo con calma: caminar o movilidad suave ayuda a recuperarlas.'},
+    ],
+  },
+  strength: {
+    drink: [
+      {en:'Drink a couple of glasses of water over the next hour, and keep sipping through the day.', es:'Bebe un par de vasos de agua durante la próxima hora y sigue bebiendo a lo largo del día.'},
+      {en:'Keep a water bottle with you today. Lifting still costs fluid, even when you barely sweat.', es:'Lleva una botella de agua contigo hoy. Levantar pesas también gasta líquidos, aunque apenas sudes.'},
+    ],
+    eat: [
+      {en:'Get 20–40 g of protein in the next few hours, like chicken, eggs, Greek yogurt or a shake, with some carbs.', es:'Toma 20–40 g de proteína en las próximas horas, como pollo, huevos, yogur griego o un batido, con algo de carbohidratos.'},
+      {en:'Spread protein across today\'s meals. Your muscles rebuild for the next day or two.', es:'Reparte la proteína en las comidas de hoy. Tus músculos se reconstruyen durante uno o dos días.'},
+    ],
+    rest: [
+      {en:'Give the muscles you trained about 48 hours before working them hard again.', es:'Da a los músculos que trabajaste unas 48 horas antes de volver a exigirlos.'},
+      {en:'Sore tomorrow? Light movement, a walk or easy mobility, eases it more than sitting still.', es:'¿Agujetas mañana? Moverte suave, caminar o movilidad ligera, ayuda más que quedarte quieto.'},
+      {en:'Sleep 7–9 hours tonight. That\'s when the strength from today is built.', es:'Duerme 7–9 horas esta noche. Es cuando se construye la fuerza de hoy.'},
+    ],
+  },
+  other: {
+    drink: [
+      {en:'Drink water over the next hour, more if it was hot or you sweated a lot.', es:'Bebe agua durante la próxima hora; más si hizo calor o sudaste mucho.'},
+    ],
+    eat: [
+      {en:'Have a meal or snack with carbs and protein in the next couple of hours.', es:'Come algo con carbohidratos y proteína en las próximas dos horas.'},
+    ],
+    rest: [
+      {en:'Cool down with a few minutes of easy movement and stretching.', es:'Enfríate con unos minutos de movimiento suave y estiramientos.'},
+      {en:'Sleep 7–9 hours tonight to be ready for the next one.', es:'Duerme 7–9 horas esta noche para estar listo para el siguiente.'},
+    ],
+  },
 };
+function recoveryTips(session, logged, key){
+  const set = RECOVERY_TIPS[session.t==='run' ? 'run' : session.t==='strength' ? 'strength' : 'other'];
+  const long = session.t==='run' && logged && ((logged.time||0) >= 60 || (logged.distance||0) >= 6);
+  // A different tip from day to day (the same one if the Summary is opened again).
+  const seed = [...String(key || '')].reduce((n, c)=> n + c.charCodeAt(0), 0);
+  const pick = (list, n)=> list[(seed + n) % list.length];
+  return [['drink', long && set.drinkLong ? set.drinkLong : set.drink], ['eat', set.eat], ['rest', set.rest]]
+    .map(([k, list], n)=> ({label: RECOVERY_TIPS.labels[k][state.lang], text: pick(list, n)[state.lang]}));
+}
 const REVIEW_RATING_LABELS = {
   en: ['😩 Rough', '😕 Tough', '🙂 OK', '💪 Good', '🔥 Great'],
   es: ['😩 Duro', '😕 Difícil', '🙂 Bien', '💪 Genial', '🔥 Excelente'],
@@ -12994,8 +13052,9 @@ function renderSummary(){
   exercisesEl.hidden = !exResults;
   renderSummaryRoute(logged);
   if(exResults) exercisesEl.innerHTML = exResults.map(r=>`<div class="se-row"><span class="se-name">${escapeHtml(r.name)}</span><span class="se-result">${escapeHtml(r.result)}</span></div>`).join('');
-  const noteObj = SUMMARY_NOTE[session.t] || SUMMARY_NOTE.run;
-  document.getElementById('summaryNote').textContent = noteObj[state.lang];
+  document.getElementById('summaryRecoveryHead').textContent = RECOVERY_TIPS.head[state.lang];
+  document.getElementById('summaryRecoveryList').innerHTML = recoveryTips(session, logged, viewing && summaryView.target ? summaryView.target.dayKey : dateKey(TODAY_DATE))
+    .map(t=> `<li><b>${escapeHtml(t.label)}:</b> ${escapeHtml(t.text)}</li>`).join('');
   document.getElementById('shareWorkoutBtn').hidden = !logged;
   const stravaLinkEl = document.getElementById('summaryStravaLink');
   stravaLinkEl.hidden = !(logged && logged.stravaId);

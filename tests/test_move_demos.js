@@ -132,6 +132,10 @@ check('Each demo has form cues in English and Spanish', DEMO_KEYS.every(k=> MOVE
     check('The deadlift plays its three pictures: start, middle, top', imgs==='demos/deadlift-start.webp demos/deadlift-mid.webp demos/deadlift-end.webp'
       && doc.querySelector('#mdStage .mv-photo-mid') && doc.querySelector('#mdStage .mv-photo-end3'), imgs);
     doc.getElementById('closeMoveDemo').click();
+    const p = doc.createElement('button'); p.setAttribute('data-demo', 'Plank'); doc.body.appendChild(p); p.click(); p.remove();
+    check('A hold (the plank): its one photo, with no Pause or Slow motion', [...doc.querySelectorAll('#mdStage .mv-photo img')].map(i=> i.getAttribute('src')).join(' ')==='demos/plank-start.webp'
+      && doc.querySelector('#moveDemoOverlay .md-controls').hidden && doc.querySelectorAll('#mdCues li').length===4);
+    doc.getElementById('closeMoveDemo').click();
   }
 
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');

@@ -16271,6 +16271,9 @@ const DEMO_PHOTOS = new Map([
   ['Deadlift', {ratio: 440/665, focus: '50% 50%', mid: true, cues: {
     en: ['Bar over mid-foot, shins close, grip just outside your legs', 'Flat back, chest up, shoulders over the bar', 'Push the floor away, keeping the bar against your legs', 'Stand tall with hips through, then lower the same way'],
     es: ['Barra sobre el centro del pie, espinillas cerca, agarre justo por fuera de las piernas', 'Espalda recta, pecho arriba, hombros sobre la barra', 'Empuja el suelo, con la barra pegada a las piernas', 'Termina erguido con la cadera adelante y baja igual']}}],
+  ['Plank', {ratio: 720/356, focus: '62% 55%', still: true, cues: {
+    en: ['Elbows under your shoulders, forearms on the floor', 'One straight line from your head to your heels', 'Squeeze your glutes and brace your belly', 'Keep breathing, and don\'t let your hips sag or lift'],
+    es: ['Codos bajo los hombros, antebrazos en el suelo', 'Una línea recta de la cabeza a los talones', 'Aprieta glúteos y abdomen', 'Sigue respirando, sin dejar caer ni subir la cadera']}}],
   ['Dumbbell Shoulder Press', {ratio: 440/889, focus: '50% 25%', cues: {
     en: ['Dumbbells at shoulder height, palms forward', 'Brace your core, sit tall', 'Press straight up until your arms are straight', 'Lower with control back to your shoulders'],
     es: ['Mancuernas a la altura de los hombros, palmas al frente', 'Abdomen firme, espalda recta', 'Empuja hacia arriba hasta estirar los brazos', 'Baja con control hasta los hombros']}}],
@@ -16551,7 +16554,7 @@ function openMoveDemo(key){
   // No picture of this one yet: just its steps.
   const pic = hasDemo(key);
   document.getElementById('mdStage').hidden = !pic;
-  document.querySelector('#moveDemoOverlay .md-controls').hidden = !pic;
+  document.querySelector('#moveDemoOverlay .md-controls').hidden = !pic || !!(DEMO_PHOTOS.get(key) || {}).still; // (a hold: nothing to play)
   document.getElementById('mdStage').innerHTML = pic ? moveDemoSvg(key, 'mv-big') : '';
   renderMoveDemo();
   document.getElementById('moveDemoOverlay').hidden = false;

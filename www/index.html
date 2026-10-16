@@ -3705,7 +3705,7 @@ const STR = {
     weatherConditionClear: "Clear",
     trophiesLabel: "Trophies", trophiesCount: "{n} badges earned", trophiesCount1: "1 badge earned", trophiesSub: "Badges and best efforts", trophiesNew: "New badge",
     trophyFirsts: "Firsts", trophyStreaks: "Weeks in a row", trophyMilestones: "Milestones", trophyMonths: "Months",
-    bestEffortsLabel: "Best efforts", bestNone: "No run this far yet", bestNote: "Best efforts use each run's average pace.",
+    bestEffortsLabel: "Best efforts", bestNone: "No run this far yet", bestNote: "Runs tracked with GPS count their fastest stretch; runs logged by hand or from a watch alone use their average pace.",
     badgeDistName: "{n} {u}", badgeDistDesc: "{n} {u} run in total.",
     badgeVolName: "{n} {u} lifted", badgeVolDesc: "{n} {u} lifted in total.",
     badgeMonthDesc: "Every week of the month counted toward your streak.",
@@ -4419,7 +4419,7 @@ const STR = {
     weatherConditionClear: "Despejado",
     trophiesLabel: "Trofeos", trophiesCount: "{n} insignias ganadas", trophiesCount1: "1 insignia ganada", trophiesSub: "Insignias y mejores marcas", trophiesNew: "Insignia nueva",
     trophyFirsts: "Primeras veces", trophyStreaks: "Semanas seguidas", trophyMilestones: "Hitos", trophyMonths: "Meses",
-    bestEffortsLabel: "Mejores marcas", bestNone: "Aún sin una carrera tan larga", bestNote: "Las mejores marcas usan el ritmo promedio de cada carrera.",
+    bestEffortsLabel: "Mejores marcas", bestNone: "Aún sin una carrera tan larga", bestNote: "Las carreras con GPS cuentan su tramo más rápido; las registradas a mano o solo con el reloj usan su ritmo promedio.",
     badgeDistName: "{n} {u}", badgeDistDesc: "{n} {u} corridas en total.",
     badgeVolName: "{n} {u} levantadas", badgeVolDesc: "{n} {u} levantadas en total.",
     badgeMonthDesc: "Cada semana del mes contó para tu racha.",
@@ -9271,6 +9271,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     if(routeFrom.lastSplit) logged.lastSplit = routeFrom.lastSplit;
     if(routeFrom.splitUnit) logged.splitUnit = routeFrom.splitUnit;
     if(routeFrom.gpsStats) logged.gpsStats = routeFrom.gpsStats;
+    if(routeFrom.bests) logged.bests = routeFrom.bests;
     if(routeFrom.startedAt) logged.startedAt = routeFrom.startedAt;
     if(routeFrom.finishedAt) logged.finishedAt = routeFrom.finishedAt;
     if(!logged.source) logged.source = 'gps';
@@ -11665,6 +11666,8 @@ const BADGES = [
   ...[[10,'bronze',false],[50,'silver',true],[100,'silver',true],[250,'gold',true],[500,'gold',true]].map(([n,tier,big])=>({id:'dist_'+n, g:'totals', tier, big, n, dist:true})),
   ...[[10000,'10k','bronze',false],[100000,'100k','silver',true],[1000000,'1m','gold',true]].map(([n,s,tier,big])=>({id:'vol_'+s, g:'totals', tier, big, n, vol:true, label:s.toUpperCase()})),
 ];
+// (2: each run's fastest stretch, not its average pace.)
+const BEST_EFFORTS_V = 2;
 const BEST_EFFORTS = [
   {k:'1mi', mi:1, en:'1 mile', es:'1 milla'}, {k:'5k', mi:3.10686, en:'5K', es:'5K'}, {k:'10k', mi:6.21371, en:'10K', es:'10K'},
   {k:'half', mi:13.1094, en:'Half marathon', es:'Medio maratón'}, {k:'full', mi:26.2188, en:'Marathon', es:'Maratón'},
@@ -11771,7 +11774,7 @@ function evaluateTrophies(){
         give('first_run', k);
         const dist = Number(it.distance) || 0, time = Number(it.time) || 0;
         miles += dist;
-        if(dist>0 && time>0) runs.push({key:k, dist, time});
+        if(dist>0 && time>0) runs.push({key:k, dist, time, perf: it.perf || null});
         if(it.perf && (it.perf.route || it.perf.source==='gps')) give('first_gps', k);
       }
       if(it.type==='strength'){ give('first_lift', k); volume += loggedLiftVolume(it.perf); }
@@ -11815,16 +11818,45 @@ function evaluateTrophies(){
     lift.days.forEach((d, i)=>{ if(i>0 && d.e1rm > best + 0.01) give('first_pr', d.key); best = Math.max(best, d.e1rm); });
   });
   (state.prs || []).forEach(pr=>{ if(pr.createdAt) give('first_pr', dateKey(new Date(pr.createdAt))); });
-  // Best efforts: each run that covered the distance, timed at its average pace, top three.
+  // Best efforts: each run that covered the distance, at its fastest stretch of it (see effortSeconds),
+  // top three.
   const best = {};
   BEST_EFFORTS.forEach(b=>{
     best[b.k] = runs.filter(r=> r.dist >= b.mi*0.99)
-      .map(r=> ({key:r.key, sec: Math.round(r.time*60*b.mi/r.dist), pace: r.time*60/r.dist}))
+      .map(r=>{ const sec = effortSeconds(r, b); return {key:r.key, sec, pace: sec/b.mi}; })
       .filter(r=> r.pace>=150 && r.pace<=1800)
       .sort((a, c)=> a.sec-c.sec).slice(0, 3)
       .map(({key, sec})=> ({key, sec}));
   });
   return {earned, best, totals:{workouts, miles, volume}, weekRun: run};
+}
+// A run's time for a best-effort distance: its fastest stretch of it -- from the GPS points (a run
+// tracked here), or else worked out from its mile splits (one tracked before that was kept), or else
+// its average pace (logged by hand, or from a watch on its own).
+function effortSeconds(r, b){
+  const p = r.perf || {};
+  if(p.bests && p.bests[b.k] > 0) return p.bests[b.k];
+  const s = bestEffortFromSplits(p, b.mi);
+  return s || Math.round(r.time*60*b.mi/r.dist);
+}
+function bestEffortFromSplits(perf, miles){
+  const sp = perf && perf.splits;
+  if(!sp || !sp.length) return null;
+  const u = perf.splitUnit==='km' ? 1/1.609344 : 1; // miles in one split
+  const pts = [[0, 0]];
+  sp.forEach(s=> pts.push([pts[pts.length-1][0] + u, pts[pts.length-1][1] + Number(s)]));
+  const ls = perf.lastSplit, lsd = ls ? (ls.dist!=null ? ls.dist : ls.mi) || 0 : 0;
+  if(lsd>0 && ls.sec>0) pts.push([pts[pts.length-1][0] + lsd*u, pts[pts.length-1][1] + ls.sec]);
+  const total = pts[pts.length-1][0];
+  if(total < miles - 1e-6) return null;
+  const at = x=>{ for(let i=1; i<pts.length; i++) if(x <= pts[i][0] + 1e-9) return pts[i-1][1] + (pts[i][1]-pts[i-1][1])*(x-pts[i-1][0])/(pts[i][0]-pts[i-1][0]); return pts[pts.length-1][1]; };
+  // The pace is steady within a split, so the fastest stretch starts or ends at a split.
+  let best = Infinity;
+  pts.forEach(([x])=>{
+    if(x + miles <= total + 1e-9) best = Math.min(best, at(x + miles) - at(x));
+    if(x - miles >= -1e-9) best = Math.min(best, at(x) - at(x - miles));
+  });
+  return isFinite(best) && best>0 ? Math.round(best) : null;
 }
 function fmtEffortTime(sec){
   const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
@@ -11859,12 +11891,15 @@ function checkBadges(){
   const fresh = Object.keys(earned).filter(id=> !stored[id]).sort((a,b)=> earned[a]<earned[b] ? -1 : 1);
   const snap = {};
   BEST_EFFORTS.forEach(b=>{ snap['best_'+b.k] = best[b.k].map(r=> r.key+'|'+r.sec); });
-  const newBests = [];
+  snap.best_v = BEST_EFFORTS_V;
+  const methodChanged = !firstTime && stored.best_v!==BEST_EFFORTS_V, recent = dateKey(new Date(TODAY_DATE.getTime() - 3*86400000));
+  let newBests = [];
   if(!firstTime) BEST_EFFORTS.forEach(b=>{
     const prev = stored['best_'+b.k] || [];
-    snap['best_'+b.k].forEach((entry, i)=>{ if(!prev.includes(entry)) newBests.push({k:b.k, place:i, sec: best[b.k][i].sec}); });
+    snap['best_'+b.k].forEach((entry, i)=>{ if(!prev.includes(entry)) newBests.push({k:b.k, place:i, sec: best[b.k][i].sec, key: best[b.k][i].key}); });
   });
-  const bestChanged = BEST_EFFORTS.some(b=> JSON.stringify(snap['best_'+b.k])!==JSON.stringify(stored['best_'+b.k]||[]));
+  if(methodChanged) newBests = newBests.filter(b=> b.key >= recent);
+  const bestChanged = methodChanged || BEST_EFFORTS.some(b=> JSON.stringify(snap['best_'+b.k])!==JSON.stringify(stored['best_'+b.k]||[]));
   if(!firstTime && !fresh.length && !bestChanged) return;
   const next = {...stored, ...snap};
   fresh.forEach(id=>{ next[id] = earned[id]; });
@@ -14020,6 +14055,31 @@ function announceRun(what, info){
   btn.addEventListener('pointerdown', e=>{ e.preventDefault(); start = Date.now(); msAtPress = gpsElapsedMs(); step(); done = setTimeout(()=>{ stop(); finishGpsRun(msAtPress); }, HOLD_END_MS); });
   ['pointerup','pointerleave','pointercancel'].forEach(ev=> btn.addEventListener(ev, stop));
 })();
+// The fastest stretch of a GPS run at each best-effort distance (pauses left out), in seconds:
+// {'1mi': 432, '5k': 1508, ...} for each distance the run covered. scale: the run's own distance over
+// the points' (so the stretches are measured the way the run's distance was).
+const EFFORT_M = {'1mi': 1609.344, '5k': 5000, '10k': 10000, half: 21097.5, full: 42195};
+function bestEffortsFromSegs(segs, scale){
+  const D = [0], T = [0];
+  segs.forEach(sg=>{ for(let i=1; i<sg.length; i++){
+    const t = (sg[i][2] - sg[i-1][2])/1000;
+    if(!(t>=0)) continue;
+    D.push(D[D.length-1] + haversineM(sg[i-1], sg[i])*(scale || 1)); T.push(T[T.length-1] + t);
+  } });
+  const total = D[D.length-1], out = {};
+  Object.entries(EFFORT_M).forEach(([k, m])=>{
+    if(total < m) return;
+    let best = Infinity, j = 1;
+    for(let i=0; i<D.length && D[i] + m <= total; i++){
+      const target = D[i] + m;
+      while(j < D.length-1 && D[j] < target) j++;
+      const f = D[j]>D[j-1] ? (target - D[j-1])/(D[j] - D[j-1]) : 1;
+      best = Math.min(best, T[j-1] + f*(T[j] - T[j-1]) - T[i]);
+    }
+    if(isFinite(best) && best>0) out[k] = Math.round(best);
+  });
+  return out;
+}
 function finishGpsRun(msAtPress){
   const L = STR[state.lang];
   if(!gps) return;
@@ -14039,6 +14099,7 @@ function finishGpsRun(msAtPress){
     lastSplit: lastPart>0.01 ? {dist: Math.round(lastPart*100)/100, sec: Math.max(1, Math.round(ms/1000 - gps.splits.reduce((a,b)=>a+b,0)))} : null,
     startedAt: gps.startedAt,
     finishedAt: Date.now(),
+    bests: (()=>{ const pm = gps.segs.reduce((t, sg)=>{ for(let i=1; i<sg.length; i++) t += haversineM(sg[i-1], sg[i]); return t; }, 0); return bestEffortsFromSegs(gps.segs, pm>0 ? gps.distM/pm : 1); })(),
     gpsStats: Object.fromEntries(Object.entries(gps.stats).map(([k, v])=> [k, Math.round(v)])),
   };
   let target = gps.target;
@@ -15277,6 +15338,12 @@ function stravaMatchTarget(dd, miles, win, minutes){
 }
 const isPhoneGpsRun = perf => !!(perf && (perf.source==='gps' || perf.route) && !perf.stravaId && !perf.healthId);
 const sameDuration = (a, b)=> a>0 && b>0 && Math.abs(a-b) <= Math.max(1.5, 0.03*Math.max(a, b));
+// The fastest stretches, re-measured to the watch's distance: where the phone measured the run a little
+// long, its "5K" was a little short of one, so a little faster than the real thing.
+function scaleBests(bests, phoneMi, watchMi){
+  if(!bests || !(phoneMi>0) || !(watchMi>0)) return bests;
+  return Object.fromEntries(Object.entries(bests).map(([k, v])=> [k, Math.round(v*phoneMi/watchMi)]));
+}
 // The phone's splits, re-measured to the watch's distance and time (miles: what the watch measured):
 // where the phone measured the run a little long, its mile marks came a little early. {splits, lastSplit}
 // in the unit the run was tracked in, or null.
@@ -15317,6 +15384,7 @@ function takeWatchNumbers(target, watch){
   if(watch.calories) perf.calories = watch.calories;
   if(watch.start){ perf.startedAt = watch.start; perf.finishedAt = watch.end; }
   delete perf.splits; delete perf.lastSplit;
+  if(prev.bests) perf.bests = scaleBests(prev.bests, prev.distance, perf.distance);
   const re = rescaleSplits(prev, perf.distance, perf.time);
   if(re){ perf.splits = re.splits; if(re.lastSplit) perf.lastSplit = re.lastSplit; }
   storeLoggedPerformance(target, resolved, perf);
@@ -15351,6 +15419,7 @@ function mergeWatchDuplicates(){
       const extra = {};
       ['route', 'elevGain', 'elevLoss', 'elevProfile', 'gpsStats', 'splitUnit'].forEach(k=>{ if(g.perf[k]!=null) extra[k] = g.perf[k]; });
       const re = rescaleSplits(g.perf, w.perf.distance!=null ? w.perf.distance : w.dist, w.perf.time);
+      if(g.perf.bests) extra.bests = scaleBests(g.perf.bests, g.perf.distance, w.perf.distance!=null ? w.perf.distance : w.dist);
       if(re){ extra.splits = re.splits; if(re.lastSplit) extra.lastSplit = re.lastSplit; }
       storeLoggedPerformance(w.target, resolved, {...w.perf, ...extra});
       if(g.target.kind==='extra') deleteExtraWorkout(key, g.target.id); else deleteManualEntry(key, g.target.id);
@@ -15375,8 +15444,9 @@ function absorbStravaTwin(target, logged){
     && e.performance && (e.performance.stravaId || e.performance.healthId) && sameTime(runWindow(e.performance), win));
   if(!twin) return;
   // The watch's numbers win (see takeWatchNumbers).
-  const wp = twin.performance;
+  const wp = twin.performance, phoneMi = logged.distance;
   logged.distance = wp.distance!=null ? wp.distance : twin.distance;
+  if(logged.bests) logged.bests = scaleBests(logged.bests, phoneMi, logged.distance);
   if(wp.time || twin.durationMin) logged.time = wp.time || twin.durationMin;
   if(wp.stravaId) logged.stravaId = wp.stravaId;
   if(wp.healthId) logged.healthId = wp.healthId;

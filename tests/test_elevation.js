@@ -147,6 +147,19 @@ const wobble = i => [0, 2.5, -2, 3, -3, 1, -2.5, 2, -1, 0][i%10];
     await page.context().close();
   }
 
+  // ---- A flat path along a lake shore: the terrain squares flip between water and bank ----
+  // (A real 5-mile lakeside run, flat to within 17 ft, came out at 95 ft up with a saw-tooth profile:
+  // every ~135 m the route crossed from a "lake" square to a "shore" square 5 m higher and back.)
+  {
+    const {page, errors} = await openApp({terrain: d=> 379 + (Math.floor(Math.max(0, d)/135) % 2 ? 5.2 : 0)});
+    await trailRun(page);
+    await finish(page);
+    const g = +(await val(page, 'logPerfElevGainInput'));
+    check('Lake shore, terrain flipping 5 m between water and bank: no made-up climb (under 30 ft, not ~100)', g < 30 && await shown(page, '#logPerfElevNote'), String(g));
+    check('No page errors', errors.length===0, errors.join(' | '));
+    await page.context().close();
+  }
+
   // ---- A GPS dropout across a hill nobody ran over ----
   {
     // Flat ground, except a 40 m hill between 500 and 800 m -- where GPS dropped out (the route jumps

@@ -77,9 +77,9 @@ function makeBackend(){
   doc.getElementById('reviewRatingSlider').dispatchEvent(new dom.window.Event('input', {bubbles:true}));
   doc.getElementById('submitReviewBtn').click();
   await wait(30);
-  const press = backend.targets['strength:Incline Hammer Press'];
-  console.log('The press\'s numbers become exactly what was done (160 x 6), no automatic +5:', press && press.weight===160 && press.reps===6 ? 'OK' : `FAIL (${JSON.stringify(press)})`);
-  const raise = backend.targets['strength:Cable Lateral Raise'];
+  const press = backend.targets['strength:Upper A \u203a Incline Hammer Press'];
+  console.log('The press\'s numbers (in this workout of theirs) become exactly what was done (160 x 6), no automatic +5:', press && press.weight===160 && press.reps===6 ? 'OK' : `FAIL (${JSON.stringify(press)})`);
+  const raise = backend.targets['strength:Upper A \u203a Cable Lateral Raise'];
   console.log('...same for the lateral raise (25 x 12):', raise && raise.weight===25 && raise.reps===12 ? 'OK' : `FAIL (${JSON.stringify(raise)})`);
   const savedPerf = backend.perfUpdates[backend.perfUpdates.length-1];
   const savedPress = savedPerf && savedPerf.exercises.find(e=>e.key==='Incline Hammer Press');

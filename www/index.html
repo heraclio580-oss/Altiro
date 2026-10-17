@@ -6325,6 +6325,15 @@ function applyPyramid(list, session, date){
 // Each lift's reps come from its own target -- the same numbers Log Performance pre-fills and progression
 // checks against, which the user can set themselves (see the lift editor / My Lifts) -- so a lift shows
 // the same "sets x reps" in every workout it's in. A timed move keeps its time.
+// A lift in a workout the user built keeps its numbers in that workout: Bench Press on a Chest & Back day
+// and on a Chest day are each their own (the same workout next week carries on from this one). The plan's
+// lifts share one set of numbers across the week -- that's how it progresses them.
+const OWN_LIFT_SEP = ' \u203a ';
+function ownLiftKey(workoutTitle, exerciseKey){ return 'strength:' + workoutTitle + OWN_LIFT_SEP + exerciseKey; }
+// A lift's numbers: its own workout's, else the lift's (a workout that hasn't been changed or done since).
+function liftTargetOf(ex){
+  return (ex.ownOf && state.progression[ownLiftKey(ex.ownOf, ex.key)]) || state.progression[exerciseProgressionKey(ex.key)] || null;
+}
 function applyLiftTargets(list){
   const out = list.map(ex=>{
     if(ex.durationSec!=null) return ex;
@@ -8571,15 +8580,6 @@ function getProgressionTarget(session, intensityIdx){
 // share one progression trail automatically.
 function exerciseProgressionKey(exerciseKey){
   return 'strength:' + exerciseKey;
-}
-// A lift in a workout the user built keeps its numbers in that workout: Bench Press on a Chest & Back day
-// and on a Chest day are each their own (the same workout next week carries on from this one). The plan's
-// lifts share one set of numbers across the week -- that's how it progresses them.
-const OWN_LIFT_SEP = ' \u203a ';
-function ownLiftKey(workoutTitle, exerciseKey){ return 'strength:' + workoutTitle + OWN_LIFT_SEP + exerciseKey; }
-// A lift's numbers: its own workout's, else the lift's (a workout that hasn't been changed or done since).
-function liftTargetOf(ex){
-  return (ex.ownOf && state.progression[ownLiftKey(ex.ownOf, ex.key)]) || state.progression[exerciseProgressionKey(ex.key)] || null;
 }
 function seedExerciseTarget(ex, intensityIdx){
   if(ex.bodyweight) return null; // nothing to load/track -- just a sets x reps (or duration) prescription

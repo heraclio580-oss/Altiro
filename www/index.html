@@ -106,6 +106,22 @@
   --warn:#B7791F;
   --ring:#FFFFFF;
 }
+/* Light mode in lilac (Settings -> Appearance): a soft lilac background, deep lilac for buttons and
+   highlights (dark enough for white text on it). */
+#device[data-theme="light"][data-accent="lilac"]{
+  --well:#F1EDF8;
+  --border:#E2DAF0;
+  --accent:#7650B8;
+  --accent-hover:#9272CC;
+  --accent-tint:rgba(118,80,184,0.12);
+  --accent-shadow:rgba(118,80,184,0.3);
+  --accent-bright:#A98BDD;
+  --screen-bg:#F8F5FC;
+  --nav-divider:#E6DFF1;
+  --divider:#E6DFF1;
+  --divider-soft:#D9D0EA;
+  --today-tint-text:#5A3A97;
+}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;height:100%;-webkit-tap-highlight-color:transparent;}
 body{
@@ -848,6 +864,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .tab-btn.sel{border-color:var(--accent);background:var(--accent-tint);}
 .tab-btn.sel .t{color:var(--text);}
 
+.accent-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:10px 13px;}
+.accent-row[hidden]{display:none;}
+.accent-row .tt{font-size:calc(14px * var(--fs, 1));font-weight:600;color:var(--text);}
+.accent-swatches{display:flex;gap:6px;}
+.accent-swatch{display:flex;align-items:center;gap:7px;min-height:38px;padding:0 12px;border-radius:var(--r-pill);border:1px solid var(--divider);background:var(--card);color:var(--text-2);font-family:var(--font-body);font-size:calc(13px * var(--fs, 1));cursor:pointer;}
+.accent-swatch .dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+.accent-swatch.on{border-color:var(--accent);color:var(--text);font-weight:600;box-shadow:0 0 0 1px var(--accent) inset;}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:12px 13px;}
 .toggle-row .tt{font-size:calc(13px * var(--fs, 1));color:var(--text);font-weight:500;}
 .option-list.dimmed{opacity:0.4;}
@@ -1993,6 +2016,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
             <div class="ts" data-i18n="lightModeSub"></div>
           </div>
           <div class="toggle" id="themeToggle"><div class="knob"></div></div>
+        </div>
+        <div class="accent-row" id="accentRow" hidden>
+          <div class="tt" data-i18n="accentTitle"></div>
+          <div class="accent-swatches" role="group">
+            <button class="accent-swatch" type="button" data-accent-pick="green"><span class="dot" style="background:#1E8449"></span><span data-i18n="accentGreen"></span></button>
+            <button class="accent-swatch" type="button" data-accent-pick="lilac"><span class="dot" style="background:#7650B8"></span><span data-i18n="accentLilac"></span></button>
+          </div>
         </div>
       </div>
 
@@ -3822,7 +3852,7 @@ const STR = {
     weekDetailWorkoutsLabel: "Workouts",
     weekDetailDistanceLabel: "Distance",
     appearanceLabel: "Appearance",
-    lightModeTitle: "Light Mode",
+    lightModeTitle: "Light Mode", accentTitle: "Color", accentGreen: "Green", accentLilac: "Lilac",
     lightModeSub: "Switch between light and dark theme",
     notificationsLabel: "Notifications",
     connectedAppsLabel: "Connected Apps",
@@ -4536,7 +4566,7 @@ const STR = {
     weekDetailWorkoutsLabel: "Entrenamientos",
     weekDetailDistanceLabel: "Distancia",
     appearanceLabel: "Apariencia",
-    lightModeTitle: "Modo claro",
+    lightModeTitle: "Modo claro", accentTitle: "Color", accentGreen: "Verde", accentLilac: "Lila",
     lightModeSub: "Cambia entre el tema claro y oscuro",
     notificationsLabel: "Notificaciones",
     connectedAppsLabel: "Apps conectadas",
@@ -6388,8 +6418,15 @@ function loadTheme(){
   try{ const v = localStorage.getItem('altiro_theme'); if(v==='light'||v==='dark') return v; }catch(e){}
   return 'dark';
 }
-function applyTheme(theme){
-  document.getElementById('device').setAttribute('data-theme', theme);
+// Light mode's color: green (Altiro's) or lilac.
+function loadAccent(){
+  try{ const v = localStorage.getItem('altiro_accent'); if(v==='green'||v==='lilac') return v; }catch(e){}
+  return 'green';
+}
+function applyTheme(theme, accent){
+  const dev = document.getElementById('device');
+  dev.setAttribute('data-theme', theme);
+  dev.setAttribute('data-accent', accent || 'green');
 }
 
 /* ---------------- state ---------------- */
@@ -6450,7 +6487,8 @@ let state = defaultState();
 state.lang = loadLang();
 state.distUnit = loadDistUnit();
 state.theme = loadTheme();
-applyTheme(state.theme);
+state.accent = loadAccent();
+applyTheme(state.theme, state.accent);
 
 function restSlot(){ return {p:ses('rest','Rest Day','','Día de descanso',''), c:null, completed:false}; }
 // The current week's days, from the plan engine. Days before today have no real record --
@@ -7768,9 +7806,9 @@ function resetInfoUI(){
 // the prototype navigator's Reset.
 function resetToWelcome(){
   clearTimeout(state.loadTimer);
-  const lang = state.lang, theme = state.theme;
+  const lang = state.lang, theme = state.theme, accent = state.accent;
   state = defaultState();
-  state.lang = lang; state.theme = theme;
+  state.lang = lang; state.theme = theme; state.accent = accent;
   strava = {connected:false, athleteName:'', status:'idle', lastSyncAt:0};
   signedInLoad = null;
   resetBadgeChecks();
@@ -12522,6 +12560,7 @@ function renderSettings(){
   renderInstallUI();
   renderMyClasses();
   document.getElementById('themeToggle').classList.toggle('on', state.theme==='light');
+  renderAccentRow();
   renderStravaSettings();
   renderHealthSettings();
 }
@@ -12549,8 +12588,25 @@ document.getElementById('saveEditName').addEventListener('click', ()=>{
 document.getElementById('themeToggle').addEventListener('click', function(){
   state.theme = state.theme==='light' ? 'dark' : 'light';
   try{ localStorage.setItem('altiro_theme', state.theme); }catch(e){}
-  applyTheme(state.theme);
+  applyTheme(state.theme, state.accent);
   this.classList.toggle('on', state.theme==='light');
+  renderAccentRow();
+});
+// The color choice shows with Light Mode on.
+function renderAccentRow(){
+  document.getElementById('accentRow').hidden = state.theme!=='light';
+  document.querySelectorAll('[data-accent-pick]').forEach(b=>{
+    const on = b.dataset.accentPick===(state.accent || 'green');
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+  });
+}
+document.getElementById('accentRow').addEventListener('click', e=>{
+  const b = e.target.closest('[data-accent-pick]');
+  if(!b) return;
+  state.accent = b.dataset.accentPick;
+  try{ localStorage.setItem('altiro_accent', state.accent); }catch(e){}
+  applyTheme(state.theme, state.accent);
+  renderAccentRow();
 });
 document.getElementById('signOutBtn').addEventListener('click', async ()=>{
   commitPendingDelete(); // a delete still waiting on its Undo is final now

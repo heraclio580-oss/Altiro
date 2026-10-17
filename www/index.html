@@ -6263,7 +6263,8 @@ function exercisesForSession(session, date){
   if(!session || session.t!=='strength') return null;
   // "Log as you go": a workout started with no exercises yet -- they're added while it's done.
   if(Array.isArray(session.exercises) && !session.exercises.length) return [];
-  if(session.exercises && session.exercises.length) return applyPyramid(applyLiftTargets(applyStandingSwaps(session.exercises.map(localizedExercise))), session, date);
+  // (A lift the user put in a workout themselves keeps its own numbers in that workout -- see ownLiftKey.)
+  if(session.exercises && session.exercises.length) return applyPyramid(applyLiftTargets(applyStandingSwaps(session.exercises.map(ex=> localizedExercise(ex.fromPlan ? ex : {...ex, ownOf: session.en.title})))), session, date);
   const planned = plannedExercises(session, date);
   return planned ? applyPyramid(applyLiftTargets(applyStandingSwaps(planned)), session, date) : null;
 }
@@ -6327,23 +6328,24 @@ function applyPyramid(list, session, date){
 function applyLiftTargets(list){
   const out = list.map(ex=>{
     if(ex.durationSec!=null) return ex;
-    const t = ex.bodyweight ? state.progression[exerciseProgressionKey(ex.key)] : getExerciseTarget(ex, state.intensityIdx);
+    const t = ex.bodyweight ? liftTargetOf(ex) : getExerciseTarget(ex, state.intensityIdx);
     return (t && t.reps) ? {...ex, reps: t.reps} : ex;
   });
   out.skipped = list.skipped || [];
   return out;
 }
-// Sets a lift's own numbers -- for every workout it's in -- keeping anything else its target holds.
-function setLiftNumbers(exerciseKey, weight, reps){
-  const current = state.progression[exerciseProgressionKey(exerciseKey)] || {};
+// Sets a lift's own numbers -- for every workout it's in, or (ownOf) just in that workout of the user's
+// own -- keeping anything else its target holds.
+function setLiftNumbers(exerciseKey, weight, reps, ownOf){
+  const current = (ownOf && state.progression[ownLiftKey(ownOf, exerciseKey)]) || state.progression[exerciseProgressionKey(exerciseKey)] || {};
   const target = {...current};
   if(weight!=null) target.weight = weight;
   if(reps!=null) target.reps = reps;
-  saveExerciseTarget(exerciseKey, target);
+  saveExerciseTarget(exerciseKey, target, ownOf);
 }
 function liftNumberInputsHtml(ex){
   const L = STR[state.lang];
-  const t = ex.bodyweight ? state.progression[exerciseProgressionKey(ex.key)] : getExerciseTarget(ex, state.intensityIdx);
+  const t = ex.bodyweight ? liftTargetOf(ex) : getExerciseTarget(ex, state.intensityIdx);
   const weight = !ex.bodyweight && t && t.weight!=null ? t.weight : '';
   const reps = (t && t.reps) || ex.reps || '';
   return `${ex.bodyweight ? '' : `<label class="lift-field"><span>${L.liftWeightLabel}</span>
@@ -8570,23 +8572,36 @@ function getProgressionTarget(session, intensityIdx){
 function exerciseProgressionKey(exerciseKey){
   return 'strength:' + exerciseKey;
 }
+// A lift in a workout the user built keeps its numbers in that workout: Bench Press on a Chest & Back day
+// and on a Chest day are each their own (the same workout next week carries on from this one). The plan's
+// lifts share one set of numbers across the week -- that's how it progresses them.
+const OWN_LIFT_SEP = ' \u203a ';
+function ownLiftKey(workoutTitle, exerciseKey){ return 'strength:' + workoutTitle + OWN_LIFT_SEP + exerciseKey; }
+// A lift's numbers: its own workout's, else the lift's (a workout that hasn't been changed or done since).
+function liftTargetOf(ex){
+  return (ex.ownOf && state.progression[ownLiftKey(ex.ownOf, ex.key)]) || state.progression[exerciseProgressionKey(ex.key)] || null;
+}
 function seedExerciseTarget(ex, intensityIdx){
   if(ex.bodyweight) return null; // nothing to load/track -- just a sets x reps (or duration) prescription
   const base = [95,135,195][liftIntensity()];
   return {weight: Math.round(base*(ex.seedFactor||0.5)/5)*5, reps: ex.reps || 10};
 }
 function getExerciseTarget(ex, intensityIdx){
+  if(ex.ownOf && state.progression[ownLiftKey(ex.ownOf, ex.key)]) return state.progression[ownLiftKey(ex.ownOf, ex.key)];
   const key = exerciseProgressionKey(ex.key);
   if(!state.progression[key]){
     const seeded = seedExerciseTarget(ex, intensityIdx);
     if(!seeded) return null;
     state.progression[key] = seeded;
   }
+  // A workout of the user's own not changed or done yet: the lift's weight, with the reps they built it with.
+  if(ex.ownOf && ex.reps) return {...state.progression[key], reps: ex.reps};
   return state.progression[key];
 }
-function saveExerciseTarget(exerciseKey, target){
-  state.progression[exerciseProgressionKey(exerciseKey)] = target;
-  cloudSaveProgressionTarget({t:'strength', en:{title:exerciseKey}}, target);
+function saveExerciseTarget(exerciseKey, target, ownOf){
+  const title = ownOf ? ownOf + OWN_LIFT_SEP + exerciseKey : exerciseKey;
+  state.progression['strength:' + title] = target;
+  cloudSaveProgressionTarget({t:'strength', en:{title}}, target);
 }
 // How much a lift goes up when every rep was there: 5 lb (2.5 kg) -- for a beginner, half that on
 // upper-body lifts (2.5 lb, 1 kg), which climb in smaller steps than the legs.
@@ -8647,14 +8662,20 @@ function applyProgressionResult(session, logged){
 // The sets a lift was last logged with ([{weight, reps}, ...]), from the most recent day on or before
 // `onOrBeforeKey` that has it -- the planned workout, an Additional Workout or a logged entry -- so a
 // week that repeats starts from what was actually done, not from a guess.
-function lastLoggedSets(exKey, onOrBeforeKey){
+// The sets of the last time a lift was logged -- in the workout named `inWorkout` when given: each of
+// the user's own workouts carries on from itself (a Chest day doesn't start from the Chest & Back day's
+// bench; the first time, it starts as it was built).
+function lastLoggedSets(exKey, onOrBeforeKey, inWorkout){
   const keys = Object.keys(state.dayLog).filter(k=> !onOrBeforeKey || k<=onOrBeforeKey).sort().reverse();
   for(const k of keys){
     const log = state.dayLog[k];
-    const perfs = [log.performance, ...(log.extraWorkouts||[]).map(w=>w.performance), ...(log.manualEntries||[]).map(e=>e.performance)];
-    for(const perf of perfs){
+    const slot = log.performance ? getRawDaySlot(parseDateKey(k)) : null;
+    const perfs = [[log.performance, slot && slot.p && slot.p.en && slot.p.en.title], ...(log.extraWorkouts||[]).map(w=>[w.performance, w.session && w.session.en && w.session.en.title]),
+      ...(log.manualEntries||[]).map(e=>[e.performance, e.name])];
+    for(const [perf, title] of perfs){
       const hit = perf && Array.isArray(perf.exercises) && perf.exercises.find(e=>e.key===exKey && Array.isArray(e.sets) && e.sets.length);
-      if(hit) return hit.sets;
+      if(!hit) continue;
+      if(!inWorkout || title===inWorkout) return hit.sets;
     }
   }
   return null;
@@ -8974,7 +8995,7 @@ function openLogPerformanceFor(logTarget, mode){
       const loggedSets = loggedEx && Array.isArray(loggedEx.sets) && loggedEx.sets.length ? loggedEx.sets : null;
       // Not logged yet: a lift the user added themselves starts from what they did last time -- every
       // set's weight and reps. (The plan's own lifts start from their progressed target, or their pyramid.)
-      const lastSets = !loggedSets && !ex.fromPlan && !ex.pyramid && !ex.bodyweight ? lastLoggedSets(ex.key, dateKey(new Date(parseDateKey(logTarget.dayKey).getTime() - 86400000))) : null;
+      const lastSets = !loggedSets && !ex.fromPlan && !ex.pyramid && !ex.bodyweight ? lastLoggedSets(ex.key, dateKey(new Date(parseDateKey(logTarget.dayKey).getTime() - 86400000)), ex.ownOf) : null;
       // What was already typed for it in this workout (kept through a re-render or the app closing).
       const draftEx = draft && draft.ex[ex.key];
       const setCount = draftEx ? Math.max(1, draftEx.done.length) : loggedSets ? loggedSets.length : lastSets ? Math.min(LOG_PERF_MAX_SETS, lastSets.length) : ((loggedEx && loggedEx.setCount) || ex.sets || 1);
@@ -9291,7 +9312,8 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
       const top = sets.reduce((best,s)=> s.weight>best.weight ? s : best, sets[0]);
       // A lift the user added themselves follows their own program: its numbers become exactly what
       // they just did (shown on the workout, and where the next one starts), with no automatic jump.
-      if(!ex.fromPlan && top.weight>0) saveExerciseTarget(key, {...(state.progression[exerciseProgressionKey(key)]||{}), weight: top.weight, reps: top.reps});
+      // (In a workout of their own, just in that workout -- see ownLiftKey.)
+      if(!ex.fromPlan && top.weight>0) saveExerciseTarget(key, {...(liftTargetOf(ex)||{}), weight: top.weight, reps: top.reps}, ex.ownOf);
       return {key, name: ex.name, weight: top.weight, reps: top.reps, sets, pyramid: !!ex.pyramid, own: !ex.fromPlan};
     });
   } else if(eff.t==='strength'){
@@ -10521,7 +10543,7 @@ function exerciseChooserHtml(ex, count){
 }
 // Saves an exercise list as this one workout's own (it stops following the plan's weekly picks).
 function saveWorkoutExercises(r, list){
-  const clean = list.map(ex=>{ const c = {...ex}; delete c.swappedFrom; delete c.pyramid; return c; });
+  const clean = list.map(ex=>{ const c = {...ex}; delete c.swappedFrom; delete c.pyramid; delete c.ownOf; return c; });
   if(r.planLift){
     const id = realizePlanLift(wp.dayKey, PLAN_LIFT_ID);
     wp.target = {kind:'extra', id};
@@ -10553,7 +10575,8 @@ function applyExerciseChange(idx, choice, scope){
   } else {
     const list = exercises.slice();
     if(choice==='skip') list.splice(idx, 1);
-    else list[idx] = exerciseFromKey(choice, ex);
+    // (A move swapped in for one of the user's own stays theirs: its numbers stay in this workout.)
+    else list[idx] = ex.fromPlan ? exerciseFromKey(choice, ex) : {...exerciseFromKey(choice, ex), fromPlan: false};
     saveWorkoutExercises(r, list);
   }
   wp.editIdx = null; wp.choice = null; wp.changed = true;
@@ -10589,7 +10612,7 @@ document.getElementById('wpExerciseSection').addEventListener('click', (e)=>{
     const ex = exercisesForSession(r.session, parseDateKey(wp.dayKey))[idx];
     const {weight, reps} = readLiftNumberInputs(document.querySelector(`[data-tuner="${idx}"]`));
     if(weight==null && reps==null) return;
-    setLiftNumbers(ex.key, ex.bodyweight ? null : weight, reps);
+    setLiftNumbers(ex.key, ex.bodyweight ? null : weight, reps, ex.ownOf);
     wp.tuneIdx = null; wp.changed = true;
     refreshViews();
     renderWorkoutPreview();

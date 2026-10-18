@@ -130,7 +130,6 @@ Then ask for the **same image with only his position changed** to the END half (
 | 53 | Chin-Up | `chin-up` | Pull-up bar | Side | Hanging, palms facing you → pull chin over the bar → lower. |
 | 54 | Lat Pulldown | `lat-pulldown` | Lat pulldown machine | Side or front | Seated, arms up holding the bar → pull bar to upper chest → return. |
 | 55 | Dumbbell Pullover | `dumbbell-pullover` | Dumbbell + bench | Side | Lying on bench, dumbbell over chest in both hands → lower it back behind the head in an arc → return. |
-| 56 | Prone Y-T-W Raise | `prone-y-t-w-raise` | None | Top-down or side | Lying face down → arms raise in a Y, then a T, then a W shape, lifting a little off the floor each time. |
 | 57 | Bicep Curl | `bicep-curl` | Dumbbells | Side | Dumbbells at sides, palms forward → curl up to the shoulders, elbows still → lower. |
 | 58 | Hammer Curl | `hammer-curl` | Dumbbells | Side | Dumbbells at sides, palms facing in → curl up → lower. |
 | 59 | Triceps Pushdown | `triceps-pushdown` | Cable machine | Side | Elbows at sides, forearms up → push down until arms are straight → return. |

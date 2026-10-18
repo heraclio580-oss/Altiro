@@ -5789,7 +5789,6 @@ const EXERCISES = {
   'Chin-Up': {en:'Chin-Up', es:'Dominada Supina', sets:3, reps:8, bodyweight:true, minLevel:'intermediate'},
   'Lat Pulldown': {en:'Lat Pulldown', es:'Jalón al Pecho', sets:3, reps:10, seedFactor:0.6},
   'Dumbbell Pullover': {en:'Dumbbell Pullover', es:'Pullover con Mancuerna', sets:3, reps:12, seedFactor:0.2, minLevel:'intermediate'},
-  'Prone Y-T-W Raise': {en:'Prone Y-T-W Raise', es:'Elevaciones Y-T-W Boca Abajo', sets:3, reps:10, bodyweight:true, minLevel:'intermediate'},
   'Bicep Curl': {en:'Bicep Curl', es:'Curl de Bíceps', sets:3, reps:12, seedFactor:0.15},
   'Hammer Curl': {en:'Hammer Curl', es:'Curl Martillo', sets:3, reps:12, seedFactor:0.15},
   'Triceps Pushdown': {en:'Triceps Pushdown', es:'Extensión de Tríceps en Polea', sets:3, reps:12, seedFactor:0.25},
@@ -5850,7 +5849,7 @@ const EXERCISES = {
 // Where a move belongs, as sorted by hand: HOME_ONLY moves feel out of place on a public gym floor, so a
 // gym plan never suggests them; GYM_ONLY ones need a gym's equipment, so a plan at home never does.
 // Everything else is fine anywhere.
-const HOME_ONLY = new Set(['Dumbbell Floor Press','Dumbbell Floor Fly','Superman','Prone Y-T-W Raise','Dead Bug','Towel Row',
+const HOME_ONLY = new Set(['Dumbbell Floor Press','Dumbbell Floor Fly','Superman','Dead Bug','Towel Row',
   'Wall Angel','Bird Dog','Hollow Body Hold','Cat-Cow','Thoracic Rotation','Reverse Crunch','Clamshell']);
 const GYM_ONLY = new Set(['Back Squat','Front Squat','Leg Press','Inverted Row','Triceps Pushdown','Triceps Dip',
   'Chest Press Machine','Shoulder Press Machine','Assisted Pull-Up','Assisted Dip']);
@@ -5885,13 +5884,13 @@ const MOVEMENTS = {
   chest2:   {gym:['Incline Dumbbell Press','Chest Fly','Cable Fly'], kettlebells:['Push-Up','Kettlebell Floor Press'], dumbbells:['Dumbbell Floor Fly','Push-Up'], bodyweight:['Incline Push-Up','Diamond Push-Up','Wall Push-Up']},
   vpush:    {gym:['Overhead Press','Arnold Press','Push Press','Shoulder Press Machine'], kettlebells:['Kettlebell Overhead Press','Kettlebell Push Press','Kettlebell Halo'], dumbbells:['Dumbbell Shoulder Press','Arnold Press'], bodyweight:['Pike Push-Up']},
   hpull:    {gym:['Bent-Over Row','Seated Cable Row','T-Bar Row'], kettlebells:['Kettlebell Row','Kettlebell Gorilla Row'], dumbbells:['Dumbbell Row','Resistance Band Row'], bodyweight:['Inverted Row','Towel Row','Superman','Resistance Band Row']},
-  vpull:    {gym:['Lat Pulldown','Pull-Up','Chin-Up','Assisted Pull-Up'], kettlebells:['Pull-Up','Chin-Up','Kettlebell Pullover','Kettlebell High Pull'], dumbbells:['Pull-Up','Chin-Up','Dumbbell Pullover'], bodyweight:['Pull-Up','Chin-Up','Prone Y-T-W Raise','Superman','Wall Angel']},
+  vpull:    {gym:['Lat Pulldown','Pull-Up','Chin-Up','Assisted Pull-Up'], kettlebells:['Pull-Up','Chin-Up','Kettlebell Pullover','Kettlebell High Pull'], dumbbells:['Pull-Up','Chin-Up','Dumbbell Pullover'], bodyweight:['Pull-Up','Chin-Up','Superman','Wall Angel']},
   arms:     {gym:['Bicep Curl','Triceps Pushdown','Hammer Curl'], kettlebells:['Kettlebell Curl','Kettlebell Overhead Triceps Extension'], dumbbells:['Bicep Curl','Overhead Triceps Extension','Hammer Curl'], bodyweight:['Bench Dip','Diamond Push-Up']},
   triceps:  {gym:['Triceps Pushdown','Overhead Triceps Extension','Skull Crusher','Triceps Dip','Assisted Dip'], kettlebells:['Kettlebell Overhead Triceps Extension','Bench Dip'], dumbbells:['Overhead Triceps Extension','Skull Crusher','Bench Dip'], bodyweight:['Bench Dip','Diamond Push-Up']},
   biceps:   {gym:['Bicep Curl','Preacher Curl','Hammer Curl','Concentration Curl'], kettlebells:['Kettlebell Curl'], dumbbells:['Bicep Curl','Hammer Curl','Concentration Curl','Preacher Curl'], bodyweight:['Chin-Up','Towel Row']},
-  lateral:  {gym:['Lateral Raise','Cable Lateral Raise'], kettlebells:['Kettlebell Halo','Prone Y-T-W Raise'], dumbbells:['Lateral Raise'], bodyweight:['Prone Y-T-W Raise','Wall Angel']},
+  lateral:  {gym:['Lateral Raise','Cable Lateral Raise'], kettlebells:['Kettlebell Halo','Wall Angel'], dumbbells:['Lateral Raise'], bodyweight:['Wall Angel']},
   frontraise:{gym:['Front Raise','Upright Row'], kettlebells:['Kettlebell Halo'], dumbbells:['Front Raise'], bodyweight:['Pike Push-Up']},
-  reardelt: {gym:['Face Pull','Reverse Fly','Rear Delt Raise','Band Pull-Apart'], kettlebells:['Kettlebell High Pull','Prone Y-T-W Raise'], dumbbells:['Reverse Fly','Rear Delt Raise','Band Pull-Apart'], bodyweight:['Prone Y-T-W Raise','Wall Angel']},
+  reardelt: {gym:['Face Pull','Reverse Fly','Rear Delt Raise','Band Pull-Apart'], kettlebells:['Kettlebell High Pull','Band Pull-Apart'], dumbbells:['Reverse Fly','Rear Delt Raise','Band Pull-Apart'], bodyweight:['Band Pull-Apart','Wall Angel']},
   calves:   {gym:['Calf Raise','Single-Leg Calf Raise'], kettlebells:['Calf Raise','Single-Leg Calf Raise'], dumbbells:['Calf Raise','Single-Leg Calf Raise'], bodyweight:['Calf Raise','Single-Leg Calf Raise']},
   armstrength: {gym:['Hammer Curl','Bicep Curl','Reverse Curl'], kettlebells:['Kettlebell Curl'], dumbbells:['Hammer Curl','Bicep Curl','Reverse Curl'], bodyweight:['Towel Row','Chin-Up']},
   grip:     {gym:['Wrist Curl','Dead Hang'], kettlebells:['Dead Hang'], dumbbells:['Wrist Curl','Dead Hang'], bodyweight:['Dead Hang']},
@@ -16555,6 +16554,9 @@ const DEMO_PHOTOS = new Map([
   ['Bicycle Crunch', {ratio: 720/311, focus: '50% 50%', cues: {
     en: ['Lie on your back, hands lightly behind your head, knees bent over your hips', 'Lift your shoulders off the floor', 'Twist one elbow toward the opposite knee as the other leg straightens', 'Switch sides in a slow pedaling motion, without pulling on your neck'],
     es: ['Túmbate boca arriba, manos suaves detrás de la cabeza, rodillas dobladas sobre la cadera', 'Despega los hombros del suelo', 'Gira un codo hacia la rodilla contraria mientras estiras la otra pierna', 'Cambia de lado pedaleando despacio, sin tirar del cuello']}}],
+  ['Wall Angel', {ratio: 440/726, focus: '50% 30%', cues: {
+    en: ['Stand with your back, head and arms against the wall, feet a few inches out', 'Bend your elbows to 90° in a "goal post" shape', 'Slide your arms up overhead, keeping them on the wall', 'Slide them back down slowly, lower back staying flat'],
+    es: ['De pie con espalda, cabeza y brazos contra la pared, pies a unos centímetros', 'Dobla los codos a 90° en forma de "portería"', 'Desliza los brazos hacia arriba sin despegarlos de la pared', 'Bájalos despacio, con la zona lumbar pegada']}}],
   ['Dumbbell Shoulder Press', {ratio: 440/889, focus: '50% 25%', cues: {
     en: ['Dumbbells at shoulder height, palms forward', 'Brace your core, sit tall', 'Press straight up until your arms are straight', 'Lower with control back to your shoulders'],
     es: ['Mancuernas a la altura de los hombros, palmas al frente', 'Abdomen firme, espalda recta', 'Empuja hacia arriba hasta estirar los brazos', 'Baja con control hasta los hombros']}}],
@@ -16670,8 +16672,6 @@ const HOWTO = {
     es:['Cuélgate con las palmas hacia ti, al ancho de hombros', 'Sube hasta que la barbilla pase la barra', 'Baja del todo despacio']},
   'Dumbbell Pullover': {en:['Lie on a bench, one dumbbell over your chest with both hands', 'Lower it back over your head, slight bend in your elbows', 'Pull it back over your chest'],
     es:['Tumbado en un banco, una mancuerna sobre el pecho con ambas manos', 'Llévala atrás por encima de la cabeza, codos algo flexionados', 'Vuelve a llevarla sobre el pecho']},
-  'Prone Y-T-W Raise': {en:['Lie face down, arms hanging or on the floor', 'Lift your arms into a Y, then a T, then a W', 'Squeeze your shoulder blades each time, lower slowly'],
-    es:['Boca abajo, brazos colgando o en el suelo', 'Sube los brazos en Y, luego en T y luego en W', 'Junta las escápulas cada vez y baja despacio']},
   'Bicep Curl': {en:['Stand tall, weights at your sides, palms in', 'Curl up, turning your palms to face you, elbows by your sides', 'Lower slowly all the way down'],
     es:['De pie, pesas a los lados, palmas hacia dentro', 'Sube girando las palmas hacia ti, codos pegados', 'Baja despacio del todo']},
   'Hammer Curl': {en:['Weights at your sides, palms facing each other', 'Curl up, keeping your palms facing in', 'Lower slowly'],

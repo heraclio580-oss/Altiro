@@ -163,7 +163,6 @@ Then ask for the **same image with only his position changed** to the END half (
 | 87 | Kettlebell Overhead Triceps Extension | `kettlebell-overhead-triceps-extension` | Kettlebell | Side | Bell held overhead by the horns → lower behind the head → extend. |
 | 88 | Turkish Get-Up | `turkish-get-up` | Kettlebell | Side or 3/4 | Lying with the bell pressed up in one hand → roll to elbow, to hand, sweep leg under, kneel, stand, keeping the bell overhead → reverse. (Show the key positions; a few seconds is fine.) |
 | 89 | Kettlebell Windmill | `kettlebell-windmill` | Kettlebell | Front | Bell locked overhead in one hand → hinge sideways, other hand slides down the leg toward the floor, eyes on the bell → return. |
-| 90 | Towel Row | `towel-row` | Towel + door/post | Side | Holding a towel looped around a sturdy post, leaning back → pull body toward it → lower back. |
 | 91 | Wall Angel | `wall-angel` | Wall | Front | Back against a wall, arms in a goal-post shape touching the wall → slide arms up overhead → slide back down. |
 | 92 | Bird Dog | `bird-dog` | None | Side | On hands and knees → extend opposite arm and leg straight out → return, switch sides. |
 | 93 | Hanging Knee Raise | `hanging-knee-raise` | Pull-up bar | Side | Hanging from a bar → raise knees toward the chest → lower. |

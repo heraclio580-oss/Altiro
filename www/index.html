@@ -5783,6 +5783,7 @@ const EXERCISES = {
   'T-Bar Row': {en:'T-Bar Row', es:'Remo en T', sets:3, reps:10, seedFactor:0.6},
   'Dumbbell Row': {en:'Dumbbell Row', es:'Remo con Mancuerna', sets:3, reps:10, seedFactor:0.3},
   'Resistance Band Row': {en:'Resistance Band Row', es:'Remo con Banda de Resistencia', sets:3, reps:15, bodyweight:true},
+  'Band Curl': {en:'Band Curl', es:'Curl con Banda', sets:3, reps:15, bodyweight:true},
   'Inverted Row': {en:'Inverted Row', es:'Remo Invertido', sets:3, reps:10, bodyweight:true},
   'Superman': {en:'Superman', es:'Superman', sets:3, reps:12, bodyweight:true},
   'Pull-Up': {en:'Pull-Up', es:'Dominada', sets:3, reps:8, bodyweight:true, minLevel:'intermediate'},
@@ -5822,7 +5823,6 @@ const EXERCISES = {
   'Kettlebell Overhead Triceps Extension': {en:'Kettlebell Overhead Triceps Extension', es:'Extensión de Tríceps con Pesa Rusa', sets:3, reps:12, seedFactor:0.15},
   'Turkish Get-Up': {en:'Turkish Get-Up', es:'Levantamiento Turco', sets:3, reps:3, seedFactor:0.15, minLevel:'intermediate'},
   'Kettlebell Windmill': {en:'Kettlebell Windmill', es:'Molino con Pesa Rusa', sets:3, reps:5, seedFactor:0.15, minLevel:'intermediate'},
-  'Towel Row': {en:'Towel Row', es:'Remo con Toalla', sets:3, reps:12, bodyweight:true},
   'Wall Angel': {en:'Wall Angel', es:'Ángel en la Pared', sets:3, reps:12, bodyweight:true},
   'Bird Dog': {en:'Bird Dog', es:'Bird Dog', sets:3, reps:10, bodyweight:true},
   'Hanging Knee Raise': {en:'Hanging Knee Raise', es:'Elevación de Rodillas Colgado', sets:3, reps:12, bodyweight:true},
@@ -5849,7 +5849,7 @@ const EXERCISES = {
 // Where a move belongs, as sorted by hand: HOME_ONLY moves feel out of place on a public gym floor, so a
 // gym plan never suggests them; GYM_ONLY ones need a gym's equipment, so a plan at home never does.
 // Everything else is fine anywhere.
-const HOME_ONLY = new Set(['Dumbbell Floor Press','Dumbbell Floor Fly','Superman','Dead Bug','Towel Row',
+const HOME_ONLY = new Set(['Dumbbell Floor Press','Dumbbell Floor Fly','Superman','Dead Bug',
   'Wall Angel','Bird Dog','Hollow Body Hold','Cat-Cow','Thoracic Rotation','Reverse Crunch','Clamshell']);
 const GYM_ONLY = new Set(['Back Squat','Front Squat','Leg Press','Inverted Row','Triceps Pushdown','Triceps Dip',
   'Chest Press Machine','Shoulder Press Machine','Assisted Pull-Up','Assisted Dip']);
@@ -5883,16 +5883,16 @@ const MOVEMENTS = {
   hpush:    {gym:['Bench Press','Dumbbell Bench Press','Incline Barbell Press','Chest Press Machine'], kettlebells:['Kettlebell Floor Press','Push-Up'], dumbbells:['Dumbbell Floor Press','Push-Up'], bodyweight:['Push-Up','Incline Push-Up','Decline Push-Up','Knee Push-Up']},
   chest2:   {gym:['Incline Dumbbell Press','Chest Fly','Cable Fly'], kettlebells:['Push-Up','Kettlebell Floor Press'], dumbbells:['Dumbbell Floor Fly','Push-Up'], bodyweight:['Incline Push-Up','Diamond Push-Up','Wall Push-Up']},
   vpush:    {gym:['Overhead Press','Arnold Press','Push Press','Shoulder Press Machine'], kettlebells:['Kettlebell Overhead Press','Kettlebell Push Press','Kettlebell Halo'], dumbbells:['Dumbbell Shoulder Press','Arnold Press'], bodyweight:['Pike Push-Up']},
-  hpull:    {gym:['Bent-Over Row','Seated Cable Row','T-Bar Row'], kettlebells:['Kettlebell Row','Kettlebell Gorilla Row'], dumbbells:['Dumbbell Row','Resistance Band Row'], bodyweight:['Inverted Row','Towel Row','Superman','Resistance Band Row']},
+  hpull:    {gym:['Bent-Over Row','Seated Cable Row','T-Bar Row'], kettlebells:['Kettlebell Row','Kettlebell Gorilla Row'], dumbbells:['Dumbbell Row','Resistance Band Row'], bodyweight:['Inverted Row','Superman','Resistance Band Row']},
   vpull:    {gym:['Lat Pulldown','Pull-Up','Chin-Up','Assisted Pull-Up'], kettlebells:['Pull-Up','Chin-Up','Kettlebell Pullover','Kettlebell High Pull'], dumbbells:['Pull-Up','Chin-Up','Dumbbell Pullover'], bodyweight:['Pull-Up','Chin-Up','Superman','Wall Angel']},
   arms:     {gym:['Bicep Curl','Triceps Pushdown','Hammer Curl'], kettlebells:['Kettlebell Curl','Kettlebell Overhead Triceps Extension'], dumbbells:['Bicep Curl','Overhead Triceps Extension','Hammer Curl'], bodyweight:['Bench Dip','Diamond Push-Up']},
   triceps:  {gym:['Triceps Pushdown','Overhead Triceps Extension','Skull Crusher','Triceps Dip','Assisted Dip'], kettlebells:['Kettlebell Overhead Triceps Extension','Bench Dip'], dumbbells:['Overhead Triceps Extension','Skull Crusher','Bench Dip'], bodyweight:['Bench Dip','Diamond Push-Up']},
-  biceps:   {gym:['Bicep Curl','Preacher Curl','Hammer Curl','Concentration Curl'], kettlebells:['Kettlebell Curl'], dumbbells:['Bicep Curl','Hammer Curl','Concentration Curl','Preacher Curl'], bodyweight:['Chin-Up','Towel Row']},
+  biceps:   {gym:['Bicep Curl','Preacher Curl','Hammer Curl','Concentration Curl'], kettlebells:['Kettlebell Curl'], dumbbells:['Bicep Curl','Hammer Curl','Concentration Curl','Preacher Curl'], bodyweight:['Chin-Up','Band Curl']},
   lateral:  {gym:['Lateral Raise','Cable Lateral Raise'], kettlebells:['Kettlebell Halo','Wall Angel'], dumbbells:['Lateral Raise'], bodyweight:['Wall Angel']},
   frontraise:{gym:['Front Raise','Upright Row'], kettlebells:['Kettlebell Halo'], dumbbells:['Front Raise'], bodyweight:['Pike Push-Up']},
   reardelt: {gym:['Face Pull','Reverse Fly','Rear Delt Raise','Band Pull-Apart'], kettlebells:['Kettlebell High Pull','Band Pull-Apart'], dumbbells:['Reverse Fly','Rear Delt Raise','Band Pull-Apart'], bodyweight:['Band Pull-Apart','Wall Angel']},
   calves:   {gym:['Calf Raise','Single-Leg Calf Raise'], kettlebells:['Calf Raise','Single-Leg Calf Raise'], dumbbells:['Calf Raise','Single-Leg Calf Raise'], bodyweight:['Calf Raise','Single-Leg Calf Raise']},
-  armstrength: {gym:['Hammer Curl','Bicep Curl','Reverse Curl'], kettlebells:['Kettlebell Curl'], dumbbells:['Hammer Curl','Bicep Curl','Reverse Curl'], bodyweight:['Towel Row','Chin-Up']},
+  armstrength: {gym:['Hammer Curl','Bicep Curl','Reverse Curl'], kettlebells:['Kettlebell Curl'], dumbbells:['Hammer Curl','Bicep Curl','Reverse Curl'], bodyweight:['Band Curl','Chin-Up']},
   grip:     {gym:['Wrist Curl','Dead Hang'], kettlebells:['Dead Hang'], dumbbells:['Wrist Curl','Dead Hang'], bodyweight:['Dead Hang']},
   core:     {gym:['Plank','Hanging Knee Raise','Side Plank','Ab Wheel Rollout','Bicycle Crunch'], kettlebells:['Turkish Get-Up','Plank','Kettlebell Windmill','Dead Bug'], dumbbells:['Plank','Dead Bug','Side Plank','Bicycle Crunch'], bodyweight:['Plank','Dead Bug','Side Plank','Bird Dog','Bicycle Crunch']},
 };
@@ -16692,6 +16692,8 @@ const HOWTO = {
     es:['Coloca la barra entre las piernas e inclínate con la espalda recta', 'Tira del agarre hacia el pecho', 'Baja controlando']},
   'Resistance Band Row': {en:['Anchor the band at chest height, step back', 'Pull your hands to your ribs, elbows close', 'Squeeze your shoulder blades, then release slowly'],
     es:['Ancla la banda a la altura del pecho y da un paso atrás', 'Lleva las manos a las costillas, codos pegados', 'Junta las escápulas y suelta despacio']},
+  'Band Curl': {en:['Stand on the middle of the band, an end in each hand', 'Curl your hands up to your shoulders, elbows at your sides', 'Lower slowly against the band'],
+    es:['Pisa el centro de la banda, un extremo en cada mano', 'Sube las manos hasta los hombros, codos pegados al cuerpo', 'Baja despacio resistiendo la banda']},
   'Inverted Row': {en:['Hang under a bar or sturdy table, body straight', 'Pull your chest up to the bar', 'Lower slowly, keep your hips up'],
     es:['Cuélgate bajo una barra o mesa firme, cuerpo recto', 'Tira del pecho hacia la barra', 'Baja despacio sin dejar caer la cadera']},
   'Superman': {en:['Lie face down, arms reaching forward', 'Lift your arms, chest and legs off the floor', 'Hold a moment, then lower slowly'],
@@ -16768,8 +16770,6 @@ const HOWTO = {
     es:['Tumbado, pesa arriba en una mano, mírala', 'Apóyate en el codo, luego en la mano, sube la cadera y pasa la pierna', 'Levántate paso a paso y deshazlo despacio (empieza ligero)']},
   'Kettlebell Windmill': {en:['Bell overhead in one hand, feet turned away from it', 'Push your hip out and slide your free hand down your leg', 'Eyes on the bell, then stand back up'],
     es:['Pesa arriba en una mano, pies girados hacia el otro lado', 'Saca la cadera y desliza la mano libre por la pierna', 'Mira la pesa y vuelve a subir']},
-  'Towel Row': {en:['Loop a towel around a sturdy post, hold both ends', 'Lean back with straight arms, body straight', 'Pull your chest to your hands, lower slowly'],
-    es:['Pasa una toalla por un poste firme y sujeta los extremos', 'Inclínate atrás con los brazos estirados, cuerpo recto', 'Lleva el pecho a las manos y baja despacio']},
   'Wall Angel': {en:['Back, head and arms against the wall', 'Slide your arms up overhead, keeping them on the wall', 'Slide them back down slowly'],
     es:['Espalda, cabeza y brazos contra la pared', 'Desliza los brazos hacia arriba sin despegarlos', 'Bájalos despacio']},
   'Bird Dog': {en:['On hands and knees, back flat', 'Reach one arm forward and the opposite leg back', 'Hold, return, then switch sides'],

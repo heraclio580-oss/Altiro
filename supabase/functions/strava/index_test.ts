@@ -11,7 +11,7 @@ function setup(opts: { tokenStatus?: number; activitiesStatus?: number } = {}) {
   const activities: Record<string, any> = {};
   const calls: string[] = [];
   const stravaActivities = [
-    { id: 1, name: "Long Run", sport_type: "Run", distance: 25749.5, moving_time: 8400, elapsed_time: 8700, start_date: "2026-09-27T12:02:00Z", start_date_local: "2026-09-27T08:02:00Z" },
+    { id: 1, name: "Long Run", sport_type: "Run", distance: 25749.5, moving_time: 8400, elapsed_time: 8700, total_elevation_gain: 68, start_date: "2026-09-27T12:02:00Z", start_date_local: "2026-09-27T08:02:00Z" },
     { id: 2, name: "Leg Day", sport_type: "WeightTraining", distance: 0, moving_time: 3000, elapsed_time: 3000, start_date: "2026-09-26T22:00:00Z", start_date_local: "2026-09-26T18:00:00Z" },
     { id: 3, name: "Treadmill", type: "VirtualRun", distance: 4828, moving_time: 1800, elapsed_time: 1800, start_date: "2026-09-26T01:30:00Z", start_date_local: "2026-09-25T21:30:00Z" },
   ];
@@ -53,7 +53,13 @@ function setup(opts: { tokenStatus?: number; activitiesStatus?: number } = {}) {
       getConnectionByAthlete: async (id) => Object.values(connections).find((c) => c.athlete_id === id) ?? null,
       saveConnection: async (row) => { connections[row.user_id] = { ...connections[row.user_id], ...row }; },
       deleteConnection: async (u) => { delete connections[u]; },
-      insertNewActivities: async (rows) => { rows.forEach((r) => { if (!activities[r.id as number]) activities[r.id as number] = r; }); },
+      insertNewActivities: async (rows) => {
+        rows.forEach((r) => {
+          const had = activities[r.id as number];
+          if (!had) activities[r.id as number] = r;
+          else if (r.elev_gain_m != null) had.elev_gain_m = r.elev_gain_m;
+        });
+      },
       deleteUnappliedActivities: async (u) => {
         Object.keys(activities).forEach((k) => { if (activities[k].user_id === u && !activities[k].applied_at) delete activities[k]; });
       },
@@ -104,6 +110,20 @@ Deno.test("connect stores the tokens and pulls in runs only (not strength), date
   // Ran at 9:30pm local on the 25th -- already the 26th in UTC, but it belongs on the 25th.
   assertEquals(activities[3].local_date, "2026-09-25");
   assertEquals(activities[3].sport_type, "VirtualRun");
+});
+
+Deno.test("keeps the watch's climb, and fills it in on a run stored before it was kept", async () => {
+  const { call, connections, activities } = setup();
+  await call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
+  assertEquals(activities[1].elev_gain_m, 68);
+  // A treadmill run has no climb from Strava.
+  assertEquals(activities[3].elev_gain_m, null);
+  // A run already filed, from before the climb was kept: the next sync adds it and leaves the rest.
+  activities[1] = { ...activities[1], elev_gain_m: null, applied_at: "2026-09-27T14:00:00Z" };
+  connections["user-1"].last_synced_at = new Date(NOW - 3600 * 1000).toISOString();
+  await call({ action: "sync" });
+  assertEquals(activities[1].elev_gain_m, 68);
+  assertEquals(activities[1].applied_at, "2026-09-27T14:00:00Z");
 });
 
 Deno.test("connect refuses a sign-in where activity access was unticked", async () => {

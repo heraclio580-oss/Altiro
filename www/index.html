@@ -15506,6 +15506,17 @@ function rescaleSplits(perf, miles, minutes){
   const rest = Math.round((watchU - whole)*100)/100;
   return {splits: out, lastSplit: rest>=0.01 ? {dist: rest, sec: Math.max(1, Math.round(watchS - at(whole)))} : null};
 }
+// The watch's own climb, from its Strava copy (metres; its barometer, for most running watches). It
+// replaces the climb worked out here from terrain data, which smooths away small rises (a 14.7 mi run
+// came out at 157 ft, the watch said 223). The loss follows from the route's own net change -- terrain
+// data gets the start and finish heights right -- so a run that drops 260 ft still does. Null when
+// there's no climb to use, or it's already the watch's.
+function withWatchClimb(perf, gainM){
+  if(gainM==null || !isFinite(gainM) || !perf || perf.elevSource==='watch') return null;
+  const out = {...perf, elevGain: Math.round(gainM*10)/10, elevSource: 'watch'};
+  if(perf.elevGain!=null && perf.elevLoss!=null) out.elevLoss = Math.round(Math.max(0, gainM - (perf.elevGain - perf.elevLoss))*10)/10;
+  return out;
+}
 // The watch's numbers win: a run tracked here that the watch recorded too takes the watch's distance
 // and time (a watch's GPS is steadier than a phone's), keeps its route and elevation, and links to
 // Strava. The phone's splits are re-measured to the watch's distance (see rescaleSplits).
@@ -15524,8 +15535,9 @@ function takeWatchNumbers(target, watch){
   if(prev.bests) perf.bests = scaleBests(prev.bests, prev.distance, perf.distance);
   const re = rescaleSplits(prev, perf.distance, perf.time);
   if(re){ perf.splits = re.splits; if(re.lastSplit) perf.lastSplit = re.lastSplit; }
-  storeLoggedPerformance(target, resolved, perf);
-  applyLoggedPerformance(target, resolved, perf);
+  const climbed = withWatchClimb(perf, watch.elevGain) || perf;
+  storeLoggedPerformance(target, resolved, climbed);
+  applyLoggedPerformance(target, resolved, climbed);
   return true;
 }
 // Runs counted twice from before this matching (a GPS run here and the watch's copy from Strava, as its
@@ -15558,7 +15570,10 @@ function mergeWatchDuplicates(){
       const re = rescaleSplits(g.perf, w.perf.distance!=null ? w.perf.distance : w.dist, w.perf.time);
       if(g.perf.bests) extra.bests = scaleBests(g.perf.bests, g.perf.distance, w.perf.distance!=null ? w.perf.distance : w.dist);
       if(re){ extra.splits = re.splits; if(re.lastSplit) extra.lastSplit = re.lastSplit; }
-      storeLoggedPerformance(w.target, resolved, {...w.perf, ...extra});
+      let both = {...w.perf, ...extra};
+      // (The watch's climb stays, with the loss from the route's own rise and fall.)
+      if(w.perf.elevSource==='watch' && extra.elevGain!=null){ const {elevSource, ...rest} = both; both = withWatchClimb(rest, w.perf.elevGain) || both; }
+      storeLoggedPerformance(w.target, resolved, both);
       if(g.target.kind==='extra') deleteExtraWorkout(key, g.target.id); else deleteManualEntry(key, g.target.id);
       merged++;
     });
@@ -15593,6 +15608,8 @@ function absorbStravaTwin(target, logged){
   const re = rescaleSplits(logged, logged.distance, logged.time);
   delete logged.splits; delete logged.lastSplit;
   if(re){ logged.splits = re.splits; if(re.lastSplit) logged.lastSplit = re.lastSplit; }
+  const climbed = wp.elevSource==='watch' && withWatchClimb(logged, wp.elevGain);
+  if(climbed) Object.assign(logged, {elevGain: climbed.elevGain, elevSource: 'watch'}, climbed.elevLoss!=null ? {elevLoss: climbed.elevLoss} : {});
   deleteManualEntry(target.dayKey, twin.id);
   showToast(STR[state.lang].watchNumbersToast.replace('{mi}', `${toDispDist(logged.distance).toFixed(2)} ${useKm() ? 'km' : 'mi'}`));
 }
@@ -15620,7 +15637,7 @@ const stravaActivityUrl = id => `https://www.strava.com/activities/${encodeURICo
 function fileStravaRun(row){
   return fileWatchRun({key: String(row.local_date).slice(0,10), miles: +(Number(row.distance_m||0)/1609.344).toFixed(2),
     minutes: row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null, win: stravaRowWindow(row), name: row.name,
-    source: 'strava', stravaId: row.id});
+    source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null});
 }
 // A run from a watch -- through Strava, or Apple Health / Health Connect: {key, miles, minutes, win, name,
 // source, stravaId | healthId}. The same run coming in both ways counts once (matched by its time).
@@ -15636,13 +15653,18 @@ function fileWatchRun(run){
     const perf = r && (r.performance || (r.record && r.record.performance));
     // Not from the watch yet: it takes the watch's numbers (see takeWatchNumbers). Already from the watch
     // (the other way in): only the missing link is added.
-    if(r && !(perf && (perf.stravaId || perf.healthId))) takeWatchNumbers(match, {distance: miles, time: minutes, ...ids, source: run.source, calories: run.calories, start: win && win.start, end: win && win.end});
-    else if(r && perf && (Object.keys(ids).some(k=> !perf[k]) || run.calories && !perf.calories)) storeLoggedPerformance(match, r, {...perf, ...ids, ...(run.calories && !perf.calories ? {calories: run.calories} : {})});
+    if(r && !(perf && (perf.stravaId || perf.healthId))) takeWatchNumbers(match, {distance: miles, time: minutes, ...ids, source: run.source, calories: run.calories, elevGain: run.elevGain, start: win && win.start, end: win && win.end});
+    else if(r && perf){
+      const more = {...perf, ...ids, ...(run.calories && !perf.calories ? {calories: run.calories} : {})};
+      const climbed = withWatchClimb(more, run.elevGain);
+      if(climbed || Object.keys(ids).some(k=> !perf[k]) || run.calories && !perf.calories) storeLoggedPerformance(match, r, climbed || more);
+    }
     return false;
   }
 
   const logged = {distance: miles, time: minutes, notes: '', source: run.source, ...ids,
-    ...(win ? {startedAt: win.start, finishedAt: win.end} : {}), ...(run.calories ? {calories: run.calories} : {})};
+    ...(win ? {startedAt: win.start, finishedAt: win.end} : {}), ...(run.calories ? {calories: run.calories} : {}),
+    ...(run.elevGain!=null && isFinite(run.elevGain) ? {elevGain: Math.round(run.elevGain*10)/10, elevSource: 'watch'} : {})};
   // The day's planned run, or else its first Additional Workout run, if no distance is logged on it
   // yet -- otherwise this is an extra run that day, filed as its own Logged Workout.
   let target = null;
@@ -15670,17 +15692,23 @@ function fileWatchRun(run){
   return true;
 }
 const STRAVA_LINK_BACKFILL_DAYS = 30;
+// Rows from strava_activities with the watch's climb -- or without it, while the database doesn't have
+// that column yet (it came later: see supabase/schema.sql), so runs still come in.
+async function selectStravaRows(cols, narrow){
+  const res = await narrow(sb.from('strava_activities').select(cols + ', elev_gain_m'));
+  if(res && res.error && (res.error.code==='42703' || /elev_gain_m/.test(res.error.message || ''))) return await narrow(sb.from('strava_activities').select(cols));
+  return res;
+}
 async function importStravaActivities(){
   if(!state.userId) return 0;
-  const { data: rows, error } = await sb.from('strava_activities')
-    .select('id, name, local_date, start_date, distance_m, moving_time_s, elapsed_time_s')
-    .eq('user_id', state.userId).is('applied_at', null).order('start_date', {ascending: true});
+  const { data: rows, error } = await selectStravaRows('id, name, local_date, start_date, distance_m, moving_time_s, elapsed_time_s',
+    q=> q.eq('user_id', state.userId).is('applied_at', null).order('start_date', {ascending: true}));
   // Runs that were skipped earlier because they'd already been logged by hand get tied to their
   // Strava activity now, so they link back to it too (only fills in a link that's missing).
   const since = dateKey(new Date(TODAY_DATE.getTime() - STRAVA_LINK_BACKFILL_DAYS*86400000));
   try{
-    const { data: done } = await sb.from('strava_activities')
-      .select('id, local_date, start_date, distance_m, moving_time_s, elapsed_time_s').eq('user_id', state.userId).not('applied_at', 'is', null).gte('local_date', since);
+    const { data: done } = await selectStravaRows('id, local_date, start_date, distance_m, moving_time_s, elapsed_time_s',
+      q=> q.eq('user_id', state.userId).not('applied_at', 'is', null).gte('local_date', since));
     let linked = 0;
     (done || []).forEach(row=>{
       const key = String(row.local_date).slice(0,10);
@@ -15688,6 +15716,11 @@ async function importStravaActivities(){
       const miles = +(Number(row.distance_m||0)/1609.344).toFixed(2);
       const match = stravaMatchTarget(getDayData(parseDateKey(key)), miles, stravaRowWindow(row));
       if(match && linkStravaId(match, row.id)) linked++;
+      // A run filed before its climb was kept takes the watch's climb now.
+      const r = match && row.elev_gain_m!=null && resolveLogTarget(match);
+      const perf = r && (r.performance || (r.record && r.record.performance));
+      const climbed = perf && withWatchClimb(perf, Number(row.elev_gain_m));
+      if(climbed){ storeLoggedPerformance(match, r, climbed); linked++; }
     });
     if((mergeWatchDuplicates() || linked) && (!rows || !rows.length)) refreshViews();
   }catch(e){ /* best-effort */ }

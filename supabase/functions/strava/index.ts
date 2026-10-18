@@ -126,6 +126,9 @@ function runRow(a: any, userId: string) {
     distance_m: a.distance,
     moving_time_s: a.moving_time,
     elapsed_time_s: a.elapsed_time,
+    // The watch's own climb (a barometer, for most running watches), in metres -- steadier than terrain
+    // data checked along the phone's route, which smooths away the small rises.
+    elev_gain_m: typeof a.total_elevation_gain === "number" ? a.total_elevation_gain : null,
   };
 }
 
@@ -351,6 +354,10 @@ function supabaseDb(): Db {
     },
     async insertNewActivities(rows) {
       check(await admin.from("strava_activities").upsert(rows, { onConflict: "id", ignoreDuplicates: true }));
+      // Runs stored before their climb was kept get it now (only that column -- applied_at, and anything
+      // else the app relies on, stays as it was).
+      const climbs = rows.filter((r) => r.elev_gain_m != null).map((r) => ({ id: r.id, user_id: r.user_id, local_date: r.local_date, elev_gain_m: r.elev_gain_m }));
+      if (climbs.length) check(await admin.from("strava_activities").upsert(climbs, { onConflict: "id" }));
     },
     async deleteUnappliedActivities(userId) {
       check(await admin.from("strava_activities").delete().eq("user_id", userId).is("applied_at", null));

@@ -212,9 +212,11 @@ create table if not exists strava_activities (
   distance_m numeric,
   moving_time_s int,
   elapsed_time_s int,
+  elev_gain_m numeric,               -- the watch's own climb (its barometer), in metres
   applied_at timestamptz,            -- set by the app once the run has been filed onto its day
   created_at timestamptz default now()
 );
+alter table strava_activities add column if not exists elev_gain_m numeric;
 alter table strava_activities enable row level security;
 drop policy if exists "read own strava activities" on strava_activities;
 create policy "read own strava activities" on strava_activities

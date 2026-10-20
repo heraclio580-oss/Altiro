@@ -82,7 +82,9 @@ check('Each demo has form cues in English and Spanish', DEMO_KEYS.every(k=> MOVE
     ? [...thumb.querySelectorAll('img')].map(i=>i.getAttribute('src')).join(' ')===`demos/${slug(swapped)}-start.webp demos/${slug(swapped)}-end.webp`
     : !!thumb.querySelector('line, path');
   check(`The workout shows a little demo beside the move that has one (${PHOTOS.includes(swapped) ? 'photos' : 'drawn figure'})`, withThumb.includes(swapped) && shows, withThumb.join(', '));
-  check('...and moves without one get a "How to" (their steps) instead', without.length>0 && without.every(n=> !DEMO_KEYS.includes(n)) && rows().filter(r=> !r.querySelector('.ex-demo-btn:not(.howto)')).every(r=> r.querySelector('.ex-demo-btn.howto')), without.join(', '));
+  // (Once every move in this workout has a picture, there's nothing here without one -- the "How to"
+  // for a move without a picture is checked in test_exercise_howto.js.)
+  check('...and any move without one gets a "How to" (their steps) instead', without.every(n=> !DEMO_KEYS.includes(n)) && rows().filter(r=> !r.querySelector('.ex-demo-btn:not(.howto)')).every(r=> r.querySelector('.ex-demo-btn.howto')), without.join(', '));
 
   await click(`#wpExerciseList [data-demo="${swapped}"]`);
   const ov = doc.getElementById('moveDemoOverlay');

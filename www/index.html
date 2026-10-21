@@ -7306,6 +7306,37 @@ document.getElementById('applyClearBtn').addEventListener('click', ()=>{
 document.getElementById('applyRepeatBtn').addEventListener('click', applyRepeatWeek);
 
 /* ---------------- user-planned workouts (today or any future date) ---------------- */
+// The day's own lifting workout (one the user put there) when it's named `title` and not done yet --
+// the log target for it -- or null.
+const sameWorkoutName = (a, b) => String(a || '').trim().toLowerCase()===String(b || '').trim().toLowerCase();
+function sameNameOwnWorkout(dd, title){
+  if(!dd || dd.completed || !dd.isCustom || dd.primarySource!=='plan' || !dd.p || dd.p.t!=='strength') return null;
+  if(!sameWorkoutName(dd.p.en.title, title) && !sameWorkoutName(dd.p.es && dd.p.es.title, title)) return null;
+  return {dayKey: dd.key, kind:'primary', id:null};
+}
+// Workouts logged before that matching: an Additional Workout, done, named the same as its day's own
+// workout, which was left not done -- the day's workout takes what was done (its exercises and the
+// sets logged) and the copy goes, so the day reads done instead of missed.
+const SAME_NAME_FOLD_DAYS = 60;
+function foldSameNameWorkouts(){
+  let folded = 0;
+  const since = dateKey(new Date(TODAY_DATE.getTime() - SAME_NAME_FOLD_DAYS*86400000)), today = dateKey(TODAY_DATE);
+  Object.keys(state.dayLog).filter(k=> k>=since && k<=today).forEach(key=>{
+    const log = state.dayLog[key];
+    if(!log || log.performance) return;
+    const dd = getDayData(parseDateKey(key));
+    const w = (log.extraWorkouts || []).find(x=> x.completed && x.performance && x.session && x.session.t==='strength' && sameNameOwnWorkout(dd, x.session.en.title));
+    if(!w) return;
+    const t = {dayKey: key, kind:'primary', id:null};
+    if(Array.isArray(w.session.exercises) && w.session.exercises.length) setSessionExercises(t, w.session.exercises);
+    const resolved = resolveLogTarget(t);
+    storeLoggedPerformance(t, resolved, w.performance);
+    applyLoggedPerformance(t, resolved, w.performance);
+    deleteExtraWorkout(key, w.id);
+    folded++;
+  });
+  return folded;
+}
 function planCustomWorkout(key, opts){
   const session = ses(opts.type, opts.title, opts.detail||'', opts.title, opts.detail||'');
   if(opts.interval) session.interval = opts.interval; // {rounds, workSec, restSec} -- read by the interval timer
@@ -11387,6 +11418,15 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     // straight into Log Performance with the clock running and no exercises yet.
     const key = dateKey(TODAY_DATE);
     const title = nameInput.value.trim() || STR[state.lang].liveLogDefaultName;
+    // Named the same as today's own workout, not done yet: it IS that workout -- logged onto it, so the
+    // day reads done (as an Additional Workout beside it, the planned one was left showing missed).
+    const own = sameNameOwnWorkout(getDayData(TODAY_DATE), title);
+    if(own){
+      closeManualEntry();
+      refreshViews();
+      openLogPerformanceFor(own, 'record');
+      return;
+    }
     const where = planCustomWorkout(key, {title, type:'strength', detail:'', live:true, alongside: manualEntryAlongside});
     closeManualEntry();
     refreshViews();
@@ -15407,6 +15447,7 @@ async function loadWorkoutDataFromCloud(){
       });
       state.progression = prog;
     }
+    foldSameNameWorkouts();
     state.doneCount = computeDoneCount();
   }catch(e){ /* local state remains authoritative if this fails */ }
 }

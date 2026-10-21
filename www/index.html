@@ -7306,13 +7306,15 @@ document.getElementById('applyClearBtn').addEventListener('click', ()=>{
 document.getElementById('applyRepeatBtn').addEventListener('click', applyRepeatWeek);
 
 /* ---------------- user-planned workouts (today or any future date) ---------------- */
-// The day's own lifting workout (one the user put there) when it's named `title` and not done yet --
-// the log target for it -- or null.
+// A lifting workout the user put on the day, named `title` and not done yet -- the day's own one, or
+// one added beside it (started and left, say) -- as the log target for it; or null.
 const sameWorkoutName = (a, b) => String(a || '').trim().toLowerCase()===String(b || '').trim().toLowerCase();
+const namedAs = (session, title) => !!session && (sameWorkoutName(session.en && session.en.title, title) || sameWorkoutName(session.es && session.es.title, title));
 function sameNameOwnWorkout(dd, title){
-  if(!dd || dd.completed || !dd.isCustom || dd.primarySource!=='plan' || !dd.p || dd.p.t!=='strength') return null;
-  if(!sameWorkoutName(dd.p.en.title, title) && !sameWorkoutName(dd.p.es && dd.p.es.title, title)) return null;
-  return {dayKey: dd.key, kind:'primary', id:null};
+  if(!dd) return null;
+  if(!dd.completed && dd.isCustom && dd.primarySource==='plan' && dd.p && dd.p.t==='strength' && namedAs(dd.p, title)) return {dayKey: dd.key, kind:'primary', id:null};
+  const w = (dd.extraWorkouts || []).find(x=> !x.completed && x.session && x.session.t==='strength' && namedAs(x.session, title));
+  return w ? {dayKey: dd.key, kind:'extra', id: w.id} : null;
 }
 // Workouts logged before that matching: an Additional Workout, done, named the same as its day's own
 // workout, which was left not done -- the day's workout takes what was done (its exercises and the
@@ -7323,9 +7325,26 @@ function foldSameNameWorkouts(){
   const since = dateKey(new Date(TODAY_DATE.getTime() - SAME_NAME_FOLD_DAYS*86400000)), today = dateKey(TODAY_DATE);
   Object.keys(state.dayLog).filter(k=> k>=since && k<=today).forEach(key=>{
     const log = state.dayLog[key];
-    if(!log || log.performance) return;
+    if(!log) return;
+    const done = (log.extraWorkouts || []).filter(x=> x.completed && x.performance && x.session && x.session.t==='strength');
+    // The same workout started and left, then started again and finished (both added beside the day's
+    // plan): the one left -- nothing logged in it -- goes. (A day already gone by only: today, a second
+    // one may still be to come.)
+    let left = 0;
+    if(key < today) done.forEach(d=>{
+      (log.extraWorkouts || []).filter(x=> x!==d && !x.completed && !x.performance && x.session && x.session.t==='strength' && namedAs(x.session, d.session.en.title))
+        .forEach(x=>{ deleteExtraWorkout(key, x.id); left++; });
+    });
+    // (With the one left gone, the finished one is the day's workout: a "not done" the day was marked
+    // with while the one left stood in for it doesn't hold any more.)
+    if(left && log.completedOverride===false && getDayData(parseDateKey(key)).primarySource==='extra'){
+      log.completedOverride = null;
+      cloudSetCompletedOverride(key, null);
+    }
+    folded += left;
+    if(log.performance) return;
     const dd = getDayData(parseDateKey(key));
-    const w = (log.extraWorkouts || []).find(x=> x.completed && x.performance && x.session && x.session.t==='strength' && sameNameOwnWorkout(dd, x.session.en.title));
+    const w = done.find(x=> { const own = sameNameOwnWorkout(dd, x.session.en.title); return own && own.kind==='primary'; });
     if(!w) return;
     const t = {dayKey: key, kind:'primary', id:null};
     if(Array.isArray(w.session.exercises) && w.session.exercises.length) setSessionExercises(t, w.session.exercises);

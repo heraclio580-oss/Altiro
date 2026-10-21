@@ -117,6 +117,45 @@ const DONE = {exercises:[{key:'Wrist wrench', name:'Wrist wrench', sets:[{weight
     check('...while another workout that day, named differently, stays', !!backend.db.planned_workouts.pw2);
     dom.window.close();
   }
+  // ---- A rest day: the same workout started and left, then started again and finished ----
+  {
+    const backend = makeBackend({});
+    backend.db.planned_workouts = {
+      pw1: {id:'pw1', user_id:'u1', log_date:'2026-09-15', session_type:'strength', title:'Armwrestling workout', detail:'',
+        exercises: [{key:'Wrist wrench', name:'Wrist wrench', sets:1, reps:10}], completed:false, performance:null},
+      pw2: {id:'pw2', user_id:'u1', log_date:'2026-09-15', session_type:'strength', title:'Armwrestling workout', detail:'',
+        exercises: [{key:'Wrist wrench', name:'Wrist wrench', sets:5, reps:10}, {key:'Cable curls', name:'Cable curls', sets:5, reps:10}], completed:true, performance: DONE},
+    };
+    backend.addLog('2026-09-15', {completed_override:false});
+    const dom = open(backend, '2026-09-16');
+    await wait(400);
+    check('A rest day with the workout left and then finished: the one left (nothing logged) goes', !backend.db.planned_workouts.pw1 && !!backend.db.planned_workouts.pw2, JSON.stringify(Object.keys(backend.db.planned_workouts)));
+    const day = Object.values(backend.db.workout_logs).find(r=> r.log_date==='2026-09-15');
+    check('...and the day no longer reads "not done"', day.completed_override==null, day.completed_override);
+    const doc = dom.window.document;
+    [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click(); await wait(30);
+    const tue = doc.querySelector('#weekStrip [data-date="2026-09-15"]');
+    check('...so it shows done in the week (not missed)', !!tue && /done|complete/.test(tue.className) && !/missed/.test(tue.className), tue && tue.className);
+    dom.window.close();
+  }
+  {
+    // Today: one started and left is the one picked up again, not a third copy.
+    const backend = makeBackend({});
+    backend.db.planned_workouts = {pw1: {id:'pw1', user_id:'u1', log_date:'2026-09-15', session_type:'strength', title:'Armwrestling workout', detail:'',
+      exercises: [{key:'Wrist wrench', name:'Wrist wrench', sets:1, reps:10}], completed:false, performance:null}};
+    const dom = open(backend, '2026-09-15');
+    await wait(400);
+    const doc = dom.window.document, w = dom.window;
+    [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click(); await wait(20);
+    doc.getElementById('addTodayWorkoutBtn').click(); await wait(20);
+    doc.getElementById('createLiveToggle').click(); await wait(10);
+    const n = doc.getElementById('manualNameInput'); n.value = 'Armwrestling workout'; n.dispatchEvent(new w.Event('input', {bubbles:true}));
+    doc.getElementById('saveManualEntry').click(); await wait(60);
+    const rows = [...doc.querySelectorAll('#logPerfExercisesList .exercise-log-row')].map(r=> r.getAttribute('data-exercise-key'));
+    check("Starting it again by name picks up the one started earlier today (its exercise is there)", !doc.getElementById('logPerfOverlay').hidden && rows.join(',')==='Wrist wrench', rows.join(','));
+    check('...without adding another copy', Object.keys(backend.db.planned_workouts).length===1, JSON.stringify(Object.keys(backend.db.planned_workouts)));
+    dom.window.close();
+  }
   // ---- Starting a workout named the same as today's own one ----
   {
     const backend = makeBackend({});

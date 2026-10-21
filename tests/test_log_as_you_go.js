@@ -41,7 +41,26 @@ const text = el => (el ? el.textContent : '').replace(/\s+/g,' ').trim();
   check('...with the clock running', !doc.getElementById('logPerfTimeSection').hidden && !doc.getElementById('logPerfTimeNote').hidden);
   check('...no exercises yet, and a box to add one', doc.querySelectorAll('#logPerfExercisesList .exercise-log-row').length===0 && !doc.getElementById('logPerfAddExercise').hidden && !doc.getElementById('logPerfLiveEmpty').hidden);
   check('...instead of the single weight/reps fields', doc.getElementById('logPerfWeightSection').hidden);
-  check('...suggesting exercise names', doc.querySelectorAll('#logPerfExerciseNames option').length>50);
+  // Suggestions: a short list in the sheet, under the box -- not the phone's own pop-up (which listed
+  // every name over the box and the keyboard).
+  const box = doc.getElementById('logPerfAddExerciseInput'), sug = doc.getElementById('logPerfAddSuggest');
+  check('The box isn\'t tied to the phone\'s own suggestion pop-up', !box.hasAttribute('list') && !doc.querySelector('datalist'));
+  box.focus(); type(box, ''); await wait(10);
+  check('...nothing is suggested before anything is typed', sug.hidden);
+  type(box, 'cable'); await wait(10);
+  const names = () => [...sug.querySelectorAll('[data-name]')].map(b=> b.textContent);
+  check('Typing "cable" suggests a few cable moves, under the box', !sug.hidden && names().length>=2 && names().length<=5 && names().every(n=> /cable/i.test(n)), names().join(', '));
+  type(box, 'cable r'); await wait(10);
+  check('...a match inside a name counts too ("cable r" finds Seated Cable Row)', names().includes('Seated Cable Row'), names().join(', '));
+  type(box, 'Seated Cable Row'); await wait(10);
+  check('...and once the name is typed in full, the list goes', sug.hidden);
+  type(box, 'pull-a'); await wait(10);
+  const pick = [...sug.querySelectorAll('[data-name]')].find(b=> b.textContent==='Band Pull-Apart');
+  check('(set-up) Band Pull-Apart is suggested', !!pick, names().join(', '));
+  pick.click(); await wait(30);
+  check('Tapping a suggestion adds that exercise, and the box is ready for the next', !![...doc.querySelectorAll('#logPerfExercisesList .exercise-log-row')].find(r=>r.getAttribute('data-exercise-key')==='Band Pull-Apart') && box.value==='' && sug.hidden);
+  [...doc.querySelectorAll('#logPerfExercisesList .exercise-log-row')].find(r=>r.getAttribute('data-exercise-key')==='Band Pull-Apart').querySelector('[data-remove-ex]').click();
+  await wait(30);
 
   const add = async name => { type(doc.getElementById('logPerfAddExerciseInput'), name); await click('#logPerfAddExerciseBtn'); };
   const row = key => [...doc.querySelectorAll('#logPerfExercisesList .exercise-log-row')].find(r=>r.getAttribute('data-exercise-key')===key);

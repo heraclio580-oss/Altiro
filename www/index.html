@@ -1254,6 +1254,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .live-add-row{display:flex;gap:8px;margin-top:10px;}
 .live-add-row .text-input{flex:1;min-width:0;}
 .live-add-row .btn{width:auto;flex-shrink:0;padding:0 18px;height:44px;}
+.name-suggest{margin-top:6px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card);overflow:hidden;}
+.name-suggest button{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--border);color:var(--text);font-family:var(--font-body);font-size:calc(15px * var(--fs, 1));padding:0 12px;min-height:44px;cursor:pointer;}
+.name-suggest button:first-child{border-top:0;}
+.name-suggest button:active{background:var(--well);}
 .live-remove{background:none;border:none;color:var(--text-3);font-size:calc(18px * var(--fs, 1));line-height:1;padding:2px 4px;margin-left:4px;cursor:pointer;}
 .legal-links{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:8px;color:var(--text-3);font-size:calc(12px * var(--fs, 1));}
 .delete-account-link{display:block;margin:18px auto 0;color:var(--alert);font-size:calc(12.5px * var(--fs, 1));}
@@ -2807,10 +2811,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="live-add" id="logPerfAddExercise" hidden>
         <div class="footer-note" id="logPerfLiveEmpty" style="text-align:left;" data-i18n="liveEmptyNote" hidden></div>
         <div class="live-add-row">
-          <input type="text" class="text-input" id="logPerfAddExerciseInput" list="logPerfExerciseNames" autocomplete="off" enterkeyhint="done">
+          <input type="text" class="text-input" id="logPerfAddExerciseInput" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-controls="logPerfAddSuggest">
           <button type="button" class="btn btn-ghost" id="logPerfAddExerciseBtn" data-i18n="liveAddBtn"></button>
         </div>
-        <datalist id="logPerfExerciseNames"></datalist>
+        <!-- Names matching what's typed: below the box, in the sheet itself (a phone's own suggestion
+             pop-up sat over the box and the keyboard) -->
+        <div class="name-suggest" id="logPerfAddSuggest" role="listbox" hidden></div>
       </div>
 
       <div class="sheet-section" id="logPerfWeightSection">
@@ -9237,7 +9243,29 @@ function fillExerciseNameList(){
       if(perf && Array.isArray(perf.exercises)) perf.exercises.forEach(e=>{ if(e.name) names.add(e.name); });
     });
   });
-  document.getElementById('logPerfExerciseNames').innerHTML = [...names].sort().map(n=>`<option value="${escapeHtml(n)}"></option>`).join('');
+  logPerfNameList = [...names].sort((a, b)=> a.localeCompare(b));
+  renderNameSuggestions();
+}
+let logPerfNameList = [];
+// Up to 5 names for what's typed: ones starting with it first, then ones with a word starting with it.
+// Nothing while the box is empty, or once it already says one of them exactly.
+const NAME_SUGGEST_MAX = 5;
+function nameSuggestionsFor(typed, names){
+  const q = typed.trim().toLowerCase();
+  if(!q || names.some(n=> n.toLowerCase()===q)) return [];
+  const starts = [], words = [];
+  names.forEach(n=>{
+    const low = n.toLowerCase();
+    if(low.startsWith(q)) starts.push(n);
+    else if(low.split(/[\s-]+/).some(w=> w.startsWith(q)) || q.length>=3 && low.includes(q)) words.push(n);
+  });
+  return starts.concat(words).slice(0, NAME_SUGGEST_MAX);
+}
+function renderNameSuggestions(){
+  const input = document.getElementById('logPerfAddExerciseInput'), box = document.getElementById('logPerfAddSuggest');
+  const list = document.activeElement===input ? nameSuggestionsFor(input.value, logPerfNameList) : [];
+  box.innerHTML = list.map(n=> `<button type="button" role="option" data-name="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
+  box.hidden = !list.length;
 }
 function addLiveExercise(){
   const input = document.getElementById('logPerfAddExerciseInput');
@@ -9288,8 +9316,24 @@ function removeLiveExercise(key){
   setSessionExercises(t, (resolved.session.exercises || []).filter(e=>e.key!==key));
   openLogPerformanceFor(t, 'record');
 }
-document.getElementById('logPerfAddExerciseBtn').addEventListener('click', addLiveExercise);
-document.getElementById('logPerfAddExerciseInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addLiveExercise(); } });
+document.getElementById('logPerfAddExerciseBtn').addEventListener('click', ()=>{ addLiveExercise(); renderNameSuggestions(); });
+document.getElementById('logPerfAddExerciseInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); addLiveExercise(); renderNameSuggestions(); }
+  else if(e.key==='Escape') document.getElementById('logPerfAddSuggest').hidden = true;
+});
+['input', 'focus'].forEach(ev=> document.getElementById('logPerfAddExerciseInput').addEventListener(ev, renderNameSuggestions));
+// (A short wait, so a tap on a name lands before the list goes.)
+document.getElementById('logPerfAddExerciseInput').addEventListener('blur', ()=> setTimeout(renderNameSuggestions, 150));
+// Tapping a name adds that exercise. (Pressing on it doesn't take the focus from the box, so the
+// keyboard stays up for the next one.)
+document.getElementById('logPerfAddSuggest').addEventListener('pointerdown', e=>{ if(e.target.closest('[data-name]')) e.preventDefault(); });
+document.getElementById('logPerfAddSuggest').addEventListener('click', e=>{
+  const b = e.target.closest('[data-name]');
+  if(!b) return;
+  document.getElementById('logPerfAddExerciseInput').value = b.getAttribute('data-name');
+  addLiveExercise();
+  renderNameSuggestions();
+});
 function closeLogPerformance(){
   stopRest();
   stopWorkoutClock(); // the start time is kept -- reopening the same workout carries on counting

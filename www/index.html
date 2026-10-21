@@ -7344,6 +7344,14 @@ function foldSameNameWorkouts(){
     folded += left;
     if(log.performance) return;
     const dd = getDayData(parseDateKey(key));
+    // A rest day (moved there in Plan, which used to mark it "not done") whose workout -- one added to
+    // it -- is done: the old mark goes, so the day reads done.
+    if(dd.primarySource==='extra' && log.completedOverride===false && (dd.extraWorkouts.find(x=> x.id===dd.primaryExtraId) || {}).completed){
+      log.completedOverride = null;
+      cloudSetCompletedOverride(key, null);
+      folded++;
+      return;
+    }
     const w = done.find(x=> { const own = sameNameOwnWorkout(dd, x.session.en.title); return own && own.kind==='primary'; });
     if(!w) return;
     const t = {dayKey: key, kind:'primary', id:null};
@@ -7603,8 +7611,11 @@ function reorderAcrossPlan(sourceFlatIdx, targetFlatIdx){
     const stamped = {...bundle.slot, isCustom:true};
     writeDaySlot(date, stamped);
     cloudSavePlannedSession(key, stamped.p);
-    cloudSetCompletedOverride(key, stamped.completed);
     const log = ensureDayLog(key);
+    // (A rest day has no "done" of its own to stamp: a "not done" left on it would outweigh a workout
+    // added and finished there later -- it showed as missed.)
+    if(stamped.p.t==='rest' && !stamped.completed) log.completedOverride = null;
+    cloudSetCompletedOverride(key, stamped.p.t==='rest' && !stamped.completed ? null : stamped.completed);
     const stay = (log.extraWorkouts || []).filter(w=> !moves(w));
     log.extraWorkouts = [...stay, ...bundle.extras];
     bundle.extras.forEach(w=>{ if(w.supabaseId && before[i].extras.indexOf(w)<0) cloudMoveExtraWorkout(w.supabaseId, key); });
@@ -11074,6 +11085,19 @@ document.getElementById('dayCompleteToggle').addEventListener('click', ()=>{
   if(!state.openDayKey) return;
   const dd = getDayData(parseDateKey(state.openDayKey));
   const next = !dd.completed;
+  // A rest day whose workout is one added to it: that workout is what's marked done or not.
+  if(dd.primarySource==='extra'){
+    const w = dd.extraWorkouts.find(x=> x.id===dd.primaryExtraId);
+    if(w){
+      w.completed = next;
+      if(w.supabaseId) cloudSetExtraWorkoutCompleted(w.supabaseId, next);
+      const log = ensureDayLog(state.openDayKey);
+      if(log.completedOverride!=null){ log.completedOverride = null; cloudSetCompletedOverride(state.openDayKey, null); }
+      state.doneCount = computeDoneCount();
+      refreshViews();
+      return;
+    }
+  }
   const idxInCurrentWeek = currentWeekIdxFor(state.openDayKey);
   if(idxInCurrentWeek===TODAY_IDX){
     ensureDayLog(state.openDayKey).completedOverride = next;

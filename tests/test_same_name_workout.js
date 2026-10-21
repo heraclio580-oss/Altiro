@@ -156,6 +156,29 @@ const DONE = {exercises:[{key:'Wrist wrench', name:'Wrist wrench', sets:[{weight
     check('...without adding another copy', Object.keys(backend.db.planned_workouts).length===1, JSON.stringify(Object.keys(backend.db.planned_workouts)));
     dom.window.close();
   }
+  // ---- A rest day moved there in Plan (saved as "Rest Day", marked not done), a workout added and finished ----
+  {
+    const backend = makeBackend({});
+    backend.addLog('2026-09-15', {planned_type:'rest', planned_title:'Rest Day', planned_detail:'', completed_override:false});
+    backend.db.planned_workouts = {pw2: {id:'pw2', user_id:'u1', log_date:'2026-09-15', session_type:'strength', title:'Armwrestling workout', detail:'',
+      exercises: [{key:'Wrist wrench', name:'Wrist wrench', sets:5, reps:10}], completed:true, performance: DONE}};
+    const dom = open(backend, '2026-09-16');
+    await wait(400);
+    const day = Object.values(backend.db.workout_logs).find(r=> r.log_date==='2026-09-15');
+    check('A moved-in rest day whose added workout is done: the old "not done" goes', day.completed_override==null, day.completed_override);
+    check('...the workout itself is left as it was', backend.db.planned_workouts.pw2 && backend.db.planned_workouts.pw2.completed===true);
+    const doc = dom.window.document;
+    [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click(); await wait(30);
+    const cell = () => doc.querySelector('#weekStrip [data-date="2026-09-15"]');
+    check('...and it shows done in the week', !!cell() && /done/.test(cell().className) && !/missed/.test(cell().className), cell() && cell().className);
+    // Its Completed toggle is the workout's own: off, then on again.
+    cell().click(); await wait(30);
+    doc.getElementById('dayCompleteToggle').click(); await wait(30);
+    check("Turning that day's Completed off marks its workout not done", backend.db.planned_workouts.pw2.completed===false && /missed/.test(cell().className), cell().className);
+    doc.getElementById('dayCompleteToggle').click(); await wait(30);
+    check('...and on again, done -- with no day mark left behind', backend.db.planned_workouts.pw2.completed===true && /done/.test(cell().className) && day.completed_override==null, cell().className);
+    dom.window.close();
+  }
   // ---- Starting a workout named the same as today's own one ----
   {
     const backend = makeBackend({});

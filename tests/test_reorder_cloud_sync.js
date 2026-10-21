@@ -165,6 +165,9 @@ function openSession(backend, todayStr){
 
   console.log('Cloud: Friday (2026-09-18) synced as an explicit Rest Day plan:',
     Object.values(backend.db.workout_logs).some(r=>r.log_date==='2026-09-18' && r.planned_type==='rest') ? 'OK' : `FAIL (${JSON.stringify(Object.values(backend.db.workout_logs).map(r=>({d:r.log_date,t:r.planned_type,ti:r.planned_title})))})`);
+  // (No "not done" on the rest day: one would outweigh a workout added there and finished later.)
+  const fri = Object.values(backend.db.workout_logs).find(r=>r.log_date==='2026-09-18' && r.planned_type==='rest');
+  console.log('Cloud: the rest day left behind isn\'t marked "not done":', fri && fri.completed_override==null ? 'OK' : `FAIL (${fri && fri.completed_override})`);
   console.log('Cloud: Sunday (2026-09-20) synced with the moved-in workout title:',
     Object.values(backend.db.workout_logs).some(r=>r.log_date==='2026-09-20' && r.planned_title===titleBefore4) ? 'OK' : 'FAIL');
 

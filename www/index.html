@@ -7194,7 +7194,7 @@ function clearableInWeek(weekIdx){
 function clearOwnWorkouts(days){
   days.forEach(d=>{
     d.extras.forEach(id=> deleteExtraWorkout(d.key, id));
-    if(d.primary) resetToSuggestedPlan(d.key);
+    if(d.primary) resetDayToPlan(d.key);
   });
   state.doneCount = computeDoneCount();
 }
@@ -7454,7 +7454,31 @@ function syncActualRunDistanceFromEntry(dayKey, entry){
     cloudSavePlannedSession(dayKey, updated);
   }
 }
+// Two sessions are the same workout: same kind, name and detail ("Long Run", "9.5 mi").
+const sameSession = (a, b) => !!a && !!b && a.t===b.t && a.en.title===b.en.title && (a.en.detail||'')===(b.en.detail||'');
+// A day reset to its suggested workout, when that workout was moved to another day nearby (dragged in
+// Plan, up to a week either way): it's moved back, and that day goes back to its own suggested workout
+// -- not copied, which left two of it (a long run back on Saturday, still on Sunday too). Only a copy
+// not done yet, on a day whose own suggested workout is something else.
+const RESET_MOVED_DAYS = 7;
 function resetToSuggestedPlan(key){
+  const date = parseDateKey(key), gen = sessionForDate(date);
+  if(gen && gen.p && gen.p.t!=='rest'){
+    const today = dateKey(TODAY_DATE);
+    for(let off = -RESET_MOVED_DAYS; off <= RESET_MOVED_DAYS; off++){
+      if(!off) continue;
+      const other = new Date(date.getFullYear(), date.getMonth(), date.getDate() + off), okey = dateKey(other);
+      if(okey < today) continue;
+      const od = getDayData(other);
+      if(!od.isCustom || od.completed || !sameSession(od.p, gen.p)) continue;
+      if(sameSession(sessionForDate(other).p, od.p)) continue; // (its own plan has that workout too)
+      resetDayToPlan(okey);
+      break;
+    }
+  }
+  resetDayToPlan(key);
+}
+function resetDayToPlan(key){
   const date = parseDateKey(key);
   if(currentWeekIdxFor(key)>=0){
     const gen = sessionForDate(date);
@@ -10858,7 +10882,8 @@ function renderDayDetail(){
   if(dd.p.t!=='rest'){
     actionsHtml += `<button class="watch-demo-btn" id="ddDeleteWorkoutBtn" type="button" style="margin-top:12px;">${ICONS.trash}${L.deleteWorkoutBtn}</button>`;
   }
-  if(dd.isCustom && !ddPending && (dd.isToday || dd.isFuture)){
+  // (Only on a day that's different from the plan -- there's nothing to reset otherwise.)
+  if(dd.isCustom && !ddPending && (dd.isToday || dd.isFuture) && !sameSession(dd.p, (sessionForDate(dd.date) || {}).p)){
     actionsHtml += `<button class="btn-text" id="ddResetPlanBtn" type="button" style="width:100%;margin-top:12px;">${L.resetPlanBtn}</button>`;
   }
   let rescheduleIdx = -1;
@@ -11547,7 +11572,7 @@ function deleteManualEntry(key, id){
   // A logged workout that became the day's workout (on a rest day, see logCompletedEntry) goes with it:
   // the day goes back to its plan instead of still showing the deleted workout as scheduled.
   const slot = entry ? getRawDaySlot(parseDateKey(key)) : null;
-  if(slot && slot.isCustom && slot.p.t===entry.type && slot.p.en.title===entry.name && !log.manualEntries.length) resetToSuggestedPlan(key);
+  if(slot && slot.isCustom && slot.p.t===entry.type && slot.p.en.title===entry.name && !log.manualEntries.length) resetDayToPlan(key);
   state.doneCount = computeDoneCount();
   refreshViews();
 }

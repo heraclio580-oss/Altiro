@@ -8415,7 +8415,6 @@ function renderHome(){
     ${(()=>{
       // One or two things up front (what most people want here), everything else under More.
       const actions = {
-        demo: eff.t!=='rest' ? `<button class="watch-demo-btn" id="watchDemoBtn" type="button">${ICONS.play}${L.watchDemoBtn}</button>` : '',
         gps: `<button class="watch-demo-btn" id="trackRunBtn" type="button">${ICONS.pin}${L.gpsTrackBtn}</button>`,
         add: `<button class="watch-demo-btn" id="addTodayWorkoutBtn" type="button">${ICONS.plus}${L.addAnotherWorkoutBtn}</button>`,
         change: exercisesForSession(eff) && (focusExtra || !mainDone) ? `<button class="watch-demo-btn" id="changeExercisesBtn" type="button">${ICONS.swap}${L.changeExercisesBtn}</button>` : '',
@@ -8425,8 +8424,9 @@ function renderHome(){
           </div>` : '',
         del: eff.t!=='rest' ? `<button class="watch-demo-btn danger" id="deleteTodayWorkoutBtn" type="button">${ICONS.trash}${L.deleteWorkoutBtn}</button>` : '',
       };
-      const front = eff.t==='run' ? ['gps'] : eff.t==='rest' ? ['add'] : ['demo'];
-      const more = ['change', 'demo', 'gps', 'add', 'done', 'del'].filter(k=> !front.includes(k) && actions[k]);
+      // (No "Watch demo": each exercise in the workout has its own picture or steps.)
+      const front = eff.t==='run' ? ['gps'] : eff.t==='rest' || !actions.change ? ['add'] : ['change'];
+      const more = ['change', 'gps', 'add', 'done', 'del'].filter(k=> !front.includes(k) && actions[k]);
       return `<div class="card-actions">${front.map(k=> actions[k]).join('')}
           <button class="watch-demo-btn" id="homeMoreBtn" type="button" aria-expanded="${homeMoreOpen}" aria-controls="homeMorePanel">${ICONS.dots}${L.moreBtn}</button></div>
         <div class="card-more" id="homeMorePanel"${homeMoreOpen ? '' : ' hidden'}>${more.map(k=> actions[k]).join('')}</div>`;
@@ -8480,8 +8480,6 @@ function renderHome(){
     document.getElementById('homeMorePanel').hidden = true;
     document.getElementById('homeMoreBtn').setAttribute('aria-expanded', false);
   }, true));
-  const watchDemoBtn = document.getElementById('watchDemoBtn');
-  if(watchDemoBtn) watchDemoBtn.addEventListener('click', ()=> openExerciseDetail(eff, 'home'));
   const changeExercisesBtn = document.getElementById('changeExercisesBtn');
   if(changeExercisesBtn) changeExercisesBtn.addEventListener('click', ()=> focusExtra ? openWorkoutPreview(todayKey, {kind:'extra', id: focusExtra.id}) : openWorkoutPreview(todayKey));
   document.getElementById('addTodayWorkoutBtn').addEventListener('click', ()=>{
@@ -10852,9 +10850,6 @@ function renderDayDetail(){
       actionsHtml += `<div class="r-inline-btn" style="display:flex;align-items:center;gap:6px;color:var(--ok-icon);font-size:12px;">${ICONS.checkSm} ${L.completedTodayInline}</div>`;
     }
   }
-  if(dd.p.t!=='rest'){
-    actionsHtml += `<button class="watch-demo-btn" id="ddWatchDemoBtn" type="button" style="margin-top:12px;">${ICONS.play}${L.watchDemoBtn}</button>`;
-  }
   // A run that came in from Strava (or was matched to one) links back to it right here too.
   const ddStravaId = dd.p.t!=='rest' ? stravaIdFor(primaryLogTarget(dd)) : null;
   if(ddStravaId){
@@ -10886,12 +10881,6 @@ function renderDayDetail(){
 
   const ddStartBtn = document.getElementById('ddStartWorkoutBtn');
   if(ddStartBtn) ddStartBtn.addEventListener('click', ()=>{ const t = ddPending ? {dayKey: dd.key, kind:'extra', id: ddPending.id} : primaryLogTarget(dd); closeDayDetail(); openLogPerformanceFor(t, 'record'); });
-  const ddWatchBtn = document.getElementById('ddWatchDemoBtn');
-  if(ddWatchBtn) ddWatchBtn.addEventListener('click', ()=>{
-    const activeScreen = SCREEN_IDS.find(s=>elFor(s) && !elFor(s).hidden) || 'home';
-    closeDayDetail();
-    openExerciseDetail(ddPending ? ddPending.session : dd.p, activeScreen);
-  });
   const ddDeleteBtn = document.getElementById('ddDeleteWorkoutBtn');
   if(ddDeleteBtn) ddDeleteBtn.addEventListener('click', ()=>{
     const key = state.openDayKey;

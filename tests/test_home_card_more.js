@@ -2,8 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 
-// The Today card keeps one or two actions up front -- GPS on a run day, the demo on a lifting day, adding a
-// workout on a rest day -- and the rest under More. Other workouts done today are one "Also today" list.
+// The Today card keeps one or two actions up front -- GPS on a run day, changing the exercises on a lifting
+// day, adding a workout on a rest day -- and the rest under More. (No "Watch demo": each exercise in the
+// workout has its own picture or steps.) Other workouts done today are one "Also today" list.
 const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 let failures = 0;
@@ -38,7 +39,7 @@ async function openOn(day){
     doc.getElementById('homeMoreBtn').click();
     await wait(10);
     const more = [...doc.querySelectorAll('#homeMorePanel > *')].map(e=> e.id || (e.querySelector('.toggle')||{}).id);
-    check('More opens: demo, add a workout, mark as done, delete (last)', !doc.getElementById('homeMorePanel').hidden && more.join(',')==='watchDemoBtn,addTodayWorkoutBtn,homeCompleteToggle,deleteTodayWorkoutBtn', more.join(','));
+    check('More opens: add a workout, mark as done, delete (last) -- no "Watch demo"', !doc.getElementById('homeMorePanel').hidden && more.join(',')==='addTodayWorkoutBtn,homeCompleteToggle,deleteTodayWorkoutBtn', more.join(','));
     check('...and says it\'s open', doc.getElementById('homeMoreBtn').getAttribute('aria-expanded')==='true');
     doc.getElementById('homeCompleteToggle').click();
     await wait(20);
@@ -51,7 +52,7 @@ async function openOn(day){
   {
     const {doc} = await openOn(days.other);
     const front = [...doc.querySelectorAll('#sessionCard .card-actions button')].map(b=>b.id);
-    check('Workout day: the demo up front, then More', front.join(',')==='watchDemoBtn,homeMoreBtn', front.join(','));
+    check('Workout day: changing the exercises up front, then More -- no "Watch demo" anywhere', front.join(',')==='changeExercisesBtn,homeMoreBtn' && !doc.getElementById('watchDemoBtn'), front.join(','));
     // Add another workout from More: it's listed under "Also today".
     doc.getElementById('homeMoreBtn').click();
     doc.getElementById('addTodayWorkoutBtn').click();

@@ -2,9 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 
-// Reset to Suggested Plan on a day whose workout was dragged to another day brings it back -- it isn't
-// copied. (A long run moved from Saturday to Sunday, then Saturday reset: two long runs, 32 mi instead
-// of 22.5.) The reset is only offered on a day that's different from the plan.
+// A workout dragged to another day takes everything with it: the day it left is just a rest day, with no
+// Reset to Suggested Plan. (A long run moved from Saturday to Sunday, then Saturday reset: two long runs,
+// 32 mi instead of 22.5.) The reset is only offered on a day that's different from the plan.
 const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
 const dom = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://example.com/', beforeParse(window){ window.__ALTIRO_TEST_TODAY__ = '2026-09-18'; } });
 const { window } = dom;
@@ -49,16 +49,11 @@ async function dragDrop(src, dst){
   check(`Moving "${workout}" to the next day`, title(w)==='Rest Day' && title(w+1)===workout, JSON.stringify(titles()));
 
   await openDay(w);
-  const reset = doc.getElementById('ddResetPlanBtn');
-  check('The day it left offers Reset to Suggested Plan', !!reset);
-  reset.click(); await wait(30);
+  check('The day it left is just a rest day: no Reset to Suggested Plan there', !doc.querySelector('#dayDetailOverlay:not([hidden])') || !doc.getElementById('ddResetPlanBtn'));
   doc.getElementById('closeDayDetail').click(); await wait(20);
-  check('Resetting it brings the workout back', title(w)===workout, JSON.stringify(titles()));
-  check('...and takes it off the day it was moved to (one of it, not two)', title(w+1)==='Rest Day' && count()===before.filter(t=> t===workout).length, JSON.stringify(titles()));
-  check('...so the week is just as the plan had it', JSON.stringify(titles())===JSON.stringify(before), JSON.stringify(titles()));
+  check('...and the workout is there once, on the day it was moved to', title(w)==='Rest Day' && title(w+1)===workout && count()===before.filter(t=> t===workout).length, JSON.stringify(titles()));
 
   // Moved there and back: both days are the plan's own again -- nothing to reset.
-  await dragDrop(row(w), row(w+1));
   await dragDrop(row(w+1), row(w));
   check('(set-up) moved there and back', JSON.stringify(titles())===JSON.stringify(before), JSON.stringify(titles()));
   await openDay(w+1);

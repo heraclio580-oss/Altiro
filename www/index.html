@@ -7461,21 +7461,29 @@ const sameSession = (a, b) => !!a && !!b && a.t===b.t && a.en.title===b.en.title
 // -- not copied, which left two of it (a long run back on Saturday, still on Sunday too). Only a copy
 // not done yet, on a day whose own suggested workout is something else.
 const RESET_MOVED_DAYS = 7;
-function resetToSuggestedPlan(key){
+// The day (key) a day's own suggested workout was moved to, up to a week either way -- or null. (A day
+// whose own plan has that workout too doesn't count.) Only one not done yet, unless anyDone.
+function movedToDay(key, anyDone){
   const date = parseDateKey(key), gen = sessionForDate(date);
-  if(gen && gen.p && gen.p.t!=='rest'){
-    const today = dateKey(TODAY_DATE);
-    for(let off = -RESET_MOVED_DAYS; off <= RESET_MOVED_DAYS; off++){
-      if(!off) continue;
-      const other = new Date(date.getFullYear(), date.getMonth(), date.getDate() + off), okey = dateKey(other);
-      if(okey < today) continue;
-      const od = getDayData(other);
-      if(!od.isCustom || od.completed || !sameSession(od.p, gen.p)) continue;
-      if(sameSession(sessionForDate(other).p, od.p)) continue; // (its own plan has that workout too)
-      resetDayToPlan(okey);
-      break;
-    }
+  if(!gen || !gen.p || gen.p.t==='rest') return null;
+  for(let off = -RESET_MOVED_DAYS; off <= RESET_MOVED_DAYS; off++){
+    if(!off) continue;
+    const other = new Date(date.getFullYear(), date.getMonth(), date.getDate() + off);
+    const od = getDayData(other);
+    if(!od.isCustom || !sameSession(od.p, gen.p) || (!anyDone && od.completed)) continue;
+    if(sameSession(sessionForDate(other).p, od.p)) continue;
+    return dateKey(other);
   }
+  return null;
+}
+// A day a workout was moved off (dragged in Plan): just a rest day -- the workout went with the move,
+// nothing was taken off it, so there's nothing to reset there.
+function movedOffDay(dd){
+  return !!dd && dd.isCustom && dd.p && dd.p.t==='rest' && !!movedToDay(dd.key, true);
+}
+function resetToSuggestedPlan(key){
+  const other = movedToDay(key, false);
+  if(other && other >= dateKey(TODAY_DATE)) resetDayToPlan(other);
   resetDayToPlan(key);
 }
 function resetDayToPlan(key){
@@ -10882,8 +10890,9 @@ function renderDayDetail(){
   if(dd.p.t!=='rest'){
     actionsHtml += `<button class="watch-demo-btn" id="ddDeleteWorkoutBtn" type="button" style="margin-top:12px;">${ICONS.trash}${L.deleteWorkoutBtn}</button>`;
   }
-  // (Only on a day that's different from the plan -- there's nothing to reset otherwise.)
-  if(dd.isCustom && !ddPending && (dd.isToday || dd.isFuture) && !sameSession(dd.p, (sessionForDate(dd.date) || {}).p)){
+  // (Only on a day that's different from the plan -- there's nothing to reset otherwise -- and not on one a
+  // workout was just moved off: that's a rest day now.)
+  if(dd.isCustom && !ddPending && (dd.isToday || dd.isFuture) && !sameSession(dd.p, (sessionForDate(dd.date) || {}).p) && !movedOffDay(dd)){
     actionsHtml += `<button class="btn-text" id="ddResetPlanBtn" type="button" style="width:100%;margin-top:12px;">${L.resetPlanBtn}</button>`;
   }
   let rescheduleIdx = -1;

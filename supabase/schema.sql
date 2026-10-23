@@ -379,3 +379,4 @@ alter table profiles add column if not exists hard_run_day smallint;  -- the wee
 alter table profiles add column if not exists long_run_day smallint;  -- the same, for the long run
 alter table profiles add column if not exists run_lift_days smallint[];  -- training days (0 = Monday) that get a lifting workout as well as the run
 alter table profiles add column if not exists run_lift_skips text[];  -- dates (YYYY-MM-DD) whose run + lift day lifting workout was taken off
+alter table profiles add column if not exists tester boolean default false;  -- a tester account: can preview the free version in Settings

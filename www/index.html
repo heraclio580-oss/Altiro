@@ -243,6 +243,7 @@ p.sub{font-family:var(--font-body);font-size:calc(13.5px * var(--fs, 1));line-he
 .btn-ghost:hover{color:var(--text);border-color:var(--hover-border);}
 .btn-text.missed-toggle{padding:4px 0;font-size:calc(13px * var(--fs, 1));color:var(--text-2);}
 .btn-text{background:none;border:none;font-family:var(--font-body);font-size:calc(12.5px * var(--fs, 1));color:var(--text-3);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px;}
+.btn-text.pro-unlock{padding:0;font-size:inherit;color:var(--accent-hover);}
 .btn-text:hover{color:var(--text-2);}
 
 .footer-cta{padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--nav-divider);background:var(--screen-bg);display:flex;flex-direction:column;gap:8px;}
@@ -2094,6 +2095,18 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <a class="settings-link" href="privacy.html#strava" target="_blank" rel="noopener" data-i18n="stravaPrivacyLink"></a>
       </div>
 
+
+      <!-- A tester account only: see the app as a free account would (see freePreviewOn). -->
+      <div class="sheet-section" id="freePreviewSection" hidden>
+        <div class="st-label" data-i18n="testingLabel"></div>
+        <div class="toggle-row">
+          <div>
+            <div class="tt" data-i18n="freePreviewTitle"></div>
+            <div class="ts" data-i18n="freePreviewSub"></div>
+          </div>
+          <div class="toggle" id="freePreviewToggle" role="switch" tabindex="0"><div class="knob"></div></div>
+        </div>
+      </div>
 
       <!-- Help and feedback: one short list, not four separate buttons. -->
       <div class="sheet-section">
@@ -3987,6 +4000,14 @@ const STR = {
     offlineBar: "You're offline. Changes won't be saved until you're back online.",
     saveFailedBar: "Your last change didn't save. Check your connection, then do it again.",
     textSizeLabel: "Text size", textSizeNote: "Makes the words in Altiro bigger on this device.",
+    testingLabel: "Testing", freePreviewTitle: "Preview free version", freePreviewSub: "See Altiro as a free account would. Only changes what's shown: turn it off to go back to everything.",
+    proSheetTitle: "Part of Altiro Pro", proSheetPreviewNote: "(You're previewing the free version: turn it off in Settings -> Testing.)",
+    proUnlockPlan: "Unlock your plan", proLearnMore: "Learn more",
+    proWhy_plan: "Your personalized plan -- built around your goal, days and equipment, with paces and weights that progress each week -- is part of Pro. Your own workouts, logging and GPS runs stay free.",
+    proWhy_adjust: "Adjusting your plan (focus, days, intensity, miles, equipment) is part of Pro.",
+    proWhy_history: "Progress beyond the last 4 weeks, and all-time charts, are part of Pro.",
+    proWhy_prs: "Personal records are part of Pro.",
+    proWhy_voice: "Spoken updates during GPS runs are part of Pro.",
     termGotIt: "Got it", termWhat: "What's this?", undoBtn: "Undo", workoutRestoredToast: "Workout restored",
     loggedWorkoutsLabel: "Logged Workouts", alsoTodayLabel: "Also today", moreBtn: "More", addAnotherWorkoutBtn: "Add a workout",
     addWorkoutBtn: "+ Add Workout",
@@ -4701,6 +4722,14 @@ const STR = {
     offlineBar: "Sin conexión. Los cambios no se guardarán hasta que vuelvas a estar en línea.",
     saveFailedBar: "Tu último cambio no se guardó. Revisa tu conexión y vuelve a hacerlo.",
     textSizeLabel: "Tamaño del texto", textSizeNote: "Agranda las letras de Altiro en este dispositivo.",
+    testingLabel: "Pruebas", freePreviewTitle: "Ver la versión gratuita", freePreviewSub: "Mira Altiro como lo vería una cuenta gratuita. Solo cambia lo que se muestra: desactívalo para volver a tenerlo todo.",
+    proSheetTitle: "Parte de Altiro Pro", proSheetPreviewNote: "(Estás viendo la versión gratuita: desactívala en Ajustes -> Pruebas.)",
+    proUnlockPlan: "Desbloquea tu plan", proLearnMore: "Más información",
+    proWhy_plan: "Tu plan personalizado -- hecho a partir de tu objetivo, días y equipo, con ritmos y pesos que progresan cada semana -- es parte de Pro. Tus propios entrenamientos, el registro y las carreras con GPS siguen siendo gratis.",
+    proWhy_adjust: "Ajustar tu plan (enfoque, días, intensidad, distancia, equipo) es parte de Pro.",
+    proWhy_history: "El progreso más allá de las últimas 4 semanas y los gráficos históricos son parte de Pro.",
+    proWhy_prs: "Las marcas personales son parte de Pro.",
+    proWhy_voice: "Los avisos de voz durante las carreras con GPS son parte de Pro.",
     termGotIt: "Entendido", termWhat: "¿Qué es esto?", undoBtn: "Deshacer", workoutRestoredToast: "Entrenamiento restaurado",
     loggedWorkoutsLabel: "Entrenamientos registrados", alsoTodayLabel: "También hoy", moreBtn: "Más", addAnotherWorkoutBtn: "Añadir entrenamiento",
     addWorkoutBtn: "+ Añadir entrenamiento",
@@ -5717,11 +5746,53 @@ function generatedWeek(cfg, n){
   return planWeekCache.get(key);
 }
 function planWeekFor(date){ return generatedWeek(planConfig(), planWeekIndex(date)); }
+/* ---------------- free / Pro (a preview, for testing) ---------------- */
+// Everyone is Pro for now -- nothing is sold yet. A tester account (profiles.tester, set in Supabase) can
+// switch on "Preview free version" in Settings to see the app as a free account would: no generated
+// plan from today on, no Adjust, no suggested targets, 4 weeks of Progress, no personal records, no
+// voice cues. It only changes what's shown -- nothing saved is touched. (Kept on this device.)
+const FREE_PREVIEW_KEY = 'altiro_free_preview';
+function freePreviewOn(){
+  if(!state.tester || !state.userId) return false;
+  try{ return localStorage.getItem(FREE_PREVIEW_KEY+'_'+state.userId)==='1'; }catch(e){ return false; }
+}
+const isPro = () => !freePreviewOn();
+// No generated plan: their own workouts (or, previewing free, no plan to make them).
+const ownMode = () => !!state.ownWorkouts || !isPro();
+function setFreePreview(on){
+  try{ localStorage.setItem(FREE_PREVIEW_KEY+'_'+state.userId, on ? '1' : '0'); }catch(e){}
+  // The days still to come follow the plan again, or don't (nothing saved changes).
+  state.week = regenerateUpcomingWeek();
+  state.doneCount = computeDoneCount();
+  refreshViews();
+  renderFreePreviewSetting();
+}
+function renderFreePreviewSetting(){
+  const sec = document.getElementById('freePreviewSection');
+  if(!sec) return;
+  sec.hidden = !state.tester;
+  document.getElementById('freePreviewToggle').classList.toggle('on', freePreviewOn());
+}
+// "Part of Altiro Pro": what a free account sees where a Pro feature would be.
+function openProSheet(feature){
+  const L = STR[state.lang];
+  document.getElementById('termTitle').textContent = L.proSheetTitle;
+  document.getElementById('termText').textContent = (L['proWhy_'+feature] || L.proWhy_plan) + ' ' + L.proSheetPreviewNote;
+  document.getElementById('termOverlay').hidden = false;
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest && e.target.closest('[data-pro]');
+  if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  openProSheet(b.getAttribute('data-pro'));
+}, true);
 // The generated session for a date, as a fresh copy (callers may edit it).
 function plannedSessionFor(date){
   // Creating their own workouts: from the day they chose to, nothing is generated -- every day is open
   // (days before it keep the plan they had, so history stays as it was).
   if(state.ownSince && dateKey(date) >= state.ownSince) return {p: ses('rest','Rest Day','','Día de descanso',''), c: null};
+  // (Previewing free: no plan from today on; days gone by keep the plan they had.)
+  if(!isPro() && dateKey(date) >= dateKey(TODAY_DATE)) return {p: ses('rest','Rest Day','','Día de descanso',''), c: null};
   if(beforePlanStart(date)){
     return {p: ses('rest','Rest Day', STR.en.planStartsOn.replace('{date}', fmtDayDate(state.planStartDate,'en')),
       'Día de descanso', STR.es.planStartsOn.replace('{date}', fmtDayDate(state.planStartDate,'es'))), c: null};
@@ -6773,6 +6844,7 @@ function planLiftFor(date){
   const key = dateKey(date);
   if(key < dateKey(TODAY_DATE) || beforePlanStart(date)) return null;
   if(state.ownSince && key >= state.ownSince) return null;
+  if(!isPro()) return null;
   if((state.runLiftSkips||[]).includes(key)) return null;
   const e = planWeekFor(date)[(date.getDay()+6)%7];
   return e && e.x ? e.x : null;
@@ -8362,7 +8434,7 @@ function renderHome(){
   const mainDone = focusExtra ? false : shownFromLog ? ddToday.completed : isTodayDone();
   // A plan lifting day says what to aim for today, by its place in the week's wave.
   const coach = !focusExtra && eff.t==='strength' ? waveCoach(liftWaveFor(eff, TODAY_DATE)) : '';
-  const tip = state.ownWorkouts && eff.t==='rest' ? L.ownRestTip : coach ? escapeHtml(coach) : (SESSION_TIP[eff.t]||SESSION_TIP.rest)[state.lang];
+  const tip = ownMode() && eff.t==='rest' ? (isPro() ? L.ownRestTip : `${escapeHtml(L.ownRestTip)} <button class="btn-text pro-unlock" type="button" data-pro="plan">${L.proUnlockPlan}</button>`) : coach ? escapeHtml(coach) : (SESSION_TIP[eff.t]||SESSION_TIP.rest)[state.lang];
   // Today's plan workout was placed around a hard class today (see placeSessions): say so.
   const hardClass = !focusExtra && eff.t!=='rest' && !state.week[TODAY_IDX].isCustom && classItemsFor(dateKey(TODAY_DATE)).find(it=> it.cls && CLASS_LOAD[it.cls.kind]);
   const aroundClass = hardClass ? ST(hardClass.session).title : '';
@@ -8373,7 +8445,7 @@ function renderHome(){
   // (with its own sets x reps prescription) already represents the plan.
   const hasExerciseList = !!exercisesForSession(eff);
   // A structured run's breakdown already carries its paces, step by step.
-  const suggestedTarget = (!hasExerciseList && !isPaceFree(eff) && !runBreakdown(eff) && (eff.t==='strength'||eff.t==='run')) ? getProgressionTarget(eff, state.intensityIdx) : null;
+  const suggestedTarget = (isPro() && !hasExerciseList && !isPaceFree(eff) && !runBreakdown(eff) && (eff.t==='strength'||eff.t==='run')) ? getProgressionTarget(eff, state.intensityIdx) : null;
   const suggestedTargetStr = suggestedTarget ? (eff.t==='strength' ? `${suggestedTarget.weight} lb x ${suggestedTarget.reps}` : `${fmtPace(suggestedTarget.pace)}/mi`) : null;
 
   document.getElementById('homeGreeting').textContent = (eff.t==='rest' ? L.greetingRest : L.greetingActive).replace('{name}', state.userName.split(' ')[0]);
@@ -9572,7 +9644,7 @@ document.getElementById('recordBtn').addEventListener('click', function(){
     return;
   }
   // Their own workouts, nothing planned today: the button is "Add Workout".
-  if(state.ownWorkouts && todaySession().t==='rest'){
+  if(ownMode() && todaySession().t==='rest'){
     state.openDayKey = dateKey(TODAY_DATE);
     openManualEntry();
     manualEntryAlongside = true;
@@ -9987,7 +10059,7 @@ function weekPlanMetaHtml(weekIdx){
   if(beforePlanStart(dates[6])) return `<span class="week-block-meta">${L.planStartsOn.replace('{date}', fmtDayDate(state.planStartDate, state.lang))}</span>`;
   const mi = weekStats(weekIdx).plannedDistance;
   // Their own workouts: no build / deload cycle, just the miles they've planned.
-  if(state.ownWorkouts) return mi>0 ? `<span class="week-block-meta">${+mi.toFixed(1)} mi</span>` : '';
+  if(ownMode()) return mi>0 ? `<span class="week-block-meta">${+mi.toFixed(1)} mi</span>` : '';
   const deload = isRecoveryWeek(planWeekIndex(dates[0]));
   const phase = deload ? L.planWeekRecovery : L.planWeekBuild;
   return `<span class="week-block-meta"><span class="nowrap">${phase}${termBtn(deload ? 'deload' : 'build')}</span>${mi>0 ? ` <span class="nowrap">· ${+mi.toFixed(1)} mi</span>` : ''}</span>`;
@@ -11787,7 +11859,8 @@ function renderProgress(){
     });
   });
 
-  document.getElementById('progWeeksPrev').disabled = state.progWindowEnd<=PROG_MIN_WINDOW_END;
+  // (Previewing free: the last 4 weeks; the arrow back says what's past them.)
+  document.getElementById('progWeeksPrev').disabled = isPro() && state.progWindowEnd<=PROG_MIN_WINDOW_END;
   document.getElementById('progWeeksNext').disabled = state.progWindowEnd>=0;
 
   const sel = weekStats(state.progSelectedOffset);
@@ -12644,6 +12717,12 @@ document.getElementById('bwList').addEventListener('click', e=>{
 });
 function renderPRs(){
   const L = STR[state.lang];
+  const free = !isPro();
+  ['prExerciseInput', 'prValueInput', 'addPrBtn'].forEach(id=>{ document.getElementById(id).hidden = free; });
+  if(free){
+    document.getElementById('prList').innerHTML = `<div class="footer-note" style="text-align:left;">${L.proWhy_prs} <button class="btn-text pro-unlock" type="button" data-pro="prs">${L.proLearnMore}</button></div>`;
+    return;
+  }
   document.getElementById('prExerciseInput').placeholder = L.prExercisePlaceholder;
   document.getElementById('prValueInput').placeholder = state.weightUnit;
   const listEl = document.getElementById('prList');
@@ -12685,6 +12764,7 @@ function deletePR(id){
   renderPRs();
 }
 document.getElementById('progWeeksPrev').addEventListener('click', ()=>{
+  if(!isPro()){ openProSheet('history'); return; }
   if(state.progWindowEnd>PROG_MIN_WINDOW_END){
     state.progWindowEnd = Math.max(PROG_MIN_WINDOW_END, state.progWindowEnd-PROG_WEEKS_SHOWN);
     state.progSelectedOffset = state.progWindowEnd;
@@ -12700,7 +12780,10 @@ document.getElementById('progWeeksNext').addEventListener('click', ()=>{
 });
 
 /* ---------------- settings ---------------- */
+document.getElementById('freePreviewToggle').addEventListener('click', ()=> setFreePreview(!freePreviewOn()));
+document.getElementById('freePreviewToggle').addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); setFreePreview(!freePreviewOn()); } });
 function renderSettings(){
+  renderFreePreviewSetting();
   document.getElementById('deleteAccountBtn').hidden = !state.signedIn;
   document.getElementById('profileAvatar').textContent = state.userName.charAt(0);
   document.getElementById('profileName').textContent = state.userName;
@@ -12821,6 +12904,7 @@ document.getElementById('confirmDeleteAccount').addEventListener('click', async 
 
 /* ---------------- adjust sheet ---------------- */
 function openAdjustSheet(){
+  if(!isPro()){ openProSheet('adjust'); return; }
   ensureWeek();
   state.adjustDraft = {own: !!state.ownWorkouts, focusRatio: state.focusRatio, intensityIdx: state.focusRatio>=4 ? liftIntensity() : state.intensityIdx, liftIntensityIdx: state.liftIntensityIdx ?? null, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, liftSplit: state.liftSplit, mileTime: state.mileTime, hardRunDay: state.hardRunDay, longRunDay: state.longRunDay, runLiftDays: (state.runLiftDays||[]).slice()};
   document.getElementById('adjustOverlay').hidden = false;
@@ -13184,7 +13268,7 @@ function getSummaryStats(session, intensityIdx, logged){
       ...elevStats(logged),
       ...calorieStats(logged),
     ];
-    if(target && state._reviewSubmitted) stats.push({l:L.statProgress, v:fmtPace(target.pace)+'/mi'});
+    if(target && state._reviewSubmitted && isPro()) stats.push({l:L.statProgress, v:fmtPace(target.pace)+'/mi'});
     return stats;
   }
   if(session.t==='strength'){
@@ -13207,7 +13291,7 @@ function getSummaryStats(session, intensityIdx, logged){
     const target = getProgressionTarget(session, intensityIdx);
     stats.push({l:L.statSetsReps, v: setsReps});
     stats.push({l:L.statTopSet, v: `${weight} lb x ${reps}`});
-    if(target && state._reviewSubmitted) stats.push({l:L.statProgress, v:`${target.weight} lb`});
+    if(target && state._reviewSubmitted && isPro()) stats.push({l:L.statProgress, v:`${target.weight} lb`});
     return stats;
   }
   if(session.t==='hike'){
@@ -14263,6 +14347,7 @@ document.getElementById('gpsDiscardKeep').addEventListener('click', ()=>{ docume
 document.getElementById('gpsDiscardYes').addEventListener('click', ()=>{ clearGpsRun(); gps = null; closeGpsTracker(); });
 document.getElementById('gpsRecenter').addEventListener('click', ()=>{ gpsMapFollow = true; renderGps(); });
 document.getElementById('gpsVoiceBtn').addEventListener('click', ()=>{
+  if(!isPro()){ openProSheet('voice'); return; }
   const on = !gpsVoiceOn();
   try{ localStorage.setItem(GPS_VOICE_KEY, on ? '1' : '0'); }catch(e){}
   renderGps();
@@ -14272,7 +14357,7 @@ document.getElementById('gpsVoiceBtn').addEventListener('click', ()=>{
 // the run starts, pauses, resumes and finishes. In the app's language; the phone's own speech engine
 // (in the store app, the native one, which keeps talking with the screen locked). On by default.
 const GPS_VOICE_KEY = 'altiro_gps_voice';
-function gpsVoiceOn(){ try{ return localStorage.getItem(GPS_VOICE_KEY)!=='0'; }catch(e){ return true; } }
+function gpsVoiceOn(){ if(!isPro()) return false; try{ return localStorage.getItem(GPS_VOICE_KEY)!=='0'; }catch(e){ return true; } }
 function spokenDuration(sec, es){
   sec = Math.max(0, Math.round(sec));
   const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
@@ -15063,6 +15148,7 @@ async function loadProfileFromCloud(){
   if(data.weight!=null) state.weight = data.weight;
   if(data.weight_unit) state.weightUnit = data.weight_unit;
   if(data.created_at) state.profileCreatedAt = data.created_at;
+  state.tester = !!data.tester;
   if(data.distance_unit==='mi' || data.distance_unit==='km'){ state.distUnit = data.distance_unit; try{ localStorage.setItem('altiro_dist_unit', data.distance_unit); }catch(e){} }
   if(data.full_name) state.userName = data.full_name;
   if(data.streak!=null) state.streak = data.streak;
@@ -17615,7 +17701,7 @@ function renderTodayHero(eff, effL, workoutGoal, focusExtra){
   btn.classList.remove('disabled','done','recording');
   document.getElementById('thArt').innerHTML = done ? ICONS.checkSm : (TYPE_ICON[eff.t] || ICONS.flame);
   let eyebrow, title, sub;
-  if(rest && state.ownWorkouts){
+  if(rest && ownMode()){
     // Their own workouts: nothing planned today yet -- the button adds one.
     eyebrow = L.heroEyebrowOwn; title = L.heroTitleOwn; sub = L.heroSubOwn;
     icon.innerHTML = ICONS.plus; label.textContent = L.addWorkoutBtn.replace(/^\+\s*/, '');

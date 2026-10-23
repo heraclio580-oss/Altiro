@@ -5759,33 +5759,6 @@ function freePreviewOn(){
 const isPro = () => !freePreviewOn();
 // No generated plan: their own workouts (or, previewing free, no plan to make them).
 const ownMode = () => !!state.ownWorkouts || !isPro();
-function setFreePreview(on){
-  try{ localStorage.setItem(FREE_PREVIEW_KEY+'_'+state.userId, on ? '1' : '0'); }catch(e){}
-  // The days still to come follow the plan again, or don't (nothing saved changes).
-  state.week = regenerateUpcomingWeek();
-  state.doneCount = computeDoneCount();
-  refreshViews();
-  renderFreePreviewSetting();
-}
-function renderFreePreviewSetting(){
-  const sec = document.getElementById('freePreviewSection');
-  if(!sec) return;
-  sec.hidden = !state.tester;
-  document.getElementById('freePreviewToggle').classList.toggle('on', freePreviewOn());
-}
-// "Part of Altiro Pro": what a free account sees where a Pro feature would be.
-function openProSheet(feature){
-  const L = STR[state.lang];
-  document.getElementById('termTitle').textContent = L.proSheetTitle;
-  document.getElementById('termText').textContent = (L['proWhy_'+feature] || L.proWhy_plan) + ' ' + L.proSheetPreviewNote;
-  document.getElementById('termOverlay').hidden = false;
-}
-document.addEventListener('click', e=>{
-  const b = e.target.closest && e.target.closest('[data-pro]');
-  if(!b) return;
-  e.preventDefault(); e.stopPropagation();
-  openProSheet(b.getAttribute('data-pro'));
-}, true);
 // The generated session for a date, as a fresh copy (callers may edit it).
 function plannedSessionFor(date){
   // Creating their own workouts: from the day they chose to, nothing is generated -- every day is open
@@ -10496,6 +10469,34 @@ function openTerm(key){
   document.getElementById('termOverlay').hidden = false;
 }
 function closeTerm(){ document.getElementById('termOverlay').hidden = true; }
+// Free / Pro preview (see freePreviewOn): the Settings switch, and "Part of Altiro Pro".
+function setFreePreview(on){
+  try{ localStorage.setItem(FREE_PREVIEW_KEY+'_'+state.userId, on ? '1' : '0'); }catch(e){}
+  // The days still to come follow the plan again, or don't (nothing saved changes).
+  state.week = regenerateUpcomingWeek();
+  state.doneCount = computeDoneCount();
+  refreshViews();
+  renderFreePreviewSetting();
+}
+function renderFreePreviewSetting(){
+  const sec = document.getElementById('freePreviewSection');
+  if(!sec) return;
+  sec.hidden = !state.tester;
+  document.getElementById('freePreviewToggle').classList.toggle('on', freePreviewOn());
+}
+// "Part of Altiro Pro": what a free account sees where a Pro feature would be.
+function openProSheet(feature){
+  const L = STR[state.lang];
+  document.getElementById('termTitle').textContent = L.proSheetTitle;
+  document.getElementById('termText').textContent = (L['proWhy_'+feature] || L.proWhy_plan) + ' ' + L.proSheetPreviewNote;
+  document.getElementById('termOverlay').hidden = false;
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest && e.target.closest('[data-pro]');
+  if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  openProSheet(b.getAttribute('data-pro'));
+}, true);
 // Caught on the way down, so the (i) never also opens the card or row it sits in.
 document.addEventListener('click', e=>{
   const b = e.target.closest && e.target.closest('[data-term]');

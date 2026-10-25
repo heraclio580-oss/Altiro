@@ -9,6 +9,8 @@
 //   the HealthKit entitlement and its permission text; on Android only the five health permissions Altiro
 //   reads (the plugin declares dozens), Android 8+ (Health Connect's minimum) and the privacy policy link
 //   Health Connect shows on its permission screen.
+//   Portrait only on phones: turning the phone sideways doesn't turn the app (iPad still turns -- Apple
+//   expects that of iPad apps that allow multitasking).
 const fs = require('fs');
 const path = require('path');
 const root = process.env.ALTIRO_NATIVE_ROOT || path.join(__dirname, '..');
@@ -51,6 +53,16 @@ if(fs.existsSync(plist)){
     fs.writeFileSync(plist, s); changed++;
     console.log('iOS: allowed location in the background (for runs being tracked)');
   } else console.log('iOS: background location already allowed');
+  // Portrait only on iPhone (UISupportedInterfaceOrientations~ipad, iPad's own list, is left as it is).
+  s = fs.readFileSync(plist, 'utf8');
+  const PORTRAIT = '\t<key>UISupportedInterfaceOrientations</key>\n\t<array>\n\t\t<string>UIInterfaceOrientationPortrait</string>\n\t</array>\n';
+  const phoneList = /\t?<key>UISupportedInterfaceOrientations<\/key>\s*<array>([\s\S]*?)<\/array>\n?/;
+  const m = s.match(phoneList);
+  if(!m || m[1].replace(/\s+/g, '')!=='<string>UIInterfaceOrientationPortrait</string>'){
+    s = m ? s.replace(phoneList, PORTRAIT) : s.replace(/<\/dict>\s*<\/plist>\s*$/, PORTRAIT + '</dict>\n</plist>\n');
+    fs.writeFileSync(plist, s); changed++;
+    console.log('iOS: iPhone kept in portrait');
+  } else console.log('iOS: iPhone already portrait only');
   // Apple Health: the HealthKit entitlement (Xcode's "HealthKit" capability), set up without Xcode.
   const ent = path.join(root, 'ios', 'App', 'App', 'App.entitlements');
   if(!fs.existsSync(ent) || !fs.readFileSync(ent, 'utf8').includes('com.apple.developer.healthkit')){
@@ -90,6 +102,17 @@ if(fs.existsSync(manifest)){
     fs.writeFileSync(manifest, s); changed++;
     console.log('Android: added the altiro:// intent filter to AndroidManifest.xml');
   } else console.log('Android: altiro:// intent filter already set');
+  // Portrait only: the app's screen doesn't turn when the phone does.
+  s = fs.readFileSync(manifest, 'utf8');
+  const activity = /<activity\b[^>]*android:name="\.MainActivity"[^>]*>/;
+  const tag = (s.match(activity) || [])[0];
+  if(!tag) throw new Error("Android: couldn't find MainActivity in AndroidManifest.xml");
+  if(!tag.includes('android:screenOrientation="portrait"')){
+    const fixed = /android:screenOrientation="[^"]*"/.test(tag) ? tag.replace(/android:screenOrientation="[^"]*"/, 'android:screenOrientation="portrait"') : tag.replace(/<activity\b/, '<activity android:screenOrientation="portrait"');
+    s = s.replace(tag, fixed);
+    fs.writeFileSync(manifest, s); changed++;
+    console.log('Android: kept in portrait');
+  } else console.log('Android: already portrait only');
   // Health Connect: only the permissions Altiro reads. The health plugin declares many more (weight, sleep,
   // blood pressure, writes...); Google Play wants each declared health permission justified, so the rest
   // are removed from the merged manifest.

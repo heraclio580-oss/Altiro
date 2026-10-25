@@ -4,8 +4,8 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 // scripts/native-config.js adds the altiro:// link scheme to the iOS and Android projects (which aren't
-// kept in git, so it's re-applied after every `npx cap sync`): once, in the right place, and safely
-// re-runnable. Checked against fresh copies of the files Capacitor generates.
+// kept in git, so it's re-applied after every `npx cap sync`), and keeps phones in portrait: once, in the
+// right place, and safely re-runnable. Checked against fresh copies of the files Capacitor generates.
 let failures = 0;
 function check(label, ok, detail){
   if(!ok) failures++;
@@ -15,8 +15,8 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'altiro-native-'));
 fs.mkdirSync(path.join(root, 'ios', 'App', 'App'), {recursive:true});
 fs.mkdirSync(path.join(root, 'android', 'app', 'src', 'main'), {recursive:true});
 const plist = path.join(root, 'ios', 'App', 'App', 'Info.plist'), manifest = path.join(root, 'android', 'app', 'src', 'main', 'AndroidManifest.xml');
-fs.writeFileSync(plist, `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n\t<key>CFBundleDisplayName</key>\n\t<string>Altiro</string>\n\t<key>UIViewControllerBasedStatusBarAppearance</key>\n\t<true/>\n</dict>\n</plist>\n`);
-fs.writeFileSync(manifest, `<?xml version="1.0" encoding="utf-8"?>\n<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <application>\n        <activity android:name=".MainActivity" android:launchMode="singleTask" android:exported="true">\n            <intent-filter>\n                <action android:name="android.intent.action.MAIN" />\n                <category android:name="android.intent.category.LAUNCHER" />\n            </intent-filter>\n        </activity>\n    </application>\n</manifest>\n`);
+fs.writeFileSync(plist, `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n\t<key>CFBundleDisplayName</key>\n\t<string>Altiro</string>\n\t<key>UISupportedInterfaceOrientations</key>\n\t<array>\n\t\t<string>UIInterfaceOrientationPortrait</string>\n\t\t<string>UIInterfaceOrientationLandscapeLeft</string>\n\t\t<string>UIInterfaceOrientationLandscapeRight</string>\n\t</array>\n\t<key>UISupportedInterfaceOrientations~ipad</key>\n\t<array>\n\t\t<string>UIInterfaceOrientationPortrait</string>\n\t\t<string>UIInterfaceOrientationPortraitUpsideDown</string>\n\t\t<string>UIInterfaceOrientationLandscapeLeft</string>\n\t\t<string>UIInterfaceOrientationLandscapeRight</string>\n\t</array>\n\t<key>UIViewControllerBasedStatusBarAppearance</key>\n\t<true/>\n</dict>\n</plist>\n`);
+fs.writeFileSync(manifest, `<?xml version="1.0" encoding="utf-8"?>\n<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <application>\n        <activity\n            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"\n            android:name=".MainActivity"\n            android:launchMode="singleTask"\n            android:exported="true">\n            <intent-filter>\n                <action android:name="android.intent.action.MAIN" />\n                <category android:name="android.intent.category.LAUNCHER" />\n            </intent-filter>\n        </activity>\n    </application>\n</manifest>\n`);
 const run = () => execFileSync('node', [path.join(__dirname, '..', 'scripts', 'native-config.js')], {env: {...process.env, ALTIRO_NATIVE_ROOT: root}, encoding: 'utf8'});
 run();
 const p1 = fs.readFileSync(plist, 'utf8'), m1 = fs.readFileSync(manifest, 'utf8');
@@ -24,6 +24,11 @@ check('iOS: the altiro URL scheme is registered', /<key>CFBundleURLSchemes<\/key
 check('Android: MainActivity opens altiro:// links', /<activity[\s\S]*<data android:scheme="altiro" \/>[\s\S]*<\/activity>/.test(m1) && /android\.intent\.action\.VIEW/.test(m1) && /category\.BROWSABLE/.test(m1));
 check('iOS: location permission text, and location allowed in the background, for GPS runs', /<key>NSLocationWhenInUseUsageDescription<\/key>\s*<string>[^<]+<\/string>/.test(p1) && /<key>NSLocationAlwaysAndWhenInUseUsageDescription<\/key>/.test(p1) && /<key>UIBackgroundModes<\/key>\s*<array>\s*<string>location<\/string>\s*<\/array>/.test(p1));
 check('iOS: Photos permission text is there, for saving workout cards', /<key>NSPhotoLibraryAddUsageDescription<\/key>\s*<string>[^<]+<\/string>/.test(p1) && /<key>NSPhotoLibraryUsageDescription<\/key>/.test(p1) && /<\/dict>\s*<\/plist>\s*$/.test(p1));
+check('Android: the app stays in portrait (on MainActivity)', /<activity\b[^>]*android:screenOrientation="portrait"[^>]*android:name="\.MainActivity"/.test(m1) && (m1.match(/screenOrientation/g) || []).length===1);
+const phone = (p1.match(/<key>UISupportedInterfaceOrientations<\/key>\s*<array>([\s\S]*?)<\/array>/) || [])[1] || '';
+const pad = (p1.match(/<key>UISupportedInterfaceOrientations~ipad<\/key>\s*<array>([\s\S]*?)<\/array>/) || [])[1] || '';
+check('iOS: iPhone stays in portrait', phone.replace(/\s+/g, '')==='<string>UIInterfaceOrientationPortrait</string>', phone);
+check('iOS: iPad still turns (its own list is untouched)', (pad.match(/<string>/g) || []).length===4 && /<\/dict>\s*<\/plist>\s*$/.test(p1));
 run();
 check('Running it again changes nothing', fs.readFileSync(plist, 'utf8')===p1 && fs.readFileSync(manifest, 'utf8')===m1);
 fs.rmSync(root, {recursive:true, force:true});

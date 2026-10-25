@@ -5061,12 +5061,15 @@ function planConfig(overrides){
 }
 // How hard a class is on the body, for planning around it: hard (a session in its own right -- no
 // long run or fast run that day), legs (no heavy leg day with it), upper (no heavy upper-body lifting
-// with it). Yoga, Pilates, barre, swimming, dance and anything else don't change the plan.
+// with it). Yoga, Pilates, barre, swimming, dance, padel, pickleball and anything else don't change the plan.
 const CLASS_LOAD = {
   jiujitsu:{hard:true, legs:true}, wrestling:{hard:true, legs:true}, mma:{hard:true, legs:true},
   muaythai:{hard:true, legs:true}, kickboxing:{hard:true, legs:true}, boxing:{hard:true},
   crossfit:{hard:true, legs:true}, hiit:{hard:true, legs:true}, spin:{hard:true, legs:true},
   climbing:{upper:true},
+  // Court sports: basketball and handball are sprints and jumps for an hour; racquetball's quick
+  // court work is hard on the legs, in shorter bursts.
+  basketball:{hard:true, legs:true}, handball:{hard:true, legs:true}, racquetball:{legs:true},
 };
 function planClassLoad(){
   const classes = (state.classes||[]).filter(c=> CLASS_LOAD[c.kind]).map(c=>({days:(c.days||[]).slice().sort((a,b)=>a-b), from:c.from||'', ...CLASS_LOAD[c.kind]}));
@@ -6872,6 +6875,11 @@ const CLASS_OPTIONS = [
   {key:'climbing', en:'Rock Climbing', es:'Escalada'},
   {key:'dance', en:'Dance / Zumba', es:'Baile / Zumba'},
   {key:'swim', en:'Swim Class', es:'Clase de natación'},
+  {key:'basketball', en:'Basketball', es:'Baloncesto'},
+  {key:'handball', en:'Handball', es:'Balonmano'},
+  {key:'racquetball', en:'Racquetball', es:'Ráquetbol'},
+  {key:'padel', en:'Padel', es:'Pádel'},
+  {key:'pickleball', en:'Pickleball', es:'Pickleball'},
   {key:'other', en:'Other', es:'Otra'},
 ];
 // A class's name: its own (for "Other", or one the user renamed), else the option's in that language.

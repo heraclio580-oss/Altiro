@@ -78,6 +78,12 @@ function makeBackend(){
   go('progress'); await wait(30);
   check('Progress has an Activity section: time, sets and reps for the week', tiles()==='2h 15m | 6 | 64', tiles());
   check('...with each day\'s minutes (Mon-Sun)', bars()==='35,35,20,45,-,-,-', bars());
+  // The week-by-week bars above: each week's active time, the busiest week tallest.
+  const weekBar = o => doc.querySelector(`#progBarChart .bar-col[data-offset="${o}"]`);
+  const weekH = o => parseFloat(weekBar(o).querySelector('.col-bar').style.height);
+  const weekVal = o => weekBar(o).querySelector('.col-val').textContent;
+  check('Week bars show each week\'s active time: this week 2h 15m, last week 50 min', weekVal(0)==='2h 15m' && weekVal(-1)==='50 min' && weekVal(-2)==='', `${weekVal(-2)} / ${weekVal(-1)} / ${weekVal(0)}`);
+  check('...sized by it: this week tallest, last week a little over a third of it, an empty week flat', weekH(0)===76 && Math.abs(weekH(-1) - 76*50/135) < 1 && weekH(-2)===3, `${weekH(-2)} / ${weekH(-1)} / ${weekH(0)}`);
   check('...today picked, nothing logged yet', /^Friday, Sep 18 Nothing logged$/.test(detail()), detail());
   doc.querySelector('[data-act-day="2026-09-14"]').click(); await wait(5);
   check('Tapping a day: its time, sets, reps and workout', detail()==='Monday, Sep 14 35 min · 6 sets · 64 reps Shoulder Day', detail());

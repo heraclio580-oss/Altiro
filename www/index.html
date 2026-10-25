@@ -1470,10 +1470,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .trial-box .s{font-size:calc(11.5px * var(--fs, 1));color:var(--text-2);margin-top:3px;}
 
 /* ---------- progress tab ---------- */
-.barchart{display:flex;align-items:flex-end;gap:10px;height:100px;margin-top:12px;padding:0 2px;border-bottom:1px solid var(--divider);}
+.barchart{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:12px;padding:0 2px;border-bottom:1px solid var(--divider);}
 .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;cursor:pointer;}
 .bar-col .col-bar{width:100%;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-sm) var(--r-sm) 0 0;min-height:4px;}
 .bar-col.selected .col-bar{background:var(--accent);border-color:var(--accent);}
+.bar-col .col-val{font-family:var(--font-mono);font-size:calc(10px * var(--fs, 1));color:var(--text-3);white-space:nowrap;}
+.bar-col.selected .col-val{color:var(--text);font-weight:600;}
 .bar-col .col-label{font-family:var(--font-mono);font-size:calc(9.5px * var(--fs, 1));letter-spacing:0.03em;color:var(--text-3);text-transform:uppercase;text-align:center;}
 .bar-col.current .col-label{color:var(--text);font-weight:600;}
 .act-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
@@ -11838,17 +11840,21 @@ function renderProgress(){
 
   const offsets = [];
   for(let o=state.progWindowEnd-(PROG_WEEKS_SHOWN-1); o<=state.progWindowEnd; o++) offsets.push(o);
-  const weekData = offsets.map(o => ({offset:o, ...weekStats(o)}));
-  const max = Math.max(7, ...weekData.map(w=>w.workouts));
+  // Each week's bar is its active time (the same as Activity's below): runs and lifts alike, so a big
+  // week stands out from a light one with the same number of workouts. The biggest week fills the chart.
+  const activeMinutes = o => weekDates(o).reduce((t, d)=> t + dayActivity(d).minutes, 0);
+  const weekData = offsets.map(o => ({offset:o, ...weekStats(o), active: activeMinutes(o)}));
+  const max = Math.max(30, ...weekData.map(w=>w.active));
   const empty = state.progWindowEnd===0 && weekData.every(w=> !w.workouts && !w.distance && !w.minutes);
   document.getElementById('progEmpty').hidden = !empty;
   document.getElementById('progWeeksSection').hidden = empty;
   document.getElementById('progActivitySection').hidden = empty;
 
   document.getElementById('progBarChart').innerHTML = weekData.map(w=>{
-    const h = Math.max(6, Math.round((w.workouts/max)*100));
+    const h = w.active ? Math.max(6, Math.round((w.active/max)*76)) : 3;
     const cls = [w.offset===0?'current':'', w.offset===state.progSelectedOffset?'selected':''].filter(Boolean).join(' ');
     return `<div class="bar-col ${cls}" data-offset="${w.offset}">
+      <div class="col-val">${w.active ? fmtActiveTime(w.active) : ''}</div>
       <div class="col-bar" style="height:${h}%;"></div>
       <div class="col-label">${weekBarLabel(w.offset)}</div>
     </div>`;

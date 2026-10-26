@@ -243,6 +243,8 @@ p.sub{font-family:var(--font-body);font-size:calc(13.5px * var(--fs, 1));line-he
 .btn-ghost:hover{color:var(--text);border-color:var(--hover-border);}
 .btn-text.missed-toggle{padding:4px 0;font-size:calc(13px * var(--fs, 1));color:var(--text-2);}
 .btn-text{background:none;border:none;font-family:var(--font-body);font-size:calc(12.5px * var(--fs, 1));color:var(--text-3);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px;}
+.step-day-note{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:calc(13px * var(--fs, 1));color:var(--ok-icon);}
+.step-day-note svg{width:14px;height:14px;flex-shrink:0;}
 .btn-text.pro-unlock{padding:0;font-size:inherit;color:var(--accent-hover);}
 .btn-text:hover{color:var(--text-2);}
 
@@ -2646,6 +2648,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section">
         <div class="st-label" data-i18n="scheduledLabel"></div>
         <div class="day-row" id="dayDetailPlanRow" style="margin:0;"></div>
+        <div class="step-day-note" id="dayDetailStepDay" hidden></div>
         <div id="dayDetailActions" hidden></div>
       </div>
 
@@ -4010,6 +4013,7 @@ const STR = {
     proWhy_history: "Progress beyond the last 4 weeks, and all-time charts, are part of Pro.",
     proWhy_prs: "Personal records are part of Pro.",
     proWhy_voice: "Spoken updates during GPS runs are part of Pro.",
+    bigStepDayNote: "Big step day · {n} steps",
     termGotIt: "Got it", termWhat: "What's this?", undoBtn: "Undo", workoutRestoredToast: "Workout restored",
     loggedWorkoutsLabel: "Logged Workouts", alsoTodayLabel: "Also today", moreBtn: "More", addAnotherWorkoutBtn: "Add a workout",
     addWorkoutBtn: "+ Add Workout",
@@ -4732,6 +4736,7 @@ const STR = {
     proWhy_history: "El progreso más allá de las últimas 4 semanas y los gráficos históricos son parte de Pro.",
     proWhy_prs: "Las marcas personales son parte de Pro.",
     proWhy_voice: "Los avisos de voz durante las carreras con GPS son parte de Pro.",
+    bigStepDayNote: "Día de muchos pasos · {n} pasos",
     termGotIt: "Entendido", termWhat: "¿Qué es esto?", undoBtn: "Deshacer", workoutRestoredToast: "Entrenamiento restaurado",
     loggedWorkoutsLabel: "Entrenamientos registrados", alsoTodayLabel: "También hoy", moreBtn: "Más", addAnotherWorkoutBtn: "Añadir entrenamiento",
     addWorkoutBtn: "+ Añadir entrenamiento",
@@ -6734,6 +6739,8 @@ function dayDataStatus(dd){
     // rest day -- see addExtraWorkout()). Checked directly rather than trusting dd.completed as a
     // whole, which can carry a stale flag left over from before a day was reset back to plain rest.
     if(dd.manualEntries.length>0 || dd.extraWorkouts.some(w=>w.completed)) return 'done';
+    // (A big step day -- 15,000 steps or more -- is an active day too.)
+    if(bigStepDay(dd.key)) return 'done';
     return 'rest';
   }
   // A missed workout the user gave a reason for (sick, vacation...) is excused rather than missed.
@@ -10936,6 +10943,9 @@ function renderDayDetail(){
   const dow = (date.getDay()+6)%7;
 
   document.getElementById('dayDetailTitle').textContent = `${DAY_NAMES_FULL[state.lang][dow]}, ${MONTHS_SHORT[state.lang][date.getMonth()]} ${date.getDate()}`;
+  const bigSteps = bigStepDay(dd.key), stepNote = document.getElementById('dayDetailStepDay');
+  stepNote.hidden = !bigSteps;
+  if(bigSteps) stepNote.innerHTML = `${ICONS.flame}<span>${L.bigStepDayNote.replace('{n}', bigSteps.toLocaleString(state.lang==='es' ? 'es-MX' : 'en-US'))}</span>`;
   const planRowEl = document.getElementById('dayDetailPlanRow');
   // Today's own workout done and another still to do: that one is shown as the day's workout (same as
   // Home), and the finished one moves down to "Done".
@@ -16276,6 +16286,16 @@ function renderHealthSettings(){
 // on the phone and kept on it, never sent to Altiro's servers (see privacy.html#health).
 const STEP_HISTORY_MONTHS = 6, STEP_HISTORY_MS = 10*60*1000;
 let stepView = 'day', stepPick = null; // the bar picked (its index), or null: the current day/week/month
+// A big step day: 15,000 steps or more (about 2 hours on foot -- more than a day's errands). The day reads
+// active, and it can count toward the streak (see workoutsInWeek). The step count for the day, or 0.
+// (Steps stay on the phone, so this is only known there.)
+const BIG_STEP_DAY = 15000;
+function bigStepDay(key){
+  if(!key || key > dateKey(TODAY_DATE)) return 0;
+  let n = 0;
+  try{ n = Number(stepHistory()[key]) || 0; }catch(e){ return 0; } // (before the steps code has loaded)
+  return n >= BIG_STEP_DAY ? n : 0;
+}
 function stepHistory(){ try{ return JSON.parse(localStorage.getItem(healthKey('steps')) || '{}') || {}; }catch(e){ return {}; } }
 function saveStepHistory(days){
   const since = dateKey(new Date(new Date().getFullYear(), new Date().getMonth() - STEP_HISTORY_MONTHS, 1));
@@ -17603,14 +17623,18 @@ function workoutDoneOn(key){
 // it's still going; a week that ends short ends it.
 function streakWeekNeed(){ return (state.trainingDays||[]).length===1 ? 1 : 2; }
 function mondayOf(date){ return new Date(date.getFullYear(), date.getMonth(), date.getDate() - (date.getDay()+6)%7); }
+// (A big step day with no workout counts as one too -- but one a week at most, so the streak still
+// needs a real workout each week.)
 function workoutsInWeek(monday){
-  let n = 0;
+  let n = 0, stepDay = false;
   for(let d=0; d<7; d++){
     const date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+d);
     if(date > TODAY_DATE) break;
-    if(workoutDoneOn(dateKey(date))) n++;
+    const key = dateKey(date);
+    if(workoutDoneOn(key)) n++;
+    else if(bigStepDay(key)) stepDay = true;
   }
-  return n;
+  return n + (stepDay ? 1 : 0);
 }
 function earliestLogMonday(){
   const keys = Object.keys(state.dayLog);

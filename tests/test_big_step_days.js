@@ -131,6 +131,13 @@ const seed = backend => {
   cell('2026-09-19').click(); await wait(30);
   const note = doc.getElementById('dayDetailStepDay');
   check('The day says "Big step day · 20,412 steps"', !note.hidden && text(note)==='Big step day · 20,412 steps', text(note));
+  // Then a day without many steps, in the same open sheet: the note is hidden...
+  doc.getElementById('closeDayDetail').click(); await wait(20);
+  cell('2026-09-18').click(); await wait(30);
+  check('Opening a day under 15,000 steps after a big one: the note is hidden', note.hidden);
+  // ...and hidden really means not shown: the note's display:flex would win over [hidden] on a phone
+  // without its own rule (jsdom always treats [hidden] as not shown, so check the stylesheet itself).
+  check('The note\'s style has a [hidden] rule, so it isn\'t shown on days without many steps', /\.step-day-note\[hidden\]\{display:none;?\}/.test(html));
   dom.window.close();
   {
     const dom2 = open(makeBackend({}), STEPS); await wait(400);

@@ -218,6 +218,13 @@ p.sub{font-family:var(--font-body);font-size:calc(13.5px * var(--fs, 1));line-he
 .welcome-top{display:flex;align-items:center;justify-content:flex-end;gap:10px;}
 .brand-logo-wrap{display:flex;justify-content:center;margin-top:6px;}
 .brand-logo{width:66%;max-width:230px;height:auto;display:block;}
+/* Starting up signed in: just the logo while the account loads (instead of Welcome and its trial) */
+.boot-splash{display:none;position:absolute;inset:0;z-index:5;background:var(--screen-bg);flex-direction:column;align-items:center;justify-content:center;gap:28px;}
+html.boot-signed-in .boot-splash{display:flex;}
+html.boot-signed-in #screen-welcome{visibility:hidden;}
+.boot-splash img{width:62%;max-width:250px;height:auto;display:block;mix-blend-mode:lighten;}
+.boot-splash .spin{width:22px;height:22px;opacity:0;transition:opacity .4s;}
+.boot-splash.slow .spin{opacity:1;}
 .tagline{font-family:var(--font-mono);font-size:calc(11.5px * var(--fs, 1));letter-spacing:0.1em;text-transform:uppercase;color:var(--accent-hover);text-align:center;margin-top:16px;}
 
 /* ---------- google sign-in ---------- */
@@ -1570,6 +1577,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 </style>
 
 <script>if(/[?&]proto\b/.test(location.search)) document.documentElement.classList.add('proto-on');</script>
+<script>try{ if(Object.keys(localStorage).some(k=> /^sb-.+-auth-token$/.test(k))) document.documentElement.classList.add('boot-signed-in'); }catch(e){}</script>
 <div class="proto-nav">
   <div class="proto-title">
     <span>Prototype Navigator — Altiro</span>
@@ -1610,6 +1618,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="footer-note" data-i18n="footNote"></div>
     </div>
   </section>
+  <!-- Starting up signed in: the logo alone until Today is ready (a spinner too, if that takes a while) -->
+  <div class="boot-splash" id="bootSplash" aria-busy="true">
+    <img id="bootSplashLogo" alt="Altiro" width="460" height="366">
+    <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/></svg>
+  </div>
+  <script>document.getElementById('bootSplashLogo').src = document.getElementById('brandLogoFull').src;</script>
 
   <!-- 2. GOAL -->
   <section class="screen" id="screen-onb-goal" data-title="Onboarding · Goal" hidden>
@@ -7780,7 +7794,17 @@ function refreshViews(){
   else if(active==='calendar') renderCalendar();
   else if(active==='progress') renderProgress();
 }
+// Starting up signed in (see the early check by the Prototype Navigator): the logo, until a screen shows.
+const BOOT_SLOW_MS = 2000, BOOT_GIVE_UP_MS = 20000;
+let bootSlowTimer = null, bootGiveUpTimer = null;
+function bootSplashOn(){ return document.documentElement.classList.contains('boot-signed-in'); }
+function endBootSplash(){
+  if(!bootSplashOn()) return;
+  document.documentElement.classList.remove('boot-signed-in');
+  clearTimeout(bootSlowTimer); clearTimeout(bootGiveUpTimer);
+}
 function showScreen(id){
+  endBootSplash();
   scheduleReminderSync(); // a workout just done (or anything else) can change what's coming up
   scheduleBadgeCheck();
   SCREEN_IDS.forEach(s=>{
@@ -18472,7 +18496,13 @@ function openAppHandoff(user){
 setupSliders();
 ensureWeek();
 applyLang();
-showScreen('welcome');
+if(bootSplashOn()){
+  document.getElementById('screen-welcome').hidden = true;
+  // Signed in on this device: the logo shows until Today does (see enterSignedIn) -- a spinner joins it if
+  // that's slow, and Welcome takes over if the account can't be reached at all.
+  bootSlowTimer = setTimeout(()=> document.getElementById('bootSplash').classList.add('slow'), BOOT_SLOW_MS);
+  bootGiveUpTimer = setTimeout(()=>{ if(bootSplashOn()) showScreen('welcome'); }, BOOT_GIVE_UP_MS);
+} else showScreen('welcome');
 (async function initAuth(){
   // Runs after the synchronous init above so there's no blank-screen flash while this
   // resolves -- a returning signed-in user briefly sees Welcome, then jumps to Home.
@@ -18482,6 +18512,7 @@ showScreen('welcome');
     if(session && AUTH_RETURN.type==='signup' && !isNativeShell() && (session.user.user_metadata||{}).signup_source==='app'){
       // Signed up in the store app, confirmed here in the browser: back to the app to sign in (or
       // carry on here instead).
+      if(bootSplashOn()) showScreen('welcome');
       openAppHandoff(session.user);
     } else if(session){
       await enterSignedIn(session.user);
@@ -18500,7 +18531,9 @@ showScreen('welcome');
     if(AUTH_RETURN.type || AUTH_RETURN.error){
       try{ history.replaceState(null, '', location.pathname); }catch(e){}
     }
-  }catch(e){ /* stay on Welcome if the session check fails */ }
+  }catch(e){ /* Welcome if the session check fails */ }
+  // No sign-in after all (it ran out, or was signed out elsewhere): Welcome, to sign in again.
+  if(bootSplashOn() && !signedInLoad) showScreen('welcome');
 })();
 })();
 </script>

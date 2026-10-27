@@ -111,7 +111,8 @@ jobs:
           jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
             -keystore "$RUNNER_TEMP/upload.keystore" -storepass:env KS_PASS -keypass:env KEY_PASS \
             "$out" "$ALIAS"
-          jarsigner -verify "$out" | tail -1
+          jarsigner -verify "$out" | grep -q "jar verified" || { echo "::error::The App Bundle isn't signed properly"; exit 1; }
+          echo "Signed and verified: $out"
           rm -f "$RUNNER_TEMP/upload.keystore"
           echo "AAB=$out" >> "$GITHUB_ENV"
 

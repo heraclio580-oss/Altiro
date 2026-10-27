@@ -5,7 +5,8 @@ const { JSDOM } = require('jsdom');
 // Renaming a workout: Edit on a done workout the user made (added, logged, or built as they went) has
 // its name at the top -- change it, save, and the new name is what Today, the day, the Calendar and the
 // Summary show (and what's saved). Left empty, the old name stays. The plan's own workouts keep their
-// names: there's no box. And on the Summary, a long list of sets wraps under the exercise's name instead
+// names: there's no box. Each exercise in it can be renamed too (a pencil by its name); and sets whose
+// reps change read "13 sets" rather than "13 x 1". And on the Summary, a long list of sets wraps under the exercise's name instead
 // of running off the side of the card.
 const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
@@ -170,6 +171,43 @@ const arm = [[41,20],[46,15],[51,10],[58,10],[63,5],[68,5],[73,5],[78,3],[83,3],
     type(nameIn, '   ');
     await click('#saveLogPerf');
     check('Saved with the name left empty: it keeps its name', /^Wrist Wrench Day ·/.test(text(doc.getElementById('summarySessTitle'))), text(doc.getElementById('summarySessTitle')));
+    // ---- Its exercises' names ----
+    await click('#summaryEditBtn');
+    const exRow = key => [...doc.querySelectorAll('#logPerfExercisesList .exercise-log-row')].find(r=> r.getAttribute('data-exercise-key')===key);
+    const label = key => text(exRow(key).querySelector('.exercise-log-name span'));
+    check('13 sets with different reps read "13 sets" (not "13 x 1")', label('Wrist wrench Left')==='13 sets', label('Wrist wrench Left'));
+    check('...one set reads as before', /^1 x 10$/.test(label('Curl')), label('Curl'));
+    const reps0 = exRow('Curl').querySelector('[data-field="reps"]');
+    await click(exRow('Curl').querySelector('[data-step="1"]'));
+    const reps1 = exRow('Curl').querySelectorAll('[data-field="reps"]')[1];
+    type(reps1, '8'); await wait(10);
+    check('...and it changes as the reps are typed (10 then 8: "2 sets")', label('Curl')==='2 sets', label('Curl'));
+    type(reps1, '10'); await wait(10);
+    check('...(both 10 again: "2 x 10")', label('Curl')==='2 x 10', label('Curl'));
+    await click(exRow('Curl').querySelector('[data-step="-1"]'));
+    const pencils = [...doc.querySelectorAll('#logPerfExercisesList [data-rename-ex]')];
+    check('Each exercise has a pencil to rename it', pencils.length===3);
+    const boxOf = key => exRow(key).querySelector('[data-rename-input]');
+    check('...its box is out of sight until the pencil is tapped', boxOf('Wrist wrench Left').hidden && /\.ex-rename-input\[hidden\]\{display:none;\}/.test(html));
+    await click(exRow('Wrist wrench Left').querySelector('[data-rename-ex]'));
+    check('Tapping it: the name, ready to change', !boxOf('Wrist wrench Left').hidden && boxOf('Wrist wrench Left').value==='Wrist wrench Left');
+    type(boxOf('Wrist wrench Left'), 'Cupping wrench L');
+    await click(exRow('Wrist wrench Right').querySelector('[data-rename-ex]'));
+    type(boxOf('Wrist wrench Right'), 'hammer curl'); // one of the app's own
+    await click(exRow('Curl').querySelector('[data-rename-ex]'));
+    type(boxOf('Curl'), 'Cupping wrench L'); // already taken by another one here
+    await click('#saveLogPerf');
+    const list = text(doc.getElementById('summaryExercisesList'));
+    check('Saved: the Summary has the new names, each with its sets', /Cupping wrench L/.test(list) && /Hammer Curl/.test(list) && !/Wrist wrench/.test(list) && (list.match(/63x10/g)||[]).length===2, list.slice(0, 200));
+    check('...a name another exercise already has isn\'t taken twice (Curl stays Curl)', /Curl/.test(list.replace(/Hammer Curl/g, '')), list);
+    check('...and the workout\'s name is untouched', /^Wrist Wrench Day ·/.test(text(doc.getElementById('summarySessTitle'))));
+    await click('#summaryEditBtn');
+    check('Edit again: the renamed exercises, with every set as logged', !!exRow('Cupping wrench L') && !!exRow('Hammer Curl') && exRow('Cupping wrench L').querySelectorAll('.set-log-row').length===13 && exRow('Hammer Curl').querySelectorAll('.set-log-row').length===13 && exRow('Hammer Curl').querySelectorAll('.set-log-row')[0].querySelector('[data-field="weight"]').value==='41');
+    check('...an app lift renamed to gets its demo', !!exRow('Hammer Curl').querySelector('.ex-demo-btn[data-demo="Hammer Curl"]') && !exRow('Cupping wrench L').querySelector('.ex-demo-btn'));
+    await click(exRow('Curl').querySelector('[data-rename-ex]'));
+    type(boxOf('Curl'), '   ');
+    await click('#saveLogPerf');
+    check('A name left empty keeps the old one', /Curl/.test(text(doc.getElementById('summaryExercisesList')).replace(/Hammer Curl/g, '')));
   }
 
   // ---- A plan workout: its name stays the plan's ----
@@ -185,6 +223,7 @@ const arm = [[41,20],[46,15],[51,10],[58,10],[63,5],[68,5],[73,5],[78,3],[83,3],
     await click('#dayDetailPlanRow');
     if(!doc.getElementById('screen-summary').hidden) await click('#summaryEditBtn');
     check(`A plan workout (${planned}): Edit has no name box`, !doc.getElementById('logPerfOverlay').hidden && doc.getElementById('logPerfNameSection').hidden);
+    check('...and no pencils on its exercises', !doc.querySelector('#logPerfExercisesList [data-rename-ex]'));
   }
 
   // ---- An added workout beside the plan's, signed in: the new name is saved to the account ----
@@ -213,8 +252,11 @@ const arm = [[41,20],[46,15],[51,10],[58,10],[63,5],[68,5],[73,5],[78,3],[83,3],
       if(!doc.getElementById('screen-summary').hidden) await click('#summaryEditBtn');
       check('An added workout: Edit has its name', !doc.getElementById('logPerfNameSection').hidden && doc.getElementById('logPerfNameInput').value==='Lunch pump');
       type(doc.getElementById('logPerfNameInput'), 'Arm pump');
+      doc.querySelector('#logPerfExercisesList [data-rename-ex]').click(); await wait(20);
+      type(doc.querySelector('#logPerfExercisesList [data-rename-input]'), 'Cable curl');
       await click('#saveLogPerf'); await wait(60);
       check('...renamed, and saved to the account', row().title==='Arm pump', row().title);
+      check('...its exercise too', JSON.stringify((row().exercises||[]).map(e=> e.key+'/'+e.name))==='["Cable curl/Cable curl"]', JSON.stringify(row().exercises));
       go('home'); await wait(20);
       check('...the plan\'s workout is untouched', text(doc.querySelector('#sessionCard .title'))===planned && /Arm pump/.test(text(doc.getElementById('homeExtraWorkoutsWrap'))), text(doc.getElementById('homeExtraWorkoutsWrap')));
     }

@@ -557,6 +557,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .exercise-log-row .exercise-log-name{display:flex;align-items:center;font-size:calc(13px * var(--fs, 1));color:var(--text);font-weight:500;margin-bottom:6px;}
 .exercise-log-row .exercise-log-name span{font-family:var(--font-mono);font-weight:400;color:var(--text-3);font-size:calc(11px * var(--fs, 1));margin-left:6px;}
 .set-stepper{display:flex;align-items:center;gap:4px;margin-left:auto;padding-left:6px;}
+.ex-rename-btn{width:24px;height:24px;flex-shrink:0;margin-left:4px;padding:0;border:none;background:none;color:var(--text-3);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.ex-rename-btn svg{width:14px;height:14px;}
+.ex-rename-btn:hover{color:var(--text);}
+.ex-rename-input{width:100%;height:38px;margin:0 0 8px;}
+.ex-rename-input[hidden]{display:none;}
 .set-stepper-btn{width:20px;height:20px;flex-shrink:0;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--text-2);font-size:calc(13px * var(--fs, 1));line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
 .set-stepper-btn:hover{border-color:var(--hover-border);color:var(--text);}
 .set-log-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
@@ -3843,7 +3848,7 @@ const STR = {
     logPerfTitle: "Log Your Performance",
     logPerfWeightLabel: "Top Set Weight (lb)",
     logPerfRepsLabel: "Reps Completed",
-    logPerfDistanceLabel: "Distance (mi)", logPerfNameLabel: "Workout name",
+    logPerfDistanceLabel: "Distance (mi)", logPerfNameLabel: "Workout name", renameExerciseTitle: "Rename this exercise", logSetsCount: "{n} sets",
     logPerfTimeLabel: "Total Time (h:m:s)",
     logPerfWorkoutTimeLabel: "Workout time (h:m:s)",
     logPerfWorkoutTimeNote: "Counting from when you started. Change it if it's off.",
@@ -4566,7 +4571,7 @@ const STR = {
     logPerfTitle: "Registra tu rendimiento",
     logPerfWeightLabel: "Peso de la serie máxima (lb)",
     logPerfRepsLabel: "Repeticiones completadas",
-    logPerfDistanceLabel: "Distancia (mi)", logPerfNameLabel: "Nombre del entrenamiento",
+    logPerfDistanceLabel: "Distancia (mi)", logPerfNameLabel: "Nombre del entrenamiento", renameExerciseTitle: "Cambiar el nombre del ejercicio", logSetsCount: "{n} series",
     logPerfTimeLabel: "Tiempo total (h:m:s)",
     logPerfWorkoutTimeLabel: "Tiempo del entrenamiento (h:m:s)",
     logPerfWorkoutTimeNote: "Cuenta desde que empezaste. Cámbialo si no es correcto.",
@@ -8973,10 +8978,22 @@ function refreshLogPerfRowState(rowEl, ex){
     });
   }
 }
+// "3 x 10" -- or, when the reps change from set to set, just "13 sets" (one rep count would be wrong).
 function updateLogPerfPrescriptionLabel(rowEl, ex){
   const label = rowEl.querySelector('.exercise-log-name span');
-  if(label) label.textContent = fmtExercisePrescription({...ex, sets: logPerfSetChecks[ex.key].length});
+  if(!label) return;
+  const n = logPerfSetChecks[ex.key].length;
+  const reps = [...rowEl.querySelectorAll('.set-log-row [data-field="reps"]')].map(i=> i.value.trim());
+  label.textContent = !ex.pyramid && ex.durationSec==null && new Set(reps).size>1
+    ? STR[state.lang].logSetsCount.replace('{n}', n)
+    : fmtExercisePrescription({...ex, sets: n});
 }
+let logPerfRowEx = {}; // {exerciseKey: the exercise}, for the rows in Log Performance
+document.getElementById('logPerfExercisesList').addEventListener('input', e=>{
+  if(e.target.getAttribute('data-field')!=='reps') return;
+  const rowEl = e.target.closest('.exercise-log-row'), ex = rowEl && logPerfRowEx[rowEl.getAttribute('data-exercise-key')];
+  if(ex && logPerfSetChecks[ex.key]) updateLogPerfPrescriptionLabel(rowEl, ex);
+});
 const LOG_PERF_MAX_SETS = 20;
 // The prescribed set count is just a starting suggestion -- the user might do one more, or cut a
 // set short, so it's editable live while the workout is being logged.
@@ -9186,16 +9203,19 @@ function renamableWorkout(t, resolved){
 }
 // The new name, wherever the workout lives. Its lifts' numbers come along (kept per workout -- see
 // ownLiftKey), so the same workout next time carries on under its new name.
+// A day's own workout (one the user made), changed in place -- just the workout, nothing about whether
+// it was done.
+function updateOwnSlot(key, change){
+  const idx = currentWeekIdxFor(key), log = state.dayLog[key];
+  const slot = idx>=0 ? state.week[idx] : log && log.session;
+  if(!slot || !slot.p) return;
+  slot.p = change(slot.p);
+  cloudSavePlannedSession(key, slot.p);
+}
 function renameWorkout(t, resolved, name){
   const old = resolved.session.en.title;
   const renamed = s=> ({...s, en:{...s.en, title:name}, es:{...s.es, title:name}});
-  const renameSlot = key=>{
-    const idx = currentWeekIdxFor(key), log = state.dayLog[key];
-    const slot = idx>=0 ? state.week[idx] : log && log.session;
-    if(!slot || !slot.p) return;
-    slot.p = renamed(slot.p);
-    cloudSavePlannedSession(key, slot.p);
-  };
+  const renameSlot = key=> updateOwnSlot(key, renamed);
   if(t.kind==='extra'){
     const w = resolved.record;
     w.session = renamed(w.session);
@@ -9212,6 +9232,33 @@ function renameWorkout(t, resolved, name){
     const was = state.progression[ownLiftKey(old, ex.key)];
     if(was && !state.progression[ownLiftKey(name, ex.key)]) saveExerciseTarget(ex.key, {...was}, name);
   });
+}
+// What a typed exercise name is: one of the app's lifts (in either language), with its own name, demo and
+// numbers -- or the user's own, by that name.
+function exerciseFromTyped(raw){
+  const low = raw.toLowerCase();
+  const known = Object.keys(EXERCISES).find(k=> [k, EXERCISES[k].en, EXERCISES[k].es].some(n=> String(n).toLowerCase()===low));
+  const def = known ? EXERCISES[known] : null;
+  return def ? {key: known, name: def.en, en: def.en, es: def.es} : {key: raw, name: raw};
+}
+// Exercises renamed in a workout of the user's own ({oldKey: exerciseFromTyped(...)}): the workout's list
+// takes the new names, and each lift's numbers in this workout come along. (Past workouts keep the names
+// they were logged with.)
+function renameExercises(t, resolved, renames){
+  const title = resolved.session.en.title;
+  Object.entries(renames).forEach(([from, to])=>{
+    const was = state.progression[ownLiftKey(title, from)];
+    if(was && !state.progression[ownLiftKey(title, to.key)]) saveExerciseTarget(to.key, {...was}, title);
+  });
+  if(t.kind==='entry' || !Array.isArray(resolved.session.exercises)) return;
+  const list = resolved.session.exercises.map(e=>{
+    const to = renames[e.key];
+    if(!to) return e;
+    const {en, es, ...rest} = e;
+    return {...rest, key: to.key, name: to.name, ...(to.en ? {en: to.en, es: to.es} : {})};
+  });
+  if(t.kind==='extra') setSessionExercises(t, list);
+  else updateOwnSlot(t.dayKey, p=> ({...p, exercises: list}));
 }
 // The Record button / Start Workout always open today's workout in 'record' mode.
 function openLogPerformance(extraId){
@@ -9251,6 +9298,7 @@ function openLogPerformanceFor(logTarget, mode){
   if(building){ fillExerciseNameList(); document.getElementById('logPerfAddExerciseInput').placeholder = STR[state.lang].liveAddPlaceholder; }
   const exercisesListEl = document.getElementById('logPerfExercisesList');
   logPerfSetChecks = {};
+  logPerfRowEx = {};
   logPerfSelectedKey = null;
   logPerfSupersets = {};
   if(exercises){
@@ -9285,9 +9333,13 @@ function openLogPerformanceFor(logTarget, mode){
           <button type="button" class="set-stepper-btn" data-step="-1" title="Remove a set">−</button>
           <button type="button" class="set-stepper-btn" data-step="1" title="Add a set">+</button>
         </span>`;
+      // Editing a workout of the user's own: each exercise's name can change too.
+      const renameBtn = canRename && !ex.fromPlan ? `<button type="button" class="ex-rename-btn" data-rename-ex title="${escapeHtml(STR[state.lang].renameExerciseTitle)}" aria-label="${escapeHtml(STR[state.lang].renameExerciseTitle)}">${ICONS.pencil}</button>` : '';
+      const renameBox = renameBtn ? `<input type="text" class="text-input ex-rename-input" data-rename-input maxlength="60" autocomplete="off" enterkeyhint="done" value="${escapeHtml(ex.name)}" hidden>` : '';
       if(ex.bodyweight){
         return `${ssHead}<div class="exercise-log-row bodyweight${ssLab ? ' ss-member' : ''}" data-exercise-key="${escapeHtml(ex.key)}">
-          <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}<span>${fmtExercisePrescription(shownEx)}</span>${stepperHtml}</div>
+          <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}${renameBtn}<span>${fmtExercisePrescription(shownEx)}</span>${stepperHtml}</div>
+          ${renameBox}
           <div class="set-check-row"></div>
         </div>`;
       }
@@ -9311,7 +9363,8 @@ function openLogPerformanceFor(logTarget, mode){
       }).join('');
       const removeHtml = building ? `<button type="button" class="live-remove" data-remove-ex title="${escapeHtml(STR[state.lang].liveRemoveTitle)}" aria-label="${escapeHtml(STR[state.lang].liveRemoveTitle)}">×</button>` : '';
       return `${ssHead}<div class="exercise-log-row${ssLab ? ' ss-member' : ''}" data-exercise-key="${escapeHtml(ex.key)}">
-        <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}<span>${fmtExercisePrescription(shownEx)}</span>${stepperHtml}${removeHtml}</div>
+        <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}${renameBtn}<span>${fmtExercisePrescription(shownEx)}</span>${stepperHtml}${removeHtml}</div>
+        ${renameBox}
         <div class="set-log-head" aria-hidden="true"><span>${escapeHtml(state.weightUnit)}</span><span>${escapeHtml(STR[state.lang].logRepsHead)}</span><span></span></div>
         <div class="set-rows">${setRows}</div>
         ${ex.pyramid ? `<div class="pyr-actions">
@@ -9338,6 +9391,18 @@ function openLogPerformanceFor(logTarget, mode){
         pyramidAction(rowEl, ex, btn.getAttribute('data-pyr'));
       }));
       refreshLogPerfRowState(rowEl, ex);
+      logPerfRowEx[ex.key] = ex;
+      if(!ex.bodyweight) updateLogPerfPrescriptionLabel(rowEl, ex);
+      const renameBtnEl = rowEl.querySelector('[data-rename-ex]'), renameBoxEl = rowEl.querySelector('[data-rename-input]');
+      if(renameBtnEl) renameBtnEl.addEventListener('click', e=>{
+        e.stopPropagation();
+        renameBoxEl.hidden = false;
+        renameBoxEl.focus(); renameBoxEl.select();
+      });
+      if(renameBoxEl){
+        renameBoxEl.addEventListener('click', e=> e.stopPropagation());
+        renameBoxEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); renameBoxEl.blur(); } });
+      }
       // Tapping anywhere on an exercise -- its name, sets, or the weight/reps fields -- picks it
       // as the one being worked on right now, regardless of what order the list shows.
       // (A finished exercise is folded to its name line; tapping that line opens it again, to fix a number.)
@@ -9508,14 +9573,11 @@ function addLiveExercise(){
   const t = state._logTarget, resolved = t && resolveLogTarget(t);
   if(!resolved) return;
   // One of the app's lifts (typed in either language) keeps its own name, demo and progression.
-  const low = raw.toLowerCase();
-  const known = Object.keys(EXERCISES).find(k=> [k, EXERCISES[k].en, EXERCISES[k].es].some(n=> String(n).toLowerCase()===low));
-  const key = known || raw;
+  const to = exerciseFromTyped(raw), key = to.key;
   const list = (resolved.session.exercises || []).slice();
   input.value = '';
   if(!list.some(e=>e.key===key)){
-    const def = known ? EXERCISES[known] : null;
-    list.push(def ? {key, name: def.en, en: def.en, es: def.es, sets: 1, reps: def.reps || 10} : {key, name: raw, sets: 1, reps: 10});
+    list.push({...to, sets: 1, reps: (EXERCISES[key] && EXERCISES[key].reps) || 10});
     saveLogPerfDraft();
     setSessionExercises(t, list);
     openLogPerformanceFor(t, 'record');
@@ -9608,13 +9670,31 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   const target = getProgressionTarget(eff, state.intensityIdx);
   const logged = {};
   const exercises = exercisesForSession(eff, parseDateKey(logTarget.dayKey));
+  // Exercises renamed (Edit, on a workout of the user's own). A name left empty, unchanged, or one
+  // another exercise here already has keeps the old one.
+  const exRenames = {};
+  if(exercises){
+    const taken = new Set(exercises.map(e=>e.key));
+    document.querySelectorAll('#logPerfExercisesList .exercise-log-row').forEach(row=>{
+      const box = row.querySelector('[data-rename-input]'), key = row.getAttribute('data-exercise-key');
+      const ex = exercises.find(e=>e.key===key);
+      const raw = box ? box.value.trim().replace(/\s+/g, ' ') : '';
+      if(!ex || !raw || raw===ex.name) return;
+      const to = exerciseFromTyped(raw);
+      if(to.key!==key && taken.has(to.key)) return;
+      taken.add(to.key);
+      exRenames[key] = to;
+    });
+  }
+  const loggedName = (key, ex)=>{ const to = exRenames[key]; return to ? (state.lang==='es' && to.es ? to.es : to.name) : ex.name; };
   if(exercises){
     logged.exercises = [...document.querySelectorAll('#logPerfExercisesList .exercise-log-row')].map(row=>{
-      const key = row.getAttribute('data-exercise-key');
-      const ex = exercises.find(e=>e.key===key);
+      const oldKey = row.getAttribute('data-exercise-key');
+      const ex = exercises.find(e=>e.key===oldKey);
+      const key = exRenames[oldKey] ? exRenames[oldKey].key : oldKey;
       if(ex.bodyweight){
         const actualSets = row.querySelectorAll('.set-check-dot').length;
-        return {key, name: ex.name, bodyweight:true, setCount: actualSets, reps: Number(ex.reps) || null, prescription: fmtExercisePrescription({...ex, sets: actualSets})};
+        return {key, name: loggedName(oldKey, ex), bodyweight:true, setCount: actualSets, reps: Number(ex.reps) || null, prescription: fmtExercisePrescription({...ex, sets: actualSets})};
       }
       const t = getExerciseTarget(ex, state.intensityIdx);
       const sets = [...row.querySelectorAll('.set-log-row')].map(setRow=>({
@@ -9629,7 +9709,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
       // they just did (shown on the workout, and where the next one starts), with no automatic jump.
       // (In a workout of their own, just in that workout -- see ownLiftKey.)
       if(!ex.fromPlan && top.weight>0) saveExerciseTarget(key, {...(liftTargetOf(ex)||{}), weight: top.weight, reps: top.reps}, ex.ownOf);
-      return {key, name: ex.name, weight: top.weight, reps: top.reps, sets, pyramid: !!ex.pyramid, own: !ex.fromPlan};
+      return {key, name: loggedName(oldKey, ex), weight: top.weight, reps: top.reps, sets, pyramid: !!ex.pyramid, own: !ex.fromPlan};
     });
   } else if(eff.t==='strength'){
     logged.weight = parseFloat(document.getElementById('logPerfWeightInput').value) || (target && target.weight) || 0;
@@ -9688,7 +9768,9 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   // A new name (left empty, it keeps the old one).
   const newName = !document.getElementById('logPerfNameSection').hidden ? document.getElementById('logPerfNameInput').value.trim().replace(/\s+/g, ' ') : '';
   const renamedTo = newName && newName!==ST(resolved.session).title ? newName : '';
-  if(renamedTo) renameWorkout(logTarget, resolved, renamedTo);
+  const renamedExercises = Object.keys(exRenames).length>0;
+  if(renamedExercises) renameExercises(logTarget, resolved, exRenames);
+  if(renamedTo) renameWorkout(logTarget, resolveLogTarget(logTarget) || resolved, renamedTo);
   storeLoggedPerformance(logTarget, resolved, logged);
   // Recording today's workout is still the full Record flow (streak, Summary, review, progression).
   // A revisit -- a past day, a logged entry, or reopening one that's already done to correct it --
@@ -9704,7 +9786,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   // Edited from its Summary: the Summary shows the new numbers.
   if(summaryView && sameLogTarget(summaryView.target, logTarget)){
     state._lastLogged = logged;
-    if(renamedTo){ const r = resolveLogTarget(logTarget); if(r) state._lastSession = r.session; }
+    if(renamedTo || renamedExercises){ const r = resolveLogTarget(logTarget); if(r) state._lastSession = r.session; }
     renderSummary();
   }
   showToast(STR[state.lang].workoutLoggedToast);

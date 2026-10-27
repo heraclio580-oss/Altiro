@@ -286,7 +286,7 @@ create table if not exists subscriptions (
   user_id uuid primary key references auth.users(id) on delete cascade,
   revenuecat_app_user_id text,
   entitlement text,                  -- e.g. 'pro'
-  status text,                       -- 'active' | 'trialing' | 'expired' | 'cancelled'
+  status text,                       -- 'active' | 'cancelled' (Pro until expires_at) | 'billing_issue' | 'expired' | 'lifetime' (given by hand)
   product_id text,
   store text,                        -- 'app_store' | 'play_store' | 'stripe'
   expires_at timestamptz,

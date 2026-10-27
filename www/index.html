@@ -897,6 +897,32 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .accent-swatch{display:flex;align-items:center;gap:7px;min-height:38px;padding:0 12px;border-radius:var(--r-pill);border:1px solid var(--divider);background:var(--card);color:var(--text-2);font-family:var(--font-body);font-size:calc(13px * var(--fs, 1));cursor:pointer;}
 .accent-swatch .dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
 .accent-swatch.on{border-color:var(--accent);color:var(--text);font-weight:600;box-shadow:0 0 0 1px var(--accent) inset;}
+/* Altiro Pro: Settings, and the paywall */
+.pro-status{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:12px 13px;}
+.pro-status-text{min-width:0;}
+.pro-status-btn{width:auto;height:34px;padding:0 14px;font-size:calc(12px * var(--fs, 1));flex-shrink:0;}
+.pro-status-btn[hidden],.pro-links [hidden]{display:none;}
+.pro-links{display:flex;gap:16px;flex-wrap:wrap;}
+.paywall-why{margin:4px 0 0;color:var(--text-2);font-size:calc(13px * var(--fs, 1));}
+.paywall-why[hidden],.paywall-note[hidden],.paywall-error[hidden],.paywall-restore[hidden],.delete-sub-note[hidden]{display:none;}
+.paywall-perks{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:9px;}
+.paywall-perks li{position:relative;padding-left:24px;font-size:calc(13.5px * var(--fs, 1));color:var(--text);}
+.paywall-perks li::before{content:"";position:absolute;left:3px;top:4px;width:6px;height:11px;border:solid var(--ok-icon);border-width:0 2px 2px 0;transform:rotate(45deg);}
+.paywall-plans{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0 14px;}
+.paywall-plan{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:12px 13px;border-radius:var(--r-lg);background:var(--well);border:1.5px solid var(--divider);color:var(--text);cursor:pointer;font-family:var(--font-body);min-width:0;}
+.paywall-plan[aria-checked="true"]{border-color:var(--accent);background:var(--accent-tint);}
+.paywall-plan:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.pp-top{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;}
+.pp-name{font-family:var(--font-mono);font-size:calc(10.5px * var(--fs, 1));letter-spacing:0.08em;text-transform:uppercase;color:var(--text-2);}
+.pp-save{font-family:var(--font-mono);font-size:calc(9.5px * var(--fs, 1));letter-spacing:0.04em;color:var(--on-accent, #fff);background:var(--accent);border-radius:999px;padding:2px 7px;white-space:nowrap;}
+.pp-save:empty{display:none;}
+.pp-price{font-family:var(--font-display);font-weight:700;font-size:calc(19px * var(--fs, 1));}
+.pp-sub{font-size:calc(11px * var(--fs, 1));color:var(--text-3);}
+.paywall-note{margin:10px 0 0;font-size:calc(12.5px * var(--fs, 1));color:var(--text-2);text-align:center;}
+.paywall-error{margin:10px 0 0;font-size:calc(12.5px * var(--fs, 1));color:var(--accent);text-align:center;}
+.paywall-restore{display:block;margin:10px auto 0;}
+.paywall-fine{margin:14px 0 0;font-size:calc(10.5px * var(--fs, 1));line-height:1.5;color:var(--text-3);}
+.paywall .legal-links{justify-content:center;}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:12px 13px;}
 .toggle-row .tt{font-size:calc(13px * var(--fs, 1));color:var(--text);font-weight:500;}
 .option-list.dimmed{opacity:0.4;}
@@ -2135,6 +2161,22 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
 
+      <!-- Altiro Pro: what this account has, and where to manage it (see renderProSettings). -->
+      <div class="sheet-section" id="proSection" hidden>
+        <div class="st-label" data-i18n="proSettingsLabel"></div>
+        <div class="pro-status">
+          <div class="pro-status-text">
+            <div class="tt" id="proStatusTitle"></div>
+            <div class="ts" id="proStatusSub"></div>
+          </div>
+          <button class="btn btn-ghost pro-status-btn" id="proStatusBtn" type="button" hidden></button>
+        </div>
+        <div class="pro-links">
+          <a class="settings-link" id="proManageLink" href="#" target="_blank" rel="noopener" data-i18n="proManageLink" hidden></a>
+          <button class="btn-text settings-link" id="proRestoreBtn" type="button" data-i18n="paywallRestore" hidden></button>
+        </div>
+      </div>
+
       <!-- A tester account only: see the app as a free account would (see freePreviewOn). -->
       <div class="sheet-section" id="freePreviewSection" hidden>
         <div class="st-label" data-i18n="testingLabel"></div>
@@ -2320,6 +2362,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
       <div class="sheet-section">
         <p class="fb-sub" style="margin-top:0;" data-i18n="deleteAccountWhat"></p>
+        <p class="fb-sub delete-sub-note" id="deleteAccountSubNote" data-i18n="deleteAccountSubNote" hidden></p>
         <p class="fb-sub" data-i18n="deleteAccountForever"></p>
       </div>
       <div class="sheet-section">
@@ -2372,6 +2415,43 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="btn btn-ghost" id="badgeSeeAllBtn" type="button" data-i18n="badgeSeeAll"></button>
         <button class="btn btn-primary" id="badgeDoneBtn" type="button"></button>
       </div>
+    </div>
+  </div>
+  <!-- Altiro Pro: what it adds, the two plans, and buying it through the phone's store (see openPaywall) -->
+  <div class="sheet-overlay" id="paywallOverlay" hidden>
+    <div class="sheet-panel paywall">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <span class="label" data-i18n="paywallTitle"></span>
+        <button class="iconbtn" id="closePaywall" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <p class="paywall-why" id="paywallWhy" hidden></p>
+      <ul class="paywall-perks">
+        <li data-i18n="paywallPerk1"></li>
+        <li data-i18n="paywallPerk2"></li>
+        <li data-i18n="paywallPerk3"></li>
+        <li data-i18n="paywallPerk4"></li>
+        <li data-i18n="paywallPerk5"></li>
+      </ul>
+      <div class="paywall-plans" role="radiogroup">
+        <button type="button" class="paywall-plan" data-plan="yearly" role="radio">
+          <span class="pp-top"><span class="pp-name" data-i18n="paywallYearly"></span><span class="pp-save" id="paywallSave"></span></span>
+          <span class="pp-price" id="paywallYearlyPrice"></span>
+          <span class="pp-sub" id="paywallYearlySub"></span>
+        </button>
+        <button type="button" class="paywall-plan" data-plan="monthly" role="radio">
+          <span class="pp-top"><span class="pp-name" data-i18n="paywallMonthly"></span></span>
+          <span class="pp-price" id="paywallMonthlyPrice"></span>
+          <span class="pp-sub" data-i18n="paywallMonthlySub"></span>
+        </button>
+      </div>
+      <button class="btn btn-primary" id="paywallBuyBtn" type="button"></button>
+      <p class="paywall-note" id="paywallNote" hidden></p>
+      <p class="paywall-error" id="paywallError" hidden></p>
+      <button class="btn-text paywall-restore" id="paywallRestoreBtn" type="button" data-i18n="paywallRestore" hidden></button>
+      <p class="paywall-fine" id="paywallFine"></p>
+      <div class="legal-links"><a class="settings-link terms-link" href="terms.html" target="_blank" rel="noopener" data-i18n="termsLink"></a><span>·</span><a class="settings-link" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a></div>
+      <p class="footer-note" id="paywallPreviewNote" data-i18n="proSheetPreviewNote" hidden></p>
     </div>
   </div>
   <div class="sheet-overlay" id="termOverlay" hidden>
@@ -4094,6 +4174,32 @@ const STR = {
     saveFailedBar: "Your last change didn't save. Check your connection, then do it again.",
     textSizeLabel: "Text size", textSizeNote: "Makes the words in Altiro bigger on this device.",
     testingLabel: "Testing", freePreviewTitle: "Preview free version", freePreviewSub: "See Altiro as a free account would. Only changes what's shown: turn it off to go back to everything.",
+    paywallTitle: "Altiro Pro",
+    paywallPerk1: "A personalized plan built around your goal, days and equipment",
+    paywallPerk2: "Paces and weights that move up every week, with easier weeks to recover",
+    paywallPerk3: "Adjust your plan anytime, and plan around your classes",
+    paywallPerk4: "Your full progress history, all-time charts and personal records",
+    paywallPerk5: "Voice updates during GPS runs",
+    paywallYearly: "Yearly", paywallMonthly: "Monthly", paywallSave: "Save {n}%",
+    paywallYearlySub: "{m} a month, billed yearly", paywallMonthlySub: "Billed monthly",
+    paywallBuyYearly: "Subscribe for {p} a year", paywallBuyMonthly: "Subscribe for {p} a month", paywallBuying: "Opening the store…",
+    paywallRestore: "Restore purchases",
+    paywallWebNote: "Subscribe in the Altiro app on your iPhone or Android phone. Pro then works here too, with the same account.",
+    paywallNotReady: "Subscriptions aren't open yet. Check back soon.",
+    paywallBuyFailed: "The purchase didn't go through. Nothing was charged. Try again in a moment.",
+    paywallRestoreNone: "No Altiro Pro subscription was found for this store account.",
+    paywallWelcomeToast: "Welcome to Altiro Pro", paywallRestoredToast: "Altiro Pro restored",
+    paywallTrialEnded: "Your free week of Pro has ended. Your workouts and history are all still here; your plan and its progression are part of Pro.",
+    paywallFine: "Payment is charged to your {store} account. The subscription renews automatically unless you cancel it at least 24 hours before the end of the period. Manage or cancel it anytime in your {store} settings.",
+    paywallStoreBoth: "App Store or Google Play",
+    proSettingsLabel: "Altiro Pro",
+    proStatusEarly: "Pro, free for life", proStatusEarlySub: "Thanks for joining before Pro launched.",
+    proStatusGrant: "Pro, free for life", proStatusGrantSub: "Given to your account by the Altiro team.",
+    proStatusTrial: "Free trial: {n} days left", proStatusTrialLast: "Free trial: last day", proStatusTrialSub: "Ends {date}. Your workouts stay yours either way.",
+    proStatusRenews: "Pro, renews {date}", proStatusEnds: "Pro until {date}", proStatusPaidSub: "Billed through {store}.",
+    proStatusLifetime: "Pro, for life", proStatusFree: "Free plan", proStatusFreeSub: "Logging, GPS runs and your own workouts are free. Your plan and its progression are part of Pro.",
+    proSeePlans: "See plans", proGetPro: "Get Pro", proManageLink: "Manage subscription",
+    deleteAccountSubNote: "Deleting your account doesn't cancel your Altiro Pro subscription. Cancel it first in your App Store or Google Play settings.",
     proSheetTitle: "Part of Altiro Pro", proSheetPreviewNote: "(You're previewing the free version: turn it off in Settings -> Testing.)",
     proUnlockPlan: "Unlock your plan", proLearnMore: "Learn more",
     proWhy_plan: "Your personalized plan -- built around your goal, days and equipment, with paces and weights that progress each week -- is part of Pro. Your own workouts, logging and GPS runs stay free.",
@@ -4817,6 +4923,32 @@ const STR = {
     saveFailedBar: "Tu último cambio no se guardó. Revisa tu conexión y vuelve a hacerlo.",
     textSizeLabel: "Tamaño del texto", textSizeNote: "Agranda las letras de Altiro en este dispositivo.",
     testingLabel: "Pruebas", freePreviewTitle: "Ver la versión gratuita", freePreviewSub: "Mira Altiro como lo vería una cuenta gratuita. Solo cambia lo que se muestra: desactívalo para volver a tenerlo todo.",
+    paywallTitle: "Altiro Pro",
+    paywallPerk1: "Un plan personalizado según tu objetivo, tus días y tu equipo",
+    paywallPerk2: "Ritmos y pesos que suben cada semana, con semanas más suaves para recuperarte",
+    paywallPerk3: "Ajusta tu plan cuando quieras y planifica alrededor de tus clases",
+    paywallPerk4: "Todo tu historial de progreso, gráficos históricos y marcas personales",
+    paywallPerk5: "Avisos de voz durante las carreras con GPS",
+    paywallYearly: "Anual", paywallMonthly: "Mensual", paywallSave: "Ahorra {n}%",
+    paywallYearlySub: "{m} al mes, cobro anual", paywallMonthlySub: "Cobro mensual",
+    paywallBuyYearly: "Suscribirse por {p} al año", paywallBuyMonthly: "Suscribirse por {p} al mes", paywallBuying: "Abriendo la tienda…",
+    paywallRestore: "Restaurar compras",
+    paywallWebNote: "Suscríbete en la app de Altiro en tu iPhone o Android. Después Pro también funciona aquí, con la misma cuenta.",
+    paywallNotReady: "Las suscripciones aún no están abiertas. Vuelve pronto.",
+    paywallBuyFailed: "La compra no se completó. No se cobró nada. Inténtalo de nuevo en un momento.",
+    paywallRestoreNone: "No se encontró una suscripción a Altiro Pro en esta cuenta de la tienda.",
+    paywallWelcomeToast: "Bienvenido a Altiro Pro", paywallRestoredToast: "Altiro Pro restaurado",
+    paywallTrialEnded: "Tu semana gratis de Pro terminó. Tus entrenamientos y tu historial siguen aquí; tu plan y su progresión son parte de Pro.",
+    paywallFine: "El pago se cobra en tu cuenta de {store}. La suscripción se renueva automáticamente a menos que la canceles al menos 24 horas antes del final del periodo. Adminístrala o cancélala cuando quieras en los ajustes de {store}.",
+    paywallStoreBoth: "App Store o Google Play",
+    proSettingsLabel: "Altiro Pro",
+    proStatusEarly: "Pro, gratis de por vida", proStatusEarlySub: "Gracias por unirte antes del lanzamiento de Pro.",
+    proStatusGrant: "Pro, gratis de por vida", proStatusGrantSub: "Otorgado a tu cuenta por el equipo de Altiro.",
+    proStatusTrial: "Prueba gratis: quedan {n} días", proStatusTrialLast: "Prueba gratis: último día", proStatusTrialSub: "Termina el {date}. Tus entrenamientos siguen siendo tuyos de todos modos.",
+    proStatusRenews: "Pro, se renueva el {date}", proStatusEnds: "Pro hasta el {date}", proStatusPaidSub: "Cobrado a través de {store}.",
+    proStatusLifetime: "Pro, de por vida", proStatusFree: "Plan gratuito", proStatusFreeSub: "Registrar, correr con GPS y tus propios entrenamientos son gratis. Tu plan y su progresión son parte de Pro.",
+    proSeePlans: "Ver planes", proGetPro: "Obtener Pro", proManageLink: "Administrar suscripción",
+    deleteAccountSubNote: "Eliminar tu cuenta no cancela tu suscripción a Altiro Pro. Cancélala primero en los ajustes de App Store o Google Play.",
     proSheetTitle: "Parte de Altiro Pro", proSheetPreviewNote: "(Estás viendo la versión gratuita: desactívala en Ajustes -> Pruebas.)",
     proUnlockPlan: "Desbloquea tu plan", proLearnMore: "Más información",
     proWhy_plan: "Tu plan personalizado -- hecho a partir de tu objetivo, días y equipo, con ritmos y pesos que progresan cada semana -- es parte de Pro. Tus propios entrenamientos, el registro y las carreras con GPS siguen siendo gratis.",
@@ -5844,17 +5976,28 @@ function generatedWeek(cfg, n){
   return planWeekCache.get(key);
 }
 function planWeekFor(date){ return generatedWeek(planConfig(), planWeekIndex(date)); }
-/* ---------------- free / Pro (a preview, for testing) ---------------- */
-// Everyone is Pro for now -- nothing is sold yet. A tester account (profiles.tester, set in Supabase) can
-// switch on "Preview free version" in Settings to see the app as a free account would: no generated
-// plan from today on, no Adjust, no suggested targets, 4 weeks of Progress, no personal records, no
-// voice cues. It only changes what's shown -- nothing saved is touched. (Kept on this device.)
+/* ---------------- free / Pro ---------------- */
+// Pro: an account made before Pro went live in the stores (PRO_LAUNCH_AT -- unset, it hasn't yet, so
+// every account is), one in its first week, or one with a subscription or a lifetime grant (state.pro,
+// see computePro). Until that's known -- not signed in, or still loading -- the app is all there. Free
+// is what a free account sees: no generated plan from today on, no Adjust, no suggested targets, 4 weeks
+// of Progress, no personal records, no voice cues. It only changes what's shown -- nothing saved is
+// touched. A tester account (profiles.tester, set in Supabase) can switch on "Preview free version" in
+// Settings to see that whatever it has. (Kept on this device.)
+// The day Pro goes live in the stores, e.g. '2026-12-01'. (Tests set window.__ALTIRO_TEST_PRO_LAUNCH__.)
+const PRO_LAUNCH_AT = ((typeof window!=='undefined') && window.__ALTIRO_TEST_PRO_LAUNCH__) || null;
+const PRO_TRIAL_DAYS = 7;
 const FREE_PREVIEW_KEY = 'altiro_free_preview';
 function freePreviewOn(){
   if(!state.tester || !state.userId) return false;
   try{ return localStorage.getItem(FREE_PREVIEW_KEY+'_'+state.userId)==='1'; }catch(e){ return false; }
 }
-const isPro = () => !freePreviewOn();
+function proActive(){
+  const p = state.pro;
+  if(!state.userId || !p) return true;
+  return !!p.lifetime || (!!p.until && Date.now() < p.until);
+}
+const isPro = () => !freePreviewOn() && proActive();
 // No generated plan: their own workouts (or, previewing free, no plan to make them).
 const ownMode = () => !!state.ownWorkouts || !isPro();
 // The generated session for a date, as a fresh copy (callers may edit it).
@@ -8068,6 +8211,7 @@ function resetToWelcome(){
   const lang = state.lang, theme = state.theme, accent = state.accent;
   state = defaultState();
   state.lang = lang; state.theme = theme; state.accent = accent;
+  forgetProStatus();
   strava = {connected:false, athleteName:'', status:'idle', lastSyncAt:0};
   signedInLoad = null;
   resetBadgeChecks();
@@ -10734,12 +10878,240 @@ function renderFreePreviewSetting(){
   sec.hidden = !state.tester;
   document.getElementById('freePreviewToggle').classList.toggle('on', freePreviewOn());
 }
-// "Part of Altiro Pro": what a free account sees where a Pro feature would be.
-function openProSheet(feature){
+/* ---------------- Altiro Pro: status, the paywall, and buying it ---------------- */
+// What decides Pro (state.pro, read by proActive): when the account was made -- before Pro launched, Pro
+// for life; after, a week free -- its row in `subscriptions` (kept up to date by the RevenueCat webhook,
+// or a lifetime grant given by hand), and, in the store app, what RevenueCat says right now, so a
+// purchase counts before its webhook arrives. Null while unknown: the app is all there until then.
+let proUser = null, proSub = null, proRc = null;
+function computePro(user, sub, rc){
+  const created = Date.parse((user && user.created_at) || '');
+  if(!created) return null;
+  if(!PRO_LAUNCH_AT || created < Date.parse(PRO_LAUNCH_AT)) return {source:'early', lifetime:true};
+  if(sub && sub.status==='lifetime') return {source:'grant', lifetime:true};
+  if(rc && rc.lifetime) return {source:'paid', lifetime:true, store: rc.store, manageUrl: rc.manageUrl};
+  const now = Date.now(), trialEnds = created + PRO_TRIAL_DAYS*86400000;
+  const subUntil = sub && sub.expires_at ? Date.parse(sub.expires_at) || 0 : 0;
+  const paidUntil = Math.max(subUntil, (rc && rc.until) || 0);
+  const paid = paidUntil > now;
+  return {
+    source: paid ? 'paid' : now < trialEnds ? 'trial' : 'free', lifetime: false,
+    until: Math.max(trialEnds, paidUntil), trialEnds,
+    willRenew: rc ? !!rc.willRenew : !!(sub && sub.status==='active'),
+    store: (rc && rc.store) || (sub && sub.store) || null, manageUrl: (rc && rc.manageUrl) || null,
+  };
+}
+// (Re)decides Pro; going between free and Pro, the days still to come follow the plan again, or don't.
+function refreshPro(){
+  const before = isPro();
+  state.pro = computePro(proUser, proSub, proRc);
+  if(isPro()!==before){
+    state.week = regenerateUpcomingWeek();
+    state.doneCount = computeDoneCount();
+    refreshViews();
+  }
+  renderProSettings();
+  maybeShowTrialEnded();
+}
+// Called once the account's data is in (enterSignedIn).
+async function loadProStatus(){
+  const uid = state.userId;
+  let sub = null;
+  try{
+    const { data } = await sb.from('subscriptions').select('status, expires_at, product_id, store').eq('user_id', uid).maybeSingle();
+    sub = data || null;
+  }catch(e){}
+  if(state.userId!==uid) return;
+  proSub = sub;
+  refreshPro();
+  rcCustomerInfo().then(ci=>{ if(ci && state.userId===uid){ proRc = proFromCustomerInfo(ci); refreshPro(); } });
+}
+function forgetProStatus(){ proUser = proSub = proRc = null; state.pro = null; }
+// Once, on the first visit after the free week ends: what's changed, and the plans.
+function maybeShowTrialEnded(){
+  const p = state.pro;
+  if(!p || p.source!=='free' || freePreviewOn() || !state.userId) return;
+  const key = 'altiro_trial_ended_seen_' + state.userId;
+  try{ if(localStorage.getItem(key)) return; localStorage.setItem(key, '1'); }catch(e){ return; }
+  setTimeout(()=> openPaywall('trialEnded'), 600);
+}
+
+// RevenueCat, in the store app: it runs the App Store and Google Play subscriptions. Its public SDK keys
+// (RevenueCat -> Project -> API keys) go here: goog_... for Google Play, appl_... for the App Store --
+// they're meant to be in the app. Empty, subscriptions aren't open yet. See docs/pro-setup.md.
+const REVENUECAT_KEYS = window.__ALTIRO_TEST_RC_KEYS__ || {android: '', ios: ''}; // (tests set their own)
+const PRO_ENTITLEMENT = 'pro';
+const PRO_PRICES = {yearly: {text: '$49.99', amount: 49.99}, monthly: {text: '$7.99', amount: 7.99}, currency: 'USD'}; // until the store's own prices load
+function rcPlugin(){
+  if(!isNativeShell()) return null;
+  const P = window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
+  const platform = window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : '';
+  const key = REVENUECAT_KEYS[platform];
+  return P && key ? {P, key} : null;
+}
+// Signed in to RevenueCat as the Supabase user, so a purchase belongs to the Altiro account (and the
+// webhook can find it).
+let rcUser = null;
+async function rcReady(){
+  const rc = rcPlugin();
+  if(!rc || !state.userId) return null;
+  try{
+    if(rcUser===null) await rc.P.configure({apiKey: rc.key, appUserID: state.userId});
+    else if(rcUser!==state.userId) await rc.P.logIn({appUserID: state.userId});
+    rcUser = state.userId;
+    return rc.P;
+  }catch(e){ return null; }
+}
+const ciOf = r => r && (r.customerInfo || r);
+async function rcCustomerInfo(){
+  const P = await rcReady();
+  if(!P) return null;
+  try{ return ciOf(await P.getCustomerInfo()); }catch(e){ return null; }
+}
+function proFromCustomerInfo(ci){
+  const e = ci && ci.entitlements && ci.entitlements.active && ci.entitlements.active[PRO_ENTITLEMENT];
+  if(!e) return null;
+  return {until: e.expirationDate ? Date.parse(e.expirationDate) || 0 : 0, lifetime: !e.expirationDate, willRenew: !!e.willRenew,
+    store: e.store ? String(e.store).toLowerCase() : null, manageUrl: ci.managementURL || null};
+}
+function storeName(){
+  const L = STR[state.lang], p = isNativeShell() && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : '';
+  return p==='ios' ? 'App Store' : p==='android' ? 'Google Play' : L.paywallStoreBoth;
+}
+function fmtMoney(amount, currency){
+  try{ return new Intl.NumberFormat(state.lang==='es' ? 'es-MX' : 'en-US', {style:'currency', currency: currency || 'USD'}).format(amount); }catch(e){ return '$' + amount.toFixed(2); }
+}
+
+// The paywall: what Pro adds, the yearly and monthly plans (yearly picked), and buying through the
+// phone's store. On the website it can't be bought: it says to subscribe in the app.
+let paywallPkgs = null, paywallLoaded = false, paywallPlan = 'yearly', paywallBusy = false;
+function openProSheet(feature){ openPaywall(feature); }
+async function openPaywall(feature){
   const L = STR[state.lang];
-  document.getElementById('termTitle').textContent = L.proSheetTitle;
-  document.getElementById('termText').textContent = (L['proWhy_'+feature] || L.proWhy_plan) + ' ' + L.proSheetPreviewNote;
-  document.getElementById('termOverlay').hidden = false;
+  const why = feature==='trialEnded' ? L.paywallTrialEnded : feature ? L['proWhy_'+feature] : '';
+  const whyEl = document.getElementById('paywallWhy');
+  whyEl.textContent = why || '';
+  whyEl.hidden = !why;
+  document.getElementById('paywallPreviewNote').hidden = !freePreviewOn();
+  document.getElementById('paywallError').hidden = true;
+  paywallPlan = 'yearly';
+  renderPaywall();
+  document.getElementById('paywallOverlay').hidden = false;
+  const P = await rcReady();
+  if(!P || paywallPkgs){ paywallLoaded = true; renderPaywall(); return; }
+  try{
+    const off = await P.getOfferings();
+    const cur = off && (off.current || (off.offerings && off.offerings.current));
+    const all = (cur && cur.availablePackages) || [];
+    const pick = type => (cur && cur[type==='ANNUAL' ? 'annual' : 'monthly']) || all.find(p=> p.packageType===type) || null;
+    const yearly = pick('ANNUAL'), monthly = pick('MONTHLY');
+    if(yearly || monthly) paywallPkgs = {yearly, monthly};
+  }catch(e){}
+  paywallLoaded = true;
+  renderPaywall();
+}
+function closePaywall(){ document.getElementById('paywallOverlay').hidden = true; }
+function paywallPrice(plan){
+  const pkg = paywallPkgs && paywallPkgs[plan], prod = pkg && pkg.product;
+  if(prod && prod.priceString) return {text: prod.priceString, amount: Number(prod.price) || null, currency: prod.currencyCode || null};
+  return {...PRO_PRICES[plan], currency: PRO_PRICES.currency};
+}
+function renderPaywall(){
+  const L = STR[state.lang];
+  const y = paywallPrice('yearly'), m = paywallPrice('monthly');
+  document.getElementById('paywallYearlyPrice').textContent = y.text;
+  document.getElementById('paywallMonthlyPrice').textContent = m.text;
+  const perMonth = y.amount ? fmtMoney(y.amount/12, y.currency) : '';
+  document.getElementById('paywallYearlySub').textContent = perMonth ? L.paywallYearlySub.replace('{m}', perMonth) : '';
+  const save = y.amount && m.amount ? Math.round((1 - y.amount/(m.amount*12))*100) : 0;
+  document.getElementById('paywallSave').textContent = save>0 ? L.paywallSave.replace('{n}', save) : '';
+  document.querySelectorAll('#paywallOverlay .paywall-plan').forEach(b=> b.setAttribute('aria-checked', String(b.dataset.plan===paywallPlan)));
+  const canBuy = !!rcPlugin(), store = isNativeShell();
+  const pkg = paywallPkgs && paywallPkgs[paywallPlan];
+  const btn = document.getElementById('paywallBuyBtn');
+  btn.textContent = paywallBusy ? L.paywallBuying : (paywallPlan==='yearly' ? L.paywallBuyYearly : L.paywallBuyMonthly).replace('{p}', (paywallPlan==='yearly' ? y : m).text);
+  btn.disabled = paywallBusy || !canBuy || !pkg;
+  const note = document.getElementById('paywallNote');
+  // (The website can't sell it; the store app can once RevenueCat is set up and has the plans.)
+  note.textContent = !store ? L.paywallWebNote : !canBuy || (paywallLoaded && !paywallPkgs) ? L.paywallNotReady : '';
+  note.hidden = !note.textContent;
+  document.getElementById('paywallRestoreBtn').hidden = !canBuy;
+  document.getElementById('paywallFine').textContent = L.paywallFine.replace(/\{store\}/g, storeName());
+}
+async function buyPro(){
+  const L = STR[state.lang];
+  const pkg = paywallPkgs && paywallPkgs[paywallPlan];
+  if(paywallBusy || !pkg) return;
+  const P = await rcReady();
+  if(!P) return;
+  paywallBusy = true;
+  document.getElementById('paywallError').hidden = true;
+  renderPaywall();
+  try{
+    proRc = proFromCustomerInfo(ciOf(await P.purchasePackage({aPackage: pkg})));
+    refreshPro();
+    if(proRc){ closePaywall(); showToast(L.paywallWelcomeToast); }
+  }catch(e){
+    // Backing out of the store's sheet isn't a failure.
+    if(!(e && (e.userCancelled || String(e.code)==='1'))){
+      const err = document.getElementById('paywallError');
+      err.textContent = L.paywallBuyFailed; err.hidden = false;
+    }
+  }
+  paywallBusy = false;
+  renderPaywall();
+}
+async function restorePro(){
+  const L = STR[state.lang];
+  const P = await rcReady();
+  if(!P) return;
+  try{
+    proRc = proFromCustomerInfo(ciOf(await P.restorePurchases()));
+    refreshPro();
+    if(proRc){ closePaywall(); showToast(L.paywallRestoredToast); }
+    else showToast(L.paywallRestoreNone);
+  }catch(e){ showToast(L.paywallRestoreNone); }
+}
+document.getElementById('closePaywall').addEventListener('click', closePaywall);
+document.getElementById('paywallOverlay').addEventListener('click', e=>{ if(e.target.id==='paywallOverlay') closePaywall(); });
+document.querySelectorAll('#paywallOverlay .paywall-plan').forEach(b=> b.addEventListener('click', ()=>{ paywallPlan = b.dataset.plan; renderPaywall(); }));
+document.getElementById('paywallBuyBtn').addEventListener('click', buyPro);
+document.getElementById('paywallRestoreBtn').addEventListener('click', restorePro);
+document.getElementById('proRestoreBtn').addEventListener('click', restorePro);
+document.getElementById('proStatusBtn').addEventListener('click', ()=> openPaywall());
+
+// Settings -> Altiro Pro: what this account has. Shown once Pro has launched (and to testers before).
+function renderProSettings(){
+  const sec = document.getElementById('proSection');
+  if(!sec) return;
+  const p = state.pro, L = STR[state.lang];
+  sec.hidden = !state.signedIn || !p || !(PRO_LAUNCH_AT || state.tester);
+  if(sec.hidden) return;
+  const day = ms => new Date(ms).toLocaleDateString(state.lang==='es' ? 'es-MX' : 'en-US', {month:'short', day:'numeric', year:'numeric'});
+  let title = '', sub = '', btn = '';
+  if(p.source==='early'){ title = L.proStatusEarly; sub = L.proStatusEarlySub; }
+  else if(p.source==='grant'){ title = L.proStatusGrant; sub = L.proStatusGrantSub; }
+  else if(p.source==='trial'){
+    const left = Math.ceil((p.trialEnds - Date.now())/86400000);
+    title = left<=1 ? L.proStatusTrialLast : L.proStatusTrial.replace('{n}', left);
+    sub = L.proStatusTrialSub.replace('{date}', day(p.trialEnds));
+    btn = L.proSeePlans;
+  } else if(p.source==='paid'){
+    title = p.lifetime ? L.proStatusLifetime : (p.willRenew ? L.proStatusRenews : L.proStatusEnds).replace('{date}', day(p.until));
+    const st = p.store==='app_store' ? 'App Store' : p.store==='play_store' ? 'Google Play' : '';
+    sub = st ? L.proStatusPaidSub.replace('{store}', st) : '';
+  } else { title = L.proStatusFree; sub = L.proStatusFreeSub; btn = L.proGetPro; }
+  document.getElementById('proStatusTitle').textContent = title;
+  document.getElementById('proStatusSub').textContent = sub;
+  const b = document.getElementById('proStatusBtn');
+  b.textContent = btn; b.hidden = !btn;
+  const manage = document.getElementById('proManageLink');
+  const platform = isNativeShell() && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : '';
+  const url = p.manageUrl || (p.store==='app_store' || platform==='ios' ? 'https://apps.apple.com/account/subscriptions'
+    : 'https://play.google.com/store/account/subscriptions?package=com.altiro.app');
+  manage.hidden = p.source!=='paid' || p.lifetime;
+  manage.href = url;
+  document.getElementById('proRestoreBtn').hidden = !rcPlugin() || p.source==='paid' || p.source==='early' || p.source==='grant';
 }
 document.addEventListener('click', e=>{
   const b = e.target.closest && e.target.closest('[data-pro]');
@@ -13042,6 +13414,7 @@ document.getElementById('freePreviewToggle').addEventListener('click', ()=> setF
 document.getElementById('freePreviewToggle').addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); setFreePreview(!freePreviewOn()); } });
 function renderSettings(){
   renderFreePreviewSetting();
+  renderProSettings();
   document.getElementById('deleteAccountBtn').hidden = !state.signedIn;
   document.getElementById('profileAvatar').textContent = state.userName.charAt(0);
   document.getElementById('profileName').textContent = state.userName;
@@ -13117,6 +13490,7 @@ function openDeleteAccount(){
   input.value = '';
   input.placeholder = deleteAccountWord();
   document.getElementById('deleteAccountError').hidden = true;
+  document.getElementById('deleteAccountSubNote').hidden = !(state.pro && state.pro.source==='paid');
   const btn = document.getElementById('confirmDeleteAccount');
   btn.disabled = true;
   btn.textContent = L.deleteAccountConfirmBtn;
@@ -16783,6 +17157,7 @@ let signingUp = false;
 function setSignedInUser(user){
   if(state.userId!==user.id){ resetBadgeChecks(); state.badges = null; state.joinedOn = null; }
   state.signedIn = true;
+  proUser = user; proSub = null; proRc = null; state.pro = null; // (decided once the account's data is in)
   state.userEmail = user.email || '';
   state.userName = (user.email || '').split('@')[0]; // replaced by the profile's real name, if there is one
   state.userId = user.id;
@@ -16795,6 +17170,7 @@ function enterSignedIn(user){
     applyPendingSignup(user, profile);
     await Promise.all([loadWorkoutDataFromCloud(), loadPRsFromCloud(), loadBodyWeightsFromCloud()]);
     await loadReminderSettings();
+    await loadProStatus();
     applyLang();
     // Straight to Home, not the "Building your plan" loading screen -- that screen's animation ends
     // by regenerating state.week from scratch, which would wipe out the planned/logged workouts just
@@ -16869,6 +17245,7 @@ sb.auth.onAuthStateChange((event, session)=>{
   if(event==='SIGNED_OUT'){
     state.signedIn = false;
     state.userId = null;
+    forgetProStatus();
     signedInLoad = null;
     resetBadgeChecks();
   }

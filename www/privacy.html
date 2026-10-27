@@ -55,6 +55,9 @@ a{color:var(--text);text-underline-offset:3px;}
       range, gender and body weight.</li>
     <li><b>Your training:</b> the workouts in your plan and any you create, what you log (distances, times,
       sets, weights, reps, notes, how a workout felt), your lift targets and personal records.</li>
+    <li><b>Your Altiro Pro subscription, if you subscribe:</b> whether you have Pro, the plan, which store
+      it's billed through and when it renews or ends. Payment itself is handled by Apple or Google; Altiro never
+      sees your card or bank details.</li>
     <li><b>Error reports:</b> if something breaks in the app, it sends us a short report so we can fix it: the
       error, where in the app it happened, the app version and your device and browser type, with your account
       if you're signed in. Nothing about your training is in it.</li>
@@ -161,6 +164,9 @@ a{color:var(--text);text-underline-offset:3px;}
   <p>Altiro relies on a few services to run. Each handles your information only to provide its part of the app:</p>
   <ul>
     <li><b>Supabase</b> hosts Altiro's database, sign-in and server functions.</li>
+    <li><b>RevenueCat</b> runs Altiro Pro subscriptions, only if you open the plans or subscribe in the app.
+      It receives your Altiro account ID and your purchases from the App Store or Google Play, and tells Altiro
+      whether you have Pro.</li>
     <li><b>Google</b> or <b>Apple</b>, only if you sign in with them. They confirm who you are and give Altiro
       your name and email address; Altiro never sees your Google or Apple password.</li>
     <li><b>Strava</b>, only if you connect it, as described above.</li>

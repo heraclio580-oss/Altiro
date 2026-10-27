@@ -28,10 +28,11 @@ For every data type below: **Used for tracking? No.** **Linked to the user? Yes*
 | Identifiers → **User ID** | the account's internal ID | App Functionality |
 | Location → **Precise Location** | the route of a run the user tracks with GPS, saved with that run | App Functionality |
 | Location → **Coarse Location** | rounded location sent to the weather service when the user taps the weather; not stored on our servers. **Linked: No** | App Functionality |
+| Purchases → **Purchase History** | Altiro Pro subscription status (plan, store, renewal), through RevenueCat | App Functionality |
 | Diagnostics → **Crash Data** | error reports: the error, where in the app, the app version, device and browser type | App Functionality, Analytics |
 | Diagnostics → **Other Diagnostic Data** | device type, included with feedback the user sends and with error reports | Customer Support, App Functionality |
 
-Don't select: Financial Info, Browsing History, Search History, Purchases, Contacts, Photos or Videos, Audio,
+Don't select: Financial Info, Browsing History, Search History, Contacts, Photos or Videos, Audio,
 Gameplay, Sensitive Info, Usage Data, Performance Data, Advertising Data, Device ID.
 
 ## Google Play Console → App content → Data safety
@@ -50,13 +51,14 @@ Gameplay, Sensitive Info, Usage Data, Performance Data, Advertising Data, Device
 | App activity → **Other user-generated content** (notes, classes, feedback) | Yes | No | No | Optional | App functionality |
 | Location → **Precise location** (routes of runs tracked with GPS) | Yes | No | No | Optional | App functionality |
 | Location → **Approximate location** (weather) | Yes | No | **Yes** (not stored) | Optional | App functionality |
+| Financial info → **Purchase history** (Altiro Pro subscription, through RevenueCat) | Yes | No | No | Optional | App functionality |
 | App info and performance → **Crash logs** (error reports: the error, where, app version) | Yes | No | No | Required | App functionality, Analytics |
 | App info and performance → **Diagnostics** (device and browser type with error reports) | Yes | No | No | Required | App functionality, Analytics |
 | App info and performance → **Other app performance data** (device type with feedback) | Yes | No | No | Optional | App functionality |
 | Device or other IDs | **No** | | | | |
 
 "Shared" means given to another company for its own use. Supabase, Resend, Open-Meteo and Strava act as
-service providers processing data on Altiro's behalf (OpenFreeMap too, for the map tiles) (or at the user's request), which Google doesn't
+service providers processing data on Altiro's behalf (RevenueCat too, for subscriptions) (OpenFreeMap too, for the map tiles) (or at the user's request), which Google doesn't
 count as sharing.
 
 ## Apple Health and Health Connect (the store apps)

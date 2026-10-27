@@ -1,6 +1,8 @@
 # Free vs. Pro, and payments (draft for launch)
 
-Status: proposed, not built. Pick the split and price, then build in the order at the bottom.
+Status: decided and built (see docs/pro-setup.md for the store and RevenueCat setup). Price $7.99/month or
+$49.99/year; a 7-day free week of Pro for new accounts, run by the app (no card); accounts made before
+launch keep Pro free for life.
 
 ## Payments
 
@@ -34,7 +36,7 @@ Status: proposed, not built. Pick the split and price, then build in the order a
 - Voice cues on GPS runs
 - Future: exercise videos, race plans
 
-**How it works for a new user:** 14-day free trial of Pro at sign-up. After it, everything logged
+**How it works for a new user:** 7-day free trial of Pro at sign-up. After it, everything logged
 stays and the free features keep working; the plan shows "Unlock your plan". Testers and early users:
 Pro free for life.
 

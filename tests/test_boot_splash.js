@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 
-// Starting up signed in: just the logo (no Welcome and its free trial) until Today is ready -- with a
+// Starting up signed in: just the logo (no Welcome) until Today is ready -- with a
 // spinner if that takes a while. Not signed in, or the sign-in ran out: Welcome, as before.
 const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
@@ -110,7 +110,7 @@ const state = doc => ({
     const doc = dom.window.document;
     check('Not signed in: no logo screen', !state(doc).splash);
     await wait(400);
-    check('...Welcome, with its free trial, as before', state(doc).welcome && /first week free/i.test(doc.getElementById('screen-welcome').textContent));
+    check('...Welcome, as before', state(doc).welcome && /Free to use/i.test(doc.getElementById('screen-welcome').textContent));
     dom.window.close();
   }
   // ---- Signed in ----

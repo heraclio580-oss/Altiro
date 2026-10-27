@@ -16699,7 +16699,6 @@ async function oauthSignIn(btn, provider, labelKey){
   btn.disabled = true;
   labelEl.textContent = L.signingInMsg;
   document.getElementById('authError').textContent = '';
-  await supabaseReady;
   const native = isNativeShell() && window.supabase && window.supabase.createClient;
   const { error } = native
     ? await nativeOAuthClient().auth.signInWithOAuth({ provider, options: { redirectTo: APP_URL + 'auth-callback.html' } })

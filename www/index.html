@@ -597,10 +597,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .exercise-log-row.ss-member{box-shadow:inset 2px 0 0 var(--accent);}
 .ss-head{font-family:var(--font-mono);font-size:calc(11.5px * var(--fs, 1));letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);margin:4px 0 6px 2px;}
 .summary-exercises{margin:0 20px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 14px;}
-.summary-exercises .se-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;font-size:calc(12.5px * var(--fs, 1));}
+.summary-exercises .se-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 8px;padding:6px 0;font-size:calc(12.5px * var(--fs, 1));}
 .summary-exercises .se-row+.se-row{border-top:1px solid var(--divider-soft);}
-.summary-exercises .se-name{color:var(--text);}
-.summary-exercises .se-result{font-family:var(--font-mono);color:var(--text-2);flex-shrink:0;}
+.summary-exercises .se-name{color:var(--text);min-width:0;}
+.summary-exercises .se-result{font-family:var(--font-mono);color:var(--text-2);min-width:0;margin-left:auto;text-align:right;overflow-wrap:anywhere;}
+.summary-exercises .se-row.stack{flex-direction:column;align-items:flex-start;}
+.summary-exercises .se-row.stack .se-result{margin-left:0;text-align:left;}
 .r-exercise-list li{display:flex;justify-content:space-between;gap:8px;font-size:calc(11.5px * var(--fs, 1));color:var(--text-3);}
 .r-exercise-list li span{font-family:var(--font-mono);color:var(--text-2);flex-shrink:0;}
 .r-exercise-list li span.bd-step{font-family:inherit;color:var(--text-3);flex-shrink:1;}
@@ -2818,6 +2820,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <span class="label" data-i18n="logPerfTitle"></span>
         <button class="iconbtn" id="closeLogPerf"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
       </div>
+      <!-- Editing a workout the user made: its name can change too -->
+      <div class="sheet-section" id="logPerfNameSection" hidden>
+        <div class="st-label" data-i18n="logPerfNameLabel"></div>
+        <input type="text" class="text-input" id="logPerfNameInput" autocomplete="off" maxlength="60" enterkeyhint="done">
+      </div>
 
       <button class="gps-track-btn" id="logPerfGpsBtn" type="button" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18s5.5-5.2 5.5-9.5a5.5 5.5 0 0 0-11 0C4.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg><span data-i18n="gpsTrackInLog"></span></button>
       <div class="sheet-section" id="logPerfRoute" hidden>
@@ -3822,7 +3829,7 @@ const STR = {
     logPerfTitle: "Log Your Performance",
     logPerfWeightLabel: "Top Set Weight (lb)",
     logPerfRepsLabel: "Reps Completed",
-    logPerfDistanceLabel: "Distance (mi)",
+    logPerfDistanceLabel: "Distance (mi)", logPerfNameLabel: "Workout name",
     logPerfTimeLabel: "Total Time (h:m:s)",
     logPerfWorkoutTimeLabel: "Workout time (h:m:s)",
     logPerfWorkoutTimeNote: "Counting from when you started. Change it if it's off.",
@@ -4545,7 +4552,7 @@ const STR = {
     logPerfTitle: "Registra tu rendimiento",
     logPerfWeightLabel: "Peso de la serie máxima (lb)",
     logPerfRepsLabel: "Repeticiones completadas",
-    logPerfDistanceLabel: "Distancia (mi)",
+    logPerfDistanceLabel: "Distancia (mi)", logPerfNameLabel: "Nombre del entrenamiento",
     logPerfTimeLabel: "Tiempo total (h:m:s)",
     logPerfWorkoutTimeLabel: "Tiempo del entrenamiento (h:m:s)",
     logPerfWorkoutTimeNote: "Cuenta desde que empezaste. Cámbialo si no es correcto.",
@@ -9136,6 +9143,52 @@ function applyLoggedPerformance(t, resolved, logged){
   }
   state.doneCount = computeDoneCount();
 }
+// A workout the user made themselves (added, logged, or built as they went) can be renamed when it's
+// edited. The plan's own workouts -- where the plan put them or moved to another day -- and classes keep
+// their names.
+function renamableWorkout(t, resolved){
+  const s = resolved && resolved.session;
+  if(!s || s.t==='rest' || s.t==='class') return false;
+  if(Array.isArray(s.exercises) && s.exercises.some(e=> e.fromPlan)) return false;
+  if(t.kind==='entry') return true;
+  if(t.kind==='extra') return t.id!==PLAN_LIFT_ID;
+  const date = parseDateKey(t.dayKey), dd = getDayData(date);
+  if(!dd.isCustom || dd.primarySource!=='plan') return false;
+  for(let off = -RESET_MOVED_DAYS; off <= RESET_MOVED_DAYS; off++){
+    const gen = sessionForDate(new Date(date.getFullYear(), date.getMonth(), date.getDate() + off));
+    if(gen && gen.p && sameSession(gen.p, s)) return false;
+  }
+  return true;
+}
+// The new name, wherever the workout lives. Its lifts' numbers come along (kept per workout -- see
+// ownLiftKey), so the same workout next time carries on under its new name.
+function renameWorkout(t, resolved, name){
+  const old = resolved.session.en.title;
+  const renamed = s=> ({...s, en:{...s.en, title:name}, es:{...s.es, title:name}});
+  const renameSlot = key=>{
+    const idx = currentWeekIdxFor(key), log = state.dayLog[key];
+    const slot = idx>=0 ? state.week[idx] : log && log.session;
+    if(!slot || !slot.p) return;
+    slot.p = renamed(slot.p);
+    cloudSavePlannedSession(key, slot.p);
+  };
+  if(t.kind==='extra'){
+    const w = resolved.record;
+    w.session = renamed(w.session);
+    Promise.resolve(w.saved).then(()=>{ if(w.supabaseId) cloudSetExtraWorkoutTitle(w.supabaseId, name); });
+  } else if(t.kind==='entry'){
+    const e = resolved.record;
+    // A logged workout that also became its day's own (promotePrimaryFromLog) is renamed there too.
+    const slot = getRawDaySlot(parseDateKey(t.dayKey));
+    if(slot.isCustom && slot.p && slot.p.t===e.type && slot.p.en.title===e.name) renameSlot(t.dayKey);
+    e.name = name;
+    if(e.supabaseId) cloudUpdateManualEntry(e.supabaseId, e);
+  } else renameSlot(t.dayKey);
+  (resolved.session.exercises || []).forEach(ex=>{
+    const was = state.progression[ownLiftKey(old, ex.key)];
+    if(was && !state.progression[ownLiftKey(name, ex.key)]) saveExerciseTarget(ex.key, {...was}, name);
+  });
+}
 // The Record button / Start Workout always open today's workout in 'record' mode.
 function openLogPerformance(extraId){
   openLogPerformanceFor({dayKey: dateKey(TODAY_DATE), kind: extraId ? 'extra' : 'primary', id: extraId || null}, 'record');
@@ -9152,6 +9205,9 @@ function openLogPerformanceFor(logTarget, mode){
   if(!isToday) mode = 'revisit';
   state._logTarget = logTarget;
   state._logMode = mode;
+  const canRename = mode==='revisit' && renamableWorkout(logTarget, resolved);
+  document.getElementById('logPerfNameSection').hidden = !canRename;
+  document.getElementById('logPerfNameInput').value = canRename ? ST(resolved.session).title : '';
   state._activeExtraId = (isToday && logTarget.kind==='extra') ? logTarget.id : null;
   const eff = resolved.session;
   // Recording today's interval workout still means actually running its timer.
@@ -9605,6 +9661,10 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   }
   document.getElementById('logPerfOverlay').hidden = true;
   if(!resolved){ startWorkout(logged); return; }
+  // A new name (left empty, it keeps the old one).
+  const newName = !document.getElementById('logPerfNameSection').hidden ? document.getElementById('logPerfNameInput').value.trim().replace(/\s+/g, ' ') : '';
+  const renamedTo = newName && newName!==ST(resolved.session).title ? newName : '';
+  if(renamedTo) renameWorkout(logTarget, resolved, renamedTo);
   storeLoggedPerformance(logTarget, resolved, logged);
   // Recording today's workout is still the full Record flow (streak, Summary, review, progression).
   // A revisit -- a past day, a logged entry, or reopening one that's already done to correct it --
@@ -9618,7 +9678,11 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   document.getElementById('recordBtn').classList.remove('recording');
   refreshViews();
   // Edited from its Summary: the Summary shows the new numbers.
-  if(summaryView && sameLogTarget(summaryView.target, logTarget)){ state._lastLogged = logged; renderSummary(); }
+  if(summaryView && sameLogTarget(summaryView.target, logTarget)){
+    state._lastLogged = logged;
+    if(renamedTo){ const r = resolveLogTarget(logTarget); if(r) state._lastSession = r.session; }
+    renderSummary();
+  }
   showToast(STR[state.lang].workoutLoggedToast);
 });
 
@@ -13389,7 +13453,8 @@ function renderSummary(){
   const exResults = getSummaryExercises(logged);
   exercisesEl.hidden = !exResults;
   renderSummaryRoute(logged);
-  if(exResults) exercisesEl.innerHTML = exResults.map(r=>`<div class="se-row"><span class="se-name">${escapeHtml(r.name)}</span><span class="se-result">${escapeHtml(r.result)}</span></div>`).join('');
+  // A long list of sets goes under the exercise's name, wrapping, instead of off the side of the card.
+  if(exResults) exercisesEl.innerHTML = exResults.map(r=>`<div class="se-row${String(r.result).length>24 ? ' stack' : ''}"><span class="se-name">${escapeHtml(r.name)}</span><span class="se-result">${escapeHtml(r.result)}</span></div>`).join('');
   document.getElementById('summaryRecoveryHead').textContent = RECOVERY_TIPS.head[state.lang];
   document.getElementById('summaryRecoveryList').innerHTML = recoveryTips(session, logged, viewing && summaryView.target ? summaryView.target.dayKey : dateKey(TODAY_DATE))
     .map(t=> `<li><b>${escapeHtml(t.label)}:</b> ${escapeHtml(t.text)}</li>`).join('');
@@ -15448,6 +15513,10 @@ async function cloudSetExtraWorkoutCompleted(supabaseId, completed){
 async function cloudSetExtraWorkoutExercises(supabaseId, exercises){
   if(!state.userId || !supabaseId) return;
   try{ await sb.from('planned_workouts').update({exercises}).eq('id', supabaseId); }catch(e){ /* best-effort */ }
+}
+async function cloudSetExtraWorkoutTitle(supabaseId, title){
+  if(!state.userId || !supabaseId) return;
+  try{ await sb.from('planned_workouts').update({title}).eq('id', supabaseId); }catch(e){ /* best-effort */ }
 }
 async function cloudSetExtraWorkoutDistance(supabaseId, distance){
   if(!state.userId || !supabaseId) return;

@@ -38,7 +38,7 @@ a{color:var(--text);text-underline-offset:3px;}
 <main>
   <div class="brand">Altiro</div>
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated October 15, 2026</p>
+  <p class="updated">Last updated October 27, 2026</p>
 
   <p>Altiro builds you a running and strength training plan and keeps track of the workouts you do. This page
   explains what information Altiro keeps, why, who else handles it, and how to remove it.</p>
@@ -48,12 +48,16 @@ a{color:var(--text);text-underline-offset:3px;}
   <h2>What Altiro keeps</h2>
   <ul>
     <li><b>Your account:</b> your email address and name. Your password is handled by our sign-in provider and
-      is never visible to us.</li>
+      is never visible to us. If you sign in with Google or Apple, they tell us your name and email address
+      (Apple can give a private relay address instead of your real one).</li>
     <li><b>Your training setup:</b> goal, experience level, training days, running/lifting balance, intensity,
       the miles you run now, your equipment, how you split your lifting, and anything you chose to add such as age
       range, gender and body weight.</li>
     <li><b>Your training:</b> the workouts in your plan and any you create, what you log (distances, times,
       sets, weights, reps, notes, how a workout felt), your lift targets and personal records.</li>
+    <li><b>Error reports:</b> if something breaks in the app, it sends us a short report so we can fix it: the
+      error, where in the app it happened, the app version and your device and browser type, with your account
+      if you're signed in. Nothing about your training is in it.</li>
     <li><b>Feedback you send us:</b> your message, along with your email and a snapshot of your plan setup and
       device type, so we can act on it and reply.</li>
     <li><b>Workout reminders, if you turn them on:</b> your reminder time and time zone, the names of your
@@ -149,6 +153,7 @@ a{color:var(--text);text-underline-offset:3px;}
     <li>To build and adjust your plan, and show your progress.</li>
     <li>To keep your plan and history in sync across your devices.</li>
     <li>To read and answer feedback you send.</li>
+    <li>To find and fix things that break in the app.</li>
   </ul>
   <p>We don't use your information for advertising, and there are no third-party ads or ad trackers in Altiro.</p>
 
@@ -156,6 +161,8 @@ a{color:var(--text);text-underline-offset:3px;}
   <p>Altiro relies on a few services to run. Each handles your information only to provide its part of the app:</p>
   <ul>
     <li><b>Supabase</b> hosts Altiro's database, sign-in and server functions.</li>
+    <li><b>Google</b> or <b>Apple</b>, only if you sign in with them. They confirm who you are and give Altiro
+      your name and email address; Altiro never sees your Google or Apple password.</li>
     <li><b>Strava</b>, only if you connect it, as described above.</li>
     <li><b>Apple Health</b> or <b>Health Connect</b>, only if you connect it, as described above. They run on your
       phone; Altiro reads from them there and doesn't send them anything.</li>

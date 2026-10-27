@@ -5,7 +5,8 @@ collects, these answers need updating too.
 
 ## The short version
 - **Tracking or advertising:** none. No ads, no analytics SDKs, no data sold or shared for advertising.
-- **Everything collected** is used only for **App functionality** (and Customer support for feedback).
+- **Everything collected** is used only for **App functionality** (and Customer support for feedback, and
+  Analytics for crash reports: what broke, so it can be fixed).
 - **Linked to the user:** yes, for anything stored with their account.
 - **Encrypted in transit:** yes (HTTPS everywhere).
 - **Users can delete their data:** yes, in the app (Settings → Delete account) and at
@@ -27,10 +28,11 @@ For every data type below: **Used for tracking? No.** **Linked to the user? Yes*
 | Identifiers → **User ID** | the account's internal ID | App Functionality |
 | Location → **Precise Location** | the route of a run the user tracks with GPS, saved with that run | App Functionality |
 | Location → **Coarse Location** | rounded location sent to the weather service when the user taps the weather; not stored on our servers. **Linked: No** | App Functionality |
-| Diagnostics → **Other Diagnostic Data** | device type, included with feedback the user sends | Customer Support |
+| Diagnostics → **Crash Data** | error reports: the error, where in the app, the app version, device and browser type | App Functionality, Analytics |
+| Diagnostics → **Other Diagnostic Data** | device type, included with feedback the user sends and with error reports | Customer Support, App Functionality |
 
 Don't select: Financial Info, Browsing History, Search History, Purchases, Contacts, Photos or Videos, Audio,
-Gameplay, Sensitive Info, Usage Data, Crash Data, Performance Data, Advertising Data, Device ID.
+Gameplay, Sensitive Info, Usage Data, Performance Data, Advertising Data, Device ID.
 
 ## Google Play Console → App content → Data safety
 
@@ -48,6 +50,8 @@ Gameplay, Sensitive Info, Usage Data, Crash Data, Performance Data, Advertising 
 | App activity → **Other user-generated content** (notes, classes, feedback) | Yes | No | No | Optional | App functionality |
 | Location → **Precise location** (routes of runs tracked with GPS) | Yes | No | No | Optional | App functionality |
 | Location → **Approximate location** (weather) | Yes | No | **Yes** (not stored) | Optional | App functionality |
+| App info and performance → **Crash logs** (error reports: the error, where, app version) | Yes | No | No | Required | App functionality, Analytics |
+| App info and performance → **Diagnostics** (device and browser type with error reports) | Yes | No | No | Required | App functionality, Analytics |
 | App info and performance → **Other app performance data** (device type with feedback) | Yes | No | No | Optional | App functionality |
 | Device or other IDs | **No** | | | | |
 

@@ -250,6 +250,32 @@ create policy "read own feedback" on feedback
   for select using (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------------------
+-- app_errors: something that broke in the app (the error, where, which build and kind of device), sent by
+-- the app itself (see reportError in index.html) so bugs are found without waiting for an email. Anyone
+-- using the app can add one, signed in or not; nobody can read them from the app -- the team reads them in
+-- the Supabase dashboard. Deleting an account deletes its reports.
+create table if not exists app_errors (
+  id bigint generated always as identity primary key,
+  user_id uuid references auth.users(id) on delete cascade,
+  message text not null,
+  stack text,
+  source text,
+  build text,
+  platform text,
+  screen text,
+  user_agent text,
+  created_at timestamptz default now()
+);
+alter table app_errors enable row level security;
+drop policy if exists "report errors" on app_errors;
+create policy "report errors" on app_errors
+  for insert to anon, authenticated
+  with check ((user_id is null or user_id = auth.uid())
+    and length(message) <= 500 and coalesce(length(stack), 0) <= 4000 and coalesce(length(source), 0) <= 300
+    and coalesce(length(user_agent), 0) <= 300);
+create index if not exists app_errors_created_at on app_errors (created_at desc);
+
+-- ---------------------------------------------------------------------------
 -- subscriptions: synced from RevenueCat webhooks. This is the source of truth
 -- for whether a user's account currently has paid access ("entitlement").
 -- Client code should only ever READ this table -- writes come exclusively

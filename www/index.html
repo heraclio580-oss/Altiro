@@ -3352,6 +3352,54 @@ const supabaseReady = new Promise((resolve)=>{
   })(16); // ~4 seconds total
 });
 
+/* ---------------- error reports ---------------- */
+// Something breaking on someone's phone reaches the team (Supabase's app_errors, read in its dashboard):
+// the error, where in the code and in the app it happened, the build and the kind of device -- with the
+// account if signed in, and nothing about their training. A few per visit at most, each once, and none
+// for a lost connection. (Set up this early so an error while the app starts is caught too.)
+const ERROR_REPORT_MAX = 5;
+const IGNORED_ERRORS = /ResizeObserver loop|^Script error\.?$|Failed to fetch|NetworkError|Load failed|network connection|AbortError|The operation was aborted/i;
+const errorReports = {seen: new Set(), queue: [], count: 0};
+function reportError(message, stack, where){
+  try{
+    message = String(message || 'Unknown error').slice(0, 500);
+    if(IGNORED_ERRORS.test(message)) return;
+    const key = message + '|' + (where || '');
+    if(errorReports.seen.has(key) || errorReports.count >= ERROR_REPORT_MAX) return;
+    errorReports.seen.add(key);
+    errorReports.count++;
+    errorReports.queue.push({message, stack: stack ? String(stack).slice(0, 4000) : null, source: where ? String(where).slice(0, 300) : null});
+    supabaseReady.then(sendErrorReports);
+  }catch(e){}
+}
+async function sendErrorReports(ready){
+  if(!ready){ errorReports.queue = []; return; } // (no Supabase to send them to)
+  // (What's read from the rest of the app might not be there yet, if the error stopped it starting.)
+  const read = f=>{ try{ return f(); }catch(e){ return null; } };
+  while(errorReports.queue.length){
+    const r = errorReports.queue.shift();
+    try{
+      await sb.from('app_errors').insert({
+        user_id: read(()=> state.userId) || null,
+        message: r.message, stack: r.stack, source: r.source,
+        build: read(()=> APP_BUILD),
+        platform: read(()=> isNativeShell() ? window.Capacitor.getPlatform() : 'web'),
+        screen: read(()=> currentScreenId()),
+        user_agent: String(navigator.userAgent || '').slice(0, 300),
+      });
+    }catch(e){}
+  }
+}
+window.addEventListener('error', e=>{
+  const file = e.filename || '';
+  if(file && !file.startsWith(location.origin)) return; // a browser extension's, not the app's
+  reportError(e.message || (e.error && e.error.message), e.error && e.error.stack, file ? `${file.split('/').pop().split('?')[0] || 'index.html'}:${e.lineno}:${e.colno}` : '');
+});
+window.addEventListener('unhandledrejection', e=>{
+  const r = e.reason;
+  reportError(r && r.message ? r.message : String(r), r && r.stack, 'promise');
+});
+
 /* ---------------- icons ---------------- */
 const ICONS = {
   steps: '<svg viewBox="0 0 20 20" fill="currentColor"><ellipse cx="7" cy="6" rx="2.2" ry="3.2"/><ellipse cx="13" cy="10" rx="2.2" ry="3.2"/><circle cx="7" cy="11.6" r="1.3"/><circle cx="13" cy="15.6" r="1.3"/></svg>',

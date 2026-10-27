@@ -64,13 +64,13 @@ const outDir = process.env.SHARE_CARD_OUT;
     await sleep(200);
     return {page, errors};
   }
-  async function logPushDay(page){
-    await page.evaluate(async ()=>{
+  async function logLifts(page, title, lifts){
+    await page.evaluate(async ([title, lifts])=>{
       const doc = document, wait = ms=> new Promise(r=>setTimeout(r,ms));
       const type = (el, v)=>{ el.value = v; el.dispatchEvent(new Event('input', {bubbles:true})); };
       doc.getElementById('addTodayWorkoutBtn').click(); await wait(30);
       doc.getElementById('createLiveToggle').click(); await wait(30);
-      type(doc.getElementById('manualNameInput'), 'Push Day');
+      type(doc.getElementById('manualNameInput'), title);
       doc.getElementById('saveManualEntry').click(); await wait(60);
       const row = key=> [...doc.querySelectorAll('#logPerfExercisesList .exercise-log-row')].find(r=>r.getAttribute('data-exercise-key')===key);
       const add = async (name, sets)=>{
@@ -82,13 +82,26 @@ const outDir = process.env.SHARE_CARD_OUT;
           type(r.querySelector('[data-field="weight"]'), String(sets[i][0])); type(r.querySelector('[data-field="reps"]'), String(sets[i][1]));
         }
       };
-      await add('Bench Press', [[135,8],[155,6],[175,4]]);
-      await add('Overhead Press', [[95,8],[95,8],[95,8]]);
-      await add('Cable Crossover Machine', [[40,12],[40,12]]);
+      for(const [name, sets] of lifts) await add(name, sets);
       type(doc.getElementById('logPerfTimeMInput'), '52'); type(doc.getElementById('logPerfTimeSInput'), '0'); type(doc.getElementById('logPerfTimeHInput'), '0');
       doc.getElementById('saveLogPerf').click(); await wait(80);
-    });
+    }, [title, lifts]);
   }
+  const logPushDay = page => logLifts(page, 'Push Day', [
+    ['Bench Press', [[135,8],[155,6],[175,4]]],
+    ['Overhead Press', [[95,8],[95,8],[95,8]]],
+    ['Cable Crossover Machine', [[40,12],[40,12]]],
+  ]);
+  // Every piece of text the card draws: what, where, how wide, on which canvas.
+  const recordText = page => page.evaluate(()=>{
+    window.__drawn = [];
+    const f = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function(text, x, y){
+      window.__drawn.push({text: String(text), x, y, w: this.measureText(text).width, align: this.textAlign, cw: this.canvas.width, ch: this.canvas.height});
+      return f.apply(this, arguments);
+    };
+  });
+  const drawn = page => page.evaluate(()=> window.__drawn.splice(0));
   const preview = page => page.evaluate(()=>{ const i = document.getElementById('shareCardPreview'); return {w:i.naturalWidth, h:i.naturalHeight, alt:i.alt, src:!!i.getAttribute('src'), complete:i.complete}; });
   const waitPreview = async (page, h) => { for(let i=0; i<40; i++){ const p = await preview(page); if(p.complete && p.h===h) return p; await sleep(100); } return preview(page); };
   async function keep(page, name){
@@ -164,6 +177,73 @@ const outDir = process.env.SHARE_CARD_OUT;
     await sleep(150);
     await page.tap('#closeShareCard');
     check('The preview closes', await page.evaluate(()=> document.getElementById('shareCardOverlay').hidden));
+    check('No page errors', errors.length===0, errors.join(' | '));
+    await page.context().close();
+  }
+
+  // ---- Many sets: every one is on the card ----
+  {
+    const {page, errors} = await openApp();
+    const arm = [[41,20],[46,15],[51,10],[58,10],[63,5],[68,5],[73,5],[78,3],[83,3],[88,2],[93,1],[78,5],[63,10]];
+    await logLifts(page, 'Armwrestling', [['Wrist wrench Left', arm], ['Wrist wrench Right', arm.map(([w,r])=> [w-1, r])]]);
+    await sleep(200);
+    await recordText(page);
+    await page.tap('#shareWorkoutBtn');
+    for(const [fmt, h] of [['post', 1350], ['story', 1920]]){
+      if(fmt==='story'){ await drawn(page); await page.tap('[data-share-format="story"]'); }
+      await waitPreview(page, h);
+      await sleep(200);
+      const texts = (await drawn(page)).filter(t=> t.cw===1080);
+      const all = texts.map(t=> t.text).join(' ');
+      const setsOf = name=> arm.map(([w,r])=> `${name==='L' ? w : w-1}×${r}`);
+      const missing = [...setsOf('L'), ...setsOf('R')].filter(s=> !all.includes(s));
+      check(`${fmt}: all 13 sets of each arm are drawn`, missing.length===0 && (all.match(/×/g)||[]).length>=26, `missing ${missing.join(', ')}`);
+      const setLines = texts.filter(t=> /×/.test(t.text));
+      check(`${fmt}: ...none cut off with "…"`, !setLines.some(t=> /…/.test(t.text)), setLines.map(t=>t.text).join(' | '));
+      check(`${fmt}: ...each line inside the card's margins`, setLines.every(t=> t.x>=80 && t.x+t.w<=1000+1), setLines.map(t=> `${Math.round(t.x)}+${Math.round(t.w)}`).join(' '));
+      check(`${fmt}: ...wrapped under the exercise's name, over a few lines`, setLines.length>=4 && setLines.length<=8 && texts.some(t=> t.text==='Wrist wrench Left'), setLines.length);
+      check(`${fmt}: ...and no "+N more"`, !/more/.test(all), all.slice(-200));
+      await keep(page, `${fmt}-many-sets.jpg`);
+    }
+    check('No page errors', errors.length===0, errors.join(' | '));
+    await page.context().close();
+  }
+  // ---- Lots of long exercises: the ones that fit are whole, the rest are "+N more" ----
+  {
+    const {page, errors} = await openApp();
+    const sets = [[41,20],[46,15],[51,10],[58,10],[63,5],[68,5],[73,5],[78,3],[83,3],[88,2],[93,1],[78,5],[63,10]];
+    const names = ['Curl A','Curl B','Curl C','Curl D','Curl E','Curl F','Curl G','Curl H'];
+    await logLifts(page, 'Arm Day', names.map(n=> [n, sets]));
+    await sleep(200);
+    await recordText(page);
+    await page.tap('#shareWorkoutBtn');
+    await waitPreview(page, 1350);
+    await sleep(200);
+    const texts = (await drawn(page)).filter(t=> t.cw===1080);
+    const more = texts.find(t=> /^\+\d+ more/.test(t.text));
+    const shownNames = names.filter(n=> texts.some(t=> t.text===n));
+    check('Too many to fit: some exercises, then "+N more" for the rest', !!more && shownNames.length>=1 && shownNames.length<names.length && more.text.startsWith(`+${names.length-shownNames.length} more`), `${shownNames.length} shown, ${more && more.text}`);
+    const lines = texts.filter(t=> /×/.test(t.text));
+    check('...each shown exercise with every set (none cut off)', !lines.some(t=> /…/.test(t.text)) && lines.map(t=>t.text).join(' ').split('×').length-1 === shownNames.length*sets.length, lines.length);
+    const layerH = Math.max(...texts.filter(t=> t.ch!==1350).map(t=> t.ch));
+    check('...and nothing drawn past the space it has', texts.filter(t=> t.ch!==1350).every(t=> t.y<=layerH), layerH);
+    await keep(page, 'post-many-exercises.jpg');
+    check('No page errors', errors.length===0, errors.join(' | '));
+    await page.context().close();
+  }
+  // ---- A short workout keeps one row per exercise ----
+  {
+    const {page, errors} = await openApp();
+    await logPushDay(page);
+    await sleep(200);
+    await recordText(page);
+    await page.tap('#shareWorkoutBtn');
+    await waitPreview(page, 1350);
+    await sleep(200);
+    const texts = (await drawn(page)).filter(t=> t.cw===1080);
+    const ohp = texts.find(t=> t.text==='3 × 8 @ 95 lb'), bench = texts.find(t=> t.text==='135×8 · 155×6 · 175×4 lb');
+    const benchName = texts.find(t=> t.text==='Bench Press');
+    check('Sets that fit beside the name stay there, on the right', ohp && ohp.align==='right' && bench && bench.align==='right' && benchName && Math.abs(benchName.y-bench.y)<1, JSON.stringify([ohp, bench]));
     check('No page errors', errors.length===0, errors.join(' | '));
     await page.context().close();
   }

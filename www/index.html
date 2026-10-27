@@ -13633,21 +13633,67 @@ function drawShareCard(canvas, d, format){
     b.font = DISPLAY(val.px); b.fillText(val.text, cx+22, cy+tileH-(big ? 46 : 34));
   });
   if(d.stats.length) y += Math.ceil(d.stats.length/cols)*(tileH+gap) - gap;
-  // Each exercise: name on the left, what was lifted on the right.
+  // Each exercise: name on the left, what was lifted on the right -- or, when its sets don't fit beside
+  // the name, the name on its own line and every set wrapped underneath across the card. The set text
+  // shrinks a little before an exercise is left for "+N more".
   if(d.rows.length){
     y += 64;
     b.fillStyle = TEXT2; b.font = MONO(24); spacing(b, true);
     b.fillText(STR[state.lang].shareExercisesLabel.toUpperCase(), P, y); spacing(b, false);
     y += 18;
-    const rowH = story ? 76 : 64, nameMax = story ? 36 : 32, detMax = story ? 32 : 30;
-    const room = Math.max(1, Math.floor((areaH - y)/rowH));
-    const shown = d.rows.length>room ? d.rows.slice(0, room-1) : d.rows;
-    shown.forEach(r=>{
+    const rowH = story ? 76 : 64, nameMax = story ? 36 : 32, detMax = story ? 32 : 30, detMin = 22;
+    const space = areaH - y, lineH = px=> Math.round(px*1.5);
+    const setLines = (detail, px)=>{
+      b.font = MONO(px);
+      const lines = [];
+      let cur = '';
+      String(detail).split(' · ').forEach(s=>{
+        const next = cur ? cur+' · '+s : s;
+        if(!cur || b.measureText(next+' ·').width<=CW) cur = next; else { lines.push(cur+' ·'); cur = s; }
+      });
+      if(cur) lines.push(cur);
+      return lines;
+    };
+    const layout = px=> d.rows.map(r=>{
+      b.font = MONO(px);
+      if(b.measureText(r.detail).width<=CW*0.56) return {r, h:rowH};
+      const lines = setLines(r.detail, px);
+      return {r, lines, h: Math.round(rowH*0.8) + lines.length*lineH(px) + 14};
+    });
+    const total = rs=> rs.reduce((a, x)=> a + x.h, 0);
+    let px = detMax, rows = layout(px);
+    while(px>detMin && total(rows)>space){ px -= 2; rows = layout(px); }
+    let shown = rows;
+    if(total(rows)>space){
+      shown = [];
+      let used = rowH; // room for the "+N more" line
+      for(const x of rows){ if(used + x.h > space) break; shown.push(x); used += x.h; }
+      // One exercise taller than the whole card: as many of its lines as fit, the last cut with "…".
+      if(!shown.length && rows[0].lines){
+        const keep = Math.max(1, Math.floor((space - rowH - Math.round(rowH*0.8) - 14)/lineH(px)));
+        const lines = rows[0].lines.slice(0, keep);
+        if(keep<rows[0].lines.length) lines[keep-1] = lines[keep-1].replace(/ ·$/, '')+' …';
+        shown = [{...rows[0], lines, h: Math.round(rowH*0.8) + lines.length*lineH(px) + 14}];
+      }
+    }
+    shown.forEach(({r, lines, h})=>{
       b.strokeStyle = LINE; b.lineWidth = 2;
       b.beginPath(); b.moveTo(P, y); b.lineTo(W-P, y); b.stroke();
       const base = y + rowH/2 + 11;
+      if(lines){
+        b.textAlign = 'left'; b.fillStyle = TEXT;
+        const nm = fitText(b, r.name, CW, BODY, nameMax, 22);
+        b.font = BODY(nm.px); b.fillText(nm.text, P, base);
+        b.fillStyle = '#D4D4D8';
+        lines.forEach((l, i)=>{
+          const ln = fitText(b, l, CW, MONO, px, 20);
+          b.font = MONO(ln.px); b.fillText(ln.text, P, y + Math.round(rowH*0.8) + Math.round(px*1.1) + i*lineH(px));
+        });
+        y += h;
+        return;
+      }
       b.textAlign = 'right'; b.fillStyle = '#D4D4D8';
-      const det = fitText(b, r.detail, CW*0.56, MONO, detMax, 20);
+      const det = fitText(b, r.detail, CW*0.56, MONO, px, 20);
       b.font = MONO(det.px); b.fillText(det.text, W-P, base);
       const detW = b.measureText(det.text).width;
       b.textAlign = 'left'; b.fillStyle = TEXT;

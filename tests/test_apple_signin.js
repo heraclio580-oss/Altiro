@@ -68,6 +68,7 @@ const shown = (doc, id) => !doc.getElementById(id).hidden;
   // ---- Apple not switched on yet (today) ----
   {
     const {doc, fetches, toAccount, w} = await open({settings: {google:true, apple:false, email:true}});
+    check('Starting the app doesn\'t ask (only the sign-in screen does)', fetches.length===0, fetches.length);
     await toAccount();
     check('Apple not switched on in Supabase: no Apple button; Google as before', !shown(doc, 'appleSignInBtn') && shown(doc, 'googleSignInBtn') && shown(doc, 'authDivider'));
     check('...(asked of Supabase\'s public sign-in settings, with the public key)', fetches.length===1 && /\/auth\/v1\/settings$/.test(fetches[0].url) && !!fetches[0].apikey);

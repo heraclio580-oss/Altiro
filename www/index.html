@@ -7896,6 +7896,7 @@ function showScreen(id){
   if(id==='summary') renderSummary();
   if(id==='onb-focus'){ onbSlider.paint(); updateOnbSliderLabels(state.focusRatio); }
   if(id==='onb-intensity') renderOnbBaseline();
+  if(id==='onb-account') loadAuthProviders();
   if((id==='welcome' || id==='onb-goal') && accountReturning){
     accountReturning = false;
     authMode = 'signup';
@@ -16739,18 +16740,22 @@ async function finishOAuthReturn(u){
   errEl.textContent = q.get('error_description') || STR[state.lang].oauthFailedMsg;
 }
 // Which sign-in buttons show: Apple once it's switched on in Supabase (Authentication -> Providers), Google
-// unless it's switched off. Remembered, so the buttons are right straight away the next time.
+// unless it's switched off. Asked when the sign-in screen first opens (not on every start), and
+// remembered, so the buttons are right straight away the next time.
 const AUTH_PROVIDERS_KEY = 'altiro_auth_providers';
+let authProvidersAsked = false;
 function renderAuthProviders(p){
   const google = !(p && p.google===false), apple = !!(p && p.apple);
   document.getElementById('googleSignInBtn').hidden = !google;
   document.getElementById('appleSignInBtn').hidden = !apple;
   document.getElementById('authDivider').hidden = !google && !apple;
 }
+function rememberedAuthProviders(){
+  try{ return JSON.parse(localStorage.getItem(AUTH_PROVIDERS_KEY) || 'null'); }catch(e){ return null; }
+}
 async function loadAuthProviders(){
-  let cached = null;
-  try{ cached = JSON.parse(localStorage.getItem(AUTH_PROVIDERS_KEY) || 'null'); }catch(e){}
-  renderAuthProviders(cached);
+  if(authProvidersAsked) return;
+  authProvidersAsked = true;
   try{
     const r = await fetch(SUPABASE_URL + '/auth/v1/settings', {headers: {apikey: SUPABASE_ANON_KEY}});
     if(!r.ok) return;
@@ -16760,7 +16765,7 @@ async function loadAuthProviders(){
     renderAuthProviders(p);
   }catch(e){ /* offline: as remembered */ }
 }
-loadAuthProviders();
+renderAuthProviders(rememberedAuthProviders());
 
 function updateEmailSignupBtn(){
   const email = document.getElementById('emailInput').value.trim();

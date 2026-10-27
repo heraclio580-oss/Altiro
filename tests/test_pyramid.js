@@ -155,7 +155,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
   check('...then works back down from it: 90% and 80% for 5, then 70% to 40% for 10',
     afterSingle.length===14 && afterSingle.slice(8).map(s=>s.r).join()==='5,5,10,10,10,10' && +afterSingle[8].w < topWeight && +afterSingle[13].w < +afterSingle[8].w,
     afterSingle.slice(7).map(s=>s.w+'x'+s.r).join(' '));
-  check('...and the label counts the new sets', /· 14 sets/.test(row.querySelector('.exercise-log-name span').textContent), row.querySelector('.exercise-log-name span').textContent);
+  check('...and the label counts the new sets', /· 14 sets/.test(row.querySelector('.exercise-log-name .ex-rx').textContent), row.querySelector('.exercise-log-name .ex-rx').textContent);
 
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(0);

@@ -174,7 +174,7 @@ const arm = [[41,20],[46,15],[51,10],[58,10],[63,5],[68,5],[73,5],[78,3],[83,3],
     // ---- Its exercises' names ----
     await click('#summaryEditBtn');
     const exRow = key => [...doc.querySelectorAll('#logPerfExercisesList .exercise-log-row')].find(r=> r.getAttribute('data-exercise-key')===key);
-    const label = key => text(exRow(key).querySelector('.exercise-log-name span'));
+    const label = key => text(exRow(key).querySelector('.exercise-log-name .ex-rx'));
     check('13 sets with different reps read "13 sets" (not "13 x 1")', label('Wrist wrench Left')==='13 sets', label('Wrist wrench Left'));
     check('...one set reads as before', /^1 x 10$/.test(label('Curl')), label('Curl'));
     const reps0 = exRow('Curl').querySelector('[data-field="reps"]');

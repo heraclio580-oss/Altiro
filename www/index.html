@@ -8980,7 +8980,7 @@ function refreshLogPerfRowState(rowEl, ex){
 }
 // "3 x 10" -- or, when the reps change from set to set, just "13 sets" (one rep count would be wrong).
 function updateLogPerfPrescriptionLabel(rowEl, ex){
-  const label = rowEl.querySelector('.exercise-log-name span');
+  const label = rowEl.querySelector('.exercise-log-name .ex-rx');
   if(!label) return;
   const n = logPerfSetChecks[ex.key].length;
   const reps = [...rowEl.querySelectorAll('.set-log-row [data-field="reps"]')].map(i=> i.value.trim());
@@ -9338,7 +9338,7 @@ function openLogPerformanceFor(logTarget, mode){
       const renameBox = renameBtn ? `<input type="text" class="text-input ex-rename-input" data-rename-input maxlength="60" autocomplete="off" enterkeyhint="done" value="${escapeHtml(ex.name)}" hidden>` : '';
       if(ex.bodyweight){
         return `${ssHead}<div class="exercise-log-row bodyweight${ssLab ? ' ss-member' : ''}" data-exercise-key="${escapeHtml(ex.key)}">
-          <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}${renameBtn}<span>${fmtExercisePrescription(shownEx)}</span>${stepperHtml}</div>
+          <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}${renameBtn}<span class="ex-rx">${fmtExercisePrescription(shownEx)}</span>${stepperHtml}</div>
           ${renameBox}
           <div class="set-check-row"></div>
         </div>`;
@@ -9363,7 +9363,7 @@ function openLogPerformanceFor(logTarget, mode){
       }).join('');
       const removeHtml = building ? `<button type="button" class="live-remove" data-remove-ex title="${escapeHtml(STR[state.lang].liveRemoveTitle)}" aria-label="${escapeHtml(STR[state.lang].liveRemoveTitle)}">×</button>` : '';
       return `${ssHead}<div class="exercise-log-row${ssLab ? ' ss-member' : ''}" data-exercise-key="${escapeHtml(ex.key)}">
-        <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}${renameBtn}<span>${fmtExercisePrescription(shownEx)}</span>${stepperHtml}${removeHtml}</div>
+        <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}${renameBtn}<span class="ex-rx">${fmtExercisePrescription(shownEx)}</span>${stepperHtml}${removeHtml}</div>
         ${renameBox}
         <div class="set-log-head" aria-hidden="true"><span>${escapeHtml(state.weightUnit)}</span><span>${escapeHtml(STR[state.lang].logRepsHead)}</span><span></span></div>
         <div class="set-rows">${setRows}</div>

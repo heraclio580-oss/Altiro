@@ -233,6 +233,14 @@ html.boot-signed-in #screen-welcome{visibility:hidden;}
 .google-btn:disabled{opacity:0.75;cursor:default;}
 .google-btn .gicon{width:18px;height:18px;flex-shrink:0;display:flex;}
 .google-btn .gicon svg{width:18px;height:18px;}
+.google-btn[hidden]{display:none;}
+/* Sign in with Apple: Apple's black style, with an outline so it shows on the dark screen */
+.apple-btn{height:46px;margin-top:10px;border-radius:var(--r-pill);background:#000000;color:#FFFFFF;border:1px solid rgba(255,255,255,0.7);font-family:var(--font-body);font-weight:500;font-size:calc(14px * var(--fs, 1));display:flex;align-items:center;justify-content:center;gap:8px;width:100%;cursor:pointer;}
+.apple-btn[hidden]{display:none;}
+.apple-btn:disabled{opacity:0.75;cursor:default;}
+.apple-btn .aicon{width:18px;height:18px;flex-shrink:0;display:flex;margin-top:-2px;}
+.apple-btn .aicon svg{width:18px;height:18px;}
+.divider-row[hidden]{display:none;}
 
 /* ---------- progress bar (onboarding) ---------- */
 .progress{display:flex;gap:5px;padding:0 20px;margin-top:14px;}
@@ -1819,9 +1827,14 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
           <span class="gicon"><svg viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg></span>
           <span class="glabel" data-i18n="googleSignInBtn"></span>
         </button>
+        <!-- Shown once Sign in with Apple is switched on in Supabase (see loadAuthProviders) -->
+        <button class="apple-btn" id="appleSignInBtn" type="button" hidden>
+          <span class="aicon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.83-.81-3-.79-1.54.02-2.97.9-3.76 2.28-1.6 2.78-.41 6.9 1.15 9.16.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.39 0 1.78.74 2.99.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.86c.63-.77 1.06-1.83.94-2.9-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.27z"/></svg></span>
+          <span class="alabel" data-i18n="appleSignInBtn"></span>
+        </button>
       </div>
 
-      <div class="divider-row">
+      <div class="divider-row" id="authDivider">
         <span class="line"></span><span class="or-text" data-i18n="orDivider"></span><span class="line"></span>
       </div>
 
@@ -3524,7 +3537,7 @@ const STR = {
     welcomeBackHeadline: "Welcome back",
     welcomeBackSub: "Sign in to pick up right where you left off.",
     accountSub: "Sign in with Google in one tap, or create an account with your email.",
-    googleSignInBtn: "Sign in with Google",
+    googleSignInBtn: "Sign in with Google", appleSignInBtn: "Sign in with Apple", oauthFailedMsg: "Couldn't finish signing in. Please try again.",
     signingInMsg: "Signing in…",
     orDivider: "Or",
     emailLabel: "Email",
@@ -4247,7 +4260,7 @@ const STR = {
     welcomeBackHeadline: "Bienvenido de nuevo",
     welcomeBackSub: "Inicia sesión para seguir justo donde te quedaste.",
     accountSub: "Inicia sesión con Google en un toque, o crea una cuenta con tu correo.",
-    googleSignInBtn: "Continuar con Google",
+    googleSignInBtn: "Continuar con Google", appleSignInBtn: "Continuar con Apple", oauthFailedMsg: "No se pudo terminar de iniciar sesión. Inténtalo de nuevo.",
     signingInMsg: "Iniciando sesión…",
     orDivider: "O",
     emailLabel: "Correo electrónico",
@@ -16330,6 +16343,7 @@ function handleAppLink(url){
     else try{ localStorage.setItem(STRAVA_CALLBACK_KEY, JSON.stringify(cb)); }catch(e){}
     return;
   }
+  if(what==='auth-callback'){ finishOAuthReturn(u); return; }
   if(what==='confirmed' && !state.signedIn){
     openReturningSignIn();
     const pending = readPendingSignup();
@@ -16619,25 +16633,87 @@ document.getElementById('healthOffBtn').addEventListener('click', ()=>{
   showToast(STR[state.lang].healthOffToast.replace(/\{name\}/g, healthName()));
 });
 
-document.getElementById('googleSignInBtn').addEventListener('click', async function(){
-  const btn = this;
+// Google and Apple. On the website the page goes to their sign-in and comes back signed in. In the store
+// app their sign-in opens in the phone's browser, and auth-callback.html hands it back to the app through
+// an altiro:// link (handleAppLink -> finishOAuthReturn) -- only a one-time code, which is no use without
+// the key this app kept when it started (PKCE), so another app that took the link would get nothing.
+let nativeOAuth = null;
+function nativeOAuthClient(){
+  if(!nativeOAuth) nativeOAuth = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
+    { auth: { flowType: 'pkce', storageKey: NATIVE_OAUTH_KEY, detectSessionInUrl: false, autoRefreshToken: false } });
+  return nativeOAuth;
+}
+const NATIVE_OAUTH_KEY = 'altiro-oauth';
+async function oauthSignIn(btn, provider, labelKey){
   if(btn.disabled) return;
-  const labelEl = btn.querySelector('.glabel');
+  const labelEl = btn.querySelector('.glabel, .alabel');
   const L = STR[state.lang];
   btn.disabled = true;
   labelEl.textContent = L.signingInMsg;
   document.getElementById('authError').textContent = '';
-  const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: authRedirectUrl() } });
+  await supabaseReady;
+  const native = isNativeShell() && window.supabase && window.supabase.createClient;
+  const { error } = native
+    ? await nativeOAuthClient().auth.signInWithOAuth({ provider, options: { redirectTo: APP_URL + 'auth-callback.html' } })
+    : await sb.auth.signInWithOAuth({ provider, options: { redirectTo: authRedirectUrl() } });
   if(error){
-    // Expected until Google OAuth is configured in the Supabase dashboard
-    // (Authentication -> Providers -> Google). Surface it rather than fake success.
+    // A provider not switched on in the Supabase dashboard (Authentication -> Providers): say so
+    // rather than fake success.
     document.getElementById('authError').textContent = error.message;
     btn.disabled = false;
-    labelEl.textContent = L.googleSignInBtn;
+    labelEl.textContent = L[labelKey];
   }
-  // On success Supabase redirects the page to Google and back; onAuthStateChange below
-  // picks up the resulting session, so there's nothing further to do here.
-});
+  // On success the page goes to the provider; onAuthStateChange below picks up the session.
+}
+document.getElementById('googleSignInBtn').addEventListener('click', function(){ oauthSignIn(this, 'google', 'googleSignInBtn'); });
+document.getElementById('appleSignInBtn').addEventListener('click', function(){ oauthSignIn(this, 'apple', 'appleSignInBtn'); });
+// The store app, back from Google or Apple in the phone's browser: the sign-in it brought.
+async function finishOAuthReturn(u){
+  const q = new URLSearchParams((u.hash||'').replace(/^#/, '') + '&' + (u.search||'').replace(/^\?/, ''));
+  const code = q.get('code');
+  if(code && window.supabase && window.supabase.createClient){
+    try{
+      await supabaseReady;
+      const ex = await nativeOAuthClient().auth.exchangeCodeForSession(code);
+      const got = !ex.error && ex.data && ex.data.session;
+      // The app's own sign-in takes it from here; the one used for the exchange is let go (not signed
+      // out, which would end this sign-in too).
+      try{ Object.keys(localStorage).filter(k=> k.startsWith(NATIVE_OAUTH_KEY)).forEach(k=> localStorage.removeItem(k)); }catch(e){}
+      if(got){
+        const { data, error } = await sb.auth.setSession({access_token: got.access_token, refresh_token: got.refresh_token});
+        if(!error && data && data.session){ await enterSignedIn(data.session.user); return; }
+      }
+    }catch(e){}
+  }
+  if(state.signedIn) return;
+  openReturningSignIn();
+  const errEl = document.getElementById('authError');
+  errEl.style.color = 'var(--accent)';
+  errEl.textContent = q.get('error_description') || STR[state.lang].oauthFailedMsg;
+}
+// Which sign-in buttons show: Apple once it's switched on in Supabase (Authentication -> Providers), Google
+// unless it's switched off. Remembered, so the buttons are right straight away the next time.
+const AUTH_PROVIDERS_KEY = 'altiro_auth_providers';
+function renderAuthProviders(p){
+  const google = !(p && p.google===false), apple = !!(p && p.apple);
+  document.getElementById('googleSignInBtn').hidden = !google;
+  document.getElementById('appleSignInBtn').hidden = !apple;
+  document.getElementById('authDivider').hidden = !google && !apple;
+}
+async function loadAuthProviders(){
+  let cached = null;
+  try{ cached = JSON.parse(localStorage.getItem(AUTH_PROVIDERS_KEY) || 'null'); }catch(e){}
+  renderAuthProviders(cached);
+  try{
+    const r = await fetch(SUPABASE_URL + '/auth/v1/settings', {headers: {apikey: SUPABASE_ANON_KEY}});
+    if(!r.ok) return;
+    const ext = (await r.json()).external || {};
+    const p = {google: !!ext.google, apple: !!ext.apple};
+    try{ localStorage.setItem(AUTH_PROVIDERS_KEY, JSON.stringify(p)); }catch(e){}
+    renderAuthProviders(p);
+  }catch(e){ /* offline: as remembered */ }
+}
+loadAuthProviders();
 
 function updateEmailSignupBtn(){
   const email = document.getElementById('emailInput').value.trim();
@@ -16655,8 +16731,8 @@ let signingUp = false;
 function setSignedInUser(user){
   if(state.userId!==user.id){ resetBadgeChecks(); state.badges = null; state.joinedOn = null; }
   state.signedIn = true;
-  state.userEmail = user.email;
-  state.userName = user.email.split('@')[0]; // replaced by the profile's real name, if there is one
+  state.userEmail = user.email || '';
+  state.userName = (user.email || '').split('@')[0]; // replaced by the profile's real name, if there is one
   state.userId = user.id;
 }
 function enterSignedIn(user){

@@ -45,11 +45,14 @@ const PHOTOS = [...html.match(/const DEMO_PHOTOS = new Map\(\[([\s\S]*?)\n\]\);/
 const slug = k => k.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 // (A hold -- still: true -- has just the start picture.)
 const STILL = [...html.match(/const DEMO_PHOTOS = new Map\(\[([\s\S]*?)\n\]\);/)[1].matchAll(/^\s*\['([^']+)',\s*\{[^\n]*still: true/gm)].map(m=> m[1]);
-const missing = PHOTOS.flatMap(k=> (STILL.includes(k) ? ['start'] : ['start', 'end']).map(e=> `${slug(k)}-${e}.webp`)).filter(f=> !fs.existsSync(path.join(__dirname, '..', 'www', 'demos', f)));
+// (A longer move -- frames: n -- has its pictures numbered 1..n instead.)
+const SEQ = Object.fromEntries([...html.match(/const DEMO_PHOTOS = new Map\(\[([\s\S]*?)\n\]\);/)[1].matchAll(/^\s*\['([^']+)',\s*\{[^\n]*frames: (\d+)/gm)].map(m=> [m[1], +m[2]]));
+const missing = PHOTOS.flatMap(k=> (SEQ[k] ? Array.from({length: SEQ[k]}, (_, i)=> String(i+1)) : STILL.includes(k) ? ['start'] : ['start', 'end']).map(e=> `${slug(k)}-${e}.webp`)).filter(f=> !fs.existsSync(path.join(__dirname, '..', 'www', 'demos', f)));
 check(`Every photo demo has both of its pictures (${PHOTOS.length} with photos)`, PHOTOS.length && !missing.length, missing.join(', '));
 // ...and a move with a middle picture too (start -> middle -> end and back): that one as well.
 const WITH_MID = [...html.match(/const DEMO_PHOTOS = new Map\(\[([\s\S]*?)\n\]\);/)[1].matchAll(/^\s*\['([^']+)',\s*\{[^\n]*mid: true/gm)].map(m=> m[1]);
 check(`Three-picture demos have their middle one (${WITH_MID.join(', ')})`, WITH_MID.includes('Deadlift') && WITH_MID.every(k=> fs.existsSync(path.join(__dirname, '..', 'www', 'demos', `${slug(k)}-mid.webp`))));
+check(`Longer moves have every picture of their sequence (${Object.entries(SEQ).map(([k, n])=> `${k}: ${n}`).join(', ')})`, SEQ['Turkish Get-Up']===8 && SEQ['Kettlebell Windmill']===4);
 check('Each demo has form cues in English and Spanish', DEMO_KEYS.every(k=> MOVES[k].cues.en.length>=3 && MOVES[k].cues.en.length===MOVES[k].cues.es.length));
 
 (async () => {
@@ -133,6 +136,15 @@ check('Each demo has form cues in English and Spanish', DEMO_KEYS.every(k=> MOVE
     const imgs = [...doc.querySelectorAll('#mdStage .mv-photo img')].map(i=> i.getAttribute('src')).join(' ');
     check('The deadlift plays its three pictures: start, middle, top', imgs==='demos/deadlift-start.webp demos/deadlift-mid.webp demos/deadlift-end.webp'
       && doc.querySelector('#mdStage .mv-photo-mid') && doc.querySelector('#mdStage .mv-photo-end3'), imgs);
+    doc.getElementById('closeMoveDemo').click();
+    const g = doc.createElement('button'); g.setAttribute('data-demo', 'Turkish Get-Up'); doc.body.appendChild(g); g.click(); g.remove();
+    const seq = [...doc.querySelectorAll('#mdStage .mv-photo img')];
+    check('The Turkish get-up: its 8 pictures in order, the first one showing, with Pause and Slow motion',
+      seq.map(i=> i.getAttribute('src')).join(' ')===Array.from({length: 8}, (_, i)=> `demos/turkish-get-up-${i+1}.webp`).join(' ')
+      && seq.filter(i=> i.classList.contains('on')).length===1 && seq[0].classList.contains('on')
+      && doc.querySelector('#mdStage .mv-photo').dataset.frames==='8' && !doc.querySelector('#moveDemoOverlay .md-controls').hidden, seq.length);
+    doc.getElementById('mdPlayBtn').click(); await wait(10);
+    check('...Pause stops it', doc.querySelector('#mdStage .mv-photo').dataset.speed==='0');
     doc.getElementById('closeMoveDemo').click();
     const p = doc.createElement('button'); p.setAttribute('data-demo', 'Plank'); doc.body.appendChild(p); p.click(); p.remove();
     check('A hold (the plank): its one photo, with no Pause or Slow motion', [...doc.querySelectorAll('#mdStage .mv-photo img')].map(i=> i.getAttribute('src')).join(' ')==='demos/plank-start.webp'

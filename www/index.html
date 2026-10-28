@@ -798,6 +798,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 @keyframes mvPhotoMid{0%,12%{opacity:0}24%,76%{opacity:1}88%,100%{opacity:0}}
 @keyframes mvPhotoEnd3{0%,36%{opacity:0}48%,64%{opacity:1}76%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){ .mv-photo:not([data-speed]) .mv-photo-mid{animation:none;} }
+/* A longer move (the get-up): its pictures in order, stepped through by mvFrame. */
+.mv-photo .mv-photo-seq{opacity:0;transition:opacity .35s ease-in-out;}
+.mv-photo .mv-photo-seq.on{opacity:1;}
 @media (prefers-reduced-motion: reduce){ .mv-photo:not([data-speed]) .mv-photo-end{animation:none;} }
 .md-stage .mv-photo{height:auto;aspect-ratio:var(--ratio);max-height:min(52vh,420px);}
 .md-stage{margin:4px 0 12px;border-radius:18px;background:var(--card);border:1px solid var(--divider-soft);overflow:hidden;}
@@ -17489,7 +17492,9 @@ function mvViewBox(key, thumb){
 // Photo demos: two pictures of a move (start and end position, same camera), in www/demos/ named after
 // the exercise -- "Back Squat" -> back-squat-start.webp / back-squat-end.webp. The app fades between
 // them in a loop. A move with a third, in-between picture (mid: ...-mid.webp) goes start -> middle ->
-// end and back; a hold (still: a plank) has just the one, ...-start.webp. An exercise with photos shows them; one without keeps its drawn figure. Each lists the
+// end and back; a hold (still: a plank) has just the one, ...-start.webp. A longer move (frames: n -- the get-up) has
+// n pictures, ...-1.webp to ...-n.webp, played up to the last and back down, each held step seconds (see mvFrame).
+// An exercise with photos shows them; one without keeps its drawn figure. Each lists the
 // photos' shape (width / height), the part of them a small thumbnail centers on, and -- for a move with
 // no drawn figure -- its form cues.
 const DEMO_PHOTOS = new Map([
@@ -17634,6 +17639,12 @@ const DEMO_PHOTOS = new Map([
   ['Kettlebell Halo', {ratio: 440/963, focus: '50% 25%', mid: true, cues: {
     en: ['Hold the kettlebell upside down by the horns at your chest', 'Brace your core and keep your hips still', 'Circle it slowly around your head, close to your neck', 'Do all your reps one way, then switch direction'],
     es: ['Sujeta la pesa rusa boca abajo por los cuernos a la altura del pecho', 'Abdomen firme y cadera quieta', 'Gírala despacio alrededor de la cabeza, cerca del cuello', 'Haz todas las repeticiones en un sentido y luego cambia']}}],
+  ['Turkish Get-Up', {ratio: 440/800, focus: '50% 45%', frames: 8, step: 0.85, cues: {
+    en: ['Lie on your back, the bell pressed up over your shoulder, that knee bent', 'Roll to your elbow, then up onto your hand: arm locked, eyes on the bell', 'Lift your hips, sweep the straight leg under you into a kneel', 'Stand up from the lunge, then reverse every step back to the floor'],
+    es: ['Boca arriba, la pesa arriba sobre el hombro y esa rodilla doblada', 'Apóyate en el codo y luego en la mano: brazo bloqueado, mirada en la pesa', 'Sube la cadera y pasa la pierna estirada por debajo hasta quedar de rodilla', 'Levántate desde la zancada y luego deshaz cada paso hasta el suelo']}}],
+  ['Kettlebell Windmill', {ratio: 440/1000, focus: '50% 35%', frames: 4, step: 0.9, cues: {
+    en: ['The bell locked out overhead, feet turned away from it', 'Push your hip out toward the bell', 'Fold sideways, sliding your free hand down your leg toward the floor', 'Arm straight and eyes on the bell, then stand back up'],
+    es: ['La pesa arriba con el brazo bloqueado, pies girados hacia el otro lado', 'Saca la cadera hacia el lado de la pesa', 'Inclínate de lado deslizando la mano libre por la pierna hacia el suelo', 'Brazo recto y mirada en la pesa; luego vuelve a subir']}}],
   ['Kettlebell Row', {ratio: 440/488, focus: '50% 50%', cues: {
     en: ['One knee and hand on a bench, the other foot on the floor', 'Back flat, the kettlebell hanging from a straight arm', 'Pull the bell up to your hip, elbow close to your side', 'Lower it slowly until your arm is straight'],
     es: ['Una rodilla y una mano en el banco, el otro pie en el suelo', 'Espalda recta, la pesa rusa colgando con el brazo estirado', 'Tira de la pesa hasta la cadera, codo pegado al cuerpo', 'Bájala despacio hasta estirar el brazo']}}],
@@ -17989,6 +18000,9 @@ const hasHowTo = key => hasDemo(key) || !!HOWTO[key];
 function moveDemoSvg(key, cls){
   if(DEMO_PHOTOS.has(key)){
     const src = `demos/${demoSlug(key)}`, ph = DEMO_PHOTOS.get(key);
+    // A longer move: its pictures in order, the first one showing (mvFrame steps through them).
+    if(ph.frames) return `<span class="mv-photo ${cls}" style="--ratio:${ph.ratio.toFixed(3)};--focus:${ph.focus}" data-move="${escapeHtml(key)}" data-frames="${ph.frames}" data-step="${ph.step || 0.8}" aria-hidden="true">${
+      Array.from({length: ph.frames}, (_, i)=> `<img class="mv-photo-seq${i ? '' : ' on'}" src="${src}-${i+1}.webp" alt="" loading="lazy" decoding="async">`).join('')}</span>`;
     return `<span class="mv-photo ${cls}" style="--ratio:${ph.ratio.toFixed(3)};--focus:${ph.focus}" data-move="${escapeHtml(key)}" aria-hidden="true"><img src="${src}-start.webp" alt="" loading="lazy" decoding="async">${ph.mid ? `<img class="mv-photo-mid" src="${src}-mid.webp" alt="" loading="lazy" decoding="async">` : ''}${ph.still ? '' : `<img class="mv-photo-end${ph.mid ? ' mv-photo-end3' : ''}" src="${src}-end.webp" alt="" loading="lazy" decoding="async">`}</span>`;
   }
   const move = MOVES[key];
@@ -18022,6 +18036,22 @@ function mvFrame(now){
       else if(sh.k==='path') el.setAttribute('d', sh.d);
       else { el.setAttribute('x', sh.x.toFixed(1)); el.setAttribute('y', sh.y.toFixed(1)); }
     });
+  });
+  // A longer photo move: up to its last picture and back down, crossfading. Every picture up to the one
+  // showing stays on under it, so a fade never shows the background through.
+  document.querySelectorAll('.mv-photo[data-frames]').forEach(ph=>{
+    if(!ph.getClientRects().length) return;
+    const speed = ph.dataset.speed!=null ? +ph.dataset.speed : mvStill() ? 0 : 1;
+    const c = mvClock.get(ph) || {t:0, last:now, shown:0};
+    c.t += Math.min(100, now - c.last) / 1000 * speed; c.last = now;
+    mvClock.set(ph, c);
+    if(!speed) return;
+    moving = true;
+    const n = +ph.dataset.frames, cycle = 2*(n-1), k = Math.floor(c.t / (+ph.dataset.step || 0.8)) % cycle;
+    const at = k < n ? k : cycle - k;
+    if(at===c.shown) return;
+    c.shown = at;
+    ph.querySelectorAll('img').forEach((im, i)=> im.classList.toggle('on', i<=at));
   });
   if(moving) mvKick();
 }

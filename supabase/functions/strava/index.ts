@@ -12,8 +12,13 @@
 // Actions (POST JSON body {action, ...}, called with the user's Supabase session):
 //   authorize_url {redirect_uri}  -> {url}   Strava's "Authorize Altiro" page for this app
 //   connect {code, scope}         -> {connected, athlete_name}   finish sign-in, then sync
-//   sync                          -> {connected, athlete_name, fetched}
-//   disconnect                    -> {connected:false}
+//   sync                          -> {connected, athlete_name, fetched}, or {connected:false, spots_open}
+//   disconnect                    -> {connected:false, spots_open}
+//
+// Strava caps how many athletes an app can connect (10 until Strava reviews it). spots_open says whether
+// there's room for one more, so the app hides its Connect button while there isn't, and authorize_url
+// answers {error:"athlete_limit"} then too. The cap is the STRAVA_ATHLETE_LIMIT secret (10 if unset):
+// raise it when Strava raises Altiro's limit, and the button comes back with no app update.
 //
 // "Verify JWT" (Edge Functions -> strava -> Settings) can be on or off. The app sends the user's token in
 // an x-altiro-user header and the project's anon key in Authorization -- see invokeFunction() in
@@ -30,6 +35,7 @@
 //
 // Secrets (Supabase dashboard -> Edge Functions -> Secrets): STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, and
 // STRAVA_WEBHOOK_TOKEN (any long random string; it proves a webhook request came from our own setup).
+// Optional: STRAVA_ATHLETE_LIMIT (see above).
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -60,6 +66,7 @@ export type Db = {
   getConnectionByAthlete(athleteId: number): Promise<Connection | null>;
   saveConnection(row: Partial<Connection> & { user_id: string }): Promise<void>;
   deleteConnection(userId: string): Promise<void>;
+  countConnections(): Promise<number>;
   // Inserts only activities not already stored, so a run the app has already filed (applied_at set)
   // is never reset to "new" and imported twice.
   insertNewActivities(rows: Record<string, unknown>[]): Promise<void>;
@@ -229,6 +236,22 @@ async function syncRuns(deps: Deps, userId: string) {
   return { connected: true, athlete_name: conn.athlete_name, fetched: runs.length };
 }
 
+// Whether Strava has room for one more athlete. If the count can't be read, says yes: connecting then
+// still ends kindly if Strava itself is full.
+async function spotsOpen(deps: Deps) {
+  const limit = Number(deps.env("STRAVA_ATHLETE_LIMIT")) || 10;
+  try {
+    return (await deps.db.countConnections()) < limit;
+  } catch (e) {
+    console.log(JSON.stringify({ count_error: String((e as Error).message || e) }));
+    return true;
+  }
+}
+
+async function withSpots(deps: Deps, result: Record<string, unknown>) {
+  return result.connected ? result : { ...result, spots_open: await spotsOpen(deps) };
+}
+
 export function makeHandler(deps: Deps) {
   return async (req: Request): Promise<Response> => {
     if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -275,6 +298,7 @@ export function makeHandler(deps: Deps) {
       switch (body.action) {
         case "authorize_url": {
           if (!body.redirect_uri) return json({ error: "missing_redirect_uri" }, 400);
+          if (!(await deps.db.getConnection(userId)) && !(await spotsOpen(deps))) return json({ error: "athlete_limit" }, 403);
           const q = new URLSearchParams({
             client_id: deps.env("STRAVA_CLIENT_ID")!,
             response_type: "code",
@@ -310,10 +334,10 @@ export function makeHandler(deps: Deps) {
             scope: body.scope || null,
             last_synced_at: null,
           });
-          return json(await syncRuns(deps, userId));
+          return json(await withSpots(deps, await syncRuns(deps, userId)));
         }
         case "sync":
-          return json(await syncRuns(deps, userId));
+          return json(await withSpots(deps, await syncRuns(deps, userId)));
         case "disconnect": {
           const conn = await deps.db.getConnection(userId);
           if (conn) {
@@ -327,7 +351,7 @@ export function makeHandler(deps: Deps) {
             await deps.db.deleteConnection(userId);
             await deps.db.deleteUnappliedActivities(userId);
           }
-          return json({ connected: false });
+          return json(await withSpots(deps, { connected: false }));
         }
         default:
           return json({ error: "unknown_action" }, 400);
@@ -364,6 +388,11 @@ function supabaseDb(): Db {
     },
     async deleteConnection(userId) {
       check(await admin.from("strava_connections").delete().eq("user_id", userId));
+    },
+    async countConnections() {
+      const { count, error } = await admin.from("strava_connections").select("user_id", { count: "exact", head: true });
+      if (error) throw error;
+      return count ?? 0;
     },
     async insertNewActivities(rows) {
       check(await admin.from("strava_activities").upsert(rows, { onConflict: "id", ignoreDuplicates: true }));

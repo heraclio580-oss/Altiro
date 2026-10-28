@@ -4071,6 +4071,8 @@ const STR = {
     stravaNeedsActivityToast: "Allow access to your activities to import runs",
     stravaFullToast: "Strava connections are full for now, so this one didn't connect. Your watch can still sync through {health}: Settings → Connected Apps.",
     stravaFullWebToast: "Strava connections are full for now, so this one didn't connect. In the Altiro phone app, your watch can still sync through Health Connect or Apple Health.",
+    stravaFullSub: "Strava connections are full for now. Your watch can still sync through {health} above.",
+    stravaFullWebSub: "Strava connections are full for now. In the Altiro phone app, your watch can sync through Health Connect or Apple Health.",
     stravaImportedToast: "From Strava: {name} · {mi} mi",
     watchNumbersToast: "Your watch recorded this run too: using its {mi}",
     stravaImportedManyToast: "Imported {count} runs from Strava",
@@ -4822,6 +4824,8 @@ const STR = {
     stravaNeedsActivityToast: "Permite el acceso a tus actividades para importar carreras",
     stravaFullToast: "Las conexiones con Strava están llenas por ahora, así que esta no se conectó. Tu reloj puede sincronizarse con {health}: Ajustes → Apps conectadas.",
     stravaFullWebToast: "Las conexiones con Strava están llenas por ahora, así que esta no se conectó. En la app de Altiro para el teléfono, tu reloj puede sincronizarse con Health Connect o Apple Health.",
+    stravaFullSub: "Las conexiones con Strava están llenas por ahora. Tu reloj puede sincronizarse con {health}, arriba.",
+    stravaFullWebSub: "Las conexiones con Strava están llenas por ahora. En la app de Altiro para el teléfono, tu reloj puede sincronizarse con Health Connect o Apple Health.",
     stravaImportedToast: "De Strava: {name} · {mi} mi",
     watchNumbersToast: "Tu reloj también registró esta carrera: se usan sus {mi}",
     stravaImportedManyToast: "{count} carreras importadas de Strava",
@@ -8219,7 +8223,7 @@ function resetToWelcome(){
   state = defaultState();
   state.lang = lang; state.theme = theme; state.accent = accent;
   forgetProStatus();
-  strava = {connected:false, athleteName:'', status:'idle', lastSyncAt:0};
+  strava = {connected:false, athleteName:'', status:'idle', lastSyncAt:0, spotsOpen:true};
   signedInLoad = null;
   resetBadgeChecks();
   document.getElementById('goalNext').disabled = true;
@@ -16301,7 +16305,8 @@ async function loadWorkoutDataFromCloud(){
 // and stamps it applied, so a run is only ever imported once, on any device.
 const STRAVA_CALLBACK_KEY = 'altiro_strava_callback';
 const STRAVA_RESYNC_MS = 60*1000;
-let strava = {connected:false, athleteName:'', status:'idle', lastSyncAt:0}; // status: 'idle' | 'syncing' | 'unavailable'
+let strava = {connected:false, athleteName:'', status:'idle', lastSyncAt:0, spotsOpen:true}; // status: 'idle' | 'syncing' | 'unavailable'
+// (spotsOpen: whether Strava has room for one more athlete -- while it doesn't, the Connect button is hidden.)
 
 // Calls one of Altiro's Edge Functions as the signed-in user. The user's session token rides in
 // x-altiro-user, and Authorization carries the project's anon key: Supabase's "Verify JWT" gateway
@@ -16351,14 +16356,17 @@ function stravaUnavailable(error){
 function renderStravaSettings(){
   const L = STR[state.lang];
   let text;
+  // Strava is full (see the strava function): no Connect button until a spot opens, just a note.
+  const full = !strava.connected && !strava.spotsOpen && strava.status!=='unavailable';
   if(strava.status==='syncing') text = L.stravaSyncingSub;
   else if(strava.status==='unavailable') text = L.stravaUnavailableSub;
+  else if(full) text = nativeHealth() ? L.stravaFullSub.replace('{health}', healthName()) : L.stravaFullWebSub;
   else if(strava.connected) text = strava.athleteName ? L.stravaConnectedSub.replace('{name}', strava.athleteName) : L.stravaConnectedSubPlain;
   else text = L.stravaConnectSub;
   document.getElementById('stravaStatusText').textContent = text;
   // Not connected: Strava's own "Connect with Strava" button. Connected: Sync now and Disconnect.
   const connectBtn = document.getElementById('stravaConnectBtn'), syncBtn = document.getElementById('stravaSyncBtn');
-  connectBtn.hidden = strava.connected || strava.status==='unavailable';
+  connectBtn.hidden = strava.connected || strava.status==='unavailable' || full;
   syncBtn.hidden = !strava.connected;
   connectBtn.disabled = syncBtn.disabled = strava.status==='syncing';
   document.getElementById('stravaDisconnectBtn').hidden = !strava.connected;
@@ -16693,6 +16701,7 @@ async function syncStrava(opts){
   }
   strava.connected = !!data.connected;
   strava.athleteName = data.athlete_name || '';
+  strava.spotsOpen = strava.connected || data.spots_open!==false;
   strava.status = 'idle';
   renderStravaSettings();
   return strava.connected ? await importStravaActivities() : null;
@@ -16716,6 +16725,7 @@ async function connectStrava(){
   const { data, error } = await stravaCall('authorize_url', {redirect_uri: stravaRedirectUri()});
   if(error || !data || !data.url){
     if(error && stravaUnavailable(error)){ strava.status = 'unavailable'; renderStravaSettings(); }
+    if(error && error.code==='athlete_limit'){ strava.spotsOpen = false; renderStravaSettings(); showToast(stravaFullText()); return; }
     if(error) console.warn('Strava authorize_url failed', error);
     showToast(stravaFailedText(error));
     return;
@@ -16748,6 +16758,7 @@ async function finishStravaConnect(handed){
   const { data, error } = await stravaCall('connect', {code: params.get('code'), scope: params.get('scope') || ''});
   strava.status = 'idle';
   if(error || !data || !data.connected){
+    if(error && error.code==='athlete_limit') strava.spotsOpen = false;
     renderStravaSettings();
     if(error) console.warn('Strava connect failed', error);
     showToast(error && error.code==='missing_activity_scope' ? L.stravaNeedsActivityToast
@@ -16816,10 +16827,11 @@ document.querySelectorAll('img[data-strava-asset]').forEach(img=>{
   if(img.complete && !img.naturalWidth) missing();
 });
 document.getElementById('stravaDisconnectBtn').addEventListener('click', async ()=>{
-  const { error } = await stravaCall('disconnect');
+  const { data, error } = await stravaCall('disconnect');
   if(error){ showToast(stravaFailedText(error)); return; }
   strava.connected = false;
   strava.athleteName = '';
+  strava.spotsOpen = !data || data.spots_open!==false;
   renderStravaSettings();
   showToast(STR[state.lang].stravaDisconnectedToast);
 });

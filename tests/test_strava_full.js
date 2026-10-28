@@ -57,7 +57,8 @@ const toast = doc => doc.getElementById('toastMsg').textContent;
     check('...not the bare error', !/Couldn't connect|403/.test(toast(doc)), toast(doc));
     const go = id => [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === id).click();
     go('settings'); await wait(20);
-    check('...and Strava is still not connected (the Connect button is there)', !doc.getElementById('stravaConnectBtn').hidden);
+    check('...and Strava is still not connected: no Connect button while it\'s full, a note instead', doc.getElementById('stravaConnectBtn').hidden && doc.getElementById('stravaSyncBtn').hidden
+      && /full for now/.test(doc.getElementById('stravaStatusText').textContent), doc.getElementById('stravaStatusText').textContent);
   }
   {
     // The website: the callback page left Strava's reply for the app to finish once signed in.

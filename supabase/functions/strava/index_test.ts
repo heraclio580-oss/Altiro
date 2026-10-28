@@ -6,7 +6,7 @@ import { makeHandler, type Deps } from "./index.ts";
 
 const NOW = Date.parse("2026-09-27T15:00:00Z");
 
-function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatus?: number } = {}) {
+function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatus?: number; limit?: string; others?: number; countFails?: boolean } = {}) {
   const connections: Record<string, any> = {};
   const activities: Record<string, any> = {};
   const calls: string[] = [];
@@ -17,7 +17,7 @@ function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatu
   ];
   const deps: Deps = {
     now: () => NOW,
-    env: (n) => ({ STRAVA_CLIENT_ID: "123", STRAVA_CLIENT_SECRET: "shh", STRAVA_WEBHOOK_TOKEN: "hook-token", SUPABASE_URL: "https://proj.supabase.co" } as Record<string, string>)[n],
+    env: (n) => ({ STRAVA_CLIENT_ID: "123", STRAVA_CLIENT_SECRET: "shh", STRAVA_WEBHOOK_TOKEN: "hook-token", SUPABASE_URL: "https://proj.supabase.co", ...(opts.limit ? { STRAVA_ATHLETE_LIMIT: opts.limit } : {}) } as Record<string, string>)[n],
     fetch: async (input, init) => {
       const url = String(input);
       calls.push(`${init?.method || "GET"} ${url}`);
@@ -53,6 +53,11 @@ function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatu
       getConnectionByAthlete: async (id) => Object.values(connections).find((c) => c.athlete_id === id) ?? null,
       saveConnection: async (row) => { connections[row.user_id] = { ...connections[row.user_id], ...row }; },
       deleteConnection: async (u) => { delete connections[u]; },
+      // (`others` stands in for other people's connections.)
+      countConnections: async () => {
+        if (opts.countFails) throw new Error("db down");
+        return Object.keys(connections).length + (opts.others || 0);
+      },
       insertNewActivities: async (rows) => {
         rows.forEach((r) => {
           const had = activities[r.id as number];
@@ -151,7 +156,7 @@ Deno.test("connect refuses a sign-in where activity access was unticked", async 
 
 Deno.test("sync with no connection just reports not connected", async () => {
   const { call, calls } = setup();
-  assertEquals((await call({ action: "sync" })).body, { connected: false });
+  assertEquals((await call({ action: "sync" })).body, { connected: false, spots_open: true });
   assertEquals(calls.length, 0);
 });
 
@@ -188,7 +193,7 @@ Deno.test("a sync after access was revoked on Strava drops the connection", asyn
     user_id: "user-1", athlete_id: 99, athlete_name: "Sam", access_token: "ok", refresh_token: "r1",
     expires_at: new Date(NOW + 3600_000).toISOString(), scope: null, last_synced_at: null,
   };
-  assertEquals((await call({ action: "sync" })).body, { connected: false });
+  assertEquals((await call({ action: "sync" })).body, { connected: false, spots_open: true });
   assertEquals(connections["user-1"], undefined);
 });
 
@@ -198,7 +203,7 @@ Deno.test("a failed token refresh (revoked) also drops the connection", async ()
     user_id: "user-1", athlete_id: 99, athlete_name: "Sam", access_token: "old", refresh_token: "r1",
     expires_at: new Date(NOW - 1000).toISOString(), scope: null, last_synced_at: null,
   };
-  assertEquals((await call({ action: "sync" })).body, { connected: false });
+  assertEquals((await call({ action: "sync" })).body, { connected: false, spots_open: true });
   assertEquals(connections["user-1"], undefined);
 });
 
@@ -206,10 +211,47 @@ Deno.test("disconnect revokes on Strava and forgets runs not yet filed", async (
   const { call, connections, activities, calls } = setup();
   await call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
   activities[1].applied_at = "2026-09-27T15:00:00Z";
-  assertEquals((await call({ action: "disconnect" })).body, { connected: false });
+  assertEquals((await call({ action: "disconnect" })).body, { connected: false, spots_open: true });
   assertEquals(connections["user-1"], undefined);
   assertEquals(Object.keys(activities), ["1"]);
   assertEquals(calls.includes("POST https://www.strava.com/oauth/deauthorize"), true);
+});
+
+// ---------------- Strava's athlete limit ----------------
+
+Deno.test("sync tells someone not connected whether Strava has room (10 by default)", async () => {
+  assertEquals((await setup({ others: 9 }).call({ action: "sync" })).body, { connected: false, spots_open: true });
+  assertEquals((await setup({ others: 10 }).call({ action: "sync" })).body, { connected: false, spots_open: false });
+});
+
+Deno.test("STRAVA_ATHLETE_LIMIT raises the limit once Strava approves", async () => {
+  assertEquals((await setup({ others: 10, limit: "999" }).call({ action: "sync" })).body.spots_open, true);
+});
+
+Deno.test("authorize_url says Strava is full when it is, unless you're already connected", async () => {
+  const full = await setup({ others: 10 }).call({ action: "authorize_url", redirect_uri: "https://x/cb" });
+  assertEquals(full.status, 403);
+  assertEquals(full.body.error, "athlete_limit");
+  const { call, connections } = setup({ others: 10 });
+  connections["user-1"] = { user_id: "user-1", athlete_id: 99 };
+  assertEquals(typeof (await call({ action: "authorize_url", redirect_uri: "https://x/cb" })).body.url, "string");
+});
+
+Deno.test("a connected user's sync doesn't mention spots", async () => {
+  const { call, connections } = setup({ others: 50 });
+  connections["user-1"] = {
+    user_id: "user-1", athlete_id: 99, athlete_name: "Sam", access_token: "ok", refresh_token: "r1",
+    expires_at: new Date(NOW + 3600_000).toISOString(), scope: "read,activity:read_all", last_synced_at: null,
+  };
+  const { body } = await call({ action: "sync" });
+  assertEquals(body.connected, true);
+  assertEquals("spots_open" in body, false);
+});
+
+Deno.test("if the count can't be read, the button stays (Strava's own answer still catches a full app)", async () => {
+  const { call } = setup({ countFails: true });
+  assertEquals((await call({ action: "sync" })).body, { connected: false, spots_open: true });
+  assertEquals(typeof (await call({ action: "authorize_url", redirect_uri: "https://x/cb" })).body.url, "string");
 });
 
 // ---------------- Strava's webhook ----------------

@@ -27,14 +27,14 @@ function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok
   const doc = dom.window.document;
   [...doc.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click();
   await wait(20);
-  // A workout with one exercise that has a picture (Back Squat) and one that doesn't (Kettlebell Push Press).
+  // A workout with one exercise that has a picture (Back Squat) and one that doesn't (Wrist Curl).
   doc.getElementById('addTodayWorkoutBtn').click();
   await wait(20);
   doc.getElementById('manualNameInput').value = 'Legs';
   doc.getElementById('manualNameInput').dispatchEvent(new dom.window.Event('input', {bubbles:true}));
   [...doc.querySelectorAll('#manualTypeRow .type-btn')].find(b=>b.dataset.type==='strength').click();
   let row = doc.querySelector('#createExercisesList .exercise-edit-row');
-  row.querySelector('.ex-name').value = 'Kettlebell Push Press'; row.querySelector('.ex-sets').value = '3'; row.querySelector('.ex-reps').value = '10';
+  row.querySelector('.ex-name').value = 'Wrist Curl'; row.querySelector('.ex-sets').value = '3'; row.querySelector('.ex-reps').value = '10';
   doc.getElementById('addExerciseRow')?.click();
   const rows = doc.querySelectorAll('#createExercisesList .exercise-edit-row');
   if(rows[1]){ rows[1].querySelector('.ex-name').value = 'Back Squat'; rows[1].querySelector('.ex-sets').value = '3'; rows[1].querySelector('.ex-reps').value = '5'; }
@@ -43,15 +43,15 @@ function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok
   if(!doc.getElementById('dayDetailOverlay').hidden) doc.getElementById('closeDayDetail').click();
   doc.querySelector('#homeExtraWorkoutsWrap [data-start-extra]').click();
   await wait(30);
-  const noPic = doc.querySelector('#logPerfExercisesList [data-exercise-key="Kettlebell Push Press"]');
+  const noPic = doc.querySelector('#logPerfExercisesList [data-exercise-key="Wrist Curl"]');
   const btn = noPic && noPic.querySelector('[data-demo]');
   check('Logging it: an exercise without a picture has a "How to" button', !!btn && btn.classList.contains('howto') && /How to/.test(btn.textContent));
   btn.click();
   await wait(20);
   const ov = doc.getElementById('moveDemoOverlay');
   const cues = [...doc.querySelectorAll('#mdCues li')].map(li=>li.textContent);
-  check('...it opens its three steps, with no empty picture or play buttons', !ov.hidden && cues.length===3 && /shoulder/.test(cues[0]) && doc.getElementById('mdStage').hidden && doc.querySelector('#moveDemoOverlay .md-controls').hidden, cues.join(' / '));
-  check('...titled with the exercise', /Kettlebell Push Press/.test(doc.getElementById('mdTitle').textContent));
+  check('...it opens its three steps, with no empty picture or play buttons', !ov.hidden && cues.length===3 && /thighs/.test(cues[0]) && doc.getElementById('mdStage').hidden && doc.querySelector('#moveDemoOverlay .md-controls').hidden, cues.join(' / '));
+  check('...titled with the exercise', /Wrist Curl/.test(doc.getElementById('mdTitle').textContent));
   doc.getElementById('closeMoveDemo').click();
   const squat = doc.querySelector('#logPerfExercisesList [data-exercise-key="Back Squat"] [data-demo]');
   if(squat){
@@ -69,9 +69,9 @@ function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok
   await wait(20);
   doc.querySelector('#homeExtraWorkoutsWrap [data-start-extra]').click();
   await wait(30);
-  doc.querySelector('#logPerfExercisesList [data-exercise-key="Kettlebell Push Press"] [data-demo]').click();
+  doc.querySelector('#logPerfExercisesList [data-exercise-key="Wrist Curl"] [data-demo]').click();
   await wait(20);
-  check('In Spanish too', /pesa/i.test(doc.querySelector('#mdCues li').textContent), doc.querySelector('#mdCues li').textContent);
+  check('In Spanish too', /muslos/i.test(doc.querySelector('#mdCues li').textContent), doc.querySelector('#mdCues li').textContent);
   console.log(failures ? `${failures} FAILED` : 'ALL DONE');
   process.exit(failures ? 1 : 0);
 })().catch(e => { console.log('TEST THREW:', e.stack || e); process.exit(1); });

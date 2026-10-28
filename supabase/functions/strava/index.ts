@@ -92,7 +92,13 @@ async function stravaToken(deps: Deps, params: Record<string, string>) {
       ...params,
     }),
   });
-  if (!res.ok) throw new Error(`strava_token_${res.status}`);
+  if (!res.ok) {
+    // Strava allows an app only so many connected athletes (10 on its Standard tier until it approves
+    // more), and says so when one more tries to connect.
+    const text = await res.text().catch(() => "");
+    if (res.status === 403 && /limit of connected athletes/i.test(text)) throw new Error("strava_athlete_limit");
+    throw new Error(`strava_token_${res.status}`);
+  }
   return await res.json();
 }
 
@@ -285,7 +291,14 @@ export function makeHandler(deps: Deps) {
           // The athlete can untick "View data about your activities" on Strava's consent page --
           // without it there's nothing to import, so say so instead of connecting uselessly.
           if (body.scope && !/activity:read/.test(body.scope)) return json({ error: "missing_activity_scope" }, 400);
-          const t = await stravaToken(deps, { grant_type: "authorization_code", code: body.code });
+          let t;
+          try {
+            t = await stravaToken(deps, { grant_type: "authorization_code", code: body.code });
+          } catch (e) {
+            // Altiro's Strava connections are all taken: the app says so kindly (and nothing is saved).
+            if (String((e as Error).message) === "strava_athlete_limit") return json({ error: "athlete_limit" }, 403);
+            throw e;
+          }
           const athlete = t.athlete || {};
           await deps.db.saveConnection({
             user_id: userId,

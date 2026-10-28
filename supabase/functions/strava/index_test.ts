@@ -6,7 +6,7 @@ import { makeHandler, type Deps } from "./index.ts";
 
 const NOW = Date.parse("2026-09-27T15:00:00Z");
 
-function setup(opts: { tokenStatus?: number; activitiesStatus?: number } = {}) {
+function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatus?: number } = {}) {
   const connections: Record<string, any> = {};
   const activities: Record<string, any> = {};
   const calls: string[] = [];
@@ -22,7 +22,7 @@ function setup(opts: { tokenStatus?: number; activitiesStatus?: number } = {}) {
       const url = String(input);
       calls.push(`${init?.method || "GET"} ${url}`);
       if (url.endsWith("/oauth/token")) {
-        if (opts.tokenStatus) return new Response("{}", { status: opts.tokenStatus });
+        if (opts.tokenStatus) return new Response(opts.tokenBody || "{}", { status: opts.tokenStatus });
         const body = JSON.parse(String(init!.body));
         assertEquals(body.client_secret, "shh");
         return Response.json({
@@ -124,6 +124,21 @@ Deno.test("keeps the watch's climb, and fills it in on a run stored before it wa
   await call({ action: "sync" });
   assertEquals(activities[1].elev_gain_m, 68);
   assertEquals(activities[1].applied_at, "2026-09-27T14:00:00Z");
+});
+
+Deno.test("connect when Altiro's Strava connections are all taken: says so, saves nothing", async () => {
+  const { call, connections } = setup({ tokenStatus: 403, tokenBody: JSON.stringify({ message: "Limit of connected athletes exceeded", errors: [{ resource: "Application", field: "", code: "limit exceeded" }] }) });
+  const { status, body } = await call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
+  assertEquals(status, 403);
+  assertEquals(body.error, "athlete_limit");
+  assertEquals(connections["user-1"], undefined);
+});
+
+Deno.test("another refused sign-in is still a plain failure", async () => {
+  const { call } = setup({ tokenStatus: 403, tokenBody: JSON.stringify({ message: "Authorization Error" }) });
+  const { status, body } = await call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
+  assertEquals(status, 502);
+  assertEquals(body.error, "strava_token_403");
 });
 
 Deno.test("connect refuses a sign-in where activity access was unticked", async () => {

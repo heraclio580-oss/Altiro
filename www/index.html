@@ -4069,6 +4069,8 @@ const STR = {
     stravaFailedToast: "Couldn't connect to Strava",
     stravaCancelledToast: "Strava connection cancelled",
     stravaNeedsActivityToast: "Allow access to your activities to import runs",
+    stravaFullToast: "Strava connections are full for now, so this one didn't connect. Your watch can still sync through {health}: Settings → Connected Apps.",
+    stravaFullWebToast: "Strava connections are full for now, so this one didn't connect. In the Altiro phone app, your watch can still sync through Health Connect or Apple Health.",
     stravaImportedToast: "From Strava: {name} · {mi} mi",
     watchNumbersToast: "Your watch recorded this run too: using its {mi}",
     stravaImportedManyToast: "Imported {count} runs from Strava",
@@ -4818,6 +4820,8 @@ const STR = {
     stravaFailedToast: "No se pudo conectar con Strava",
     stravaCancelledToast: "Conexión con Strava cancelada",
     stravaNeedsActivityToast: "Permite el acceso a tus actividades para importar carreras",
+    stravaFullToast: "Las conexiones con Strava están llenas por ahora, así que esta no se conectó. Tu reloj puede sincronizarse con {health}: Ajustes → Apps conectadas.",
+    stravaFullWebToast: "Las conexiones con Strava están llenas por ahora, así que esta no se conectó. En la app de Altiro para el teléfono, tu reloj puede sincronizarse con Health Connect o Apple Health.",
     stravaImportedToast: "De Strava: {name} · {mi} mi",
     watchNumbersToast: "Tu reloj también registró esta carrera: se usan sus {mi}",
     stravaImportedManyToast: "{count} carreras importadas de Strava",
@@ -16335,6 +16339,12 @@ function stravaFailedText(error){
   const why = ownCode || (error && error.status && [error.status, error.detail].filter(Boolean).join(' · '));
   return why ? `${L.stravaFailedToast} (${why})` : L.stravaFailedToast;
 }
+// Altiro's Strava connections are all taken (Strava allows only so many until it approves more): the
+// watch can still come in through the phone's own health app.
+function stravaFullText(){
+  const L = STR[state.lang];
+  return nativeHealth() ? L.stravaFullToast.replace('{health}', healthName()) : L.stravaFullWebToast;
+}
 function stravaUnavailable(error){
   return error.status===404 || error.code==='not_configured';
 }
@@ -16740,7 +16750,8 @@ async function finishStravaConnect(handed){
   if(error || !data || !data.connected){
     renderStravaSettings();
     if(error) console.warn('Strava connect failed', error);
-    showToast(error && error.code==='missing_activity_scope' ? L.stravaNeedsActivityToast : stravaFailedText(error));
+    showToast(error && error.code==='missing_activity_scope' ? L.stravaNeedsActivityToast
+      : error && error.code==='athlete_limit' ? stravaFullText() : stravaFailedText(error));
     return true;
   }
   strava.connected = true;

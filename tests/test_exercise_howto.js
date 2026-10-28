@@ -4,7 +4,11 @@ const { JSDOM } = require('jsdom');
 
 // Every exercise in the library says how it's done: with its picture and steps when it has a demo, or just
 // its three steps when it doesn't yet -- in English and Spanish.
-const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
+// Every exercise in the library has pictures now, so this test takes the Wrist Curl's out of its own copy of
+// the app to check the fallback (an exercise added later without pictures).
+const fullHtml = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
+const html = fullHtml.replace(/^  \['Wrist Curl', \{[\s\S]*?\}\}\],\n/m, '');
+if(html===fullHtml){ console.log('(set-up) the Wrist Curl\'s pictures were taken out of the test copy: FAIL'); process.exit(1); }
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 let failures = 0;
 function check(label, ok, detail){ if(!ok) failures++; console.log(label+':', ok ? 'OK' : `FAIL${detail!==undefined ? ' ('+detail+')' : ''}`); }

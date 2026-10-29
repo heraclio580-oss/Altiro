@@ -621,7 +621,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .exercise-log-row .exercise-log-name .ex-drag{margin:-10px 2px -10px -8px;padding:10px 6px;color:var(--text-3);}
 .ex-block{transition:transform .18s ease;}
 .ex-block.ex-dragging{transition:none;position:relative;z-index:5;background:var(--card);border-radius:var(--r-md);box-shadow:0 12px 26px rgba(0,0,0,0.5);}
-#logPerfExercisesList.ex-reordering{user-select:none;-webkit-user-select:none;}
+#logPerfExercisesList.ex-reordering,#wpExerciseList.ex-reordering{user-select:none;-webkit-user-select:none;}
+#wpExerciseList.ex-reordering :is(.wp-pyramid,.wp-ex-note,.wp-keep,.wp-chooser){display:none;}
+#wpExerciseList .ex-drag{align-self:flex-start;margin:6px -4px 0 -8px;padding:10px 6px;color:var(--text-3);}
+#wpExerciseList .live-remove{vertical-align:middle;}
+#wpAddExercise{margin-top:12px;}
 #logPerfExercisesList.ex-reordering :is(.set-rows,.set-log-head,.pyr-actions,.set-check-row,.live-ss-link,.ex-rename-input){display:none;}
 #logPerfExercisesList.ex-reordering .exercise-log-name{margin-bottom:0;}
 @media (prefers-reduced-motion: reduce){.ex-block{transition:none;}}
@@ -2754,6 +2758,14 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="st-label" data-i18n="wpExercisesLabel"></div>
         <div id="wpExerciseList"></div>
         <div id="wpSkippedList"></div>
+        <!-- Another exercise for this day's workout, before it's started -->
+        <div class="live-add" id="wpAddExercise" hidden>
+          <div class="live-add-row">
+            <input type="text" class="text-input" id="wpAddExerciseInput" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-controls="wpAddSuggest">
+            <button type="button" class="btn btn-ghost" id="wpAddExerciseBtn" data-i18n="liveAddBtn"></button>
+          </div>
+          <div class="name-suggest" id="wpAddSuggest" role="listbox" hidden></div>
+        </div>
       </div>
       <div class="sheet-section" id="wpCompanionSection" hidden>
         <div class="st-label" data-i18n="pairedWithLabel"></div>
@@ -9632,7 +9644,7 @@ function openLogPerformanceFor(logTarget, mode){
         </div>` : ''}
       </div>`;
     }).map((h, i)=> (blockStarts[i] ? '<div class="ex-block">' : '') + h + (i===exercises.length-1 || blockStarts[i+1] ? '</div>' : '')).join('');
-    exercisesListEl.querySelectorAll('.ex-drag').forEach(wireExerciseDrag);
+    exercisesListEl.querySelectorAll('.ex-drag').forEach(h=> wireExerciseDrag(h, document.querySelector('#logPerfOverlay .sheet-panel'), exercisesReordered));
     exercisesListEl.querySelectorAll('[data-ss-live]').forEach(btn=> btn.addEventListener('click', ()=> toggleLiveSuperset(btn.getAttribute('data-ss-live'))));
     exercisesListEl.querySelectorAll('.exercise-log-row').forEach(rowEl=>{
       const ex = exercises.find(e=>e.key===rowEl.getAttribute('data-exercise-key'));
@@ -9821,8 +9833,8 @@ function nameSuggestionsFor(typed, names){
   });
   return starts.concat(words).slice(0, NAME_SUGGEST_MAX);
 }
-function renderNameSuggestions(){
-  const input = document.getElementById('logPerfAddExerciseInput'), box = document.getElementById('logPerfAddSuggest');
+function renderNameSuggestions(inputId, boxId){
+  const input = document.getElementById(inputId || 'logPerfAddExerciseInput'), box = document.getElementById(boxId || 'logPerfAddSuggest');
   const list = document.activeElement===input ? nameSuggestionsFor(input.value, logPerfNameList) : [];
   box.innerHTML = list.map(n=> `<button type="button" role="option" data-name="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
   box.hidden = !list.length;
@@ -9901,19 +9913,19 @@ function inExerciseOrder(exercises, order){
   const known = exercises.filter(e=> pos(e.key)>=0).sort((a, b)=> pos(a.key)-pos(b.key));
   return exercises.map(e=> pos(e.key)>=0 ? known.shift() : e);
 }
+// (The same drag moves a workout's exercises in its preview too: scroller is the sheet that scrolls, and
+// done(block) is told where the moved one went.)
 let exDrag = null;
-function wireExerciseDrag(handle){
+function wireExerciseDrag(handle, scroller, done){
   handle.addEventListener('click', e=> e.stopPropagation()); // (not also "pick as current exercise")
   handle.addEventListener('pointerdown', e=>{
     if(e.button>0 || exDrag) return;
     if(e.cancelable) e.preventDefault();
-    startExerciseDrag(handle, e);
+    startExerciseDrag(handle, e, scroller, done);
   });
 }
-function startExerciseDrag(handle, e){
-  const list = document.getElementById('logPerfExercisesList');
-  const scroller = document.querySelector('#logPerfOverlay .sheet-panel');
-  const block = handle.closest('.ex-block');
+function startExerciseDrag(handle, e, scroller, done){
+  const block = handle.closest('.ex-block'), list = block.parentElement;
   const handleTop = handle.getBoundingClientRect().top;
   list.classList.add('ex-reordering');
   // Folding everything to its name line moves the exercise being dragged: scroll so it stays under the finger.
@@ -9924,7 +9936,7 @@ function startExerciseDrag(handle, e){
   const geo = blocks.map(b=>{ const r = b.getBoundingClientRect(); return {top: r.top + s0, h: r.height}; });
   const src = blocks.indexOf(block);
   exDrag = {
-    handle, block, blocks, geo, src, target: src, scroller, y: e.clientY, raf: 0,
+    handle, block, blocks, geo, src, target: src, list, scroller, done, y: e.clientY, raf: 0,
     gap: blocks.length>1 ? Math.max(0, geo[1].top - geo[0].top - geo[0].h) : 0,
     // How far below the block's top the finger is holding it.
     grab: (e.clientY - handleTop) + (handle.getBoundingClientRect().top - (geo[src].top - s0)),
@@ -9982,12 +9994,11 @@ function endExerciseDrag(commit){
   d.handle.removeEventListener('pointercancel', onExerciseDragCancel);
   d.blocks.forEach(b=>{ b.style.transform = ''; });
   d.block.classList.remove('ex-dragging');
-  const list = document.getElementById('logPerfExercisesList');
-  list.classList.remove('ex-reordering');
+  d.list.classList.remove('ex-reordering');
   if(!commit || d.target===d.src) return;
   const others = d.blocks.filter(b=> b!==d.block);
-  list.insertBefore(d.block, others[d.target] || null);
-  exercisesReordered(d.block);
+  d.list.insertBefore(d.block, others[d.target] || null);
+  d.done(d.block);
 }
 // Keeps the new order (and everything typed so far), then redraws the list: superset letters follow the
 // new order. The exercise just moved becomes the one up next.
@@ -10013,9 +10024,9 @@ document.getElementById('logPerfAddExerciseInput').addEventListener('keydown', e
   if(e.key==='Enter'){ e.preventDefault(); addLiveExercise(); renderNameSuggestions(); }
   else if(e.key==='Escape') document.getElementById('logPerfAddSuggest').hidden = true;
 });
-['input', 'focus'].forEach(ev=> document.getElementById('logPerfAddExerciseInput').addEventListener(ev, renderNameSuggestions));
+['input', 'focus'].forEach(ev=> document.getElementById('logPerfAddExerciseInput').addEventListener(ev, ()=> renderNameSuggestions()));
 // (A short wait, so a tap on a name lands before the list goes.)
-document.getElementById('logPerfAddExerciseInput').addEventListener('blur', ()=> setTimeout(renderNameSuggestions, 150));
+document.getElementById('logPerfAddExerciseInput').addEventListener('blur', ()=> setTimeout(()=> renderNameSuggestions(), 150));
 // Tapping a name adds that exercise. (Pressing on it doesn't take the focus from the box, so the
 // keyboard stays up for the next one.)
 document.getElementById('logPerfAddSuggest').addEventListener('pointerdown', e=>{ if(e.target.closest('[data-name]')) e.preventDefault(); });
@@ -11504,8 +11515,14 @@ function renderWorkoutPreview(){
     coachEl.innerHTML = (coach ? `<p><b>${escapeHtml(coach)}</b></p>` : '')
       + `<p>${escapeHtml(LIFT_WARMUP[state.lang])}</p><p>${escapeHtml(LIFT_EFFORT[state.lang])}</p>`;
   }
+  const canEdit = wpCanEdit(r, exercises);
+  document.getElementById('wpAddExercise').hidden = !canEdit;
+  if(canEdit){ fillExerciseNameList(); document.getElementById('wpAddExerciseInput').placeholder = L.liveAddPlaceholder; }
   if(exercises){
     const wpSs = supersetLabels(exercises);
+    // What moves together when the order is changed: one exercise, or a whole superset.
+    const blockStarts = exercises.map((_, i)=> !(wpSs[i] && !wpSs[i].first));
+    const dragHtml = canEdit && blockStarts.filter(Boolean).length>=2 ? `<span class="drag-handle ex-drag" title="${escapeHtml(L.exDragHint)}" aria-label="${escapeHtml(L.exDragHint)}">${ICONS.grip}</span>` : '';
     document.getElementById('wpExerciseList').innerHTML = exercises.map((ex, i)=>{
       const note = ex.swappedFrom
         ? `<div class="wp-ex-note">${escapeHtml(L.wpReplaces.replace('{name}', exerciseDisplayName(ex.swappedFrom)))}<button class="btn-text" type="button" data-undo-swap="${escapeHtml(ex.swappedFrom)}">${L.wpUndo}</button></div>`
@@ -11514,10 +11531,12 @@ function renderWorkoutPreview(){
       const rx = ex.durationSec!=null
         ? `<div class="wp-ex-rx">${escapeHtml(exerciseRxText(ex))}</div>`
         : `<button class="wp-ex-rx wp-rx-btn" type="button" data-tune="${i}">${escapeHtml(exerciseRxText(ex))}${ICONS.pencil}</button>`;
-      const row = `<div class="wp-ex${wpSs[i] ? ' ss-member' : ''}" data-idx="${i}">
-          ${exerciseDemoBtn(ex.key, ex.name)}
+      // (One added for this day can be taken off again; the plan's own go through Change.)
+      const removeHtml = canEdit && ex.live ? `<button type="button" class="live-remove" data-wp-remove="${escapeHtml(ex.key)}" title="${escapeHtml(L.liveRemoveTitle)}" aria-label="${escapeHtml(L.liveRemoveTitle)}">×</button>` : '';
+      const row = `<div class="wp-ex${wpSs[i] ? ' ss-member' : ''}" data-idx="${i}" data-key="${escapeHtml(ex.key)}">
+          ${dragHtml}${exerciseDemoBtn(ex.key, ex.name)}
           <div class="wp-ex-main">
-            <div class="wp-ex-name">${ssTagHtml(wpSs[i])}${escapeHtml(ex.name)}</div>
+            <div class="wp-ex-name">${ssTagHtml(wpSs[i])}${escapeHtml(ex.name)}${removeHtml}</div>
             ${rx}
             ${ex.pyramid ? pyramidLadderHtml(ex) : ''}
             ${note}
@@ -11525,7 +11544,7 @@ function renderWorkoutPreview(){
           </div>
           <button class="wp-change" type="button" data-change="${i}">${L.wpChangeBtn}</button>
         </div>`;
-      return row + (wp.editIdx===i ? exerciseChooserHtml(ex, exercises.length) : '')
+      return (blockStarts[i] ? '<div class="ex-block">' : '') + row + (wp.editIdx===i ? exerciseChooserHtml(ex, exercises.length) : '')
         + (wp.tuneIdx===i ? `<div class="wp-chooser wp-tuner" data-tuner="${i}">
             <div class="st-label">${escapeHtml(L.liftNumbersFor.replace('{name}', ex.name))}</div>
             <div class="lift-fields">${liftNumberInputsHtml(ex)}</div>
@@ -11534,8 +11553,10 @@ function renderWorkoutPreview(){
               <button class="btn btn-ghost" type="button" data-tune-cancel>${L.wpCancel}</button>
               <button class="btn btn-primary" type="button" data-tune-save="${i}">${L.liftSaveBtn}</button>
             </div>
-          </div>` : '');
+          </div>` : '') + (i===exercises.length-1 || blockStarts[i+1] ? '</div>' : '');
     }).join('');
+    const panel = document.querySelector('#workoutPreviewOverlay .sheet-panel');
+    document.querySelectorAll('#wpExerciseList .ex-drag').forEach(h=> wireExerciseDrag(h, panel, wpExercisesReordered));
     document.getElementById('wpSkippedList').innerHTML = exercises.skipped.map(key=>
       `<div class="wp-ex-note" style="padding-top:8px;">${escapeHtml(L.wpSkippedEvery.replace('{name}', exerciseDisplayName(key)))}<button class="btn-text" type="button" data-undo-swap="${escapeHtml(key)}">${L.wpUndo}</button></div>`
     ).join('');
@@ -11546,6 +11567,80 @@ function renderWorkoutPreview(){
   if(companion) document.getElementById('wpCompanion').textContent = companion.title + (companion.detail ? ` · ${companion.detail}` : '');
   mvKick();
 }
+// ---- Moving and adding exercises in the preview ----
+// Before a workout is started (today's, or one coming up): its exercises can be put in another order and
+// more added -- for that day only, as "Change exercises -> just this workout" does, so the plan's next one
+// of it comes as usual. Not on one that's done or past, nor when opened from the workout itself (which
+// has both of its own).
+function wpCanEdit(r, exercises){
+  if(wp.fromLog || !exercises || r.session.t!=='strength' || wp.dayKey < dateKey(TODAY_DATE)) return false;
+  return r.planLift ? true : r.extra ? !r.extra.completed : !getDayData(parseDateKey(wp.dayKey)).completed;
+}
+// The workout's list to change: its own (the user's, or the plan's already written out for the day), or
+// the plan's as shown. (An exercise in its own list shows as what it's swapped for in every workout.)
+function wpBaseList(r){
+  if(Array.isArray(r.session.exercises)) return r.session.exercises.slice();
+  return (exercisesForSession(r.session, parseDateKey(wp.dayKey)) || []).slice();
+}
+function wpShownKey(ex){
+  const swap = ex.fromPlan ? standingSwapFor(ex.key) : null;
+  return swap && swap!=='skip' ? swap : ex.key;
+}
+function wpSaveList(r, list){
+  saveWorkoutExercises(r, list);
+  // A workout already started on this phone keeps what's typed, but takes this new order.
+  try{
+    const d = JSON.parse(localStorage.getItem(LOG_DRAFT_KEY) || 'null');
+    if(d && d.order && String(d.target).startsWith(wp.dayKey + '|')){ delete d.order; localStorage.setItem(LOG_DRAFT_KEY, JSON.stringify(d)); }
+  }catch(e){}
+  wp.changed = true;
+  refreshViews();
+  renderWorkoutPreview();
+}
+function wpExercisesReordered(){
+  const r = previewedWorkout();
+  if(!r) return;
+  const order = [...document.querySelectorAll('#wpExerciseList .wp-ex')].map(el=> el.getAttribute('data-key'));
+  const pos = ex=>{ const i = order.indexOf(wpShownKey(ex)); return i<0 ? order.length : i; };
+  const list = wpBaseList(r).map((ex, j)=> ({ex, j})).sort((a, b)=> pos(a.ex)-pos(b.ex) || a.j-b.j).map(x=> x.ex);
+  wpSaveList(r, list);
+}
+function wpAddExercise(){
+  const input = document.getElementById('wpAddExerciseInput');
+  const raw = input.value.trim();
+  if(!raw){ input.focus(); return; }
+  const r = previewedWorkout();
+  if(!r) return;
+  const to = exerciseFromTyped(raw), list = wpBaseList(r);
+  input.value = '';
+  if(!list.some(ex=> wpShownKey(ex)===to.key)){
+    list.push({...to, sets: 3, reps: (EXERCISES[to.key] && EXERCISES[to.key].reps) || 10, live: true});
+    wpSaveList(r, list);
+    showToast(STR[state.lang].exerciseChangedToast);
+  }
+  const row = [...document.querySelectorAll('#wpExerciseList .wp-ex')].find(el=> el.getAttribute('data-key')===to.key);
+  if(row && row.scrollIntoView) row.scrollIntoView({block:'center'});
+}
+function wpRemoveExercise(key){
+  const r = previewedWorkout();
+  if(!r) return;
+  wpSaveList(r, wpBaseList(r).filter(ex=> wpShownKey(ex)!==key));
+}
+document.getElementById('wpAddExerciseBtn').addEventListener('click', ()=>{ wpAddExercise(); renderNameSuggestions('wpAddExerciseInput', 'wpAddSuggest'); });
+document.getElementById('wpAddExerciseInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); wpAddExercise(); renderNameSuggestions('wpAddExerciseInput', 'wpAddSuggest'); }
+  else if(e.key==='Escape') document.getElementById('wpAddSuggest').hidden = true;
+});
+['input', 'focus'].forEach(ev=> document.getElementById('wpAddExerciseInput').addEventListener(ev, ()=> renderNameSuggestions('wpAddExerciseInput', 'wpAddSuggest')));
+document.getElementById('wpAddExerciseInput').addEventListener('blur', ()=> setTimeout(()=> renderNameSuggestions('wpAddExerciseInput', 'wpAddSuggest'), 150));
+document.getElementById('wpAddSuggest').addEventListener('pointerdown', e=>{ if(e.target.closest('[data-name]')) e.preventDefault(); });
+document.getElementById('wpAddSuggest').addEventListener('click', e=>{
+  const b = e.target.closest('[data-name]');
+  if(!b) return;
+  document.getElementById('wpAddExerciseInput').value = b.getAttribute('data-name');
+  wpAddExercise();
+  renderNameSuggestions('wpAddExerciseInput', 'wpAddSuggest');
+});
 // The main lift changes each time its movement leads a workout; "Keep this lift" stays on this one.
 // (Only on the plan's own pick -- one swapped in, or a workout the user built, has nothing rotating.)
 function keepLiftBtnHtml(ex, r){
@@ -11642,6 +11737,8 @@ function applyExerciseChange(idx, choice, scope){
   showToast(STR[state.lang].exerciseChangedToast);
 }
 document.getElementById('wpExerciseSection').addEventListener('click', (e)=>{
+  const rm = e.target.closest('[data-wp-remove]');
+  if(rm){ wpRemoveExercise(rm.getAttribute('data-wp-remove')); return; }
   const change = e.target.closest('[data-change]');
   if(change){
     const idx = parseInt(change.getAttribute('data-change'),10);

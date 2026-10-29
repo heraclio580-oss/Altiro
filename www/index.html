@@ -9527,9 +9527,12 @@ function openLogPerformanceFor(logTarget, mode){
   else if(exercises && perf && Array.isArray(perf.exercises)) exercises = inExerciseOrder(exercises, perf.exercises.map(p=>p.key));
   logPerfBuilding = building;
   document.getElementById('logPerfChangeExercisesBtn').hidden = !(exercises && mode==='record' && logTarget.kind!=='entry' && !building);
-  document.getElementById('logPerfAddExercise').hidden = !building;
+  // Any lifting workout being done can take another exercise (waiting for a machine, or feeling good):
+  // just for today -- see addLiveExercise.
+  const canAdd = mode==='record' && logTarget.kind!=='entry' && Array.isArray(exercises);
+  document.getElementById('logPerfAddExercise').hidden = !canAdd;
   document.getElementById('logPerfLiveEmpty').hidden = !(building && exercises && !exercises.length);
-  if(building){ fillExerciseNameList(); document.getElementById('logPerfAddExerciseInput').placeholder = STR[state.lang].liveAddPlaceholder; }
+  if(canAdd){ fillExerciseNameList(); document.getElementById('logPerfAddExerciseInput').placeholder = STR[state.lang].liveAddPlaceholder; }
   const exercisesListEl = document.getElementById('logPerfExercisesList');
   logPerfSetChecks = {};
   logPerfRowEx = {};
@@ -9558,7 +9561,9 @@ function openLogPerformanceFor(logTarget, mode){
       const loggedSets = loggedEx && Array.isArray(loggedEx.sets) && loggedEx.sets.length ? loggedEx.sets : null;
       // Not logged yet: a lift the user added themselves starts from what they did last time -- every
       // set's weight and reps. (The plan's own lifts start from their progressed target, or their pyramid.)
-      const lastSets = !loggedSets && !ex.fromPlan && !ex.pyramid && !ex.bodyweight ? lastLoggedSets(ex.key, dateKey(new Date(parseDateKey(logTarget.dayKey).getTime() - 86400000)), ex.ownOf) : null;
+      // (One added while doing a workout starts from the last time it was done in any workout.)
+      const dayBefore = dateKey(new Date(parseDateKey(logTarget.dayKey).getTime() - 86400000));
+      const lastSets = !loggedSets && !ex.fromPlan && !ex.pyramid && !ex.bodyweight ? lastLoggedSets(ex.key, dayBefore, ex.ownOf) || (ex.live ? lastLoggedSets(ex.key, dayBefore) : null) : null;
       // What was already typed for it in this workout (kept through a re-render or the app closing).
       const draftEx = draft && draft.ex[ex.key];
       const setCount = draftEx ? Math.max(1, draftEx.done.length) : loggedSets ? loggedSets.length : lastSets ? Math.min(LOG_PERF_MAX_SETS, lastSets.length) : ((loggedEx && loggedEx.setCount) || ex.sets || 1);
@@ -9599,7 +9604,7 @@ function openLogPerformanceFor(logTarget, mode){
           <button type="button" class="set-check-dot" data-set-idx="${i}">${i+1}</button>
         </div>`;
       }).join('');
-      const removeHtml = building ? `<button type="button" class="live-remove" data-remove-ex title="${escapeHtml(STR[state.lang].liveRemoveTitle)}" aria-label="${escapeHtml(STR[state.lang].liveRemoveTitle)}">×</button>` : '';
+      const removeHtml = canAdd && !ex.fromPlan ? `<button type="button" class="live-remove" data-remove-ex title="${escapeHtml(STR[state.lang].liveRemoveTitle)}" aria-label="${escapeHtml(STR[state.lang].liveRemoveTitle)}">×</button>` : '';
       return `${ssHead}<div class="exercise-log-row${ssLab ? ' ss-member' : ''}" data-exercise-key="${escapeHtml(ex.key)}">
         <div class="exercise-log-name">${dragHtml}${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}${renameBtn}<span class="ex-rx">${fmtExercisePrescription(shownEx)}</span>${stepperHtml}${removeHtml}</div>
         ${renameBox}
@@ -9814,13 +9819,13 @@ function addLiveExercise(){
   if(!resolved) return;
   // One of the app's lifts (typed in either language) keeps its own name, demo and progression.
   const to = exerciseFromTyped(raw), key = to.key;
-  const list = (resolved.session.exercises || []).slice();
+  const list = liveExerciseList(t, resolved);
   input.value = '';
   if(!list.some(e=>e.key===key)){
-    list.push({...to, sets: 1, reps: (EXERCISES[key] && EXERCISES[key].reps) || 10});
+    list.push({...to, sets: 1, reps: (EXERCISES[key] && EXERCISES[key].reps) || 10, live: true});
     saveLogPerfDraft();
     setSessionExercises(t, list);
-    openLogPerformanceFor(t, 'record');
+    rerenderLogPerf();
   }
   // The exercise just added (or picked again) is the one being worked on.
   logPerfSelectedKey = key;
@@ -9831,6 +9836,23 @@ function addLiveExercise(){
     const w = row.querySelector('[data-field="weight"]');
     if(w && !w.value) w.focus();
   }
+}
+// The exercise list a workout being done is changed from. A plan workout's own list is written out for
+// the day first (as "Change exercises" does for just this workout), so the change is today's only and
+// the plan's next one comes as usual.
+function liveExerciseList(t, resolved){
+  const own = resolved.session.exercises;
+  if(Array.isArray(own)) return own.slice();
+  return (exercisesForSession(resolved.session, parseDateKey(t.dayKey)) || []).map(ex=>{ const c = {...ex}; delete c.swappedFrom; delete c.pyramid; delete c.ownOf; return c; });
+}
+// Redraws the workout being done after its exercises changed, keeping what was typed (the sets through
+// the draft; the notes and where the sheet was scrolled to, here).
+function rerenderLogPerf(){
+  const panel = document.querySelector('#logPerfOverlay .sheet-panel'), scroll = panel.scrollTop;
+  const notes = document.getElementById('logPerfNotesInput').value;
+  openLogPerformanceFor(state._logTarget, 'record');
+  document.getElementById('logPerfNotesInput').value = notes;
+  panel.scrollTop = scroll;
 }
 // "Log as you go": link an exercise to the one above it as a superset, or unlink it.
 function toggleLiveSuperset(key){
@@ -9843,14 +9865,14 @@ function toggleLiveSuperset(key){
   links[i] = !links[i];
   saveLogPerfDraft();
   setSessionExercises(t, relinkSupersets(list, links));
-  openLogPerformanceFor(t, 'record');
+  rerenderLogPerf();
 }
 function removeLiveExercise(key){
   const t = state._logTarget, resolved = t && resolveLogTarget(t);
   if(!resolved) return;
   saveLogPerfDraft();
-  setSessionExercises(t, (resolved.session.exercises || []).filter(e=>e.key!==key));
-  openLogPerformanceFor(t, 'record');
+  setSessionExercises(t, liveExerciseList(t, resolved).filter(e=>e.key!==key));
+  rerenderLogPerf();
 }
 // ---- Changing the order while doing a workout ----
 // The busy gym: the next machine is free, so that exercise goes to the top. Only this workout's order
@@ -9962,11 +9984,7 @@ function exercisesReordered(block){
     if(resolved) setSessionExercises(t, inExerciseOrder(resolved.session.exercises || [], draft.order));
   }
   const keys = [...block.querySelectorAll('.exercise-log-row')].filter(r=> !r.classList.contains('set-complete')).map(r=> r.getAttribute('data-exercise-key'));
-  const panel = document.querySelector('#logPerfOverlay .sheet-panel'), scroll = panel.scrollTop;
-  const notes = document.getElementById('logPerfNotesInput').value;
-  openLogPerformanceFor(t, 'record');
-  document.getElementById('logPerfNotesInput').value = notes;
-  panel.scrollTop = scroll;
+  rerenderLogPerf();
   const row = keys.length ? [...document.querySelectorAll('#logPerfExercisesList .exercise-log-row')].find(r=> r.getAttribute('data-exercise-key')===keys[0]) : null;
   if(row){
     logPerfSelectedKey = keys[0];

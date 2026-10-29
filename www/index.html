@@ -626,6 +626,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 #wpExerciseList .ex-drag{align-self:flex-start;margin:6px -4px 0 -8px;padding:10px 6px;color:var(--text-3);}
 #wpExerciseList .live-remove{vertical-align:middle;}
 #wpAddExercise{margin-top:12px;}
+.circuit-btn{display:flex;align-items:center;gap:6px;padding:0;margin:2px 0 10px;}
+.circuit-btn svg{width:14px;height:14px;}
+.circuit-btn[hidden]{display:none;}
+#wpExerciseList .ss-link{margin:8px 0 0;}
+#wpExerciseList.ex-reordering .ss-link{display:none;}
 #logPerfExercisesList.ex-reordering :is(.set-rows,.set-log-head,.pyr-actions,.set-check-row,.live-ss-link,.ex-rename-input){display:none;}
 #logPerfExercisesList.ex-reordering .exercise-log-name{margin-bottom:0;}
 @media (prefers-reduced-motion: reduce){.ex-block{transition:none;}}
@@ -2757,6 +2762,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="wp-coach" id="wpCoach" hidden></div>
         <div class="st-label" data-i18n="wpExercisesLabel"></div>
         <div id="wpExerciseList"></div>
+        <button class="btn-text circuit-btn" id="wpCircuitBtn" type="button" hidden></button>
         <div id="wpSkippedList"></div>
         <!-- Another exercise for this day's workout, before it's started -->
         <div class="live-add" id="wpAddExercise" hidden>
@@ -2970,6 +2976,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
       <button class="btn-text" id="logPerfChangeExercisesBtn" type="button" data-i18n="changeExercisesBtn" style="padding:0;margin-top:4px;" hidden></button>
       <div id="logPerfExercisesList"></div>
+      <button class="btn-text circuit-btn" id="logPerfCircuitBtn" type="button" hidden></button>
       <!-- "Log as you go": exercises added while the workout is being done -->
       <div class="live-add" id="logPerfAddExercise" hidden>
         <div class="footer-note" id="logPerfLiveEmpty" style="text-align:left;" data-i18n="liveEmptyNote" hidden></div>
@@ -4288,6 +4295,7 @@ const STR = {
     exercisesLabel: "Exercises (optional)",
     exercisesSub: "Fill in the exercises, sets and reps. Leave any row blank to skip it. To superset two exercises, tap Superset with above on the second one.",
     supersetLinkBtn: "Superset with above", supersetLinkedBtn: "Superset with above · on",
+    circuitAllBtn: "Make it one circuit", circuitSplitBtn: "Split up the circuit",
     supersetHead: "Superset {g} · one set of each, then rest",
     addExerciseBtn: "+ Add Exercise",
     newExerciseNamePlaceholder: "Exercise",
@@ -5042,6 +5050,7 @@ const STR = {
     exercisesLabel: "Ejercicios (opcional)",
     exercisesSub: "Escribe los ejercicios, series y repeticiones. Deja en blanco las filas que no uses. Para hacer una superserie, toca Superserie con el de arriba en el segundo ejercicio.",
     supersetLinkBtn: "Superserie con el de arriba", supersetLinkedBtn: "Superserie con el de arriba · sí",
+    circuitAllBtn: "Hacerlo un circuito", circuitSplitBtn: "Separar el circuito",
     supersetHead: "Superserie {g} · una serie de cada uno y luego descansa",
     addExerciseBtn: "+ Agregar ejercicio",
     newExerciseNamePlaceholder: "Ejercicio",
@@ -9578,7 +9587,7 @@ function openLogPerformanceFor(logTarget, mode){
     const dragHtml = canReorder ? `<span class="drag-handle ex-drag" title="${escapeHtml(STR[state.lang].exDragHint)}" aria-label="${escapeHtml(STR[state.lang].exDragHint)}">${ICONS.grip}</span>` : '';
     exercisesListEl.innerHTML = exercises.map((ex, exIdx)=>{
       const ssLab = ssLabels[exIdx];
-      const ssHead = (building && exIdx>0 ? (()=>{
+      const ssHead = (canAdd && exIdx>0 ? (()=>{
           const on = !!ex.superset && ex.superset===exercises[exIdx-1].superset;
           return `<button class="ss-link live-ss-link" type="button" data-ss-live="${escapeHtml(ex.key)}" aria-pressed="${on}">${ICONS.link}<span>${STR[state.lang][on ? 'supersetLinkedBtn' : 'supersetLinkBtn']}</span></button>`;
         })() : '')
@@ -9646,6 +9655,9 @@ function openLogPerformanceFor(logTarget, mode){
     }).map((h, i)=> (blockStarts[i] ? '<div class="ex-block">' : '') + h + (i===exercises.length-1 || blockStarts[i+1] ? '</div>' : '')).join('');
     exercisesListEl.querySelectorAll('.ex-drag').forEach(h=> wireExerciseDrag(h, document.querySelector('#logPerfOverlay .sheet-panel'), exercisesReordered));
     exercisesListEl.querySelectorAll('[data-ss-live]').forEach(btn=> btn.addEventListener('click', ()=> toggleLiveSuperset(btn.getAttribute('data-ss-live'))));
+    const circuitBtn = document.getElementById('logPerfCircuitBtn');
+    circuitBtn.hidden = !(canAdd && exercises.length>=2);
+    if(!circuitBtn.hidden) circuitBtn.innerHTML = circuitBtnHtml(exercises);
     exercisesListEl.querySelectorAll('.exercise-log-row').forEach(rowEl=>{
       const ex = exercises.find(e=>e.key===rowEl.getAttribute('data-exercise-key'));
       rowEl.querySelectorAll('.set-stepper-btn').forEach(btn=>{
@@ -9688,6 +9700,7 @@ function openLogPerformanceFor(logTarget, mode){
     mvKick();
   } else {
     exercisesListEl.innerHTML = '';
+    document.getElementById('logPerfCircuitBtn').hidden = true;
   }
   const target = getProgressionTarget(eff, state.intensityIdx);
   document.getElementById('logPerfWeightSection').hidden = !(eff.t==='strength' && !exercises);
@@ -9883,18 +9896,28 @@ function rerenderLogPerf(){
   panel.scrollTop = scroll;
 }
 // "Log as you go": link an exercise to the one above it as a superset, or unlink it.
+// (On any workout being done -- the plan's is written out for the day first, in the order it's shown,
+// since "above" means above on screen. key null: every exercise, as one circuit, or split up again.)
 function toggleLiveSuperset(key){
   const t = state._logTarget, resolved = t && resolveLogTarget(t);
   if(!resolved) return;
-  const list = resolved.session.exercises || [];
-  const i = list.findIndex(e=>e.key===key);
-  if(i<=0) return;
-  const links = list.map((e, j)=> j>0 && !!e.superset && e.superset===list[j-1].superset);
-  links[i] = !links[i];
   saveLogPerfDraft();
+  const draft = loadLogPerfDraft(t);
+  let list = liveExerciseList(t, resolved);
+  if(draft && draft.order) list = inExerciseOrder(list, draft.order);
+  const links = supersetLinks(list);
+  if(key==null){
+    const all = links.slice(1).every(Boolean);
+    links.forEach((_, i)=>{ links[i] = i>0 && !all; });
+  } else {
+    const i = list.findIndex(e=>e.key===key);
+    if(i<=0) return;
+    links[i] = !links[i];
+  }
   setSessionExercises(t, relinkSupersets(list, links));
   rerenderLogPerf();
 }
+document.getElementById('logPerfCircuitBtn').addEventListener('click', ()=> toggleLiveSuperset(null));
 function removeLiveExercise(key){
   const t = state._logTarget, resolved = t && resolveLogTarget(t);
   if(!resolved) return;
@@ -11019,6 +11042,13 @@ function supersetLabels(exercises){
   }
   return labels;
 }
+// Which exercises are linked to the one above them (as relinkSupersets takes it).
+function supersetLinks(list){ return list.map((e, i)=> i>0 && !!e.superset && e.superset===list[i-1].superset); }
+// "Make it one circuit" (every exercise linked), or once it is, "Split up the circuit".
+function circuitBtnHtml(list){
+  const all = supersetLinks(list).slice(1).every(Boolean);
+  return `${ICONS.link}<span>${escapeHtml(STR[state.lang][all ? 'circuitSplitBtn' : 'circuitAllBtn'])}</span>`;
+}
 // Gives a list fresh superset ids from which exercises are linked to the one above (links[i]).
 function relinkSupersets(list, links){
   let groups = 0;
@@ -11533,7 +11563,12 @@ function renderWorkoutPreview(){
         : `<button class="wp-ex-rx wp-rx-btn" type="button" data-tune="${i}">${escapeHtml(exerciseRxText(ex))}${ICONS.pencil}</button>`;
       // (One added for this day can be taken off again; the plan's own go through Change.)
       const removeHtml = canEdit && ex.live ? `<button type="button" class="live-remove" data-wp-remove="${escapeHtml(ex.key)}" title="${escapeHtml(L.liveRemoveTitle)}" aria-label="${escapeHtml(L.liveRemoveTitle)}">×</button>` : '';
-      const row = `<div class="wp-ex${wpSs[i] ? ' ss-member' : ''}" data-idx="${i}" data-key="${escapeHtml(ex.key)}">
+      // Linking it to the one above it, as a superset (several in a row: a circuit).
+      const link = canEdit && i>0 ? (()=>{
+        const on = !!ex.superset && ex.superset===exercises[i-1].superset;
+        return `<button class="ss-link" type="button" data-wp-link="${escapeHtml(ex.key)}" aria-pressed="${on}">${ICONS.link}<span>${escapeHtml(L[on ? 'supersetLinkedBtn' : 'supersetLinkBtn'])}</span></button>`;
+      })() : '';
+      const row = `${link}<div class="wp-ex${wpSs[i] ? ' ss-member' : ''}" data-idx="${i}" data-key="${escapeHtml(ex.key)}">
           ${dragHtml}${exerciseDemoBtn(ex.key, ex.name)}
           <div class="wp-ex-main">
             <div class="wp-ex-name">${ssTagHtml(wpSs[i])}${escapeHtml(ex.name)}${removeHtml}</div>
@@ -11557,6 +11592,9 @@ function renderWorkoutPreview(){
     }).join('');
     const panel = document.querySelector('#workoutPreviewOverlay .sheet-panel');
     document.querySelectorAll('#wpExerciseList .ex-drag').forEach(h=> wireExerciseDrag(h, panel, wpExercisesReordered));
+    const circuitBtn = document.getElementById('wpCircuitBtn');
+    circuitBtn.hidden = !(canEdit && exercises.length>=2);
+    if(!circuitBtn.hidden) circuitBtn.innerHTML = circuitBtnHtml(exercises);
     document.getElementById('wpSkippedList').innerHTML = exercises.skipped.map(key=>
       `<div class="wp-ex-note" style="padding-top:8px;">${escapeHtml(L.wpSkippedEvery.replace('{name}', exerciseDisplayName(key)))}<button class="btn-text" type="button" data-undo-swap="${escapeHtml(key)}">${L.wpUndo}</button></div>`
     ).join('');
@@ -11621,6 +11659,22 @@ function wpAddExercise(){
   const row = [...document.querySelectorAll('#wpExerciseList .wp-ex')].find(el=> el.getAttribute('data-key')===to.key);
   if(row && row.scrollIntoView) row.scrollIntoView({block:'center'});
 }
+// Links an exercise to the one above it (or unlinks it); key null: all of them, as one circuit, or split up.
+function wpToggleLink(key){
+  const r = previewedWorkout();
+  if(!r) return;
+  const list = wpBaseList(r), links = supersetLinks(list);
+  if(key==null){
+    const all = links.slice(1).every(Boolean);
+    links.forEach((_, i)=>{ links[i] = i>0 && !all; });
+  } else {
+    const i = list.findIndex(ex=> wpShownKey(ex)===key);
+    if(i<=0) return;
+    links[i] = !links[i];
+  }
+  wpSaveList(r, relinkSupersets(list, links));
+}
+document.getElementById('wpCircuitBtn').addEventListener('click', ()=> wpToggleLink(null));
 function wpRemoveExercise(key){
   const r = previewedWorkout();
   if(!r) return;
@@ -11739,6 +11793,8 @@ function applyExerciseChange(idx, choice, scope){
 document.getElementById('wpExerciseSection').addEventListener('click', (e)=>{
   const rm = e.target.closest('[data-wp-remove]');
   if(rm){ wpRemoveExercise(rm.getAttribute('data-wp-remove')); return; }
+  const link = e.target.closest('[data-wp-link]');
+  if(link){ wpToggleLink(link.getAttribute('data-wp-link')); return; }
   const change = e.target.closest('[data-change]');
   if(change){
     const idx = parseInt(change.getAttribute('data-change'),10);

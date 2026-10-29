@@ -615,6 +615,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .r-exercise-list li .ex-nm{min-width:0;}
 .r-exercise-list li.ss-member, .wp-ex.ss-member{box-shadow:inset 2px 0 0 var(--accent);padding-left:8px;}
 .exercise-log-row.ss-member{box-shadow:inset 2px 0 0 var(--accent);}
+/* Changing the order of a workout's exercises while doing it: hold an exercise's handle and drag. While
+   dragging, every exercise folds to its name line so the whole list fits, and the others slide out of
+   the way (a superset moves as one block). */
+.exercise-log-row .exercise-log-name .ex-drag{margin:-10px 2px -10px -8px;padding:10px 6px;color:var(--text-3);}
+.ex-block{transition:transform .18s ease;}
+.ex-block.ex-dragging{transition:none;position:relative;z-index:5;background:var(--card);border-radius:var(--r-md);box-shadow:0 12px 26px rgba(0,0,0,0.5);}
+#logPerfExercisesList.ex-reordering{user-select:none;-webkit-user-select:none;}
+#logPerfExercisesList.ex-reordering :is(.set-rows,.set-log-head,.pyr-actions,.set-check-row,.live-ss-link,.ex-rename-input){display:none;}
+#logPerfExercisesList.ex-reordering .exercise-log-name{margin-bottom:0;}
+@media (prefers-reduced-motion: reduce){.ex-block{transition:none;}}
 .ss-head{font-family:var(--font-mono);font-size:calc(11.5px * var(--fs, 1));letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);margin:4px 0 6px 2px;}
 .summary-exercises{margin:0 20px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 14px;}
 .summary-exercises .se-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 8px;padding:6px 0;font-size:calc(12.5px * var(--fs, 1));}
@@ -4252,6 +4262,7 @@ const STR = {
     liveRemoveTitle: "Remove exercise",
     workoutLoggedToast: "Workout logged",
     dragHandleHint: "Hold and drag to move this workout to another day",
+    exDragHint: "Hold and drag to change the order",
     planAddWorkoutLabel: "Add",
     nextWeekLabel: "Next Week",
     planLimitReached: "You've planned as far ahead as this preview supports.",
@@ -5005,6 +5016,7 @@ const STR = {
     liveRemoveTitle: "Quitar ejercicio",
     workoutLoggedToast: "Entrenamiento registrado",
     dragHandleHint: "Mantén presionado y arrastra para mover este entrenamiento a otro día",
+    exDragHint: "Mantén presionado y arrastra para cambiar el orden",
     planAddWorkoutLabel: "Añadir",
     nextWeekLabel: "Próxima semana",
     planLimitReached: "Has planificado con la mayor anticipación que permite esta vista previa.",
@@ -9502,13 +9514,18 @@ function openLogPerformanceFor(logTarget, mode){
   if(eff.t==='interval' && mode==='record'){ openIntervalTimer(state._activeExtraId); return; }
   state._pendingSession = eff;
   const perf = mode==='revisit' ? resolved.performance : null;
-  const exercises = exercisesForSession(eff, parseDateKey(logTarget.dayKey));
+  let exercises = exercisesForSession(eff, parseDateKey(logTarget.dayKey));
   // A workout the user built themselves, being done now: exercises can be added and removed right here
   // ("log as you go"), and what's typed is kept as it's typed (see saveLogPerfDraft).
   // (Only a list that's entirely the user's -- a plan workout with a swapped exercise keeps its
   // Change exercises button instead.)
   const building = mode==='record' && logTarget.kind!=='entry' && Array.isArray(eff.exercises) && eff.exercises.every(e=>!e.fromPlan);
   const draft = mode==='record' ? loadLogPerfDraft(logTarget) : null;
+  // The order the exercises were dragged into for this workout -- or, reopening one already logged, the
+  // order they were done in. (The workout itself keeps its own order for next time.)
+  if(exercises && draft && draft.order) exercises = inExerciseOrder(exercises, draft.order);
+  else if(exercises && perf && Array.isArray(perf.exercises)) exercises = inExerciseOrder(exercises, perf.exercises.map(p=>p.key));
+  logPerfBuilding = building;
   document.getElementById('logPerfChangeExercisesBtn').hidden = !(exercises && mode==='record' && logTarget.kind!=='entry' && !building);
   document.getElementById('logPerfAddExercise').hidden = !building;
   document.getElementById('logPerfLiveEmpty').hidden = !(building && exercises && !exercises.length);
@@ -9525,6 +9542,10 @@ function openLogPerformanceFor(logTarget, mode){
       const members = exercises.filter((_, j)=> ssLabels[j] && ssLabels[j].group===lab.group).map(e=>e.key);
       logPerfSupersets[exercises[i].key] = members;
     });
+    // What moves together when the order is changed: one exercise, or a whole superset.
+    const blockStarts = exercises.map((_, i)=> !(ssLabels[i] && !ssLabels[i].first));
+    const canReorder = mode==='record' && blockStarts.filter(Boolean).length>=2;
+    const dragHtml = canReorder ? `<span class="drag-handle ex-drag" title="${escapeHtml(STR[state.lang].exDragHint)}" aria-label="${escapeHtml(STR[state.lang].exDragHint)}">${ICONS.grip}</span>` : '';
     exercisesListEl.innerHTML = exercises.map((ex, exIdx)=>{
       const ssLab = ssLabels[exIdx];
       const ssHead = (building && exIdx>0 ? (()=>{
@@ -9555,7 +9576,7 @@ function openLogPerformanceFor(logTarget, mode){
       const renameBox = renameBtn ? `<input type="text" class="text-input ex-rename-input" data-rename-input maxlength="60" autocomplete="off" enterkeyhint="done" value="${escapeHtml(ex.name)}" hidden>` : '';
       if(ex.bodyweight){
         return `${ssHead}<div class="exercise-log-row bodyweight${ssLab ? ' ss-member' : ''}" data-exercise-key="${escapeHtml(ex.key)}">
-          <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}${renameBtn}<span class="ex-rx">${fmtExercisePrescription(shownEx)}</span>${stepperHtml}</div>
+          <div class="exercise-log-name">${dragHtml}${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}${renameBtn}<span class="ex-rx">${fmtExercisePrescription(shownEx)}</span>${stepperHtml}</div>
           ${renameBox}
           <div class="set-check-row"></div>
         </div>`;
@@ -9580,7 +9601,7 @@ function openLogPerformanceFor(logTarget, mode){
       }).join('');
       const removeHtml = building ? `<button type="button" class="live-remove" data-remove-ex title="${escapeHtml(STR[state.lang].liveRemoveTitle)}" aria-label="${escapeHtml(STR[state.lang].liveRemoveTitle)}">×</button>` : '';
       return `${ssHead}<div class="exercise-log-row${ssLab ? ' ss-member' : ''}" data-exercise-key="${escapeHtml(ex.key)}">
-        <div class="exercise-log-name">${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}${renameBtn}<span class="ex-rx">${fmtExercisePrescription(shownEx)}</span>${stepperHtml}${removeHtml}</div>
+        <div class="exercise-log-name">${dragHtml}${exerciseDemoBtn(ex.key, ex.name)}${ssTagHtml(ssLab)}${escapeHtml(ex.name)}${renameBtn}<span class="ex-rx">${fmtExercisePrescription(shownEx)}</span>${stepperHtml}${removeHtml}</div>
         ${renameBox}
         <div class="set-log-head" aria-hidden="true"><span>${escapeHtml(state.weightUnit)}</span><span>${escapeHtml(STR[state.lang].logRepsHead)}</span><span></span></div>
         <div class="set-rows">${setRows}</div>
@@ -9589,7 +9610,8 @@ function openLogPerformanceFor(logTarget, mode){
           <button type="button" class="btn-text" data-pyr="single">${STR[state.lang].pyrSingleBtn}</button>
         </div>` : ''}
       </div>`;
-    }).join('');
+    }).map((h, i)=> (blockStarts[i] ? '<div class="ex-block">' : '') + h + (i===exercises.length-1 || blockStarts[i+1] ? '</div>' : '')).join('');
+    exercisesListEl.querySelectorAll('.ex-drag').forEach(wireExerciseDrag);
     exercisesListEl.querySelectorAll('[data-ss-live]').forEach(btn=> btn.addEventListener('click', ()=> toggleLiveSuperset(btn.getAttribute('data-ss-live'))));
     exercisesListEl.querySelectorAll('.exercise-log-row').forEach(rowEl=>{
       const ex = exercises.find(e=>e.key===rowEl.getAttribute('data-exercise-key'));
@@ -9725,7 +9747,8 @@ function captureLogPerfDraft(){
     }));
     ex[key] = {sets, done: (logPerfSetChecks[key]||[]).slice()};
   });
-  return {target: logTargetKey(t), ex};
+  const order = [...document.querySelectorAll('#logPerfExercisesList .exercise-log-row')].map(row=> row.getAttribute('data-exercise-key'));
+  return {target: logTargetKey(t), ex, order};
 }
 function saveLogPerfDraft(){
   if(state._logMode!=='record' || document.getElementById('logPerfOverlay').hidden) return;
@@ -9828,6 +9851,128 @@ function removeLiveExercise(key){
   saveLogPerfDraft();
   setSessionExercises(t, (resolved.session.exercises || []).filter(e=>e.key!==key));
   openLogPerformanceFor(t, 'record');
+}
+// ---- Changing the order while doing a workout ----
+// The busy gym: the next machine is free, so that exercise goes to the top. Only this workout's order
+// changes (kept in the draft, and saved with what was done); next time the workout starts in its usual
+// order. A workout being built as it's done is the exception -- its list is what's being built.
+let logPerfBuilding = false;
+// exercises put in the given order (keys); any it doesn't know -- one just swapped in -- keep their place.
+function inExerciseOrder(exercises, order){
+  const pos = k => order.indexOf(k);
+  const known = exercises.filter(e=> pos(e.key)>=0).sort((a, b)=> pos(a.key)-pos(b.key));
+  return exercises.map(e=> pos(e.key)>=0 ? known.shift() : e);
+}
+let exDrag = null;
+function wireExerciseDrag(handle){
+  handle.addEventListener('click', e=> e.stopPropagation()); // (not also "pick as current exercise")
+  handle.addEventListener('pointerdown', e=>{
+    if(e.button>0 || exDrag) return;
+    if(e.cancelable) e.preventDefault();
+    startExerciseDrag(handle, e);
+  });
+}
+function startExerciseDrag(handle, e){
+  const list = document.getElementById('logPerfExercisesList');
+  const scroller = document.querySelector('#logPerfOverlay .sheet-panel');
+  const block = handle.closest('.ex-block');
+  const handleTop = handle.getBoundingClientRect().top;
+  list.classList.add('ex-reordering');
+  // Folding everything to its name line moves the exercise being dragged: scroll so it stays under the finger.
+  scroller.scrollTop += handle.getBoundingClientRect().top - handleTop;
+  const s0 = scroller.scrollTop;
+  const blocks = [...list.querySelectorAll('.ex-block')];
+  // Where each block sits, in the scrolled content (so it still holds as the list scrolls).
+  const geo = blocks.map(b=>{ const r = b.getBoundingClientRect(); return {top: r.top + s0, h: r.height}; });
+  const src = blocks.indexOf(block);
+  exDrag = {
+    handle, block, blocks, geo, src, target: src, scroller, y: e.clientY, raf: 0,
+    gap: blocks.length>1 ? Math.max(0, geo[1].top - geo[0].top - geo[0].h) : 0,
+    // How far below the block's top the finger is holding it.
+    grab: (e.clientY - handleTop) + (handle.getBoundingClientRect().top - (geo[src].top - s0)),
+  };
+  block.classList.add('ex-dragging');
+  try{ handle.setPointerCapture(e.pointerId); }catch(err){}
+  handle.addEventListener('pointermove', onExerciseDragMove);
+  handle.addEventListener('pointerup', onExerciseDragUp);
+  handle.addEventListener('pointercancel', onExerciseDragCancel);
+  updateExerciseDrag();
+  exerciseDragScroll();
+}
+function updateExerciseDrag(){
+  const d = exDrag, me = d.geo[d.src];
+  const top = d.y + d.scroller.scrollTop - d.grab;
+  d.block.style.transform = `translateY(${top - me.top}px)`;
+  // It goes after every other block whose middle it's now below.
+  const mid = top + me.h/2;
+  d.target = d.geo.filter((g, i)=> i!==d.src && g.top + g.h/2 < mid).length;
+  const shift = me.h + d.gap;
+  d.blocks.forEach((b, i)=>{
+    if(i===d.src) return;
+    const by = i>d.src && i<=d.target ? -shift : i<d.src && i>=d.target ? shift : 0;
+    b.style.transform = by ? `translateY(${by}px)` : '';
+  });
+}
+// Held near the top or bottom of the sheet: it scrolls, faster the closer to the edge.
+function exerciseDragScroll(){
+  const d = exDrag;
+  if(!d) return;
+  const r = d.scroller.getBoundingClientRect(), edge = 64;
+  if(r.height){
+    const v = d.y < r.top+edge ? -Math.ceil((r.top+edge-d.y)/5) : d.y > r.bottom-edge ? Math.ceil((d.y-r.bottom+edge)/5) : 0;
+    const before = d.scroller.scrollTop;
+    if(v) d.scroller.scrollTop += v;
+    if(d.scroller.scrollTop!==before) updateExerciseDrag();
+  }
+  d.raf = requestAnimationFrame(exerciseDragScroll);
+}
+function onExerciseDragMove(e){
+  if(!exDrag) return;
+  if(e.cancelable) e.preventDefault();
+  exDrag.y = e.clientY;
+  updateExerciseDrag();
+}
+function onExerciseDragUp(){ endExerciseDrag(true); }
+function onExerciseDragCancel(){ endExerciseDrag(false); }
+function endExerciseDrag(commit){
+  const d = exDrag;
+  if(!d) return;
+  exDrag = null;
+  cancelAnimationFrame(d.raf);
+  d.handle.removeEventListener('pointermove', onExerciseDragMove);
+  d.handle.removeEventListener('pointerup', onExerciseDragUp);
+  d.handle.removeEventListener('pointercancel', onExerciseDragCancel);
+  d.blocks.forEach(b=>{ b.style.transform = ''; });
+  d.block.classList.remove('ex-dragging');
+  const list = document.getElementById('logPerfExercisesList');
+  list.classList.remove('ex-reordering');
+  if(!commit || d.target===d.src) return;
+  const others = d.blocks.filter(b=> b!==d.block);
+  list.insertBefore(d.block, others[d.target] || null);
+  exercisesReordered(d.block);
+}
+// Keeps the new order (and everything typed so far), then redraws the list: superset letters follow the
+// new order. The exercise just moved becomes the one up next.
+function exercisesReordered(block){
+  const t = state._logTarget;
+  saveLogPerfDraft();
+  const draft = loadLogPerfDraft(t);
+  if(logPerfBuilding && draft){
+    const resolved = resolveLogTarget(t);
+    if(resolved) setSessionExercises(t, inExerciseOrder(resolved.session.exercises || [], draft.order));
+  }
+  const keys = [...block.querySelectorAll('.exercise-log-row')].filter(r=> !r.classList.contains('set-complete')).map(r=> r.getAttribute('data-exercise-key'));
+  const panel = document.querySelector('#logPerfOverlay .sheet-panel'), scroll = panel.scrollTop;
+  const notes = document.getElementById('logPerfNotesInput').value;
+  openLogPerformanceFor(t, 'record');
+  document.getElementById('logPerfNotesInput').value = notes;
+  panel.scrollTop = scroll;
+  const row = keys.length ? [...document.querySelectorAll('#logPerfExercisesList .exercise-log-row')].find(r=> r.getAttribute('data-exercise-key')===keys[0]) : null;
+  if(row){
+    logPerfSelectedKey = keys[0];
+    refreshLogPerfCurrentHighlight();
+    if(row.scrollIntoView) row.scrollIntoView({block:'nearest', behavior:'smooth'});
+  }
 }
 document.getElementById('logPerfAddExerciseBtn').addEventListener('click', ()=>{ addLiveExercise(); renderNameSuggestions(); });
 document.getElementById('logPerfAddExerciseInput').addEventListener('keydown', e=>{

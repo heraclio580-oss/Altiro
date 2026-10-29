@@ -857,7 +857,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .wp-scope .btn{height:40px;font-size:calc(11.5px * var(--fs, 1));}
 .wp-companion{font-size:calc(13px * var(--fs, 1));color:var(--text-2);}
 .fb-sub{margin:6px 0 0;font-size:calc(13.5px * var(--fs, 1));line-height:1.5;color:var(--text-2);}
-.wp-rx-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:none;padding:2px 0;cursor:pointer;text-align:left;text-decoration:underline dotted;text-underline-offset:3px;}
+.wp-rx-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--border);border-radius:var(--r-pill);padding:3px 10px;margin-top:3px;cursor:pointer;text-align:left;}
 .wp-rx-btn svg{width:12px;height:12px;color:var(--text-3);flex-shrink:0;}
 .lift-fields{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
 .lift-field{display:flex;flex-direction:column;gap:4px;font-size:calc(11px * var(--fs, 1));color:var(--text-3);}
@@ -875,6 +875,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .pyr-step[data-stage="top"] span{color:var(--text);font-weight:600;}
 .pyr-actions{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;}
 .r-exercise-list li.lift-tap span{text-decoration:underline dotted;text-underline-offset:3px;}
+/* A lift's numbers can be tapped to set your own: they look like a small button. */
+.r-exercise-list li.lift-tap > span{text-decoration:none;border:1px solid var(--border);border-radius:var(--r-pill);padding:1px 8px;}
+.r-exercise-list li.lift-tap > span span{text-decoration:none;}
 .fb-error{margin-top:12px;font-size:calc(12.5px * var(--fs, 1));color:var(--alert);}
 .fb-error[hidden],#feedbackForm[hidden],#feedbackThanks[hidden],#feedbackAdjustCard[hidden]{display:none;}
 .fb-thanks{padding:14px 0 4px;}
@@ -1270,6 +1273,21 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   cursor:pointer;
 }
 .watch-demo-btn:hover{color:var(--text);border-color:var(--hover-border);}
+/* Today's "Change exercises" (rearrange, add, supersets): outlined in the accent, easy to spot. */
+#changeExercisesBtn{border-color:var(--accent);}
+/* One-time tip on how to move exercises (and superset them), until it's closed or something's moved. */
+.tip-note{display:flex;align-items:flex-start;gap:8px;margin:8px 0 10px;padding:10px 12px;border:1px solid var(--accent);border-radius:var(--r-md);background:var(--well);font-size:calc(12.5px * var(--fs, 1));color:var(--text-2);}
+.tip-note[hidden]{display:none;}
+.tip-note p{margin:0;flex:1;}
+.tip-note .tip-close{background:none;border:none;color:var(--text-3);font-size:calc(18px * var(--fs, 1));line-height:1;padding:0 2px;cursor:pointer;}
+/* Today: connect a watch, for someone who hasn't (until they do, or close it). */
+.watch-card{display:flex;align-items:center;gap:12px;margin:14px 20px 0;padding:14px 16px;background:var(--card);border:1px solid var(--accent);border-radius:var(--r-lg);}
+.watch-card[hidden]{display:none;}
+.watch-card .wc-text{flex:1;min-width:0;}
+.watch-card .wc-title{font-weight:600;color:var(--text);font-size:calc(14px * var(--fs, 1));}
+.watch-card .wc-sub{color:var(--text-3);font-size:calc(12px * var(--fs, 1));margin-top:2px;}
+.watch-card .btn{width:auto;padding:0 16px;height:38px;flex-shrink:0;}
+.watch-card .tip-close{align-self:flex-start;background:none;border:none;color:var(--text-3);font-size:calc(18px * var(--fs, 1));line-height:1;padding:0 2px;cursor:pointer;}
 /* the Today card: one or two actions up front, the rest under More */
 .card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
 .card-actions .watch-demo-btn{margin-top:0;padding:10px 14px;font-size:calc(11.5px * var(--fs, 1));}
@@ -1988,6 +2006,12 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
     <!-- Today's workout: what it is and its exercises. -->
     <div class="session-card" id="sessionCard"></div>
+    <!-- Connect a watch (see renderWatchCard). -->
+    <div class="watch-card" id="watchCard" hidden>
+      <div class="wc-text"><div class="wc-title" data-i18n="watchCardTitle"></div><div class="wc-sub" id="watchCardSub"></div></div>
+      <button class="btn btn-primary" id="watchCardBtn" type="button" data-i18n="watchCardBtn"></button>
+      <button class="tip-close" id="watchCardClose" type="button" data-i18n-aria="tipCloseLabel">×</button>
+    </div>
   </section>
 
   <!-- 10. PLAN (week view) -->
@@ -2771,6 +2795,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section" id="wpExerciseSection" hidden>
         <div class="wp-coach" id="wpCoach" hidden></div>
         <div class="st-label" data-i18n="wpExercisesLabel"></div>
+        <div class="tip-note" id="wpReorderTip" hidden><p data-i18n="reorderTip"></p><button class="tip-close" type="button" data-close-tip data-i18n-aria="tipCloseLabel">×</button></div>
         <div id="wpExerciseList"></div>
         <button class="btn-text circuit-btn" id="wpCircuitBtn" type="button" hidden></button>
         <div id="wpSkippedList"></div>
@@ -2985,6 +3010,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="footer-note" id="logPerfRouteNote" style="text-align:left;margin-top:6px;"></div>
       </div>
       <button class="btn-text" id="logPerfChangeExercisesBtn" type="button" data-i18n="changeExercisesBtn" style="padding:0;margin-top:4px;" hidden></button>
+      <div class="tip-note" id="logPerfReorderTip" hidden><p data-i18n="reorderTip"></p><button class="tip-close" type="button" data-close-tip data-i18n-aria="tipCloseLabel">×</button></div>
       <div id="logPerfExercisesList"></div>
       <button class="btn-text circuit-btn" id="logPerfCircuitBtn" type="button" hidden></button>
       <!-- "Log as you go": exercises added while the workout is being done -->
@@ -3592,6 +3618,15 @@ const STR = {
     tour_strip_b: "Tap any day to open it. Green is done, gold is coming up, red is missed.",
     tour_session_t: "The details",
     tour_session_b: "Everything in today's workout. Watch Demo shows a move, and + Add Workout logs anything extra, like push-ups at work or a class.",
+    tour_arrange_t: "Your order, your way",
+    tour_arrange_b: "Change exercises opens today's workout: hold ⋮⋮ to rearrange, add an exercise, or link exercises into a superset or one circuit. You can do the same while you're doing it.",
+    reorderTip: "Tip: hold ⋮⋮ and drag to change the order. \"Superset with above\" pairs an exercise with the one above it.",
+    tipCloseLabel: "Close",
+    watchCardTitle: "Connect your watch",
+    watchCardSubHealth: "Bring in your runs and workouts automatically through {health}.",
+    watchCardSubBoth: "Bring in your runs and workouts automatically through {health} or Strava.",
+    watchCardSubStrava: "Bring in your runs automatically from Strava.",
+    watchCardBtn: "Connect",
     tour_plan_t: "Your plan",
     tour_plan_b: "This week and next. Build and deload weeks are marked, and you can hold and drag a workout to move it to another day.",
     tour_adjust_t: "Make it yours",
@@ -4347,6 +4382,15 @@ const STR = {
     tour_strip_b: "Toca cualquier día para abrirlo. Verde es hecho, dorado es próximo, rojo es perdido.",
     tour_session_t: "Los detalles",
     tour_session_b: "Todo lo del entrenamiento de hoy. Ver demo muestra un ejercicio, y + Añadir entrenamiento registra algo extra, como flexiones en el trabajo o una clase.",
+    tour_arrange_t: "Tu orden, a tu manera",
+    tour_arrange_b: "Cambiar ejercicios abre el entrenamiento de hoy: mantén presionado ⋮⋮ para reordenar, añade un ejercicio o une ejercicios en una superserie o un circuito. También mientras lo haces.",
+    reorderTip: "Consejo: mantén presionado ⋮⋮ y arrastra para cambiar el orden. «Superserie con el de arriba» une un ejercicio con el de arriba.",
+    tipCloseLabel: "Cerrar",
+    watchCardTitle: "Conecta tu reloj",
+    watchCardSubHealth: "Trae tus carreras y entrenamientos automáticamente con {health}.",
+    watchCardSubBoth: "Trae tus carreras y entrenamientos automáticamente con {health} o Strava.",
+    watchCardSubStrava: "Trae tus carreras automáticamente desde Strava.",
+    watchCardBtn: "Conectar",
     tour_plan_t: "Tu plan",
     tour_plan_b: "Esta semana y la próxima. Las semanas de carga y descarga están marcadas, y puedes mantener y arrastrar un entrenamiento para moverlo a otro día.",
     tour_adjust_t: "Hazlo tuyo",
@@ -8159,6 +8203,10 @@ function applyLang(){
     const key = el.getAttribute('data-i18n');
     if(L[key]!==undefined) el.textContent = L[key];
   });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el=>{
+    const key = el.getAttribute('data-i18n-aria');
+    if(L[key]!==undefined) el.setAttribute('aria-label', L[key]);
+  });
   document.querySelectorAll('.lang-btn[data-lang]').forEach(b=>{
     b.classList.toggle('active', b.getAttribute('data-lang')===state.lang);
   });
@@ -8698,6 +8746,7 @@ function renderHome(){
   ensureWeek();
   const L = STR[state.lang];
   renderInstallUI();
+  renderWatchCard();
 
   document.getElementById('homeDateLine').textContent = `${DAY_NAMES_FULL[state.lang][TODAY_IDX]}, ${MONTHS_SHORT[state.lang][WEEK_MONDAY.getMonth()]} ${DAY_DATES[TODAY_IDX]}`;
 
@@ -9664,6 +9713,7 @@ function openLogPerformanceFor(logTarget, mode){
       </div>`;
     }).map((h, i)=> (blockStarts[i] ? '<div class="ex-block">' : '') + h + (i===exercises.length-1 || blockStarts[i+1] ? '</div>' : '')).join('');
     exercisesListEl.querySelectorAll('.ex-drag').forEach(h=> wireExerciseDrag(h, document.querySelector('#logPerfOverlay .sheet-panel'), exercisesReordered));
+    document.getElementById('logPerfReorderTip').hidden = !(canReorder && !reorderTipSeen());
     exercisesListEl.querySelectorAll('[data-ss-live]').forEach(btn=> btn.addEventListener('click', ()=> toggleLiveSuperset(btn.getAttribute('data-ss-live'))));
     const circuitBtn = document.getElementById('logPerfCircuitBtn');
     circuitBtn.hidden = !(canAdd && exercises.length>=2);
@@ -9711,6 +9761,7 @@ function openLogPerformanceFor(logTarget, mode){
   } else {
     exercisesListEl.innerHTML = '';
     document.getElementById('logPerfCircuitBtn').hidden = true;
+    document.getElementById('logPerfReorderTip').hidden = true;
   }
   const target = getProgressionTarget(eff, state.intensityIdx);
   document.getElementById('logPerfWeightSection').hidden = !(eff.t==='strength' && !exercises);
@@ -9946,6 +9997,15 @@ function inExerciseOrder(exercises, order){
   const known = exercises.filter(e=> pos(e.key)>=0).sort((a, b)=> pos(a.key)-pos(b.key));
   return exercises.map(e=> pos(e.key)>=0 ? known.shift() : e);
 }
+// The one-time tip over a workout's exercises: how to move them (and superset them). Shown wherever there
+// are handles until it's closed, or something has been moved.
+const REORDER_TIP_KEY = 'altiro_tip_reorder';
+function reorderTipSeen(){ try{ return localStorage.getItem(REORDER_TIP_KEY)==='1'; }catch(e){ return true; } }
+function markReorderTipSeen(){
+  try{ localStorage.setItem(REORDER_TIP_KEY, '1'); }catch(e){}
+  ['logPerfReorderTip', 'wpReorderTip'].forEach(id=>{ document.getElementById(id).hidden = true; });
+}
+document.querySelectorAll('[data-close-tip]').forEach(b=> b.addEventListener('click', markReorderTipSeen));
 // (The same drag moves a workout's exercises in its preview too: scroller is the sheet that scrolls, and
 // done(block) is told where the moved one went.)
 let exDrag = null;
@@ -10031,6 +10091,7 @@ function endExerciseDrag(commit){
   if(!commit || d.target===d.src) return;
   const others = d.blocks.filter(b=> b!==d.block);
   d.list.insertBefore(d.block, others[d.target] || null);
+  markReorderTipSeen();
   d.done(d.block);
 }
 // Keeps the new order (and everything typed so far), then redraws the list: superset letters follow the
@@ -11602,6 +11663,7 @@ function renderWorkoutPreview(){
     }).join('');
     const panel = document.querySelector('#workoutPreviewOverlay .sheet-panel');
     document.querySelectorAll('#wpExerciseList .ex-drag').forEach(h=> wireExerciseDrag(h, panel, wpExercisesReordered));
+    document.getElementById('wpReorderTip').hidden = !(dragHtml && !reorderTipSeen());
     const circuitBtn = document.getElementById('wpCircuitBtn');
     circuitBtn.hidden = !(canEdit && exercises.length>=2);
     if(!circuitBtn.hidden) circuitBtn.innerHTML = circuitBtnHtml(exercises);
@@ -16705,7 +16767,36 @@ function stravaFullText(){
 function stravaUnavailable(error){
   return error.status===404 || error.code==='not_configured';
 }
+// Today's "Connect your watch": for someone signed in with nothing connected yet -- in the store app,
+// Health Connect / Apple Health (or Strava, while it has room); on the website, Strava. Gone once they
+// connect something, or close it. (Not before the first Strava check says whether they're connected.)
+const WATCH_CARD_OFF_KEY = 'altiro_watch_card_off';
+function renderWatchCard(){
+  const card = document.getElementById('watchCard');
+  if(!card) return;
+  let off = false;
+  try{ off = localStorage.getItem(WATCH_CARD_OFF_KEY)==='1'; }catch(e){}
+  const native = !!nativeHealth();
+  const stravaRoom = !strava.connected && strava.spotsOpen && strava.status!=='unavailable';
+  const show = !off && !!state.userId && !!strava.checked && !strava.connected && (native ? !healthOn() : stravaRoom);
+  card.hidden = !show;
+  if(!show) return;
+  const L = STR[state.lang];
+  document.getElementById('watchCardSub').textContent = native
+    ? L[stravaRoom ? 'watchCardSubBoth' : 'watchCardSubHealth'].replace('{health}', healthName())
+    : L.watchCardSubStrava;
+}
+document.getElementById('watchCardBtn').addEventListener('click', ()=>{
+  showScreen('settings');
+  const sec = document.querySelector('#screen-settings [data-i18n="connectedAppsLabel"]');
+  if(sec && sec.scrollIntoView) sec.closest('.sheet-section').scrollIntoView({block:'start'});
+});
+document.getElementById('watchCardClose').addEventListener('click', ()=>{
+  try{ localStorage.setItem(WATCH_CARD_OFF_KEY, '1'); }catch(e){}
+  renderWatchCard();
+});
 function renderStravaSettings(){
+  renderWatchCard();
   const L = STR[state.lang];
   let text;
   // Strava is full (see the strava function): no Connect button until a spot opens, just a note.
@@ -17046,6 +17137,7 @@ async function syncStrava(opts){
   strava.status = 'syncing';
   renderStravaSettings();
   const { data, error } = await stravaCall('sync');
+  strava.checked = true; // (whether they're connected is known now -- see renderWatchCard)
   if(error){
     strava.status = (stravaUnavailable(error) || wasUnavailable) && !strava.connected ? 'unavailable' : 'idle';
     renderStravaSettings();
@@ -17299,6 +17391,7 @@ async function connectHealth(){
   if(!n) showToast(L.healthConnectedToast.replace('{name}', name));
 }
 function renderHealthSettings(){
+  renderWatchCard();
   const row = document.getElementById('healthRow');
   if(!row) return;
   const H = nativeHealth();
@@ -18585,6 +18678,8 @@ const TOUR_STEPS = [
   {key:'week',     screen:'home', target: ()=> !document.getElementById('homeOverview').hidden ? document.getElementById('homeOverview') : document.getElementById('thRing')},
   {key:'strip',    screen:'home', target: ()=> document.getElementById('weekStrip')},
   {key:'session',  screen:'home', target: ()=> document.getElementById('sessionCard'), top:true},
+  // (Only on a lifting day: rearranging, adding and supersets.)
+  {key:'arrange',  screen:'home', target: ()=> document.getElementById('changeExercisesBtn')},
   {key:'plan',     screen:'week', target: ()=> document.querySelector('#weekList .plan-row') && [...document.querySelectorAll('#weekList .plan-row[data-week-idx="0"]')], top:true},
   {key:'adjust',   screen:'week', target: ()=> document.querySelector('#screen-week [data-open-adjust]')},
   {key:'own',      sheet:true, try:true, target: ()=> document.getElementById('adjOwnSection')},

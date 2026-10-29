@@ -206,6 +206,8 @@ p.sub{font-family:var(--font-body);font-size:calc(13.5px * var(--fs, 1));line-he
 .iconbtn:disabled{opacity:0.35;cursor:default;}
 .iconbtn:disabled:hover{color:var(--text-2);border-color:var(--border);}
 .iconbtn svg{width:15px;height:15px;}
+/* The wrench (Adjust your plan) on Today, Plan, Progress and Calendar: outlined in the accent, easy to spot. */
+.iconbtn[data-open-adjust]{border-color:var(--accent);}
 .topbar .step-tag{font-family:var(--font-mono);font-size:calc(11.5px * var(--fs, 1));letter-spacing:0.1em;color:var(--text-3);text-transform:uppercase;margin-left:2px;}
 
 /* ---------- language toggle ---------- */
@@ -952,8 +954,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .paywall-fine{margin:14px 0 0;font-size:calc(10.5px * var(--fs, 1));line-height:1.5;color:var(--text-3);}
 .paywall .legal-links{justify-content:center;}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:12px 13px;}
-/* Create Workout's "Log as you go": outlined in the accent, so it isn't missed. */
-#createLiveSection .toggle-row{border-color:var(--accent);}
+/* Choices people miss otherwise ("Log as you go", "Create my own workouts"): outlined in the accent. */
+.toggle-row.callout{border-color:var(--accent);}
 .toggle-row .tt{font-size:calc(13px * var(--fs, 1));color:var(--text);font-weight:500;}
 .option-list.dimmed{opacity:0.4;}
 .toggle-row .ts{font-size:calc(11px * var(--fs, 1));color:var(--text-3);margin-top:2px;}
@@ -1706,7 +1708,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <h2 class="hl" data-i18n="goalHeadline"></h2>
       <p class="sub" data-i18n="goalSub"></p>
       <div class="option-list" id="goalList"></div>
-      <div class="toggle-row" style="margin-top:18px;">
+      <div class="toggle-row callout" style="margin-top:18px;">
         <div><div class="tt" data-i18n="ownWorkoutsTitle"></div><div class="ts" data-i18n="ownWorkoutsOnbSub"></div></div>
         <div class="toggle" id="onbOwnToggle" role="switch" tabindex="0"><div class="knob"></div></div>
       </div>
@@ -2630,7 +2632,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
       <!-- First: no generated plan at all -- one switch and they're set. -->
       <div class="sheet-section" id="adjOwnSection">
-        <div class="toggle-row">
+        <div class="toggle-row callout">
           <div><div class="tt" data-i18n="ownWorkoutsTitle"></div><div class="ts" data-i18n="ownWorkoutsSub"></div></div>
           <div class="toggle" id="adjOwnToggle" role="switch" tabindex="0"><div class="knob"></div></div>
         </div>
@@ -2854,7 +2856,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       </div>
 
       <div class="sheet-section" id="createLiveSection" hidden>
-        <div class="toggle-row">
+        <div class="toggle-row callout">
           <div><div class="tt" data-i18n="liveLogTitle"></div><div class="ts" data-i18n="liveLogSub"></div></div>
           <div class="toggle" id="createLiveToggle" role="switch" tabindex="0"><div class="knob"></div></div>
         </div>

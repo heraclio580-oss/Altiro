@@ -87,7 +87,8 @@ function makeBackend(){
   go('home');
   await wait(20);
   const line = [...doc.querySelectorAll('#sessionCard .r-exercise-list li')].find(li=>/Incline Hammer Press/.test(li.textContent));
-  console.log('The workout shows the new numbers:', line && /x 6 · 160 lb/.test(line.textContent) ? `OK (${line.textContent.replace(/\s+/g,' ').trim()})` : `FAIL (${line && line.textContent})`);
+  // (Every set is its numbers now: how many, and the range -- not just the heaviest.)
+  console.log('The workout shows the new numbers:', line && /4 sets · 135–160 lb/.test(line.textContent) ? `OK (${line.textContent.replace(/\s+/g,' ').trim()})` : `FAIL (${line && line.textContent})`);
 
   console.log('ALL DONE');
   process.exit(0);

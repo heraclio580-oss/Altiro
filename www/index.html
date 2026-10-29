@@ -6681,7 +6681,9 @@ function applyLiftTargets(list){
   const out = list.map(ex=>{
     if(ex.durationSec!=null) return ex;
     const t = ex.bodyweight ? liftTargetOf(ex) : getExerciseTarget(ex, state.intensityIdx);
-    return (t && t.reps) ? {...ex, reps: t.reps} : ex;
+    // A lift of the user's own carries every set from last time (loggedSets), as many sets as were done.
+    const own = !ex.fromPlan && !ex.bodyweight && t && Array.isArray(t.sets) && t.sets.length ? {sets: t.sets.length, loggedSets: t.sets} : null;
+    return (t && t.reps) || own ? {...ex, ...(t && t.reps ? {reps: t.reps} : {}), ...own} : ex;
   });
   out.skipped = list.skipped || [];
   return out;
@@ -6693,6 +6695,7 @@ function setLiftNumbers(exerciseKey, weight, reps, ownOf){
   const target = {...current};
   if(weight!=null) target.weight = weight;
   if(reps!=null) target.reps = reps;
+  delete target.sets; // (numbers set by hand are for every set)
   saveExerciseTarget(exerciseKey, target, ownOf);
 }
 function liftNumberInputsHtml(ex){
@@ -6718,10 +6721,22 @@ function readLiftNumberInputs(scope){
 function fmtExercisePrescription(ex){
   const L = STR[state.lang];
   if(ex.pyramid) return (ex.pyramid.peak ? L.pyramidPeakRx : L.pyramidRx).replace('{n}', ex.sets);
+  // (Last time's sets of a lift of the user's own, with different reps set to set: just how many.)
+  if(ex.loggedSets && ex.durationSec==null && new Set(ex.loggedSets.map(x=> Number(x.reps))).size>1) return L.logSetsCount.replace('{n}', ex.sets);
   const setsPrefix = `${ex.sets} x `;
   return ex.durationSec!=null ? `${setsPrefix}${fmtClock(ex.durationSec)}` : `${setsPrefix}${ex.reps}`;
 }
 
+// The weight a lift's line shows: its target's -- or for one of the user's own, last time's, as a range
+// when it changed set to set (40.5–99.5 lb), not just the heaviest.
+function liftWeightText(ex, t){
+  const ws = ex.loggedSets ? ex.loggedSets.map(x=> Number(x.weight)).filter(w=> w>0) : [];
+  if(ws.length){
+    const lo = Math.min(...ws), hi = Math.max(...ws);
+    return `${lo===hi ? hi : `${lo}–${hi}`} ${state.weightUnit}`;
+  }
+  return t && t.weight ? `${t.weight} ${state.weightUnit}` : '';
+}
 function pick(arr, seed){ return arr[seed % arr.length]; }
 function loadLang(){
   try{ const v = localStorage.getItem('altiro_lang'); if(v==='en'||v==='es') return v; }catch(e){}
@@ -9563,7 +9578,8 @@ function openLogPerformanceFor(logTarget, mode){
       // set's weight and reps. (The plan's own lifts start from their progressed target, or their pyramid.)
       // (One added while doing a workout starts from the last time it was done in any workout.)
       const dayBefore = dateKey(new Date(parseDateKey(logTarget.dayKey).getTime() - 86400000));
-      const lastSets = !loggedSets && !ex.fromPlan && !ex.pyramid && !ex.bodyweight ? lastLoggedSets(ex.key, dayBefore, ex.ownOf) || (ex.live ? lastLoggedSets(ex.key, dayBefore) : null) : null;
+      // (Its numbers keep last time's sets too, so they're still there after the lift or workout is renamed.)
+      const lastSets = !loggedSets && !ex.fromPlan && !ex.pyramid && !ex.bodyweight ? lastLoggedSets(ex.key, dayBefore, ex.ownOf) || ex.loggedSets || (ex.live ? lastLoggedSets(ex.key, dayBefore) : null) : null;
       // What was already typed for it in this workout (kept through a re-render or the app closing).
       const draftEx = draft && draft.ex[ex.key];
       const setCount = draftEx ? Math.max(1, draftEx.done.length) : loggedSets ? loggedSets.length : lastSets ? Math.min(LOG_PERF_MAX_SETS, lastSets.length) : ((loggedEx && loggedEx.setCount) || ex.sets || 1);
@@ -10088,7 +10104,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
       // A lift the user added themselves follows their own program: its numbers become exactly what
       // they just did (shown on the workout, and where the next one starts), with no automatic jump.
       // (In a workout of their own, just in that workout -- see ownLiftKey.)
-      if(!ex.fromPlan && top.weight>0) saveExerciseTarget(key, {...(liftTargetOf(ex)||{}), weight: top.weight, reps: top.reps}, ex.ownOf);
+      if(!ex.fromPlan && top.weight>0) saveExerciseTarget(key, {...(liftTargetOf(ex)||{}), weight: top.weight, reps: top.reps, sets: sets.map(x=> ({weight: x.weight, reps: x.reps}))}, ex.ownOf);
       return {key, name: loggedName(oldKey, ex), weight: top.weight, reps: top.reps, sets, pyramid: !!ex.pyramid, own: !ex.fromPlan};
     });
   } else if(eff.t==='strength'){
@@ -11315,7 +11331,7 @@ function exerciseListHtml(session, date, tappable){
   return `<ul class="r-exercise-list">${exercises.map((ex, i)=>{
     const t = !ex.bodyweight && ex.durationSec==null ? getExerciseTarget(ex, state.intensityIdx) : null;
     const weight = ex.pyramid ? ` · ${STR[state.lang].pyramidTop.replace('{w}', ex.pyramid.top)} ${state.weightUnit}`
-      : t && t.weight ? ` · ${t.weight} ${state.weightUnit}` : '';
+      : liftWeightText(ex, t) ? ` · ${liftWeightText(ex, t)}` : '';
     const cls = [tappable && ex.durationSec==null ? 'lift-tap' : '', ss[i] ? 'ss-member' : ''].filter(Boolean).join(' ');
     const attr = (cls ? ` class="${cls}"` : '') + (tappable && ex.durationSec==null ? ` data-lift-key="${escapeHtml(ex.key)}"` : '');
     const nm = ss[i] ? `<div class="ex-nm">${ssTagHtml(ss[i])}${escapeHtml(ex.name)}</div>` : escapeHtml(ex.name);
@@ -11437,8 +11453,8 @@ function exerciseRxText(ex){
   let text = fmtExercisePrescription(ex);
   if(ex.pyramid) return `${text} · ${STR[state.lang].pyramidTop.replace('{w}', ex.pyramid.top)} ${state.weightUnit}`;
   if(!ex.bodyweight){
-    const t = getExerciseTarget(ex, state.intensityIdx);
-    if(t && t.weight) text += ` · ${t.weight} ${state.weightUnit}`;
+    const w = liftWeightText(ex, getExerciseTarget(ex, state.intensityIdx));
+    if(w) text += ` · ${w}`;
   }
   return text;
 }
@@ -16267,14 +16283,23 @@ async function cloudInsertRecordedSession(dateStr, session, logged){
     });
   }catch(e){ /* best-effort */ }
 }
+// (A lift of the user's own also keeps every set from last time, in `sets` -- a column added later: until
+// it's in the database, the rest is still saved.)
+let progressionHasSets = true;
 async function cloudSaveProgressionTarget(session, target){
   if(!state.userId || !target) return;
   try{
-    await sb.from('progression_targets').upsert({
+    const row = {
       user_id: state.userId, session_key: progressionKey(session),
       weight: target.weight ?? null, reps: target.reps ?? null, pace_min: target.pace ?? null,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,session_key' });
+    };
+    const save = r => sb.from('progression_targets').upsert(r, { onConflict: 'user_id,session_key' });
+    const res = progressionHasSets ? await save({...row, sets: target.sets ?? null}) : null;
+    if(!res || (res.error && /\bsets\b/.test(res.error.message || ''))){
+      if(res) progressionHasSets = false;
+      await save(row);
+    }
   }catch(e){ /* best-effort */ }
 }
 async function cloudInsertPR(pr){
@@ -16452,6 +16477,7 @@ async function loadWorkoutDataFromCloud(){
         if(t.weight!=null) entry.weight = t.weight;
         if(t.reps!=null) entry.reps = t.reps;
         if(t.pace_min!=null) entry.pace = t.pace_min;
+        if(Array.isArray(t.sets) && t.sets.length) entry.sets = t.sets;
         prog[t.session_key] = entry;
       });
       state.progression = prog;

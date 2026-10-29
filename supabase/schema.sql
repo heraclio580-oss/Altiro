@@ -149,6 +149,8 @@ create table if not exists progression_targets (
   updated_at timestamptz default now(),
   primary key (user_id, session_key)
 );
+-- A lift of the user's own: every set from last time ([{weight, reps}, ...]), where the next one starts.
+alter table progression_targets add column if not exists sets jsonb;
 
 -- personal_records: user-entered lift PRs -- a self-reported baseline, kept as a full history
 -- (not overwritten in place) so progress on a given lift can be seen over time. The app also uses

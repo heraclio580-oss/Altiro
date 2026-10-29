@@ -291,6 +291,12 @@ html.boot-signed-in #screen-welcome{visibility:hidden;}
 .text-input::placeholder{color:var(--text-3);}
 .text-input:focus{outline:none;border-color:var(--accent);}
 textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertical;font-family:var(--font-body);}
+/* iPhone and iPad: tapping a box whose text is under 16px makes Safari zoom the page in (and the screens
+   can't be pinched back out -- see .screen's touch-action), so there every box's text is at least 16px.
+   (-webkit-touch-callout is only supported on iOS.) */
+@supports (-webkit-touch-callout: none){
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select{font-size:max(16px, calc(14px * var(--fs, 1))) !important;}
+}
 .rating-slider{width:100%;accent-color:var(--accent);height:6px;margin-top:4px;}
 .rating-label{text-align:center;font-size:calc(14px * var(--fs, 1));font-weight:600;color:var(--text);margin-top:8px;}
 .unit-toggle{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-pill);overflow:hidden;flex-shrink:0;}

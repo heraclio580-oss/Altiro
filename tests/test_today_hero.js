@@ -80,7 +80,7 @@ function openSession(backend, opts = {}){
         w.localStorage.setItem('altiro_weather', JSON.stringify({at: Date.now()-10*60*1000, metric:false, data: FORECAST}));
         w.localStorage.setItem('altiro_weather_ok', '1');
       }
-      w.fetch = async url => { w.fetched.push(String(url)); return {ok:true, status:200, json: async()=>FORECAST}; };
+      w.fetch = async url => { w.fetched.push(String(url)); return {ok:true, status:200, json: async()=> opts.forecast || FORECAST}; };
     },
   });
 }
@@ -159,6 +159,15 @@ function openSession(backend, opts = {}){
   [...d4.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click(); await wait(30);
   d4.getElementById('weatherChip').click(); await wait(10);
   d4.getElementById('weatherAllowBtn').click(); await wait(60);
+  // A mild day, nothing to watch out for: no tip at all (not a blanket "good conditions").
+  const mild = {...FORECAST, hourly: {...FORECAST.hourly, precipitation_probability: HOURS.map(()=>20)}};
+  const dom6 = openSession(makeBackend(), {forecast: mild});
+  await wait(300);
+  const d6 = dom6.window.document;
+  [...d6.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click(); await wait(30);
+  d6.getElementById('weatherChip').click(); await wait(10);
+  d6.getElementById('weatherAllowBtn').click(); await wait(60);
+  check('A mild day: the forecast, with no tip', !!d6.querySelector('.wx-temp') && !d6.querySelector('.wx-tip') && !/Good conditions/.test(d6.getElementById('weatherBody').textContent), d6.getElementById('weatherBody').textContent.replace(/\s+/g,' ').slice(0, 200));
   check('Metric users get Celsius and km/h', /temperature_unit=celsius/.test(dom4.window.fetched[0]) && /wind_speed_unit=kmh/.test(dom4.window.fetched[0]) && d4.getElementById('weatherChip').textContent.includes('°C'));
 
   // Rest day

@@ -4042,7 +4042,7 @@ const STR = {
     weatherFeels: "Feels like {t}", weatherHiLo: "High {hi} · Low {lo}", weatherRain: "Rain {p}%", weatherWind: "Wind {w}", weatherNow: "Now", weatherSource: "Forecast by Open-Meteo.com",
     wxClear: "Clear", wxMostlyClear: "Mostly clear", wxPartlyCloudy: "Partly cloudy", wxCloudy: "Cloudy", wxFog: "Fog", wxDrizzle: "Drizzle", wxRain: "Rain", wxSnow: "Snow", wxShowers: "Showers", wxStorm: "Thunderstorms",
     wxTipHot: "Hot out: go early or late, ease your pace, and bring water.", wxTipCold: "Cold out: layer up, cover your hands and ears, and warm up inside first.",
-    wxTipRain: "Rain is likely: a light jacket helps, or swap in an indoor workout.", wxTipWind: "Windy: head out into the wind so it's at your back on the way home.", wxTipStorm: "Storms around: take it indoors today.", wxTipNice: "Good conditions to train outside.",
+    wxTipRain: "Rain is likely: a light jacket helps, or swap in an indoor workout.", wxTipWind: "Windy: head out into the wind so it's at your back on the way home.", wxTipStorm: "Storms around: take it indoors today.",
     workoutsLabel: "Workouts",
     recordActionLabel: "Start Workout",
     startTimerLabel: "Start Timer",
@@ -4806,7 +4806,7 @@ const STR = {
     weatherFeels: "Sensación {t}", weatherHiLo: "Máx {hi} · Mín {lo}", weatherRain: "Lluvia {p}%", weatherWind: "Viento {w}", weatherNow: "Ahora", weatherSource: "Pronóstico de Open-Meteo.com",
     wxClear: "Despejado", wxMostlyClear: "Mayormente despejado", wxPartlyCloudy: "Parcialmente nublado", wxCloudy: "Nublado", wxFog: "Niebla", wxDrizzle: "Llovizna", wxRain: "Lluvia", wxSnow: "Nieve", wxShowers: "Chubascos", wxStorm: "Tormentas",
     wxTipHot: "Hace calor: sal temprano o tarde, baja el ritmo y lleva agua.", wxTipCold: "Hace frío: abrígate en capas, cubre manos y orejas, y calienta adentro primero.",
-    wxTipRain: "Es probable que llueva: una chaqueta ligera ayuda, o cámbialo por un entrenamiento bajo techo.", wxTipWind: "Hay viento: sal en contra del viento para tenerlo a favor al volver.", wxTipStorm: "Hay tormentas: entrena bajo techo hoy.", wxTipNice: "Buenas condiciones para entrenar afuera.",
+    wxTipRain: "Es probable que llueva: una chaqueta ligera ayuda, o cámbialo por un entrenamiento bajo techo.", wxTipWind: "Hay viento: sal en contra del viento para tenerlo a favor al volver.", wxTipStorm: "Hay tormentas: entrena bajo techo hoy.",
     workoutsLabel: "Entrenamientos",
     recordActionLabel: "Empezar entrenamiento",
     startTimerLabel: "Iniciar cronómetro",
@@ -19161,7 +19161,8 @@ function weatherTip(data){
   if(feels <= (metric ? 2 : 35)) return L.wxTipCold;
   if(rainSoon>=50 || (cur.weather_code>=51 && cur.weather_code<=82)) return L.wxTipRain;
   if(cur.wind_speed_10m >= (metric ? 29 : 18)) return L.wxTipWind;
-  return L.wxTipNice;
+  // (Nothing to watch out for: no tip. A blanket "good conditions" read wrong next to a rainy hour.)
+  return '';
 }
 function hourLabel(t){
   const h = Number(String(t).slice(11,13));
@@ -19184,7 +19185,7 @@ function renderWeatherSheet(){
       <div class="wx-now"><div class="wx-now-ic">${WX_ICONS[kind.icon]}</div><div><div class="wx-temp">${fmtTemp(cur.temperature_2m)}</div><div class="wx-cond">${L[kind.key]}</div></div></div>
       <p class="fb-sub" style="margin:0 0 12px;">${facts}</p>
       <div class="wx-hours">${upcomingHours(d).map((x,k)=>{ const kk = weatherKind(x.code, x.isDay); return `<div class="wx-hour">${k===0 ? L.weatherNow : hourLabel(x.t)}${WX_ICONS[kk.icon]}<b>${Math.round(x.temp)}°</b>${x.rain!=null ? `<span class="rain">${x.rain}%</span>` : ''}</div>`; }).join('')}</div>
-      <div class="wx-tip">${weatherTip(d)}</div>
+      ${weatherTip(d) ? `<div class="wx-tip">${weatherTip(d)}</div>` : ''}
       <div class="wx-note">${L.weatherSource}</div>`;
     return;
   }

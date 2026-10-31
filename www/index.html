@@ -3994,7 +3994,7 @@ const STR = {
     shareCardShareBtn: "Share", shareSaveSquare: "Save to Photos", shareCopySquare: "Copy", shareFullSquare: "Full screen", shareCardSaved: "Saved to your photos", shareCardSavedDownload: "Saved. It's in your gallery's Download album.", shareCopied: "Copied. Paste it into a post or message.", shareCopyFailed: "This phone can't copy pictures. Try Save to Photos.", sharePhotosDenied: "Allow Altiro to add photos in your phone's Settings, then try again.", shareCardFullTip: "Take your screenshot · tap to close",
     shareCardFailed: "Couldn't share it. Try Save image instead.", shareCardNoShare: "Sharing isn't available here, so the image was saved instead.",
     shareStatSets: "Sets", shareStatReps: "Reps", shareStatVolume: "Volume", shareStatTopSet: "Top set", shareExercisesLabel: "Exercises",
-    shareMore: "+{n} more", shareFooter: "Tracked with Altiro", shareStreak: "{n}-week streak",
+    shareMore: "+{n} more", shareFastest: "fastest", shareFooter: "Tracked with Altiro", shareStreak: "{n}-week streak",
     shareText: "Just finished {title} with Altiro.",
     streakLine: "Current streak — keep it going",
     dayStreakSuffix: "WEEK STREAK",
@@ -4758,7 +4758,7 @@ const STR = {
     shareCardShareBtn: "Compartir", shareSaveSquare: "Guardar en Fotos", shareCopySquare: "Copiar", shareFullSquare: "Pantalla completa", shareCardSaved: "Guardada en tus fotos", shareCardSavedDownload: "Guardada. Está en el álbum Descargas de tu galería.", shareCopied: "Copiada. Pégala en una publicación o mensaje.", shareCopyFailed: "Este teléfono no puede copiar imágenes. Prueba Guardar en Fotos.", sharePhotosDenied: "Permite que Altiro añada fotos en los Ajustes del teléfono y vuelve a intentarlo.", shareCardFullTip: "Haz tu captura · toca para cerrar",
     shareCardFailed: "No se pudo compartir. Prueba Guardar imagen.", shareCardNoShare: "Aquí no se puede compartir, así que se guardó la imagen.",
     shareStatSets: "Series", shareStatReps: "Reps", shareStatVolume: "Volumen", shareStatTopSet: "Serie máxima", shareExercisesLabel: "Ejercicios",
-    shareMore: "+{n} más", shareFooter: "Registrado con Altiro", shareStreak: "{n} semanas seguidas",
+    shareMore: "+{n} más", shareFastest: "la más rápida", shareFooter: "Registrado con Altiro", shareStreak: "{n} semanas seguidas",
     shareText: "Acabo de terminar {title} con Altiro.",
     streakLine: "Días activos actuales — sigue así",
     dayStreakSuffix: "SEMANAS SEGUIDAS",
@@ -14524,12 +14524,17 @@ function shareCardData(){
   const sessL = ST(session);
   const date = TODAY_DATE.toLocaleDateString(state.lang==='es' ? 'es' : 'en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
   stats.forEach(st=>{ st.v = kmText(st.v); }); // the card is drawn, not on the page, so it's converted here
-  return {kicker: L.workoutCompleteTitle, title: sessL.title || L.workoutCompleteTitle, date, stats, rows,
+  // A tracked run's splits, every one, with the fastest marked.
+  const sp = session.t==='run' && logged.route ? runSplitList(logged) : null;
+  const splits = sp && sp.splits.length ? sp.splits.map(x=> ({label: x.label, pace: `${fmtPaceSec(x.pace)}/${sp.unit}`, best: x.pace===sp.best})) : [];
+  return {kicker: L.workoutCompleteTitle, title: sessL.title || L.workoutCompleteTitle, date, stats, rows, splits,
     streak: state.streak>=1 ? L.shareStreak.replace('{n}', state.streak) : '', footer: L.shareFooter,
     routeSegs: session.t==='run' && logged.route ? routeSegments(logged.route) : null};
 }
 function shareCardAlt(d){
-  return [d.title, d.date, ...d.stats.map(s=>`${s.l}: ${s.v}`), ...d.rows.map(r=>`${r.name}: ${r.detail}`)].join('. ');
+  const L = STR[state.lang];
+  return [d.title, d.date, ...d.stats.map(s=>`${s.l}: ${s.v}`), ...d.rows.map(r=>`${r.name}: ${r.detail}`),
+    ...(d.splits || []).map(x=> `${x.label}: ${x.pace}${x.best ? ` (${L.shareFastest})` : ''}`)].join('. ');
 }
 // Shrinks a font size until the text fits, then cuts it with "…" if it still doesn't.
 function fitText(ctx, text, maxW, font, size, minSize){
@@ -14618,26 +14623,21 @@ function drawShareCard(canvas, d, format){
   b.fillStyle = TEXT;
   lines.forEach(l=>{ y += titlePx*1.08; b.fillText(l, P, y); });
   y += story ? 70 : 52;
-  // A GPS run: its route on a map (or just the route, without a map) between the name and the numbers.
+  // A GPS run: just its route (no map) between the name and the numbers, sized to leave room for every
+  // split under them -- in one column, or two for a long run, smaller rows if need be.
   const hasRoute = !!(d.routeSegs && d.routeSegs.length);
+  const splits = d.splits || [];
+  const statsH = d.stats.length ? 150 : 0, splitHead = 64 + 18;
+  let splitLay = null;
   if(hasRoute){
-    const mapH = Math.max(260, Math.min(story ? 820 : 560, areaH - y - 150 - 40));
-    b.save();
-    roundRect(b, P, y, CW, mapH, 26); b.clip();
-    if(d.routeImg){
-      const ir = d.routeImg.width/d.routeImg.height, br = CW/mapH;
-      const sw = ir>br ? d.routeImg.height*br : d.routeImg.width, sh = ir>br ? d.routeImg.height : d.routeImg.width/br;
-      b.drawImage(d.routeImg, (d.routeImg.width-sw)/2, (d.routeImg.height-sh)/2, sw, sh, P, y, CW, mapH);
-      // The map's credit, on a light chip so it reads on the light map.
-      b.font = MONO(16);
-      const credit = '© OpenStreetMap', cw = b.measureText(credit).width;
-      b.fillStyle = 'rgba(255,255,255,0.8)'; roundRect(b, W-P-16-cw-12, y+mapH-36, cw+24, 28, 14); b.fill();
-      b.fillStyle = '#3A3A3E'; b.textAlign = 'right';
-      b.fillText(credit, W-P-16, y+mapH-16); b.textAlign = 'left';
-    } else drawRouteOnCanvas(b, d.routeSegs, P, y, CW, mapH);
-    b.restore();
-    roundRect(b, P, y, CW, mapH, 26); b.strokeStyle = LINE; b.lineWidth = 2; b.stroke();
-    y += mapH + 24;
+    const free = areaH - y - statsH - 30 - 10;
+    const opts = splits.length ? [{cols:1, rowH: story ? 60 : 54}, {cols:2, rowH: story ? 56 : 48}, {cols:2, rowH:40}] : [];
+    const minRoute = 200, maxRoute = story ? 620 : 360;
+    splitLay = opts.find(o=> free - (splitHead + Math.ceil(splits.length/o.cols)*o.rowH) >= minRoute) || (opts.length ? opts[opts.length-1] : null);
+    const need = splitLay ? splitHead + Math.ceil(splits.length/splitLay.cols)*splitLay.rowH : 0;
+    const routeH = Math.max(minRoute, Math.min(maxRoute, free - need));
+    drawRouteOnCanvas(b, d.routeSegs, P, y, CW, routeH, true);
+    y += routeH + 30;
   }
   // The numbers: one row of tiles when there's an exercise list (or a map) with them, a big 2-column grid when not.
   const big = !d.rows.length && !hasRoute;
@@ -14655,6 +14655,36 @@ function drawShareCard(canvas, d, format){
     b.font = DISPLAY(val.px); b.fillText(val.text, cx+22, cy+tileH-(big ? 46 : 34));
   });
   if(d.stats.length) y += Math.ceil(d.stats.length/cols)*(tileH+gap) - gap;
+  // A run's splits: mile and pace, the fastest in red. (Two columns for a long run; what doesn't fit even
+  // then ends in "+N more".)
+  if(splitLay){
+    y += 64;
+    b.fillStyle = TEXT2; b.font = MONO(24); spacing(b, true);
+    b.fillText(STR[state.lang].gpsSplitsLabel.toUpperCase(), P, y); spacing(b, false);
+    y += 18;
+    const {cols, rowH} = splitLay, colGap = 48, colW = (CW - colGap*(cols-1))/cols;
+    const fit = Math.max(1, Math.floor((areaH - y)/rowH));
+    let perCol = Math.ceil(splits.length/cols), shown = splits;
+    if(perCol>fit){ perCol = fit; shown = splits.slice(0, fit*cols - 1); }
+    const px = Math.min(story ? 32 : 30, Math.round(rowH*0.58));
+    shown.forEach((x, i)=>{
+      const cx = P + Math.floor(i/perCol)*(colW+colGap), cy = y + (i%perCol)*rowH;
+      b.strokeStyle = LINE; b.lineWidth = 2;
+      b.beginPath(); b.moveTo(cx, cy); b.lineTo(cx+colW, cy); b.stroke();
+      const base = cy + rowH/2 + Math.round(px*0.36);
+      b.textAlign = 'left'; b.fillStyle = x.best ? RED_B : TEXT; b.font = (x.best ? BODY : MONO)(px);
+      b.fillText(x.label, cx, base);
+      b.textAlign = 'right'; b.fillStyle = x.best ? RED_B : '#D4D4D8'; b.font = (x.best ? DISPLAY6 : MONO)(px);
+      b.fillText(x.pace, cx+colW, base);
+      b.textAlign = 'left';
+    });
+    y += perCol*rowH;
+    if(shown.length<splits.length){
+      const cx = P + (cols-1)*(colW+colGap), cy = y - rowH;
+      b.fillStyle = TEXT2; b.font = BODY(px);
+      b.fillText(STR[state.lang].shareMore.replace('{n}', splits.length-shown.length), cx, cy + rowH/2 + Math.round(px*0.36));
+    }
+  }
   // Each exercise: name on the left, what was lifted on the right -- or, when its sets don't fit beside
   // the name, the name on its own line and every set wrapped underneath across the card. The set text
   // shrinks a little before an exercise is left for "+N more".
@@ -14745,61 +14775,23 @@ async function shareFontsReady(){
     ]);
   }catch(e){}
 }
-// Draws the card for the chosen format and keeps it ready as a JPEG (about 100 KB -- a tenth of a PNG), so a tap on Share can hand it over
-// right away (phones only allow sharing straight from the tap).
-// A GPS run's route on real streets, for the share card: drawn by MapLibre off-screen, then copied.
-// Null when there's no map to be had (offline, no WebGL) -- the card then draws just the route.
-let shareRouteImg = null;
-async function routeMapImage(segs, w, h){
-  if(!supportsWebGL()) return null;
-  let ml;
-  try{ ml = await loadMapLib(); }catch(e){ return null; }
-  return new Promise(resolve=>{
-    const box = document.createElement('div');
-    box.style.cssText = `position:fixed;left:-${w+100}px;top:0;width:${w}px;height:${h}px;pointer-events:none;`;
-    document.body.appendChild(box);
-    let map = null, done = false;
-    const finish = img=>{ if(done) return; done = true; try{ if(map) map.remove(); }catch(e){} box.remove(); resolve(img); };
-    setTimeout(()=> finish(null), 7000);
-    try{
-      map = new ml.Map({container: box, style: MAP_STYLE_URL, interactive: false, attributionControl: false, preserveDrawingBuffer: true,
-        pixelRatio: 1, fadeDuration: 0, center: [segs[0][0][1], segs[0][0][0]], zoom: 13});
-    }catch(e){ return finish(null); }
-    map.on('load', ()=>{
-      try{
-        addRouteLayers(map);
-        map.setPaintProperty('route-casing', 'line-width', 15);
-        map.setPaintProperty('route-line', 'line-width', 9);
-        map.setPaintProperty('route-ends', 'circle-radius', 11);
-        map.setPaintProperty('route-ends', 'circle-stroke-width', 4);
-        setRouteData(map, segs);
-        map.fitBounds(routeBounds(segs), {padding: 70, duration: 0, maxZoom: 16});
-      }catch(e){ return finish(null); }
-      map.once('idle', ()=>{
-        try{
-          const c = document.createElement('canvas');
-          c.width = w; c.height = h;
-          c.getContext('2d').drawImage(map.getCanvas(), 0, 0, w, h);
-          finish(c);
-        }catch(e){ finish(null); }
-      });
-    });
-  });
-}
 // The route by itself, for a card with no map: a red line (white edge) on a dark panel, start in green.
-function drawRouteOnCanvas(ctx, segs, x, y, w, h){
-  const g = ctx.createLinearGradient(x, y, x, y+h);
-  g.addColorStop(0, '#1A1A1E'); g.addColorStop(1, '#121214');
-  ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
-  for(let gx = x+40; gx < x+w; gx += 60){ ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx, y+h); ctx.stroke(); }
-  for(let gy = y+40; gy < y+h; gy += 60){ ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x+w, gy); ctx.stroke(); }
+// (bare: just the route, on whatever is already there -- the share card's background.)
+function drawRouteOnCanvas(ctx, segs, x, y, w, h, bare){
+  if(!bare){
+    const g = ctx.createLinearGradient(x, y, x, y+h);
+    g.addColorStop(0, '#1A1A1E'); g.addColorStop(1, '#121214');
+    ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+    for(let gx = x+40; gx < x+w; gx += 60){ ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx, y+h); ctx.stroke(); }
+    for(let gy = y+40; gy < y+h; gy += 60){ ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x+w, gy); ctx.stroke(); }
+  }
   const all = segs.flat();
   if(!all.length) return;
   const lat0 = all.reduce((a,p)=> a+p[0], 0)/all.length, k = Math.cos(lat0*Math.PI/180);
   const xs = all.map(p=> p[1]*k), ys = all.map(p=> -p[0]);
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  const pad = 60, sw = maxX-minX, sh = maxY-minY;
+  const pad = bare ? 16 : 60, sw = maxX-minX, sh = maxY-minY;
   let sc = Math.min(sw>0 ? (w-2*pad)/sw : Infinity, sh>0 ? (h-2*pad)/sh : Infinity);
   if(!isFinite(sc)) sc = 1;
   const ox = x + (w - sw*sc)/2, oy = y + (h - sh*sc)/2;
@@ -14815,6 +14807,8 @@ function drawRouteOnCanvas(ctx, segs, x, y, w, h){
     ctx.lineWidth = 4; ctx.strokeStyle = '#FFFFFF'; ctx.stroke();
   });
 }
+// Draws the card for the chosen format and keeps it ready as a JPEG (about 100 KB -- a tenth of a PNG), so a tap on Share can hand it over
+// right away (phones only allow sharing straight from the tap).
 async function renderShareCard(){
   const token = ++shareCardToken;
   const img = document.getElementById('shareCardPreview');
@@ -14825,12 +14819,6 @@ async function renderShareCard(){
   await shareFontsReady();
   if(token!==shareCardToken) return false;
   const d = shareCardData();
-  if(d.routeSegs && d.routeSegs.length){
-    const key = shareFormat + '|' + (state._lastLogged && state._lastLogged.route || []).join('');
-    if(!shareRouteImg || shareRouteImg.key!==key) shareRouteImg = {key, img: await routeMapImage(d.routeSegs, 920, shareFormat==='story' ? 820 : 520)};
-    if(token!==shareCardToken) return false;
-    d.routeImg = shareRouteImg.img;
-  }
   drawShareCard(canvas, d, shareFormat);
   const blob = await new Promise(res=>{ try{ canvas.toBlob(res, 'image/jpeg', 0.9); }catch(e){ res(null); } });
   if(token!==shareCardToken || !blob) return false;
@@ -15625,6 +15613,18 @@ document.getElementById('logPerfGpsBtn').addEventListener('click', ()=>{
 document.addEventListener('click', e=>{ if(e.target.closest && e.target.closest('#trackRunBtn')) openGpsTracker(homeGpsTarget); }); // Today's button is re-drawn with the page
 
 // ---- the route after the run: Summary map + splits ----
+// A tracked run's splits: each whole mile (or km) and the part one at the end, as {label, pace} (seconds
+// per unit), with the fastest pace (null when there's only one). Splits stay in the unit the run was
+// tracked in (labelled so), whatever the setting is now.
+function runSplitList(logged){
+  const unit = logged && logged.splitUnit==='km' ? 'km' : 'mi';
+  const label = n=> unit==='km' ? `Km ${n}` : (state.lang==='es' ? `Milla ${n}` : `Mile ${n}`);
+  const splits = ((logged && logged.splits) || []).map((sec, i)=> ({label: label(i+1), pace: sec}));
+  const ls = logged && logged.lastSplit, lsDist = ls ? (ls.dist!=null ? ls.dist : ls.mi) : 0;
+  if(ls && lsDist>0) splits.push({label: `${lsDist} ${unit}`, pace: ls.sec/lsDist});
+  const best = splits.length>1 ? Math.min(...splits.map(x=> x.pace)) : null;
+  return {unit, splits, best};
+}
 let summaryMap = null;
 function renderSummaryRoute(logged){
   const L = STR[state.lang];
@@ -15633,13 +15633,7 @@ function renderSummaryRoute(logged){
   if(summaryMap){ try{ summaryMap.remove(); }catch(e){} summaryMap = null; }
   card.hidden = !segs.length;
   if(!segs.length) return;
-  // Splits stay in the unit the run was tracked in (labelled so), whatever the setting is now.
-  const unit = logged.splitUnit==='km' ? 'km' : 'mi';
-  const label = n=> unit==='km' ? `Km ${n}` : (state.lang==='es' ? `Milla ${n}` : `Mile ${n}`);
-  const splits = (logged.splits || []).map((s, i)=> ({label: label(i+1), sec: s, pace: s}));
-  const ls = logged.lastSplit, lsDist = ls ? (ls.dist!=null ? ls.dist : ls.mi) : 0;
-  if(ls && lsDist>0) splits.push({label: `${lsDist} ${unit}`, sec: ls.sec, pace: ls.sec/lsDist});
-  const best = splits.length>1 ? Math.min(...splits.map(s=> s.pace)) : null;
+  const {unit, splits, best} = runSplitList(logged);
   const box = document.getElementById('summarySplits');
   box.setAttribute('data-keep-units', '');
   box.innerHTML = splits.length ? `<div class="st-label">${L.gpsSplitsLabel}</div>` + splits.map(s=>

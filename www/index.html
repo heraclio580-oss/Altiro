@@ -16895,15 +16895,66 @@ function withWatchClimb(perf, gainM){
   if(perf.elevGain!=null && perf.elevLoss!=null) out.elevLoss = Math.round(Math.max(0, gainM - (perf.elevGain - perf.elevLoss))*10)/10;
   return out;
 }
+// A watch's copy through Health Connect / Apple Health more than 10% off the phone's GPS is an incomplete
+// one, not a steadier measure: a long run came in at 8.02 mi while the watch's app was still writing it
+// -- the phone said 9.56, and the watch's own Strava upload 9.53. The phone's numbers stay then (until
+// Strava's copy comes). Strava's copy is the watch's whole file, so it wins however far apart they are
+// (a phone's 3.62 mi was the watch's 4.03).
+const WATCH_GAP_MAX = 0.10;
+// How far a run tracked here went, measured along its kept route (miles), or null.
+function routeMiles(perf){
+  const segs = routeSegments(perf && perf.route);
+  if(!segs.length) return null;
+  let m = 0;
+  segs.forEach(sg=>{ for(let i=1; i<sg.length; i++) m += haversineM(sg[i-1], sg[i]); });
+  return m/1609.344;
+}
+// A run tracked here: the phone's own numbers, whatever a watch has said since -- {distance, time, splits,
+// lastSplit, bests}, or null for a run that wasn't.
+function phoneNumbers(perf){
+  if(!perf || !(perf.route && perf.route.length)) return null;
+  if(!perf.fromWatch) return {distance: perf.distance, time: perf.time, splits: perf.splits, lastSplit: perf.lastSplit, bests: perf.bests};
+  const mi = perf.phoneDistance>0 ? perf.phoneDistance : routeMiles(perf);
+  if(!(mi>0)) return null;
+  const time = perf.phoneTime>0 ? perf.phoneTime : perf.time;
+  const re = rescaleSplits(perf, mi, time);
+  return {distance: Math.round(mi*100)/100, time, splits: re ? re.splits : null, lastSplit: re ? re.lastSplit : null,
+    bests: perf.bests ? scaleBests(perf.bests, perf.distance, mi) : null};
+}
+const watchTooFar = (watchMi, phoneMi)=> phoneMi>0 && watchMi>0 && Math.abs(watchMi - phoneMi)/phoneMi > WATCH_GAP_MAX;
+// A run tracked here keeping the phone's numbers, linked to the watch's copy all the same (its id, its
+// calories and climb), and noting what the watch said.
+function keepPhoneNumbers(prev, phone, watch){
+  const perf = {...prev, distance: phone.distance, time: phone.time, fromWatch: false, numbersFrom: 'phone', watchDistance: watch.distance};
+  delete perf.splits; delete perf.lastSplit; delete perf.phoneDistance; delete perf.phoneTime;
+  if(phone.splits) perf.splits = phone.splits;
+  if(phone.lastSplit) perf.lastSplit = phone.lastSplit;
+  if(phone.bests) perf.bests = phone.bests;
+  if(watch.stravaId) perf.stravaId = watch.stravaId;
+  if(watch.healthId) perf.healthId = watch.healthId;
+  if(watch.calories && !perf.calories) perf.calories = watch.calories;
+  return withWatchClimb(perf, watch.elevGain) || perf;
+}
 // The watch's numbers win: a run tracked here that the watch recorded too takes the watch's distance
 // and time (a watch's GPS is steadier than a phone's), keeps its route and elevation, and links to
-// Strava. The phone's splits are re-measured to the watch's distance (see rescaleSplits).
+// Strava. The phone's splits are re-measured to the watch's distance (see rescaleSplits). Unless it's a
+// Health Connect / Apple Health copy more than 10% off the phone's (see WATCH_GAP_MAX): then the phone's stay.
 function takeWatchNumbers(target, watch){
   const resolved = resolveLogTarget(target);
   if(!resolved) return false;
   const prev = resolved.performance || {};
+  const phone = phoneNumbers(prev);
+  if(phone && watch.source==='health' && watchTooFar(watch.distance, phone.distance)){
+    const kept = keepPhoneNumbers(prev, phone, watch);
+    storeLoggedPerformance(target, resolved, kept);
+    applyLoggedPerformance(target, resolved, kept);
+    return true;
+  }
   const perf = {...prev, distance: watch.distance, time: watch.time!=null ? watch.time : prev.time, notes: prev.notes || '',
-    source: prev.source || watch.source || 'strava', fromWatch: true};
+    source: prev.source || watch.source || 'strava', fromWatch: true, numbersFrom: watch.source || 'strava'};
+  delete perf.watchDistance;
+  // (The phone's own, kept for comparing with a later copy -- see phoneNumbers.)
+  if(phone){ perf.phoneDistance = phone.distance; if(phone.time>0) perf.phoneTime = phone.time; }
   // (Which copy of it the watch's numbers came from: Strava, or Apple Health / Health Connect.)
   if(watch.stravaId) perf.stravaId = watch.stravaId;
   if(watch.healthId) perf.healthId = watch.healthId;
@@ -16918,10 +16969,38 @@ function takeWatchNumbers(target, watch){
   applyLoggedPerformance(target, resolved, climbed);
   return true;
 }
+// Whether a logged run's numbers came from Health Connect / Apple Health (which a watch's app can still be
+// filling in) rather than from Strava (the watch's whole file) or the phone.
+function numbersFromHealth(perf){
+  if(!perf) return false;
+  if(perf.numbersFrom) return perf.numbersFrom==='health';
+  return perf.source==='health' || !!(perf.fromWatch && perf.healthId && !perf.stravaId);
+}
+// Runs tracked here that took a Health Connect / Apple Health copy more than 10% short or long (before
+// WATCH_GAP_MAX): back to the phone's numbers, measured again along the route. Returns how many.
+function repairWatchGaps(){
+  let fixed = 0;
+  const since = dateKey(new Date(TODAY_DATE.getTime() - STRAVA_LINK_BACKFILL_DAYS*86400000));
+  Object.keys(state.dayLog).filter(k=> k>=since).forEach(key=>{
+    dayLoggedRuns(getDayData(parseDateKey(key))).forEach(r=>{
+      const p = r.perf;
+      if(!p || !p.fromWatch || !(p.route && p.route.length) || !numbersFromHealth(p)) return;
+      const phone = phoneNumbers(p);
+      if(!phone || !watchTooFar(p.distance, phone.distance)) return;
+      const resolved = resolveLogTarget(r.target);
+      if(!resolved) return;
+      const kept = keepPhoneNumbers(p, phone, {distance: p.distance});
+      storeLoggedPerformance(r.target, resolved, kept);
+      applyLoggedPerformance(r.target, resolved, kept);
+      fixed++;
+    });
+  });
+  return fixed;
+}
 // Runs counted twice from before this matching (a GPS run here and the watch's copy from Strava, as its
 // own Logged Workout, on the same day and the same length): merged into one, with the watch's numbers.
 function mergeWatchDuplicates(){
-  let merged = 0;
+  let merged = repairWatchGaps();
   const since = dateKey(new Date(TODAY_DATE.getTime() - STRAVA_LINK_BACKFILL_DAYS*86400000));
   Object.keys(state.dayLog).filter(k=> k>=since).forEach(key=>{
     const log = state.dayLog[key];
@@ -16973,9 +17052,19 @@ function absorbStravaTwin(target, logged){
   const twin = log && (log.manualEntries || []).find(e=> !(target.kind==='entry' && e.id===target.id) && e.type==='run'
     && e.performance && (e.performance.stravaId || e.performance.healthId) && sameTime(runWindow(e.performance), win));
   if(!twin) return;
-  // The watch's numbers win (see takeWatchNumbers).
-  const wp = twin.performance, phoneMi = logged.distance;
-  logged.distance = wp.distance!=null ? wp.distance : twin.distance;
+  // The watch's numbers win (see takeWatchNumbers) -- unless they're more than 10% off the phone's.
+  const wp = twin.performance, phoneMi = logged.distance, watchMi = wp.distance!=null ? wp.distance : twin.distance;
+  if(wp.source==='health' && watchTooFar(watchMi, phoneMi)){
+    if(wp.stravaId) logged.stravaId = wp.stravaId;
+    if(wp.healthId) logged.healthId = wp.healthId;
+    if(wp.calories && !logged.calories) logged.calories = wp.calories;
+    logged.numbersFrom = 'phone'; logged.watchDistance = watchMi;
+    deleteManualEntry(target.dayKey, twin.id);
+    return;
+  }
+  logged.phoneDistance = phoneMi; if(logged.time>0) logged.phoneTime = logged.time;
+  logged.numbersFrom = wp.stravaId && !wp.healthId ? 'strava' : (wp.source || 'strava');
+  logged.distance = watchMi;
   if(logged.bests) logged.bests = scaleBests(logged.bests, phoneMi, logged.distance);
   if(wp.time || twin.durationMin) logged.time = wp.time || twin.durationMin;
   if(wp.stravaId) logged.stravaId = wp.stravaId;
@@ -17032,6 +17121,9 @@ function fileWatchRun(run){
     // Not from the watch yet: it takes the watch's numbers (see takeWatchNumbers). Already from the watch
     // (the other way in): only the missing link is added.
     if(r && !(perf && (perf.stravaId || perf.healthId))) takeWatchNumbers(match, {distance: miles, time: minutes, ...ids, source: run.source, calories: run.calories, elevGain: run.elevGain, start: win && win.start, end: win && win.end});
+    // Its numbers came through Health Connect / Apple Health, and now Strava's copy is here: Strava has the
+    // watch's whole file, so its numbers replace them (the phone's still stay if they're far apart).
+    else if(r && perf && run.source==='strava' && (numbersFromHealth(perf) || perf.numbersFrom==='phone')) takeWatchNumbers(match, {distance: miles, time: minutes, ...ids, healthId: perf.healthId, source: 'strava', elevGain: run.elevGain, start: win && win.start, end: win && win.end});
     else if(r && perf){
       const more = {...perf, ...ids, ...(run.calories && !perf.calories ? {calories: run.calories} : {})};
       const climbed = withWatchClimb(more, run.elevGain);
@@ -17094,6 +17186,15 @@ async function importStravaActivities(){
       const miles = +(Number(row.distance_m||0)/1609.344).toFixed(2);
       const match = stravaMatchTarget(getDayData(parseDateKey(key)), miles, stravaRowWindow(row));
       if(match && linkStravaId(match, row.id)) linked++;
+      // Its numbers came through Health Connect / Apple Health (they don't match Strava's -- a copy read
+      // while the watch's app was still writing it), or the phone's kept over one: Strava's replace them.
+      const rh = match && resolveLogTarget(match);
+      const ph = rh && (rh.performance || (rh.record && rh.record.performance));
+      if(ph && ph.healthId && (numbersFromHealth(ph) || ph.numbersFrom==='phone' || (!ph.numbersFrom && ph.fromWatch && Math.abs((Number(ph.distance) || 0) - miles) > 0.05))){
+        const win = stravaRowWindow(row);
+        if(takeWatchNumbers(match, {distance: miles, time: row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null, stravaId: row.id, healthId: ph.healthId, source: 'strava',
+          elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null, start: win && win.start, end: win && win.end})) linked++;
+      }
       // A run filed before its climb was kept takes the watch's climb now.
       const r = match && row.elev_gain_m!=null && resolveLogTarget(match);
       const perf = r && (r.performance || (r.record && r.record.performance));
@@ -17304,6 +17405,18 @@ function healthIdLogged(id){
   return Object.values(state.dayLog).some(log=> log && [log.performance, ...(log.extraWorkouts||[]).map(w=>w.performance), ...(log.manualEntries||[]).map(e=>e.performance)]
     .some(p=> p && p.healthId===id));
 }
+// A watch's app can take a while to write a whole run into Health Connect / Apple Health (the distance
+// first comes in short), so a run that ended in the last 12 hours is read again, and updated if it grew.
+const HEALTH_RECHECK_MS = 12*3600*1000;
+function recheckHealthRun(id, run){
+  const dd = getDayData(parseDateKey(run.key));
+  const r = dayLoggedRuns(dd).find(x=> x.perf && x.perf.healthId===id);
+  if(!r || !numbersFromHealth(r.perf) && r.perf.numbersFrom!=='phone') return false;
+  const was = r.perf.numbersFrom==='phone' ? r.perf.watchDistance : r.perf.distance;
+  if(!(run.miles > (was || 0) + 0.05)) return false;
+  return takeWatchNumbers(r.target, {distance: run.miles, time: run.minutes, healthId: id, source: 'health', calories: run.calories,
+    start: run.win.start, end: run.win.end});
+}
 async function importHealthWorkouts(H){
   const now = new Date(), from = new Date(now.getTime() - HEALTH_LOOKBACK_DAYS*86400000);
   const res = await H.queryWorkouts({startDate: from.toISOString(), endDate: now.toISOString(), limit: 100, ascending: true});
@@ -17311,16 +17424,18 @@ async function importHealthWorkouts(H){
   ((res && res.workouts) || []).forEach(w=>{
     if(!HEALTH_RUN_TYPES.includes(w.workoutType)) return; // (runs only, as from Strava)
     const id = w.platformId || `${w.sourceId || ''}|${w.startDate}`;
-    if(seen.has(id)) return;
     const start = Date.parse(w.startDate), end = Date.parse(w.endDate), meters = Number(w.totalDistance) || 0;
+    const recent = isFinite(end) && now.getTime() - end < HEALTH_RECHECK_MS;
+    if(seen.has(id) && !recent) return;
     if(!isFinite(start) || meters < 160) return; // no distance yet: looked at again next time
     const win = {start, end: isFinite(end) ? end : start + (Number(w.duration)||0)*1000};
     if(pending && sameTime(pending, win)) return; // (see gpsPendingWindow: looked at again once it's saved)
-    looked.push(id);
-    if(healthIdLogged(id)) return;
     const run = {key: dateKey(new Date(start)), miles: +(meters/1609.344).toFixed(2), minutes: w.duration ? +(w.duration/60).toFixed(2) : null,
       win, name: STR[state.lang].healthRunName, source: 'health', healthId: id,
       calories: Number(w.totalEnergyBurned) > 0 ? Math.round(Number(w.totalEnergyBurned)) : null};
+    // Already in: just checked for a longer distance (a deleted one, not logged any more, stays gone).
+    if(seen.has(id) || healthIdLogged(id)){ looked.push(id); if(recent && recheckHealthRun(id, run)) imported.push(run); return; }
+    looked.push(id);
     if(fileWatchRun(run)) imported.push(run);
   });
   markHealthSeen(looked);

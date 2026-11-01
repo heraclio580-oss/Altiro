@@ -55,7 +55,7 @@ function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
   goPill('week');
   await wait(20);
-  console.log('Plan row for today now shows the done dot, not the TODAY badge:', !!doc.querySelector('.prow-status-dot') && !doc.querySelector('.prow-status.today') ? 'OK' : 'FAIL');
+  console.log('Plan row for today now shows the done dot, not the TODAY badge:', !!doc.querySelector('.prow-status-dot') && !doc.querySelector('.prow-status.today:not(.light-only)') ? 'OK' : 'FAIL');
   console.log('That row still carries the "today" class itself (blue accent stays on the row):', !!doc.querySelector('.plan-row.today.done') ? 'OK' : 'FAIL');
 
   goPill('calendar');

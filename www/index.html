@@ -704,6 +704,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .mo-cell.missed .mo-desc-t,.mo-cell.done .mo-desc-t{color:var(--text-2);}
 .mo-cell:hover{border-color:var(--mo-hover-border);}
 .mo-cell.outside{background:none;border:none;cursor:default;}
+.mo-cell .mo-class{display:flex;color:var(--accent);margin-top:1px;}
+.mo-cell .mo-class svg{width:12px;height:12px;}
+.run-day-ask{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:8px;}
+.run-day-ask .btn{width:auto;padding:0 16px;height:38px;}
 .mo-cell .mo-num{font-family:var(--font-mono);font-weight:600;font-size:calc(12px * min(var(--fs, 1), 1.06));color:var(--text-2);}
 .mo-cell .mo-dot{width:5px;height:5px;border-radius:50%;background:var(--muted-dot);}
 .mo-cell.today{border-color:var(--today-ring);background:linear-gradient(0deg,var(--today-ring-tint),var(--today-ring-tint)),var(--card);}
@@ -3961,6 +3965,18 @@ const STR = {
     longRunDayLabel: "Long run day",
     longRunDayNoteAuto: "Your long run goes at the weekend (or your last run day of the week). Pick a day to always have it then.",
     longRunDayNote: "Your long run goes on {day}, unless a hard class is that day.",
+    longRunClassNote: "You have {class} on {days}, a hard class, so your long run goes on {other} instead.",
+    longRunClassNoteSome: "You have {class} on {days}, a hard class, so your long run goes on another day.",
+    longRunAnywayNote: "Your long run goes on {day}, along with your {class} class.",
+    longRunAsk: "You have {class} on {days}, a hard class. Put your long run there anyway?",
+    hardRunClassNote: "You have {class} on {days}, a hard class, so your faster run goes on {other} instead.",
+    hardRunClassNoteSome: "You have {class} on {days}, a hard class, so your faster run goes on another day.",
+    hardRunAnywayNote: "Your faster run goes on {day}, along with your {class} class.",
+    hardRunAsk: "You have {class} on {days}, a hard class. Put your faster run there anyway?",
+    runDayAskYes: "Yes, {day}", runDayAskNo: "No, pick another day",
+    classMovesAdded: "{class} on {days}", classMovesRemoved: "{class} removed",
+    classMovesLong: "your long run moved to {day}", classMovesFast: "your faster run moved to {day}", classMovesAnd: " and ",
+    classUndoneToast: "Undone: your plan is back as it was",
     runLiftDaysLabel: "Run + lift days",
     runLiftDaysNoteNone: "Tap the days you want a lifting workout on as well as your run. Each run stays as planned; the lifting goes with it.",
     runLiftDaysNote: "Run + lift on {days}: each of those days has its run and a lifting workout. Heavy leg days are kept off the day before your faster run and long run.",
@@ -4725,6 +4741,18 @@ const STR = {
     longRunDayLabel: "Día de la carrera larga",
     longRunDayNoteAuto: "Tu carrera larga va el fin de semana (o tu último día de carrera de la semana). Elige un día para tenerla siempre ese día.",
     longRunDayNote: "Tu carrera larga va el {day}, salvo que ese día tengas una clase intensa.",
+    longRunClassNote: "Los {days} tienes {class}, una clase intensa, así que tu carrera larga va el {other}.",
+    longRunClassNoteSome: "Los {days} tienes {class}, una clase intensa, así que tu carrera larga va otro día.",
+    longRunAnywayNote: "Tu carrera larga va el {day}, junto con tu clase de {class}.",
+    longRunAsk: "Los {days} tienes {class}, una clase intensa. ¿Poner tu carrera larga ese día de todos modos?",
+    hardRunClassNote: "Los {days} tienes {class}, una clase intensa, así que tu carrera rápida va el {other}.",
+    hardRunClassNoteSome: "Los {days} tienes {class}, una clase intensa, así que tu carrera rápida va otro día.",
+    hardRunAnywayNote: "Tu carrera rápida va el {day}, junto con tu clase de {class}.",
+    hardRunAsk: "Los {days} tienes {class}, una clase intensa. ¿Poner tu carrera rápida ese día de todos modos?",
+    runDayAskYes: "Sí, el {day}", runDayAskNo: "No, elige otro día",
+    classMovesAdded: "{class} los {days}", classMovesRemoved: "{class} eliminada",
+    classMovesLong: "tu carrera larga pasó al {day}", classMovesFast: "tu carrera rápida pasó al {day}", classMovesAnd: " y ",
+    classUndoneToast: "Deshecho: tu plan volvió a como estaba",
     runLiftDaysLabel: "Días de correr + pesas",
     runLiftDaysNoteNone: "Toca los días en que quieres un entrenamiento de pesas además de tu carrera. Cada carrera sigue como está planeada; las pesas van con ella.",
     runLiftDaysNote: "Correr + pesas el {days}: cada uno de esos días tiene su carrera y un entrenamiento de pesas. Los días fuertes de piernas no van el día antes de tu carrera rápida ni de la larga.",
@@ -5394,8 +5422,40 @@ const CLASS_LOAD = {
   // court work is hard on the legs, in shorter bursts.
   basketball:{hard:true, legs:true}, handball:{hard:true, legs:true}, racquetball:{legs:true},
 };
-function planClassLoad(){
-  const classes = (state.classes||[]).filter(c=> CLASS_LOAD[c.kind]).map(c=>({days:(c.days||[]).slice().sort((a,b)=>a-b), from:c.from||'', ...CLASS_LOAD[c.kind]}));
+// (ok: {long, hard} -- the days the user said to put the long run / the fast run on anyway, a hard class
+// or not, for a plan not saved yet (Adjust); otherwise the classes' own longRunOkDay / fastRunOkDay.)
+// The weekly classes on a weekday hard enough to move a run off it.
+function hardClassesOn(day){ return (state.classes||[]).filter(c=> CLASS_LOAD[c.kind] && CLASS_LOAD[c.kind].hard && (c.days||[]).includes(day)); }
+// "Sundays" / "domingos" (Spanish weekdays ending in -s stay as they are: "lunes").
+function dayPlural(i){
+  const n = state.lang==='es' ? DAY_NAMES_FULL.es[i].toLowerCase() : DAY_NAMES_FULL.en[i];
+  return state.lang==='es' ? (/s$/.test(n) ? n : n+'s') : n+'s';
+}
+// Where the long run and the week's faster run fall (weekday, or null) in plan week n.
+const FAST_RUN_TITLES = ['Tempo Run', 'Interval Run', 'Hill Repeats', 'Fartlek Run'];
+function weekRunDays(cfg, n){
+  const w = generatedWeek(cfg, n);
+  const at = test=>{ const i = w.findIndex(e=> e.p && e.p.t==='run' && test(e.p.en.title.replace(/ B$/, ''))); return i<0 ? null : i; };
+  return {long: at(t=> t==='Long Run'), hard: at(t=> FAST_RUN_TITLES.includes(t))};
+}
+// Next week's plan (the first one a class change shows in whole).
+const nextPlanWeek = ()=> planWeekIndex(new Date(TODAY_DATE.getFullYear(), TODAY_DATE.getMonth(), TODAY_DATE.getDate() + 7));
+// "your long run moved to Thursday" -- what a class change moved, or ''.
+function runMovesText(before, after){
+  const L = STR[state.lang], day = i=> state.lang==='es' ? DAY_NAMES_FULL.es[i].toLowerCase() : DAY_NAMES_FULL.en[i];
+  const parts = [];
+  if(after.long!=null && before.long!==after.long) parts.push(L.classMovesLong.replace('{day}', day(after.long)));
+  if(after.hard!=null && before.hard!==after.hard) parts.push(L.classMovesFast.replace('{day}', day(after.hard)));
+  return parts.join(L.classMovesAnd);
+}
+function planClassLoad(ok){
+  const classes = (state.classes||[]).filter(c=> CLASS_LOAD[c.kind]).map(c=>{
+    const days = (c.days||[]).slice().sort((a,b)=>a-b);
+    const longOk = ok ? ok.long : c.longRunOkDay, fastOk = ok ? ok.hard : c.fastRunOkDay;
+    return {days, from:c.from||'', ...CLASS_LOAD[c.kind],
+      ...(Number.isInteger(longOk) && days.includes(longOk) ? {longRunOkDay: longOk} : {}),
+      ...(Number.isInteger(fastOk) && days.includes(fastOk) ? {fastRunOkDay: fastOk} : {})};
+  });
   return classes.length ? {classes, weekStart: planStartKey()} : {};
 }
 // Week n's class load by day (0 = Mon): the hard classes on that weekday from the week they start.
@@ -5407,8 +5467,11 @@ function classLoadFor(cfg, n){
   cfg.classes.forEach(c=>{
     if(c.from > last) return;
     c.days.forEach(d=>{
-      const l = load[d] || (load[d] = {hard:false, legs:false, upper:false});
+      const l = load[d] || (load[d] = {hard:false, legs:false, upper:false, longBlock:false, fastBlock:false});
       l.hard = l.hard || !!c.hard; l.legs = l.legs || !!c.legs; l.upper = l.upper || !!c.upper;
+      // (A hard class keeps the long run / the fast run off its day -- unless the user said to put it there anyway.)
+      l.longBlock = l.longBlock || (!!c.hard && c.longRunOkDay!==d);
+      l.fastBlock = l.fastBlock || (!!c.hard && c.fastRunOkDay!==d);
     });
   });
   return load;
@@ -5772,8 +5835,8 @@ function placeSessions(days, items, load, hardRunDay, longRunDay, runOnly){
       // day after, nor the long run the day before.
       const cl = load[d], before = load[d===0 ? 6 : d-1], after = load[d===6 ? 0 : d+1];
       if(cl){
-        if(cl.hard && it.role==='long') c += 18;
-        else if(cl.hard && it.hard) c += 10;
+        if(cl.longBlock && it.role==='long') c += 18;
+        else if(cl.hard && it.hard && !(it.role==='long' && !cl.longBlock) && !(it.role==='quality' && !cl.fastBlock)) c += 10;
         if(cl.legs && it.kind==='lift' && it.legs) c += 5;
         if((cl.hard || cl.legs) && it.peak) c += 2; // the week's heaviest lifting day goes elsewhere
         if(cl.upper && it.kind==='lift' && !it.legs) c += 3;
@@ -5913,9 +5976,9 @@ function generatePlanWeek(cfg, n){
   // The user's own days for the long run and the fast run -- each giving way in a week with a hard class
   // that day (the long run doesn't go with one; the fast run would only become easy), and the fast run to
   // the long run if they're the same day.
-  const freeOfClass = d => d!=null && !(classLoad[d] && classLoad[d].hard) ? d : null;
-  const longRunDay = freeOfClass(cfg.longRunDay);
-  const hardRunDay = cfg.hardRunDay!==longRunDay ? freeOfClass(cfg.hardRunDay) : null;
+  const freeOfClass = (d, block) => d!=null && !(classLoad[d] && classLoad[d][block]) ? d : null;
+  const longRunDay = freeOfClass(cfg.longRunDay, 'longBlock');
+  const hardRunDay = cfg.hardRunDay!==longRunDay ? freeOfClass(cfg.hardRunDay, 'fastBlock') : null;
   // With run + lift days, the runs (and which other days are lifting days) are placed first, then the
   // lifting workouts over every lifting day.
   const liftItems = items.filter(it=>it.kind==='lift');
@@ -5923,7 +5986,7 @@ function generatePlanWeek(cfg, n){
   const placed = (both.length ? placeSessions(days, items.filter(it=>it.kind==='run').concat(holders), classLoad, hardRunDay, longRunDay, both)
     : placeSessions(days, items, classLoad, hardRunDay, longRunDay)).slice();
   // A fast run with nowhere to go but a hard class's day (too few run days) is an easy run instead.
-  days.forEach((d,i)=>{ if(placed[i].role==='quality' && classLoad[d] && classLoad[d].hard) placed[i] = {...placed[i], sub:'easy', hard:false}; });
+  days.forEach((d,i)=>{ if(placed[i].role==='quality' && classLoad[d] && classLoad[d].fastBlock) placed[i] = {...placed[i], sub:'easy', hard:false}; });
   // A short run that can't be the day after the long run is simply a short easy run -- and the longer
   // easy run comes before it in the week (e.g. Tue fast, Wed longer easy, Thu short easy, Sat long).
   const rec = placed.findIndex(it=>it.kind==='run' && it.role==='recovery');
@@ -7364,11 +7427,21 @@ function removeClass(id){
   Object.keys(state.dayLog).forEach(k=>{
     ((state.dayLog[k]||{}).extraWorkouts||[]).filter(w=> !w.completed && isThatClass(w, c)).forEach(w=> deleteExtraWorkout(k, w.id));
   });
+  const n = nextPlanWeek(), before = weekRunDays(planConfig(), n);
   state.classes = state.classes.filter(x=>x.id!==id);
   // A hard class gone: the rest of this week goes back to the plan without it.
   if(CLASS_LOAD[c.kind]) state.week = regenerateUpcomingWeek();
   saveProfileToCloud();
-  showToast(STR[state.lang].classRemovedToast);
+  const moved = runMovesText(before, weekRunDays(planConfig(), n));
+  if(!moved){ showToast(STR[state.lang].classRemovedToast); return; }
+  showToastWithUndo(`${STR[state.lang].classMovesRemoved.replace('{class}', classLabel(c, state.lang))}: ${moved}.`, ()=>{
+    state.classes = [...(state.classes||[]), c];
+    state.week = regenerateUpcomingWeek();
+    saveProfileToCloud();
+    refreshViews();
+    if(typeof renderMyClasses==='function') renderMyClasses();
+    showToast(STR[state.lang].classUndoneToast);
+  });
 }
 // Settings -> My classes: each weekly class, removable.
 function renderMyClasses(){
@@ -7998,6 +8071,7 @@ function hideUndoToast(){
   document.getElementById('toastUndo').hidden = true;
 }
 document.getElementById('toastUndo').addEventListener('click', ()=>{
+  if(toastUndoFn){ const fn = toastUndoFn; toastUndoFn = null; hideUndoToast(); fn(); return; }
   if(!pendingUndo) return;
   const {key, snap, timer} = pendingUndo;
   clearTimeout(timer);
@@ -8748,7 +8822,8 @@ function renderHome(){
   renderInstallUI();
   renderWatchCard();
 
-  document.getElementById('homeDateLine').textContent = `${DAY_NAMES_FULL[state.lang][TODAY_IDX]}, ${MONTHS_SHORT[state.lang][WEEK_MONDAY.getMonth()]} ${DAY_DATES[TODAY_IDX]}`;
+  // (Today's own month -- a week that started in the last one still has today in this one: Sunday, Nov 1.)
+  document.getElementById('homeDateLine').textContent = `${DAY_NAMES_FULL[state.lang][TODAY_IDX]}, ${MONTHS_SHORT[state.lang][TODAY_DATE.getMonth()]} ${TODAY_DATE.getDate()}`;
 
   // A rolling window centered on today, not the Mon-Sun calendar week -- today always sits in the
   // middle cell and past/future days scroll through the same slots as real time passes, instead of
@@ -11001,9 +11076,12 @@ function calendarDescHtml(dd){
   const more = dd.extraWorkouts.filter(w=> !(head.kind==='extra' && head.id===w.id)).length
     + dd.manualEntries.filter(e=> !(head.kind==='entry' && head.id===e.id)).length + unrecorded
     + (pendingPlanLift(dd.key) ? 1 : 0); // (a run + lift day's lifting workout, not started yet)
+  // A class that day, besides its workout: a small class icon, so it's seen (not just a "+1").
+  const classMark = classes.length ? `<span class="mo-class" title="${escapeHtml(classes.map(it=> ST(it.session).title).join(', '))}">${TYPE_ICON.class}</span>` : '';
   return `<span class="mo-desc">
       <span class="mo-desc-t">${escapeHtml(title)}</span>
       ${amount || more ? `<span class="mo-desc-a">${escapeHtml(amount)}${more ? `${amount?' ':''}+${more}` : ''}</span>` : ''}
+      ${classMark}
     </span>`;
 }
 function renderCalendar(){
@@ -12634,11 +12712,14 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     const cls = {id:'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), kind, name,
       days: classDays.length ? classDays.slice().sort((a,b)=>a-b) : [(parseDateKey(state.openDayKey).getDay()+6)%7],
       time: document.getElementById('classTimeInput').value || '18:00', minutes: minutes || 60, from: state.openDayKey, skips: []};
+    let moved = '';
     if(classRepeat){
+      const n = nextPlanWeek(), before = weekRunDays(planConfig(), n);
       state.classes = [...(state.classes||[]), cls];
       // A hard one reshapes the plan around it -- from the rest of this week on.
       if(CLASS_LOAD[kind]) state.week = regenerateUpcomingWeek();
       saveProfileToCloud();
+      moved = runMovesText(before, weekRunDays(planConfig(), n));
     } else {
       // Just this once: one class on each day picked -- the next of each weekday, starting from the
       // day this was opened for (Mon / Wed / Fri from a Monday is that Monday, Wednesday and Friday).
@@ -12653,6 +12734,19 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
     closeManualEntry();
     refreshViews();
     if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail();
+    // It moved the plan's long run or faster run: say so, with Undo (a class saved by mistake shows at once).
+    if(moved){
+      const L = STR[state.lang];
+      showToastWithUndo(`${L.classMovesAdded.replace('{class}', classLabel(cls, state.lang)).replace('{days}', cls.days.map(dayPlural).join(', '))}: ${moved}.`, ()=>{
+        state.classes = (state.classes||[]).filter(x=> x.id!==cls.id);
+        state.week = regenerateUpcomingWeek();
+        saveProfileToCloud();
+        refreshViews();
+        if(!document.getElementById('dayDetailOverlay').hidden) renderDayDetail();
+        showToast(STR[state.lang].classUndoneToast);
+      });
+      return;
+    }
     showToast(STR[state.lang][classRepeat && CLASS_LOAD[kind] ? 'classPlanAroundToast' : 'classAddedToast']);
     return;
   }
@@ -13953,7 +14047,9 @@ document.getElementById('confirmDeleteAccount').addEventListener('click', async 
 function openAdjustSheet(){
   if(!isPro()){ openProSheet('adjust'); return; }
   ensureWeek();
-  state.adjustDraft = {own: !!state.ownWorkouts, focusRatio: state.focusRatio, intensityIdx: state.focusRatio>=4 ? liftIntensity() : state.intensityIdx, liftIntensityIdx: state.liftIntensityIdx ?? null, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, liftSplit: state.liftSplit, mileTime: state.mileTime, hardRunDay: state.hardRunDay, longRunDay: state.longRunDay, runLiftDays: (state.runLiftDays||[]).slice()};
+  state.adjustDraft = {own: !!state.ownWorkouts, focusRatio: state.focusRatio, intensityIdx: state.focusRatio>=4 ? liftIntensity() : state.intensityIdx, liftIntensityIdx: state.liftIntensityIdx ?? null, trainingDays: state.trainingDays.slice(), weeklyMiles: state.weeklyMiles, equipment: state.equipment, liftSplit: state.liftSplit, mileTime: state.mileTime, hardRunDay: state.hardRunDay, longRunDay: state.longRunDay, runLiftDays: (state.runLiftDays||[]).slice(),
+    // (The days the long run / fast run go on anyway, a hard class that day or not -- see planClassLoad.)
+    longOkDay: runDayOkOf('longRunOkDay', state.longRunDay), hardOkDay: runDayOkOf('fastRunOkDay', state.hardRunDay), askRunDay: null};
   document.getElementById('adjustOverlay').hidden = false;
   highlightNav('adjust');
   adjSlider.paint();
@@ -14039,14 +14135,47 @@ function renderAdjHardRunChips(){
     const chip = (key, label)=> `<div class="chip ${(d[own] ?? 'auto')===key ? 'sel' : ''}" data-${kind}-day="${key}">${escapeHtml(label)}</div>`;
     const el = document.getElementById(rowId);
     el.innerHTML = chip('auto', L.hardRunDayAuto) + days.map(i=> chip(i, DAY_NAMES_SHORT[state.lang][i])).join('');
+    const okKey = kind==='long' ? 'longOkDay' : 'hardOkDay';
     el.querySelectorAll(`[data-${kind}-day]`).forEach(c=> c.addEventListener('click', ()=>{
       const k = c.getAttribute(`data-${kind}-day`);
       d[own] = k==='auto' ? null : Number(k);
       if(d[own]!=null && d[other]===d[own]) d[other] = null;
+      // A day with a hard class: asked whether the run goes there anyway.
+      d[okKey] = null;
+      d.askRunDay = d[own]!=null && hardClassesOn(d[own]).length ? kind : (d.askRunDay===kind ? null : d.askRunDay);
       renderAdjHardRunChips();
     }));
-    document.getElementById(noteId).textContent = d[own]==null ? autoNote : dayNote.replace('{day}', dayName(d[own]));
+    const note = document.getElementById(noteId);
+    const cls = d[own]!=null ? hardClassesOn(d[own]) : [];
+    const fill = t=> t.replace('{class}', cls.map(c=> classLabel(c, state.lang)).join(', ')).replace('{days}', d[own]!=null ? dayPlural(d[own]) : '').replace('{day}', d[own]!=null ? dayName(d[own]) : '');
+    if(d.askRunDay===kind && cls.length){
+      note.innerHTML = `<span>${escapeHtml(fill(L[kind==='long' ? 'longRunAsk' : 'hardRunAsk']))}</span>
+        <span class="run-day-ask"><button class="btn btn-ghost" type="button" data-run-day-yes>${escapeHtml(fill(L.runDayAskYes))}</button><button class="btn-text" type="button" data-run-day-no>${escapeHtml(L.runDayAskNo)}</button></span>`;
+      note.querySelector('[data-run-day-yes]').addEventListener('click', ()=>{ d[okKey] = d[own]; d.askRunDay = null; renderAdjHardRunChips(); });
+      note.querySelector('[data-run-day-no]').addEventListener('click', ()=>{ d.askRunDay = null; renderAdjHardRunChips(); });
+    } else if(d[own]==null) note.textContent = autoNote;
+    else if(cls.length && d[okKey]===d[own]) note.textContent = fill(L[kind==='long' ? 'longRunAnywayNote' : 'hardRunAnywayNote']);
+    else if(cls.length){
+      // Where the plan puts it instead (next week's, as this would make it).
+      const where = draftRunDays(d)[kind];
+      note.textContent = where!=null && where!==d[own]
+        ? fill(L[kind==='long' ? 'longRunClassNote' : 'hardRunClassNote']).replace('{other}', dayName(where))
+        : fill(L[kind==='long' ? 'longRunClassNoteSome' : 'hardRunClassNoteSome']);
+    }
+    else note.textContent = dayNote.replace('{day}', dayName(d[own]));
   });
+}
+// The day a hard class's run goes on anyway (classes' longRunOkDay / fastRunOkDay), when it's the chosen day.
+function runDayOkOf(field, day){
+  const cls = day!=null ? hardClassesOn(day) : [];
+  return cls.length && cls.every(c=> c[field]===day) ? day : null;
+}
+// Where the long run and faster run would fall next week with the Adjust draft's choices.
+function draftRunDays(d){
+  const days = d.trainingDays.slice().sort((a,b)=>a-b);
+  const inDays = x=> x!=null && days.includes(x) ? x : null;
+  return weekRunDays(planConfig({days, focus: d.focusRatio, longRunDay: inDays(d.longRunDay), hardRunDay: inDays(d.hardRunDay),
+    runLiftDays: holderRunLift(d), ...planClassLoad({long: d.longOkDay, hard: d.hardOkDay})}), nextPlanWeek());
 }
 // "Run + lift days": the training days that get a lifting workout as well as the run -- tap each one. Shown
 // for a plan with both running and lifting (not Running only or Weights only, not their own workouts).
@@ -14088,6 +14217,17 @@ document.getElementById('applyAdjust').addEventListener('click', ()=>{
   state.hardRunDay = d.hardRunDay!=null && d.trainingDays.includes(d.hardRunDay) ? d.hardRunDay : null;
   state.longRunDay = d.longRunDay!=null && d.trainingDays.includes(d.longRunDay) ? d.longRunDay : null;
   state.runLiftDays = (d.runLiftDays||[]).filter(x=> d.trainingDays.includes(x)).sort((a,b)=>a-b);
+  // "Put it there anyway": kept on the hard classes that day (and taken off any other).
+  const longOk = d.longOkDay!=null && d.longOkDay===state.longRunDay ? d.longOkDay : null;
+  const fastOk = d.hardOkDay!=null && d.hardOkDay===state.hardRunDay ? d.hardOkDay : null;
+  state.classes = (state.classes||[]).map(c=>{
+    if(!(CLASS_LOAD[c.kind] && CLASS_LOAD[c.kind].hard)) return c;
+    const out = {...c};
+    delete out.longRunOkDay; delete out.fastRunOkDay;
+    if(longOk!=null && (c.days||[]).includes(longOk)) out.longRunOkDay = longOk;
+    if(fastOk!=null && (c.days||[]).includes(fastOk)) out.fastRunOkDay = fastOk;
+    return out;
+  });
   const newMile = d.mileTime || null;
   if(newMile!==state.mileTime){ state.mileTime = newMile; reseedRunPaces(); }
   // A chosen start date starts the plan over from that day. Otherwise a new starting mileage restarts
@@ -14251,7 +14391,17 @@ document.getElementById('feedbackAdjustBtn').addEventListener('click', ()=>{
 
 /* ---------------- toast ---------------- */
 let toastTimer=null;
+// A toast whose Undo runs fn (a class added or removed that moved the plan's runs).
+let toastUndoFn = null;
+function showToastWithUndo(msg, fn){
+  showToast(msg);
+  toastUndoFn = fn;
+  document.getElementById('toastUndo').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ toastUndoFn = null; hideUndoToast(); }, UNDO_MS);
+}
 function showToast(msg){
+  toastUndoFn = null;
   const t = document.getElementById('toast');
   document.getElementById('toastMsg').textContent = msg;
   document.getElementById('toastUndo').hidden = true;

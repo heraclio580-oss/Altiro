@@ -55,7 +55,8 @@ function check(label, ok, detail){
   const nowPlanned = text(doc.querySelector('#sessionCard .title'));
   check('(set-up) today was a long run', /Long Run/.test(planned), planned);
   check('A hard class reshapes the plan around it: no long run today any more', !/Long Run|Tempo|Interval/.test(nowPlanned) && nowPlanned!=='Rest Day', `${planned} -> ${nowPlanned}`);
-  check('...says so', /works around it/.test(doc.getElementById('toastMsg').textContent) && /Planned around your Jiu-Jitsu class/.test(text(doc.getElementById('sessionCard'))));
+  // (It moved next week's long run off Friday: the toast says where, with Undo -- see test_class_run_day.)
+  check('...says so', /^Jiu-Jitsu on Fridays: your long run moved to \w+day\.$/.test(doc.getElementById('toastMsg').textContent) && !doc.getElementById('toastUndo').hidden && /Planned around your Jiu-Jitsu class/.test(text(doc.getElementById('sessionCard'))));
   check('...and the class sits next to today\'s workout, which stays the day\'s workout', !doc.getElementById('recordBtn').classList.contains('done'));
   check('...and not doubled under Additional Workouts', !doc.getElementById('homeExtraWorkoutsWrap'));
 

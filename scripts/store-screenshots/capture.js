@@ -26,7 +26,7 @@ const VW = +(process.env.VW || 430), VH = +(process.env.VH || 932), DSF = +(proc
 fs.mkdirSync(OUT, {recursive:true});
 const FAKE = ({logs, lang}) => {
   window.__ALTIRO_TEST_TODAY__ = '2026-10-09';
-  try{ localStorage.setItem('altiro_install_nudge_dismissed','1'); localStorage.setItem('altiro_tour_done','1'); localStorage.setItem('altiro_lang', lang);
+  try{ localStorage.setItem('altiro_install_nudge_dismissed','1'); localStorage.setItem('altiro_tour_done','1'); localStorage.setItem('altiro_tip_reorder','1'); localStorage.setItem('altiro_watch_card_off','1'); localStorage.setItem('altiro_loc_asked','1'); localStorage.setItem('altiro_lang', lang);
     localStorage.setItem('altiro_weather', JSON.stringify({})); }catch(e){}
   const user = {id:'u1', email:'alex.rivera@gmail.com', user_metadata:{}};
   const rows = {
@@ -58,6 +58,8 @@ const FAKE = ({logs, lang}) => {
   await page.addInitScript(FAKE, {logs: DATA.logs, lang: LANG});
   await page.goto(process.env.APP_URL || 'http://localhost:8765/'); await page.evaluate(()=>document.fonts.ready); await sleep(1800);
   await page.evaluate(()=>document.documentElement.classList.remove('proto-on'));
+  // (The demo account's history earns badges: their celebration would sit over every screen.)
+  await page.addStyleTag({content: '#badgeOverlay{display:none !important;}'});
   const nav = id => page.evaluate(id=>[...document.querySelectorAll('.proto-pill')].find(p=>p.dataset.navId===id).click(), id);
   const shot = async name => { await sleep(500); await page.screenshot({path:`${OUT}/${name}.png`}); };
   const top = () => page.evaluate(()=>{ const s=[...document.querySelectorAll('.screen')].find(x=>!x.hidden); if(s) s.scrollTop=0; });

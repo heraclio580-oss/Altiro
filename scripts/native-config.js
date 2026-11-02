@@ -120,7 +120,7 @@ if(fs.existsSync(manifest)){
   const pluginManifest = path.join(root, 'node_modules', '@capgo', 'capacitor-health', 'android', 'src', 'main', 'AndroidManifest.xml');
   if(fs.existsSync(pluginManifest)){
     s = fs.readFileSync(manifest, 'utf8');
-    const declared = [...new Set((fs.readFileSync(pluginManifest, 'utf8').match(/android\.permission\.health\.[A-Z_]+/g) || []).map(x=> x.split('.').pop()))];
+    const declared = [...new Set((fs.readFileSync(pluginManifest, 'utf8').match(/android\.permission\.health\.[A-Z0-9_]+/g) || []).map(x=> x.split('.').pop()))];
     const drop = declared.filter(x=> !HEALTH_KEEP.includes(x) && !s.includes(`android.permission.health.${x}"`));
     if(drop.length){
       if(!s.includes('xmlns:tools=')) s = s.replace(/<manifest\b/, '<manifest xmlns:tools="http://schemas.android.com/tools"');

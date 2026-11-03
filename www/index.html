@@ -365,7 +365,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   background:radial-gradient(120% 140% at 100% 0%, var(--accent-tint) 0%, transparent 55%), var(--card);}
 .today-hero.done{background:radial-gradient(120% 140% at 100% 0%, var(--ok-bg) 0%, transparent 60%), var(--card);}
 .today-hero.rest{background:radial-gradient(120% 140% at 100% 0%, var(--today-ring-tint) 0%, transparent 60%), var(--card);}
-.th-art{position:absolute;right:-18px;bottom:-26px;width:120px;height:120px;color:var(--text);opacity:0.05;pointer-events:none;}
+.th-art{display:none;} /* (a faint icon behind the card peeked out past Start Workout like a glitch) */
 .th-art svg{width:100%;height:100%;}
 .th-top{position:relative;display:flex;align-items:center;gap:14px;}
 .th-text{flex:1;min-width:0;}
@@ -481,10 +481,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .day-row.editable{cursor:pointer;}
 .day-row.editable:hover{border-color:var(--hover-border);}
 .day-row-empty{padding:2px 0 10px;color:var(--text-3);font-size:calc(13.5px * var(--fs, 1));}
-.week-block-label{display:flex;justify-content:space-between;gap:10px;font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));letter-spacing:0.1em;text-transform:uppercase;color:var(--ok-icon);margin:14px 20px 2px;}
+.week-block-label{display:flex;flex-wrap:wrap;align-items:center;row-gap:4px;justify-content:space-between;gap:10px;font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));letter-spacing:0.1em;text-transform:uppercase;color:var(--ok-icon);margin:14px 20px 2px;}
 .week-block-meta{color:var(--text-3);text-align:right;}
 .nowrap{white-space:nowrap;}
-.week-block-right{display:flex;align-items:center;gap:10px;}
+.week-block-right{display:flex;align-items:center;gap:10px;margin-left:auto;min-width:0;flex-wrap:wrap;justify-content:flex-end;text-align:right;}
 .week-repeat-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:var(--r-pill);background:none;color:var(--text-2);font:inherit;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}
 .week-repeat-btn svg{width:11px;height:11px;}
 .week-btns{display:inline-flex;gap:6px;flex-shrink:0;}
@@ -617,6 +617,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .ss-link{display:flex;align-items:center;gap:6px;margin:-2px 0 6px;background:none;border:none;padding:3px 0;font-family:var(--font-mono);font-size:calc(11.5px * var(--fs, 1));letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);cursor:pointer;}
 .ss-link svg{width:14px;height:14px;}
 .ss-link[aria-pressed="true"]{color:var(--accent);}
+/* Not linked yet: just the link icon between the two exercises (its words kept for screen readers). */
+.ss-link[aria-pressed="false"]{width:30px;height:22px;justify-content:center;padding:0;border:1px dashed var(--border);border-radius:var(--r-pill);}
+.ss-link[aria-pressed="false"] > span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
 .live-ss-link{margin:0 0 6px 2px;}
 .exercise-edit-item:first-child .ss-link{display:none;}
 .ss-tag{font-family:var(--font-mono);font-style:normal;font-size:calc(11px * var(--fs, 1));font-weight:600;color:var(--accent);margin-right:6px;}
@@ -654,6 +657,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .r-exercise-list li span{font-family:var(--font-mono);color:var(--text-2);flex-shrink:0;max-width:68%;text-align:right;overflow-wrap:anywhere;}
 .r-exercise-list li.rx-below{flex-direction:column;align-items:flex-start;gap:1px;}
 .r-exercise-list li.rx-below > span{max-width:100%;text-align:left;}
+.r-exercise-list li span.rx-end{white-space:nowrap;max-width:none;}
 .r-exercise-list li span.bd-step{font-family:inherit;color:var(--text-3);flex-shrink:1;max-width:none;text-align:left;}
 .r-exercise-list li span.bd-step b{color:var(--text-2);font-weight:500;}
 .r-inline-btn{margin-top:11px;}
@@ -750,6 +754,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .manual-entry .ic{width:26px;height:26px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--text-2);flex-shrink:0;}
 .manual-entry .ic svg{width:14px;height:14px;}
 .manual-entry .body{flex:1;min-width:0;}
+.manual-entry .body .class-start{display:block;margin-top:3px;padding:0;white-space:nowrap;}
 .manual-entry .body .n{font-size:calc(13px * var(--fs, 1));font-weight:600;color:var(--text);}
 .class-entry{gap:8px;}
 .class-entry .body .v{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1436,6 +1441,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .summary-hero .sess{font-family:var(--font-body);font-size:calc(13px * var(--fs, 1));color:var(--text-2);margin-top:4px;}
 
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:22px 20px 0;}
+.stats-grid > .cell:first-child:nth-last-child(odd){grid-column:1 / -1;} /* (an odd number: the first takes the whole row, none left alone) */
 .stats-grid .cell{background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:13px 12px;}
 .stats-grid .cell .l{font-family:var(--font-mono);font-size:calc(10.5px * var(--fs, 1));letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
 .stats-grid .cell .v{font-family:var(--font-mono);font-weight:600;font-size:calc(19px * var(--fs, 1));color:var(--text);margin-top:5px;}
@@ -1579,6 +1585,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .recovery-note .rn-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;}
 .recovery-note .rn-list li{font-size:calc(13px * var(--fs, 1));line-height:1.5;color:var(--text-2);}
 .recovery-note .rn-list b{color:var(--text);font-weight:600;}
+.summary-note > .st-label{color:var(--text);}
 .summary-note p{font-size:calc(13px * var(--fs, 1));line-height:1.5;color:var(--text-2);margin:0;}
 
 .streak-band{margin:18px 20px 0;background:var(--ok-bg);border:1px solid var(--ok-border);border-radius:var(--r-lg);padding:12px 14px;display:flex;align-items:center;gap:10px;}
@@ -1605,10 +1612,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .bar-col.selected .col-val{color:var(--text);font-weight:600;}
 .bar-col .col-label{font-family:var(--font-mono);font-size:calc(9.5px * var(--fs, 1));letter-spacing:0.03em;color:var(--text-3);text-transform:uppercase;text-align:center;}
 .bar-col.current .col-label{color:var(--text);font-weight:600;}
-.act-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.act-tile{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;}
+.act-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.act-tile{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;min-width:0;}
 .act-tile .l{font-family:var(--font-mono);font-size:calc(10px * var(--fs, 1));letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);}
-.act-tile .v{font-family:var(--font-mono);font-size:calc(18px * var(--fs, 1));font-weight:600;color:var(--text);margin-top:4px;white-space:nowrap;}
+.act-tile .v{font-family:var(--font-mono);font-size:calc(18px * var(--fs, 1));font-weight:600;color:var(--text);margin-top:4px;}
 /* lift progress: a row per lift on Progress, and a sheet with its chart, bests and history */
 .lift-row{display:flex;align-items:center;gap:10px;width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;margin-top:8px;color:var(--text);font-family:var(--font-body);text-align:left;cursor:pointer;}
 .lift-row .lr-main{flex:1;min-width:0;}
@@ -1645,7 +1652,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .lift-readout .sub{color:var(--text-2);margin-top:2px;}
 .lift-bests{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .lift-bests .act-tile .v{font-size:calc(15px * var(--fs, 1));}
-.lift-bests .act-tile .s{font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));color:var(--text-3);margin-top:3px;white-space:nowrap;}
+.lift-bests .act-tile .s{font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));color:var(--text-3);margin-top:3px;}
 .lift-hist{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--divider-soft);}
 .lift-hist .dt{font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));color:var(--text-3);width:58px;flex-shrink:0;}
 .lift-hist .st{flex:1;min-width:0;font-family:var(--font-mono);font-size:calc(12px * var(--fs, 1));color:var(--text);overflow-wrap:anywhere;}
@@ -3663,7 +3670,7 @@ const STR = {
     tour_session_b: "Everything in today's workout. Watch Demo shows a move, and + Add Workout logs anything extra, like push-ups at work or a class.",
     tour_arrange_t: "Your order, your way",
     tour_arrange_b: "Change exercises opens today's workout: hold ⋮⋮ to rearrange, add an exercise, or link exercises into a superset or one circuit. You can do the same while you're doing it.",
-    reorderTip: "Tip: hold ⋮⋮ and drag to change the order. \"Superset with above\" pairs an exercise with the one above it.",
+    reorderTip: "Tip: hold ⋮⋮ and drag to change the order. The link icon between two exercises makes them a superset.",
     tipCloseLabel: "Close",
     watchCardTitle: "Connect your watch",
     watchCardSubHealth: "Bring in your runs and workouts automatically through {health}.",
@@ -4402,7 +4409,7 @@ const STR = {
     intervalWorkLabel: "Round Duration (min:sec)",
     intervalRestLabel: "Rest Duration (min:sec)",
     exercisesLabel: "Exercises (optional)",
-    exercisesSub: "Fill in the exercises, sets and reps. Leave any row blank to skip it. To superset two exercises, tap Superset with above on the second one.",
+    exercisesSub: "Fill in the exercises, sets and reps. Leave any row blank to skip it. To superset two exercises, tap the link icon above the second one.",
     supersetLinkBtn: "Superset with above", supersetLinkedBtn: "Superset with above · on",
     circuitAllBtn: "Make it one circuit", circuitSplitBtn: "Split up the circuit",
     supersetHead: "Superset {g} · one set of each, then rest",
@@ -4448,7 +4455,7 @@ const STR = {
     tour_session_b: "Todo lo del entrenamiento de hoy. Ver demo muestra un ejercicio, y + Añadir entrenamiento registra algo extra, como flexiones en el trabajo o una clase.",
     tour_arrange_t: "Tu orden, a tu manera",
     tour_arrange_b: "Cambiar ejercicios abre el entrenamiento de hoy: mantén presionado ⋮⋮ para reordenar, añade un ejercicio o une ejercicios en una superserie o un circuito. También mientras lo haces.",
-    reorderTip: "Consejo: mantén presionado ⋮⋮ y arrastra para cambiar el orden. «Superserie con el de arriba» une un ejercicio con el de arriba.",
+    reorderTip: "Consejo: mantén presionado ⋮⋮ y arrastra para cambiar el orden. El ícono de enlace entre dos ejercicios los une en una superserie.",
     tipCloseLabel: "Cerrar",
     watchCardTitle: "Conecta tu reloj",
     watchCardSubHealth: "Trae tus carreras y entrenamientos automáticamente con {health}.",
@@ -4915,7 +4922,7 @@ const STR = {
     logPerfTimeLabel: "Tiempo total (h:m:s)",
     logPerfWorkoutTimeLabel: "Tiempo del entrenamiento (h:m:s)",
     logPerfWorkoutTimeNote: "Cuenta desde que empezaste. Cámbialo si no es correcto.",
-    activityLabel: "Actividad", activityTime: "Tiempo activo", activitySets: "Series", activityReps: "Repeticiones",
+    activityLabel: "Actividad", activityTime: "Tiempo activo", activitySets: "Series", activityReps: "Reps",
     activitySetsReps: "{sets} series · {reps} reps", activitySetsReps1: "1 serie · {reps} reps", activityNone: "Nada registrado",
     activityNote: "El tiempo de pesas cuenta desde que empiezas un entrenamiento hasta que lo guardas. El tiempo de carrera es el que registras, o el tiempo en movimiento de Strava.",
     workoutNotesLabel: "Notas",
@@ -5187,7 +5194,7 @@ const STR = {
     intervalWorkLabel: "Duración de la ronda (min:seg)",
     intervalRestLabel: "Duración del descanso (min:seg)",
     exercisesLabel: "Ejercicios (opcional)",
-    exercisesSub: "Escribe los ejercicios, series y repeticiones. Deja en blanco las filas que no uses. Para hacer una superserie, toca Superserie con el de arriba en el segundo ejercicio.",
+    exercisesSub: "Escribe los ejercicios, series y repeticiones. Deja en blanco las filas que no uses. Para hacer una superserie, toca el ícono de enlace sobre el segundo ejercicio.",
     supersetLinkBtn: "Superserie con el de arriba", supersetLinkedBtn: "Superserie con el de arriba · sí",
     circuitAllBtn: "Hacerlo un circuito", circuitSplitBtn: "Separar el circuito",
     supersetHead: "Superserie {g} · una serie de cada uno y luego descansa",
@@ -7405,12 +7412,13 @@ function classRowsHtml(key){
     const sL = ST(it.session);
     const time = it.extra && it.extra.performance && it.extra.performance.time ? Math.round(it.extra.performance.time) : null;
     const status = it.done ? `<div class="class-done">${ICONS.checkSm}${time ? L.classDoneMin.replace('{min}', fmtClassLength(time)) : L.recordDoneLabel}</div>` : '';
-    const start = !it.done && key===today ? `<button class="btn-text" data-class-start="${it.id}" type="button" style="white-space:nowrap;">${L.classStartBtn}</button>` : '';
+    // (Under its time, so the time and length have room: "6:00 PM · 1h 30m".)
+    const start = !it.done && key===today ? `<button class="btn-text class-start" data-class-start="${it.id}" type="button">${L.classStartBtn}</button>` : '';
     const toggle = key<=today ? `<div class="toggle ${it.done?'on':''}" data-class-toggle="${it.id}" role="switch" aria-checked="${it.done}" aria-label="${escapeHtml(L.classDoneToggle)}"><div class="knob"></div></div>` : '';
     return `<div class="manual-entry class-entry" data-class-id="${it.id}">
       <span class="ic">${ICONS.class}</span>
-      <div class="body"><div class="n">${escapeHtml(sL.title)}</div><div class="v">${escapeHtml(sL.detail||'')}</div>${status}</div>
-      ${start}${toggle}
+      <div class="body"><div class="n">${escapeHtml(sL.title)}</div><div class="v">${escapeHtml(sL.detail||'')}</div>${status}${start}</div>
+      ${toggle}
       <button class="del" data-class-skip="${it.id}" type="button" aria-label="${it.done ? 'Delete' : 'Skip'}">${ICONS.trash}</button>
     </div>`;
   }).join('');
@@ -9800,7 +9808,7 @@ function openLogPerformanceFor(logTarget, mode){
       const ssLab = ssLabels[exIdx];
       const ssHead = (canAdd && exIdx>0 ? (()=>{
           const on = !!ex.superset && ex.superset===exercises[exIdx-1].superset;
-          return `<button class="ss-link live-ss-link" type="button" data-ss-live="${escapeHtml(ex.key)}" aria-pressed="${on}">${ICONS.link}<span>${STR[state.lang][on ? 'supersetLinkedBtn' : 'supersetLinkBtn']}</span></button>`;
+          return `<button class="ss-link live-ss-link" type="button" data-ss-live="${escapeHtml(ex.key)}" aria-pressed="${on}" title="${escapeHtml(STR[state.lang].supersetLinkBtn)}">${ICONS.link}<span>${STR[state.lang][on ? 'supersetLinkedBtn' : 'supersetLinkBtn']}</span></button>`;
         })() : '')
         + (ssLab && ssLab.first ? `<div class="ss-head">${escapeHtml(STR[state.lang].supersetHead.replace('{g}', ssLab.group))}${termBtn('superset')}</div>` : '');
       const t = getExerciseTarget(ex, state.intensityIdx);
@@ -11250,9 +11258,10 @@ function calendarDescHtml(dd){
   // Everything else that day, not counting whichever record the headline itself is (see primaryLogTarget).
   const head = primaryLogTarget(dd);
   const more = dd.extraWorkouts.filter(w=> !(head.kind==='extra' && head.id===w.id)).length
-    + dd.manualEntries.filter(e=> !(head.kind==='entry' && head.id===e.id)).length + unrecorded
+    + dd.manualEntries.filter(e=> !(head.kind==='entry' && head.id===e.id)).length
     + (pendingPlanLift(dd.key) ? 1 : 0); // (a run + lift day's lifting workout, not started yet)
-  // A class that day, besides its workout: a small class icon, so it's seen (not just a "+1").
+  // A class that day, besides its workout: a small class icon, so it's seen -- not counted in the "+1"
+  // too (that pushed the distance out of the cell: "3.5 …").
   const classMark = classes.length ? `<span class="mo-class" title="${escapeHtml(classes.map(it=> ST(it.session).title).join(', '))}">${TYPE_ICON.class}</span>` : '';
   return `<span class="mo-desc">
       <span class="mo-desc-t">${escapeHtml(title)}</span>
@@ -11706,7 +11715,9 @@ function exerciseListHtml(session, date, tappable){
     // One (i) per kind per list is plenty.
     const tip = ex.pyramid && !tipped.pyramid ? (tipped.pyramid = true, termBtn('pyramid'))
       : ss[i] && ss[i].first && !tipped.superset ? (tipped.superset = true, termBtn('superset')) : '';
-    return `<li${attr}>${nm} <span>${fmtExercisePrescription(ex)}${weight}${tip}</span></li>`;
+    // (The (i) stays with the last word, not on a line by itself.)
+    const rx = `${fmtExercisePrescription(ex)}${weight}`;
+    return `<li${attr}>${nm} <span>${tip ? rx.replace(/(\S+)$/, m=> `<span class="rx-end">${m}${tip}</span>`) : rx}</span></li>`;
   }).join('')}</ul>`;
 }
 function planRowHtml(dd, status){
@@ -11893,7 +11904,7 @@ function renderWorkoutPreview(){
       // Linking it to the one above it, as a superset (several in a row: a circuit).
       const link = canEdit && i>0 ? (()=>{
         const on = !!ex.superset && ex.superset===exercises[i-1].superset;
-        return `<button class="ss-link" type="button" data-wp-link="${escapeHtml(ex.key)}" aria-pressed="${on}">${ICONS.link}<span>${escapeHtml(L[on ? 'supersetLinkedBtn' : 'supersetLinkBtn'])}</span></button>`;
+        return `<button class="ss-link" type="button" data-wp-link="${escapeHtml(ex.key)}" aria-pressed="${on}" title="${escapeHtml(L.supersetLinkBtn)}">${ICONS.link}<span>${escapeHtml(L[on ? 'supersetLinkedBtn' : 'supersetLinkBtn'])}</span></button>`;
       })() : '';
       const row = `${link}<div class="wp-ex${wpSs[i] ? ' ss-member' : ''}" data-idx="${i}" data-key="${escapeHtml(ex.key)}">
           ${dragHtml}${exerciseDemoBtn(ex.key, ex.name)}
@@ -12630,7 +12641,7 @@ const EXERCISE_ROWS_READY = 3;
 function exerciseEditRowHtml(ex, linked){
   const L = STR[state.lang];
   return `<div class="exercise-edit-item">
-    <button class="ss-link" type="button" aria-pressed="${linked ? 'true' : 'false'}">${ICONS.link}<span>${linked ? L.supersetLinkedBtn : L.supersetLinkBtn}</span></button>
+    <button class="ss-link" type="button" aria-pressed="${linked ? 'true' : 'false'}" title="${escapeHtml(L.supersetLinkBtn)}">${ICONS.link}<span>${linked ? L.supersetLinkedBtn : L.supersetLinkBtn}</span></button>
     <div class="exercise-edit-row">
     <input type="text" class="text-input ex-name" placeholder="${escapeHtml(L.newExerciseNamePlaceholder)}" value="${escapeHtml(ex ? ex.name : '')}">
     <input type="number" inputmode="numeric" min="1" class="text-input ex-sets" placeholder="3" value="${ex ? ex.sets : ''}">
@@ -13937,7 +13948,7 @@ function renderLiftDetail(){
         <div class="act-tile"><div class="l">${L.liftBestVolume}</div><div class="v">${bV.volume>=100000 ? Math.round(bV.volume/1000)+'k' : fmtLiftNum(bV.volume)}</div><div class="s">${fmtLiftDate(bV.key)}</div></div>
       </div></div>
     <div class="sheet-section"><div class="st-label">${L.liftHistoryLabel}</div>
-      ${histShown.map(d=> `<div class="lift-hist"><span class="dt">${fmtLiftDate(d.key)}</span><span class="st">${liftSetsText(d.sets)} ${unit}</span><span class="e">${L.liftEstMaxShort} ${fmtLiftNum(d.e1rm)}</span></div>`).join('')}
+      ${histShown.map(d=> `<div class="lift-hist"><span class="dt">${fmtLiftDate(d.key)}</span><span class="st">${liftSetsText(d.sets)}&nbsp;${unit}</span><span class="e">${L.liftEstMaxShort} ${fmtLiftNum(d.e1rm)}</span></div>`).join('')}
       ${hist.length>histShown.length ? `<button class="btn btn-ghost lift-more" type="button" id="liftHistMore">${L.liftShowAllHistory.replace('{n}', hist.length)}</button>` : ''}
     </div>
     <div class="lift-note">${L.liftEstNote}</div>`;

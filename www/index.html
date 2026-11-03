@@ -1538,6 +1538,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .bw-log-row{display:flex;gap:8px;margin-top:12px;}
 .bw-log-row .btn{width:auto;flex:0 0 auto;padding:0 18px;}
 .elev-profile .ep-meta{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));color:var(--text-3);margin-top:4px;}
+.gps-log-row{margin-top:8px;}
+.gps-log-send{flex:none;width:auto;padding:8px 16px;font-size:calc(13px * var(--fs, 1));}
+.discard-workout{text-align:center;margin:14px 0 4px;}
+.discard-link{background:none;border:none;color:var(--text-3);font:inherit;font-size:calc(13px * var(--fs, 1));text-decoration:underline;cursor:pointer;padding:6px;}
+.discard-ask{margin-top:6px;padding:12px;border-radius:14px;background:var(--well);border:1px solid var(--divider);}
+.discard-ask p{margin:0 0 10px;font-size:calc(14px * var(--fs, 1));}
+.discard-ask-btns{display:flex;gap:8px;}
+.discard-ask-btns .btn{flex:1;}
+.discard-yes{background:transparent;border:1px solid var(--accent);color:var(--accent-hover);}
+#recordLabel .record-clock{font-variant-numeric:tabular-nums;opacity:0.85;}
 .rest-bar{position:sticky;bottom:8px;z-index:5;display:flex;align-items:center;gap:6px;margin:12px 0 4px;padding:10px 10px 10px 14px;border-radius:16px;background:var(--card-2);border:1px solid var(--accent);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.35);}
 .rest-bar[hidden]{display:none;}
 .rest-fill{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--accent-tint);transform-origin:left;pointer-events:none;}
@@ -2256,6 +2266,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
             <div class="ts" data-i18n="freePreviewSub"></div>
           </div>
           <div class="toggle" id="freePreviewToggle" role="switch" tabindex="0"><div class="knob"></div></div>
+        </div>
+        <div class="toggle-row gps-log-row">
+          <div>
+            <div class="tt" data-i18n="gpsLogTitle"></div>
+            <div class="ts" id="gpsLogSub"></div>
+          </div>
+          <button type="button" class="btn btn-ghost gps-log-send" id="gpsLogSendBtn" data-i18n="gpsLogSend"></button>
         </div>
       </div>
 
@@ -3095,6 +3112,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <button class="rest-btn skip" id="restSkip" type="button" data-i18n="restSkip"></button>
       </div>
       <button class="btn btn-primary sheet-apply" id="saveLogPerf" data-i18n="saveWorkoutBtn"></button>
+      <div class="discard-workout" id="discardWorkout" hidden>
+        <button type="button" class="discard-link" id="discardWorkoutBtn" data-i18n="discardWorkoutBtn"></button>
+        <div class="discard-ask" id="discardWorkoutAsk" hidden>
+          <p data-i18n="discardWorkoutAsk"></p>
+          <div class="discard-ask-btns">
+            <button type="button" class="btn btn-ghost" id="discardWorkoutNo" data-i18n="discardWorkoutNo"></button>
+            <button type="button" class="btn discard-yes" id="discardWorkoutYes" data-i18n="discardWorkoutYes"></button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -4089,6 +4116,11 @@ const STR = {
     recordDoneLabel: "Completed",
     markDoneLabel: "Mark Done",
     recordingLabel: "Starting…",
+    resumeWorkoutLabel: "Resume workout",
+    discardWorkoutBtn: "Discard this workout",
+    discardWorkoutAsk: "Discard this workout? What you've logged in it and its clock are cleared. Nothing is saved.",
+    discardWorkoutNo: "Keep going", discardWorkoutYes: "Discard",
+    workoutDiscardedToast: "Workout discarded",
     logPerfTitle: "Log Your Performance",
     logPerfWeightLabel: "Top Set Weight (lb)",
     logPerfRepsLabel: "Reps Completed",
@@ -4280,6 +4312,10 @@ const STR = {
     offlineBar: "You're offline. Changes won't be saved until you're back online.",
     saveFailedBar: "Your last change didn't save. Check your connection, then do it again.",
     textSizeLabel: "Text size", textSizeNote: "Makes the words in Altiro bigger on this device.",
+    gpsLogTitle: "GPS log", gpsLogSend: "Send",
+    gpsLogNone: "Track a run with GPS and the phone's raw readings from it are kept here, to send for tuning the tracker.",
+    gpsLogLast: "Last run: {date} · {dist} · {n} readings",
+    gpsLogFileTitle: "Altiro GPS log", gpsLogFailed: "Couldn't share the GPS log",
     testingLabel: "Testing", freePreviewTitle: "Preview free version", freePreviewSub: "See Altiro as a free account would. Only changes what's shown: turn it off to go back to everything.",
     paywallTitle: "Altiro Pro",
     paywallPerk1: "A personalized plan built around your goal, days and equipment",
@@ -4865,6 +4901,11 @@ const STR = {
     recordDoneLabel: "Completado",
     markDoneLabel: "Marcar hecho",
     recordingLabel: "Empezando…",
+    resumeWorkoutLabel: "Continuar entrenamiento",
+    discardWorkoutBtn: "Descartar este entrenamiento",
+    discardWorkoutAsk: "¿Descartar este entrenamiento? Se borra lo que anotaste y su cronómetro. No se guarda nada.",
+    discardWorkoutNo: "Seguir", discardWorkoutYes: "Descartar",
+    workoutDiscardedToast: "Entrenamiento descartado",
     logPerfTitle: "Registra tu rendimiento",
     logPerfWeightLabel: "Peso de la serie máxima (lb)",
     logPerfRepsLabel: "Repeticiones completadas",
@@ -5056,6 +5097,10 @@ const STR = {
     offlineBar: "Sin conexión. Los cambios no se guardarán hasta que vuelvas a estar en línea.",
     saveFailedBar: "Tu último cambio no se guardó. Revisa tu conexión y vuelve a hacerlo.",
     textSizeLabel: "Tamaño del texto", textSizeNote: "Agranda las letras de Altiro en este dispositivo.",
+    gpsLogTitle: "Registro GPS", gpsLogSend: "Enviar",
+    gpsLogNone: "Registra una carrera con GPS y las lecturas sin procesar del teléfono se guardan aquí, para enviarlas y ajustar el registro.",
+    gpsLogLast: "Última carrera: {date} · {dist} · {n} lecturas",
+    gpsLogFileTitle: "Registro GPS de Altiro", gpsLogFailed: "No se pudo compartir el registro GPS",
     testingLabel: "Pruebas", freePreviewTitle: "Ver la versión gratuita", freePreviewSub: "Mira Altiro como lo vería una cuenta gratuita. Solo cambia lo que se muestra: desactívalo para volver a tenerlo todo.",
     paywallTitle: "Altiro Pro",
     paywallPerk1: "Un plan personalizado según tu objetivo, tus días y tu equipo",
@@ -9859,6 +9904,10 @@ function openLogPerformanceFor(logTarget, mode){
   // Every workout gets a time: a run's is what was run; a lifting (or any other) workout's counts from
   // when it was started to when it's saved, and can be corrected.
   document.getElementById('logPerfTimeSection').hidden = eff.t==='rest' || eff.t==='interval';
+  // A workout being done (not a run being logged) can be discarded -- closing it no longer does that.
+  document.getElementById('discardWorkout').hidden = !(mode==='record' && eff.t!=='run' && eff.t!=='rest');
+  document.getElementById('discardWorkoutAsk').hidden = true;
+  document.getElementById('discardWorkoutBtn').hidden = false;
   document.getElementById('logPerfTimeLabelEl').textContent = eff.t==='run' ? STR[state.lang].logPerfTimeLabel : STR[state.lang].logPerfWorkoutTimeLabel;
   const timeNote = document.getElementById('logPerfTimeNote');
   timeNote.hidden = eff.t==='run' || mode!=='record';
@@ -9870,9 +9919,10 @@ function openLogPerformanceFor(logTarget, mode){
       const startKey = logTarget.dayKey+'|'+logTarget.kind+'|'+(logTarget.id||'');
       if(!workoutStart || workoutStart.key!==startKey || Date.now()-workoutStart.at > WORKOUT_CLOCK_MAX_MIN*60000){
         workoutStart = {key:startKey, at:Date.now()};
-        try{ localStorage.setItem('altiro_workout_start', JSON.stringify(workoutStart)); }catch(e){}
+        saveWorkoutStart();
       }
       startWorkoutClock();
+      noteWorkoutSid();
     } else {
       writeHmsMinutes('logPerfTime', knownTime);
     }
@@ -10224,6 +10274,24 @@ function closeLogPerformance(){
   renderHome();
 }
 document.getElementById('closeLogPerf').addEventListener('click', closeLogPerformance);
+// Discarding the workout being done: asked first, then what was typed and its clock are cleared.
+document.getElementById('discardWorkoutBtn').addEventListener('click', ()=>{
+  document.getElementById('discardWorkoutBtn').hidden = true;
+  const ask = document.getElementById('discardWorkoutAsk');
+  ask.hidden = false;
+  if(ask.scrollIntoView) ask.scrollIntoView({block:'nearest'});
+});
+document.getElementById('discardWorkoutNo').addEventListener('click', ()=>{
+  document.getElementById('discardWorkoutAsk').hidden = true;
+  document.getElementById('discardWorkoutBtn').hidden = false;
+});
+document.getElementById('discardWorkoutYes').addEventListener('click', ()=>{
+  const t = state._logTarget;
+  clearLogPerfDraft();
+  endWorkoutStart(t);
+  closeLogPerformance();
+  showToast(STR[state.lang].workoutDiscardedToast);
+});
 // The workout clock: from when a workout is started (its log opened to record it) to when it's saved.
 // It fills the time field as it runs; typing in the field takes over.
 const WORKOUT_CLOCK_MAX_MIN = 300;
@@ -10231,6 +10299,71 @@ const WORKOUT_CLOCK_MAX_MIN = 300;
 // through a 90-minute class even if the phone locks or the app is closed and reopened.
 let workoutStart = null, workoutClockTimer = null, workoutClockTouched = false;
 try{ const saved = JSON.parse(localStorage.getItem('altiro_workout_start')||'null'); if(saved && saved.key && saved.at) workoutStart = saved; }catch(e){}
+// The workout under way: one started today (its clock running -- see openLogPerformanceFor) that hasn't
+// been saved or discarded, within the clock's limit: {target, at}, or null. Closing its sheet (the X, the
+// back gesture, the app closing or being closed by the phone) doesn't end it: Today's button says Resume
+// with its clock, and opening the app again opens it straight away (see resumeWorkoutIfAny).
+function workoutUnderway(){
+  if(!workoutStart || !workoutStart.key || !(Date.now()-workoutStart.at <= WORKOUT_CLOCK_MAX_MIN*60000)) return null;
+  const [dayKey, kind, id] = workoutStart.key.split('|');
+  if(dayKey!==dateKey(TODAY_DATE) || (kind!=='primary' && kind!=='extra')) return null;
+  let target = {dayKey, kind, id: id || null};
+  // (A workout added today gets a new id when the app loads it again; the id it was saved with finds it.)
+  if(kind==='extra' && !findExtraWorkout(dayKey, target.id)){
+    const w = workoutStart.sid!=null && getExtraWorkouts(dayKey).find(x=> x.supabaseId!=null && String(x.supabaseId)===String(workoutStart.sid));
+    if(!w) return null;
+    const to = {...target, id: w.id};
+    rekeyWorkoutStart(target, to);
+    target = to;
+  }
+  const r = resolveLogTarget(target);
+  if(!r || r.completed || ['rest', 'interval', 'run'].includes(r.session.t)) return null;
+  return {target, at: workoutStart.at};
+}
+function saveWorkoutStart(){
+  try{ if(workoutStart) localStorage.setItem('altiro_workout_start', JSON.stringify(workoutStart)); else localStorage.removeItem('altiro_workout_start'); }catch(e){}
+}
+function rekeyWorkoutStart(from, to){
+  workoutStart = {...workoutStart, key: logTargetKey(to)};
+  saveWorkoutStart();
+  try{
+    const d = JSON.parse(localStorage.getItem(LOG_DRAFT_KEY)||'null');
+    if(d && d.target===logTargetKey(from)){ d.target = logTargetKey(to); localStorage.setItem(LOG_DRAFT_KEY, JSON.stringify(d)); }
+  }catch(e){}
+}
+// A workout added today: the id it's saved with, kept with its start once it has one (see above).
+function noteWorkoutSid(){
+  const t = state._logTarget;
+  if(!workoutStart || workoutStart.sid!=null || !t || t.kind!=='extra' || workoutStart.key!==logTargetKey(t)) return;
+  const w = findExtraWorkout(t.dayKey, t.id);
+  if(w && w.supabaseId!=null){ workoutStart = {...workoutStart, sid: w.supabaseId}; saveWorkoutStart(); }
+}
+// Saved or discarded: it's over.
+function endWorkoutStart(t){
+  if(!workoutStart || (t && workoutStart.key!==logTargetKey(t))) return;
+  workoutStart = null;
+  saveWorkoutStart();
+  stopHomeWorkoutClock();
+}
+// Opening the app with a workout under way: it opens straight away, as it was left.
+function resumeWorkoutIfAny(){
+  const u = workoutUnderway();
+  if(!u || ['logPerfOverlay', 'gpsOverlay', 'tourOverlay', 'intervalTimerOverlay'].some(id=> !document.getElementById(id).hidden)) return false;
+  openLogPerformanceFor(u.target, 'record');
+  return true;
+}
+// Today's Resume button counts on with the workout's clock.
+let homeWorkoutClock = null;
+function tickHomeWorkoutClock(){
+  const el = document.getElementById('recordClock');
+  if(!el || !workoutStart){ stopHomeWorkoutClock(); return; }
+  el.textContent = fmtRunClock(Date.now()-workoutStart.at);
+}
+function startHomeWorkoutClock(){
+  if(!homeWorkoutClock) homeWorkoutClock = setInterval(tickHomeWorkoutClock, 1000);
+  tickHomeWorkoutClock();
+}
+function stopHomeWorkoutClock(){ if(homeWorkoutClock) clearInterval(homeWorkoutClock); homeWorkoutClock = null; }
 function elapsedWorkoutMinutes(){
   if(!workoutStart) return null;
   const min = (Date.now()-workoutStart.at)/60000;
@@ -10238,7 +10371,7 @@ function elapsedWorkoutMinutes(){
 }
 function startWorkoutClock(){
   workoutClockTouched = false;
-  const tick = ()=>{ if(!workoutClockTouched) writeHmsMinutes('logPerfTime', elapsedWorkoutMinutes() || 0); };
+  const tick = ()=>{ if(!workoutClockTouched) writeHmsMinutes('logPerfTime', elapsedWorkoutMinutes() || 0); noteWorkoutSid(); };
   tick();
   workoutClockTimer = setInterval(tick, 1000);
 }
@@ -10320,6 +10453,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   stopWorkoutClock();
   stopRest();
   clearLogPerfDraft();
+  if(state._logMode==='record') endWorkoutStart(logTarget);
   logged.notes = document.getElementById('logPerfNotesInput').value.trim();
   // Editing a run that came from Strava keeps its link back to Strava.
   const prevPerf = resolved && resolved.performance;
@@ -10379,7 +10513,15 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
 });
 
 document.getElementById('recordBtn').addEventListener('click', function(){
-  if(this.classList.contains('disabled') || this.classList.contains('done') || this.classList.contains('recording')) return;
+  if(this.classList.contains('recording')) return;
+  // A workout under way: Resume opens it again, as it was left.
+  const underway = workoutUnderway();
+  if(underway){
+    this.classList.add('recording');
+    setTimeout(()=> openLogPerformanceFor(underway.target, 'record'), 200);
+    return;
+  }
+  if(this.classList.contains('disabled') || this.classList.contains('done')) return;
   // The workout up next today (after the day's own is done) is the one the button starts.
   const nextId = state._homeFocusExtraId;
   if(nextId && findExtraWorkout(dateKey(TODAY_DATE), nextId)){
@@ -11269,6 +11411,7 @@ function renderFreePreviewSetting(){
   if(!sec) return;
   sec.hidden = !state.tester;
   document.getElementById('freePreviewToggle').classList.toggle('on', freePreviewOn());
+  renderGpsLogSetting();
 }
 /* ---------------- Altiro Pro: status, the paywall, and buying it ---------------- */
 // What decides Pro (state.pro, read by proActive): when the account was made -- before Pro launched, Pro
@@ -15317,8 +15460,9 @@ function gpsSignalState(){
 // Every GPS fix: kept only if it's accurate enough and isn't a jump no runner could make; smoothed (see
 // gpsSmooth); and counted once the smoothed position has really moved (standing still shouldn't add
 // distance from GPS wobble).
-function onGpsFix(lat, lng, acc, time, alt, altAcc){
+function onGpsFix(lat, lng, acc, time, alt, altAcc, speed, bearing){
   if(!isFinite(lat) || !isFinite(lng)) return;
+  gpsLogFix(lat, lng, acc, time, alt, altAcc, speed, bearing);
   gpsLastFix = {lat, lng, acc: acc || 0, at: Date.now()};
   if(gps && gps.status==='running'){
     gps.stats.fixes++;
@@ -15407,7 +15551,7 @@ async function startGpsWatch(){
       const id = await BG.addWatcher({backgroundTitle: L.gpsNotifTitle, backgroundMessage: L.gpsNotifMsg, requestPermissions: true, stale: false, distanceFilter: 0},
         (loc, err)=>{
           if(err){ onGpsError(err.code==='NOT_AUTHORIZED' ? 'denied' : 'error'); return; }
-          if(loc) onGpsFix(loc.latitude, loc.longitude, loc.accuracy, loc.time, loc.altitude, loc.altitudeAccuracy);
+          if(loc) onGpsFix(loc.latitude, loc.longitude, loc.accuracy, loc.time, loc.altitude, loc.altitudeAccuracy, loc.speed, loc.bearing);
         });
       if(gpsWatch) gpsWatch.id = id; else BG.removeWatcher({id}).catch(()=>{});
     }catch(e){ gpsWatch = null; onGpsError('error'); }
@@ -15415,7 +15559,7 @@ async function startGpsWatch(){
   }
   if(!navigator.geolocation){ onGpsError('unsupported'); return; }
   const id = navigator.geolocation.watchPosition(
-    pos=> onGpsFix(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, pos.timestamp, pos.coords.altitude, pos.coords.altitudeAccuracy),
+    pos=> onGpsFix(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, pos.timestamp, pos.coords.altitude, pos.coords.altitudeAccuracy, pos.coords.speed, pos.coords.heading),
     err=>{ if(err && err.code===1) onGpsError('denied'); },
     {enableHighAccuracy: true, maximumAge: 0, timeout: 30000});
   gpsWatch = {kind:'web', id};
@@ -15565,6 +15709,7 @@ function renderGps(){
 }
 document.getElementById('gpsStartBtn').addEventListener('click', ()=>{
   if(!gps) return;
+  gpsLogEvent(gps.status==='running' ? 'pause' : gps.status==='idle' ? 'start' : 'resume');
   if(gps.status==='running'){
     gpsCatchUp();
     noteGpsGap(Date.now()); gps.lastGoodT = null;
@@ -15588,7 +15733,7 @@ document.getElementById('gpsClose').addEventListener('click', ()=>{
   clearGpsRun(); gps = null; closeGpsTracker();
 });
 document.getElementById('gpsDiscardKeep').addEventListener('click', ()=>{ document.getElementById('gpsDiscardConfirm').hidden = true; });
-document.getElementById('gpsDiscardYes').addEventListener('click', ()=>{ clearGpsRun(); gps = null; closeGpsTracker(); });
+document.getElementById('gpsDiscardYes').addEventListener('click', ()=>{ clearGpsRun(); gpsLogDrop(); gps = null; closeGpsTracker(); });
 document.getElementById('gpsRecenter').addEventListener('click', ()=>{ gpsMapFollow = true; renderGps(); });
 document.getElementById('gpsVoiceBtn').addEventListener('click', ()=>{
   if(!isPro()){ openProSheet('voice'); return; }
@@ -15726,6 +15871,7 @@ function finishGpsRun(msAtPress){
     target = {dayKey: key, kind: where.kind, id: where.id};
   }
   announceRun('finished', {meters: gps.distM, ms, elevGain: gps.elevSeen ? gps.elevGain : null});
+  gpsLogFinish(result);
   setGpsHandoff({target, result});
   refineElevation(target, gps.segs);
   clearGpsRun(); gps = null;
@@ -15858,6 +16004,110 @@ document.getElementById('locPromptLater').addEventListener('click', ()=>{
   document.getElementById('locPromptOverlay').hidden = true;
   try{ localStorage.setItem(LOC_ASKED_KEY, 'later'); }catch(e){}
 });
+// ---- The GPS log (tester accounts only) ----
+// Every fix the phone gives while a run is being tracked, raw -- before the accuracy check, the
+// smoothing, anything -- with the phone's own speed and heading, when the run was paused and picked up
+// again, what the tracker made of it, and the terrain heights it was checked against: so the tracker can
+// be tuned against a watch's recording of the same run. Kept on this phone only (the run going on, and
+// the last one finished), and sent only when the tester taps Send in Settings.
+const GPS_LOG_LIVE_KEY = 'altiro_gps_log_live', GPS_LOG_KEY = 'altiro_gps_log', GPS_LOG_MAX_FIXES = 30000;
+let gpsLog = null, gpsLogSavedAt = 0;
+function gpsLogOn(){ return !!(state.tester && state.userId); }
+function gpsLogLive(){
+  if(gpsLog) return gpsLog;
+  try{ gpsLog = JSON.parse(localStorage.getItem(GPS_LOG_LIVE_KEY) || 'null'); }catch(e){ gpsLog = null; }
+  if(!gpsLog) gpsLog = {v: 1, fields: ['t', 'lat', 'lng', 'acc', 'alt', 'altAcc', 'speed', 'bearing'], fixes: [], events: [],
+    build: APP_BUILD, native: !!nativeGeo(), ua: (navigator.userAgent || '').slice(0, 200), splitUnit: gps ? gps.splitUnit : distUnit()};
+  return gpsLog;
+}
+function saveGpsLogLive(force){
+  if(!gpsLog || (!force && Date.now()-gpsLogSavedAt < 5000)) return;
+  gpsLogSavedAt = Date.now();
+  try{ localStorage.setItem(GPS_LOG_LIVE_KEY, JSON.stringify(gpsLog)); }catch(e){}
+}
+const logRound = (x, k)=> x==null || !isFinite(x) ? null : Math.round(x*k)/k;
+const r6 = x=> logRound(x, 1e6), r1 = x=> logRound(x, 10), r2 = x=> logRound(x, 100);
+function gpsLogFix(lat, lng, acc, time, alt, altAcc, speed, bearing){
+  if(!gps || gps.status!=='running' || !gpsLogOn()) return;
+  const log = gpsLogLive();
+  if(log.fixes.length >= GPS_LOG_MAX_FIXES) return;
+  log.fixes.push([time || Date.now(), r6(lat), r6(lng), r1(acc), r1(alt), r1(altAcc), r2(speed), bearing==null || !isFinite(bearing) ? null : Math.round(bearing)]);
+  saveGpsLogLive();
+}
+function gpsLogEvent(kind){
+  if(!gpsLogOn()) return;
+  gpsLogLive().events.push([Date.now(), kind]);
+  saveGpsLogLive(true);
+}
+function gpsLogDrop(){ gpsLog = null; try{ localStorage.removeItem(GPS_LOG_LIVE_KEY); }catch(e){} }
+// Finished: what the tracker made of it goes with it, and it becomes the last run's log.
+function gpsLogFinish(result){
+  if(!gpsLogOn()) return;
+  const log = gpsLogLive();
+  if(!log.fixes.length){ gpsLogDrop(); return; }
+  log.events.push([Date.now(), 'finish']);
+  log.app = {distance: result.distance, time: result.time, distM: Math.round(gps.distM*10)/10, splits: result.splits, lastSplit: result.lastSplit, splitUnit: result.splitUnit,
+    elevGain: result.elevGain, elevLoss: result.elevLoss, gpsStats: result.gpsStats, startedAt: result.startedAt, finishedAt: result.finishedAt,
+    settings: {maxAccuracyM: GPS_MAX_ACCURACY_M, maxSpeedMs: GPS_MAX_SPEED_MS, q: GPS_Q, minStepM: GPS_MIN_STEP_M}};
+  log.route = gps.segs.map(sg=> sg.map(p=> [p[2] || 0, r6(p[0]), r6(p[1]), p[3]==null ? null : r1(p[3])]));
+  try{ localStorage.setItem(GPS_LOG_KEY, JSON.stringify(log)); }catch(e){}
+  gpsLogDrop();
+  renderGpsLogSetting();
+}
+// The terrain heights the finished run was checked against, as they came, and the climb made of them.
+function gpsLogTerrain(segs, pts, heights, gain, loss){
+  if(!gpsLogOn()) return;
+  try{
+    const log = JSON.parse(localStorage.getItem(GPS_LOG_KEY) || 'null');
+    if(!log || !log.route || log.terrain) return;
+    log.terrain = {pts: pts.map((p, i)=> [Math.round(p.d), p.seg, r6(p.lat), r6(p.lng), heights[i]]), gain: r1(gain), loss: r1(loss),
+      settings: {gapM: ELEV_GAP_M, smoothM: ELEV_SMOOTH_M, stepM: ELEV_STEP_M}};
+    localStorage.setItem(GPS_LOG_KEY, JSON.stringify(log));
+  }catch(e){}
+}
+function lastGpsLog(){ try{ return JSON.parse(localStorage.getItem(GPS_LOG_KEY) || 'null'); }catch(e){ return null; } }
+function renderGpsLogSetting(){
+  const sub = document.getElementById('gpsLogSub');
+  if(!sub) return;
+  const L = STR[state.lang], log = lastGpsLog();
+  const btn = document.getElementById('gpsLogSendBtn');
+  btn.disabled = !log;
+  if(!log || !log.app){ sub.textContent = L.gpsLogNone; return; }
+  const d = new Date(log.app.startedAt || log.fixes[0][0]);
+  const mo = MONTHS_SHORT[state.lang][d.getMonth()];
+  sub.textContent = L.gpsLogLast.replace('{date}', state.lang==='es' ? `${d.getDate()} ${mo}` : `${mo} ${d.getDate()}`)
+    .replace('{dist}', `${(log.app.distM/unitMeters()).toFixed(2)} ${distUnit()}`).replace('{n}', log.fixes.length.toLocaleString(state.lang==='es' ? 'es' : 'en-US'));
+}
+async function sendGpsLog(){
+  const L = STR[state.lang], log = lastGpsLog();
+  if(!log) return;
+  const d = new Date((log.app && log.app.startedAt) || Date.now());
+  const name = `altiro-gps-${dateKey(d)}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.json`;
+  const json = JSON.stringify(log);
+  const plugins = isNativeShell() && window.Capacitor.Plugins;
+  try{
+    if(plugins && plugins.Share && plugins.Filesystem){
+      const file = await plugins.Filesystem.writeFile({path: name, data: json, directory: 'CACHE', encoding: 'utf8'});
+      await plugins.Share.share({title: L.gpsLogFileTitle, files: [file.uri], dialogTitle: L.gpsLogFileTitle});
+      return;
+    }
+    const file = typeof File==='function' ? new File([json], name, {type: 'application/json'}) : null;
+    if(file && navigator.canShare && navigator.canShare({files: [file]}) && navigator.share){
+      await navigator.share({files: [file], title: L.gpsLogFileTitle});
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([json], {type: 'application/json'}));
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
+  }catch(e){
+    if(e && (e.name==='AbortError' || /cancel/i.test(String(e.message||e)))) return;
+    showToast(L.gpsLogFailed);
+  }
+}
+document.getElementById('gpsLogSendBtn').addEventListener('click', sendGpsLog);
+
 // A run that was being tracked when the app was closed comes back on Today.
 function resumeGpsIfAny(){
   const saved = loadGpsRun();
@@ -16176,6 +16426,7 @@ async function refineElevation(target, segs){
     const every = Math.ceil(pts.length/150);
     const prof = {d: [], a: []};
     pts.forEach((p, i)=>{ if((i%every===0 || i===pts.length-1) && isFinite(smoothed[i])){ prof.d.push(Math.round(p.d)); prof.a.push(Math.round(smoothed[i]*10)/10); } });
+    gpsLogTerrain(segs, pts, heights, gain, loss);
     const h = gpsHandoff;
     if(!h || !sameLogTarget(h.target, target)) return;
     Object.assign(h.result, {elevGain: Math.round(gain*10)/10, elevLoss: Math.round(loss*10)/10, elevProfile: prof, elevSource: 'dem'});
@@ -17918,6 +18169,7 @@ function enterSignedIn(user){
     // by regenerating state.week from scratch, which would wipe out the planned/logged workouts just
     // loaded (a returning user's plan already exists, there's nothing to "build").
     showScreen('home');
+    if(!state.tourPending) resumeWorkoutIfAny();
     startStravaSync();
     syncHealth({force:true});
     badgesReady = true;
@@ -19277,7 +19529,8 @@ function renderTodayHero(eff, effL, workoutGoal, focusExtra){
   const hero = document.getElementById('todayHero');
   const btn = document.getElementById('recordBtn'), icon = document.getElementById('recordIcon'), label = document.getElementById('recordLabel');
   // (A workout still to do today, after the day's own is done, is up next -- never shown as done.)
-  const done = !focusExtra && eff.t!=='rest' && isTodayDone(), rest = eff.t==='rest';
+  const underway = workoutUnderway();
+  const done = !underway && !focusExtra && eff.t!=='rest' && isTodayDone(), rest = !underway && eff.t==='rest';
   hero.classList.toggle('done', done);
   hero.classList.toggle('rest', rest);
   btn.classList.remove('disabled','done','recording');
@@ -19300,6 +19553,14 @@ function renderTodayHero(eff, effL, workoutGoal, focusExtra){
     icon.innerHTML = eff.t==='interval' ? ICONS.play : (TYPE_ICON[eff.t] || ICONS.play);
     label.textContent = eff.t==='interval' ? L.startTimerLabel : L.recordActionLabel;
   }
+  // (A workout under way: the button picks it up again, its clock counting.)
+  if(underway){
+    const u = resolveLogTarget(underway.target);
+    icon.innerHTML = TYPE_ICON[u.session.t] || ICONS.play;
+    title = L[HERO_TITLE_KEY[u.session.t]] || title;
+    label.innerHTML = `${escapeHtml(L.resumeWorkoutLabel)} · <span class="record-clock" id="recordClock"></span>`;
+    startHomeWorkoutClock();
+  } else stopHomeWorkoutClock();
   document.getElementById('thEyebrow').textContent = eyebrow;
   document.getElementById('thTitle').textContent = title;
   document.getElementById('thSub').textContent = sub;
@@ -19511,8 +19772,47 @@ try{
   const q = new URLSearchParams(location.search);
   if(q.has('v')){ q.delete('v'); const rest = q.toString(); history.replaceState(history.state, '', location.pathname + (rest ? '?'+rest : '') + location.hash); }
 }catch(e){}
+// Android's back gesture: closes what's on top -- a sheet first, then another tab goes back to Today -- and
+// on Today sends Altiro to the background instead of closing it, so coming back finds everything as it
+// was (a workout half done included). A run being tracked, or a timer running, is never stopped by it.
+function topOverlay(){
+  const open = [...document.querySelectorAll('[id$="Overlay"]')].filter(o=> !o.hidden);
+  let top = null, topZ = -Infinity;
+  open.forEach(o=>{
+    const z = parseInt(getComputedStyle(o).zIndex, 10) || 0;
+    if(z >= topZ){ top = o; topZ = z; }
+  });
+  return top;
+}
+function appPlugin(){ return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App || null; }
+function minimizeApp(){
+  const A = appPlugin();
+  if(A && A.minimizeApp) A.minimizeApp().catch(()=>{});
+}
+function handleBackButton(){
+  if(!document.getElementById('shareCardFull').hidden){ closeShareFull(); return; }
+  const o = topOverlay();
+  if(o){
+    if(o.id==='gpsOverlay' && gps && gps.status!=='idle'){ minimizeApp(); return; }
+    if(o.id==='intervalTimerOverlay' && typeof timerState!=='undefined' && timerState && timerState.started){ minimizeApp(); return; }
+    if(o.id==='tourOverlay'){ endTour(); showScreen('home'); return; }
+    const close = o.querySelector('[id^="close"], #gpsClose');
+    if(close) close.click();
+    else o.dispatchEvent(new MouseEvent('click', {bubbles:true})); // (a sheet that closes with a tap outside it)
+    if(o.hidden) return;
+    minimizeApp();
+    return;
+  }
+  const screen = currentScreenId();
+  if(state.signedIn && TAB_SCREENS.includes(screen) && screen!=='home'){ showScreen('home'); return; }
+  minimizeApp();
+}
+(function(){
+  const A = appPlugin();
+  if(A && A.addListener) try{ A.addListener('backButton', handleBackButton); }catch(e){}
+})();
 function workoutInProgress(){
-  return !document.getElementById('logPerfOverlay').hidden || !!(typeof timerState!=='undefined' && timerState && timerState.started)
+  return !!workoutUnderway() || !document.getElementById('logPerfOverlay').hidden || !!(typeof timerState!=='undefined' && timerState && timerState.started)
     || (()=>{ try{ return !!localStorage.getItem('altiro_gps_run'); }catch(e){ return false; } })();
 }
 async function checkForUpdate(){

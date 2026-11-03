@@ -651,8 +651,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .summary-exercises .se-row.stack{flex-direction:column;align-items:flex-start;}
 .summary-exercises .se-row.stack .se-result{margin-left:0;text-align:left;}
 .r-exercise-list li{display:flex;justify-content:space-between;gap:8px;font-size:calc(11.5px * var(--fs, 1));color:var(--text-3);}
-.r-exercise-list li span{font-family:var(--font-mono);color:var(--text-2);flex-shrink:0;}
-.r-exercise-list li span.bd-step{font-family:inherit;color:var(--text-3);flex-shrink:1;}
+.r-exercise-list li span{font-family:var(--font-mono);color:var(--text-2);flex-shrink:0;max-width:68%;text-align:right;overflow-wrap:anywhere;}
+.r-exercise-list li.rx-below{flex-direction:column;align-items:flex-start;gap:1px;}
+.r-exercise-list li.rx-below > span{max-width:100%;text-align:left;}
+.r-exercise-list li span.bd-step{font-family:inherit;color:var(--text-3);flex-shrink:1;max-width:none;text-align:left;}
 .r-exercise-list li span.bd-step b{color:var(--text-2);font-weight:500;}
 .r-inline-btn{margin-top:11px;}
 .r-inline-btn svg{width:14px;height:14px;flex-shrink:0;}
@@ -871,7 +873,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .wp-scope .btn{height:40px;font-size:calc(11.5px * var(--fs, 1));}
 .wp-companion{font-size:calc(13px * var(--fs, 1));color:var(--text-2);}
 .fb-sub{margin:6px 0 0;font-size:calc(13.5px * var(--fs, 1));line-height:1.5;color:var(--text-2);}
-.wp-rx-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--border);border-radius:var(--r-pill);padding:3px 10px;margin-top:3px;cursor:pointer;text-align:left;}
+.wp-rx-btn{display:inline-flex;align-items:center;gap:6px;max-width:100%;background:none;border:1px solid var(--border);border-radius:var(--r-pill);padding:3px 10px;margin-top:3px;cursor:pointer;text-align:left;}
 .wp-rx-btn svg{width:12px;height:12px;color:var(--text-3);flex-shrink:0;}
 .lift-fields{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
 .lift-field{display:flex;flex-direction:column;gap:4px;font-size:calc(11px * var(--fs, 1));color:var(--text-3);}
@@ -11697,9 +11699,10 @@ function exerciseListHtml(session, date, tappable){
     const t = !ex.bodyweight && ex.durationSec==null ? getExerciseTarget(ex, state.intensityIdx) : null;
     const weight = ex.pyramid ? ` · ${STR[state.lang].pyramidTop.replace('{w}', ex.pyramid.top)} ${state.weightUnit}`
       : liftWeightText(ex, t) ? ` · ${liftWeightText(ex, t)}` : '';
-    const cls = [tappable && ex.durationSec==null ? 'lift-tap' : '', ss[i] ? 'ss-member' : ''].filter(Boolean).join(' ');
+    // (A pyramid's line is long -- "Peak pyramid · 16 sets · top 120 lb" -- so it goes under the name.)
+    const cls = [tappable && ex.durationSec==null ? 'lift-tap' : '', ss[i] ? 'ss-member' : '', ex.pyramid ? 'rx-below' : ''].filter(Boolean).join(' ');
     const attr = (cls ? ` class="${cls}"` : '') + (tappable && ex.durationSec==null ? ` data-lift-key="${escapeHtml(ex.key)}"` : '');
-    const nm = ss[i] ? `<div class="ex-nm">${ssTagHtml(ss[i])}${escapeHtml(ex.name)}</div>` : escapeHtml(ex.name);
+    const nm = ss[i] || ex.pyramid ? `<div class="ex-nm">${ssTagHtml(ss[i])}${escapeHtml(ex.name)}</div>` : escapeHtml(ex.name);
     // One (i) per kind per list is plenty.
     const tip = ex.pyramid && !tipped.pyramid ? (tipped.pyramid = true, termBtn('pyramid'))
       : ss[i] && ss[i].first && !tipped.superset ? (tipped.superset = true, termBtn('superset')) : '';

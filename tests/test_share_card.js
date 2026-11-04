@@ -140,7 +140,7 @@ const outDir = process.env.SHARE_CARD_OUT;
     await page.tap('#shareCardShareBtn');
     await sleep(300);
     const shared = await page.evaluate(()=> window.__shared);
-    check('Share hands the picture to the phone\'s share sheet, as a small JPEG (well under a screenshot\'s size)', shared.length===1 && shared[0].type==='image/jpeg' && shared[0].size>20000 && shared[0].size<300000 && shared[0].name==='altiro-workout-2026-09-19-story.jpg', JSON.stringify(shared));
+    check('Share hands the picture to the phone\'s share sheet, as a small JPEG (well under a screenshot\'s size)', shared.length===1 && shared[0].type==='image/jpeg' && shared[0].size>20000 && shared[0].size<300000 && /^altiro-[a-z0-9-]+-2026-09-19-\d{6}-story\.jpg$/.test(shared[0].name), JSON.stringify(shared));
     check('...with a line of text to go with it', /Push Day/.test(shared[0] && shared[0].text || ''), JSON.stringify(shared));
 
     // Where the browser can't share files, the picture is saved instead.
@@ -148,7 +148,7 @@ const outDir = process.env.SHARE_CARD_OUT;
     const dl = page.waitForEvent('download', {timeout: 3000}).catch(()=> null);
     await page.tap('#shareCardShareBtn');
     const download = await dl;
-    check('Can\'t share here? The picture is saved instead', !!download && download.suggestedFilename()==='altiro-workout-2026-09-19-story.jpg', download && download.suggestedFilename());
+    check('Can\'t share here? The picture is saved instead', !!download && /^altiro-[a-z0-9-]+-2026-09-19-\d{6}-story\.jpg$/.test(download.suggestedFilename()), download && download.suggestedFilename());
     check('Four squares under the picture: Save to Photos, Copy, Share, Full screen', await page.evaluate(()=> [...document.querySelectorAll('.share-actions .share-sq')].filter(b=>!b.hidden).map(b=>b.textContent.trim()).join('|'))==='Save to Photos|Copy|Share|Full screen');
     const dl2 = page.waitForEvent('download', {timeout: 3000}).catch(()=> null);
     await page.tap('#shareCardSaveBtn');
@@ -259,7 +259,7 @@ const outDir = process.env.SHARE_CARD_OUT;
     await sleep(500);
     const calls = await page.evaluate(()=> window.__native);
     const save = calls.find(c=> c.name==='savePhoto');
-    check(`${platform} app: Save to Photos saves the picture straight to the gallery`, !!save && /^data:image\/jpeg;base64,/.test(save.o.path) && save.o.fileName==='altiro-workout-2026-09-19', JSON.stringify(calls));
+    check(`${platform} app: Save to Photos saves the picture straight to the gallery`, !!save && /^data:image\/jpeg;base64,/.test(save.o.path) && /^altiro-[a-z0-9-]+-2026-09-19-\d{6}$/.test(save.o.fileName), JSON.stringify(calls));
     if(platform==='android') check('...into an "Altiro" album', save && save.o.albumIdentifier==='/storage/emulated/0/Android/media/com.altiro.app/Altiro' && calls.some(c=> c.name==='createAlbum' && c.o.name==='Altiro'), JSON.stringify(calls));
     else check('...(iPhone: just Photos, which only asks to add pictures)', save && !save.o.albumIdentifier, JSON.stringify(calls));
     check('...and says so', /Saved to your photos/.test(await page.evaluate(()=> document.getElementById('toastMsg').textContent)));
@@ -267,7 +267,7 @@ const outDir = process.env.SHARE_CARD_OUT;
     await sleep(500);
     const calls2 = await page.evaluate(()=> window.__native);
     const sh = calls2.find(c=> c.name==='share');
-    check(`${platform} app: Share opens the phone's share sheet with the picture`, !!sh && sh.o.files && sh.o.files[0]==='file:///cache/altiro-workout-2026-09-19.jpg', JSON.stringify(calls2));
+    check(`${platform} app: Share opens the phone's share sheet with the picture`, !!sh && sh.o.files && /^file:\/\/\/cache\/altiro-[a-z0-9-]+-2026-09-19-\d{6}\.jpg$/.test(sh.o.files[0]), JSON.stringify(calls2));
     check('No page errors', errors.length===0, errors.join(' | '));
     await page.context().close();
   }

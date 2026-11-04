@@ -14824,6 +14824,8 @@ function renderSummary(){
 const SHARE_FORMATS = {post:{w:1080, h:1350}, story:{w:1080, h:1920}};
 let shareFormat = 'post', shareCardBlob = null, shareCardUrl = null, shareCardToken = 0, shareCardCanvas = null;
 function fmtShareNum(n){ return Math.round(n).toLocaleString(state.lang==='es' ? 'es' : 'en-US'); }
+// A weight as it was lifted: 40.5, not 41 (whole numbers stay whole).
+function fmtShareWeight(n){ return (Math.round(n*10)/10).toLocaleString(state.lang==='es' ? 'es' : 'en-US', {maximumFractionDigits: 1}); }
 // Total weight moved (weight × reps over every logged set; bodyweight work doesn't count).
 function loggedLiftVolume(logged){
   let volume = 0;
@@ -14841,9 +14843,9 @@ function shareSetsText(res){
   const same = sets.every(x=> Number(x.weight)===Number(sets[0].weight) && Number(x.reps)===Number(sets[0].reps));
   if(same){
     const w = Number(sets[0].weight) || 0, r = Number(sets[0].reps) || 0;
-    return `${sets.length} × ${r}${w>0 ? ` @ ${fmtShareNum(w)} ${unit}` : ''}`;
+    return `${sets.length} × ${r}${w>0 ? ` @ ${fmtShareWeight(w)} ${unit}` : ''}`;
   }
-  return sets.map(x=> `${fmtShareNum(Number(x.weight)||0)}×${Number(x.reps)||0}`).join(' · ') + ` ${unit}`;
+  return sets.map(x=> `${fmtShareWeight(Number(x.weight)||0)}×${Number(x.reps)||0}`).join(' · ') + ` ${unit}`;
 }
 // Everything the card shows, from the workout just saved.
 function shareCardData(){
@@ -14877,7 +14879,7 @@ function shareCardData(){
     stats.push({l:L.statTime, v:fmtDurationClock((rounds*cfg.workSec + Math.max(0,rounds-1)*cfg.restSec)/60)});
   } else {
     if(min>=1) stats.push({l:L.statTime, v:fmtActiveTime(min)});
-    if(session.t==='strength' && logged.weight>0) stats.push({l:L.shareStatTopSet, v:`${fmtShareNum(logged.weight)} ${unit} × ${logged.reps||0}`});
+    if(session.t==='strength' && logged.weight>0) stats.push({l:L.shareStatTopSet, v:`${fmtShareWeight(logged.weight)} ${unit} × ${logged.reps||0}`});
   }
   const sessL = ST(session);
   const date = TODAY_DATE.toLocaleDateString(state.lang==='es' ? 'es' : 'en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
@@ -14930,13 +14932,27 @@ function roundRect(ctx, x, y, w, h, r){
   ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
 }
 // clear: no background -- a see-through PNG to lay over a photo or video in a story or post. The text gets
-// a soft shadow, its grey is lighter, and the tiles keep a see-through dark fill, so it reads over anything.
+// a tight dark edge (it reads over a bright sky, or a gallery's white), its grey is lighter, and the tiles keep a see-through dark fill, so it reads over anything.
 function drawShareCard(canvas, d, format, clear){
   const {w:W, h:H} = SHARE_FORMATS[format];
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   const RED = '#DA1419', RED_B = '#FF5257', GREEN = '#2ECC71', TEXT = '#F5F5F5', TEXT2 = clear ? '#E4E4E7' : '#A8A8AC', TILE = clear ? 'rgba(10,10,11,0.55)' : '#17171A', LINE = clear ? 'rgba(255,255,255,0.28)' : '#2C2C30';
-  const shade = c=>{ if(clear){ c.shadowColor = 'rgba(0,0,0,0.45)'; c.shadowBlur = 6; c.shadowOffsetY = 1; } };
+  // (Clear: every word gets a thin dark outline under it, then a tight shadow -- like a sticker's edge.)
+  const shade = c=>{
+    if(!clear) return;
+    c.shadowColor = 'rgba(0,0,0,0.85)'; c.shadowBlur = 3; c.shadowOffsetY = 0;
+    const fill = c.fillText.bind(c);
+    c.fillText = (text, x, y, maxW)=>{
+      const px = parseFloat((String(c.font).match(/([\d.]+)px/) || [])[1]) || 24;
+      c.save();
+      c.shadowColor = 'transparent'; c.lineJoin = 'round'; c.miterLimit = 2;
+      c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = Math.max(2.5, px*0.09);
+      if(maxW!=null) c.strokeText(text, x, y, maxW); else c.strokeText(text, x, y);
+      c.restore();
+      return maxW!=null ? fill(text, x, y, maxW) : fill(text, x, y);
+    };
+  };
   const DISPLAY = px=> `800 ${px}px Montserrat, "Arial Black", sans-serif`;
   const DISPLAY6 = px=> `700 ${px}px Montserrat, Arial, sans-serif`;
   const BODY = px=> `600 ${px}px "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif`;
@@ -15266,7 +15282,13 @@ async function renderShareCard(){
   img.classList.toggle('clear', shareClear);
   return true;
 }
-function shareCardFileName(){ return `altiro-workout-${dateKey(TODAY_DATE)}${shareFormat==='story' ? '-story' : ''}${shareClear ? '-clear.png' : '.jpg'}`; }
+// Its own name every time -- the workout's, the day and the time it's saved -- so a browser doesn't ask
+// "Download file again?" for a second card the same day.
+function shareCardFileName(){
+  const slug = String(shareCardData().title || 'workout').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'workout';
+  const now = new Date(), hhmmss = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n=> String(n).padStart(2, '0')).join('');
+  return `altiro-${slug}-${dateKey(TODAY_DATE)}-${hhmmss}${shareFormat==='story' ? '-story' : ''}${shareClear ? '-clear.png' : '.jpg'}`;
+}
 const shareCardMime = ()=> shareClear ? 'image/png' : 'image/jpeg';
 function shareCardMessage(){ return STR[state.lang].shareText.replace('{title}', shareCardData().title); }
 function saveShareCardImage(){

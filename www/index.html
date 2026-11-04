@@ -14976,39 +14976,43 @@ function drawShareCard(canvas, d, format){
   b.fillStyle = RED_B; b.font = DISPLAY6(30); spacing(b, true);
   b.fillText(d.kicker.toUpperCase(), P, y); spacing(b, false);
   y += 26;
-  let titlePx = story ? 96 : 84;
+  // (A run with its route: a smaller name, so the route can be bigger.)
+  const routeCard = !!(d.routeSegs && d.routeSegs.length);
+  let titlePx = routeCard ? (story ? 80 : 64) : (story ? 96 : 84);
   b.font = DISPLAY(titlePx);
   let lines = wrapLines(b, d.title, CW, 2);
   while(titlePx>56 && lines.some(l=> b.measureText(l).width>CW || /…$/.test(l))){ titlePx -= 4; b.font = DISPLAY(titlePx); lines = wrapLines(b, d.title, CW, 2); }
   b.fillStyle = TEXT;
   lines.forEach(l=>{ y += titlePx*1.08; b.fillText(l, P, y); });
-  y += story ? 70 : 52;
+  y += routeCard ? (story ? 52 : 38) : (story ? 70 : 52);
   // A GPS run: just its route (no map) between the name and the numbers, sized to leave room for every
   // split under them -- in one column, or two for a long run, smaller rows if need be.
   const hasRoute = !!(d.routeSegs && d.routeSegs.length);
   const splits = d.splits || [];
   const statsH = d.stats.length ? 150 : 0, splitHead = 64 + 18;
   let splitLay = null;
-  // (With its elevation strip under the route when that's on: the route gives up a little room for it.)
-  const elevH = hasRoute && d.elev ? (story ? 140 : 76) : 0, elevBlock = elevH ? 22 + elevH + 46 : 0;
+  // Its elevation, when that's on, goes behind the route -- a soft grey hill across the card under the
+  // route's lower half, the low and high points in small print under it -- so the route keeps its room.
+  const backdrop = hasRoute && !!d.elev, backdropLabels = backdrop ? 40 : 0;
   if(hasRoute){
-    const free = areaH - y - statsH - 30 - 10 - elevBlock;
+    const free = areaH - y - statsH - 30 - 10 - backdropLabels;
     const opts = splits.length ? [{cols:1, rowH: story ? 60 : 54}, {cols:2, rowH: story ? 56 : 48}, {cols:2, rowH:40}] : [];
-    const minRoute = elevH && !story ? 170 : 200, maxRoute = story ? 620 : 360;
+    const minRoute = 200, maxRoute = story ? 640 : 420;
     splitLay = opts.find(o=> free - (splitHead + Math.ceil(splits.length/o.cols)*o.rowH) >= minRoute) || (opts.length ? opts[opts.length-1] : null);
     const need = splitLay ? splitHead + Math.ceil(splits.length/splitLay.cols)*splitLay.rowH : 0;
     const routeH = Math.max(minRoute, Math.min(maxRoute, free - need));
+    if(backdrop){
+      const hillH = Math.round(routeH*0.55);
+      drawElevOnCanvas(b, d.elev, 0, y + routeH - hillH, W, hillH);
+    }
     drawRouteOnCanvas(b, d.routeSegs, P, y, CW, routeH, true);
     y += routeH;
-    if(elevH){
-      y += 22;
-      drawElevOnCanvas(b, d.elev, P, y, CW, elevH, {RED, RED_B, LINE});
-      y += elevH;
-      b.fillStyle = TEXT2; b.font = MONO(24);
-      b.textAlign = 'left'; b.fillText(d.elev.low, P, y + 36);
-      b.textAlign = 'right'; b.fillText(d.elev.high, W - P, y + 36);
+    if(backdrop){
+      b.fillStyle = TEXT2; b.font = MONO(22);
+      b.textAlign = 'left'; b.fillText(d.elev.low, P, y + 30);
+      b.textAlign = 'right'; b.fillText(d.elev.high, W - P, y + 30);
       b.textAlign = 'left';
-      y += 46;
+      y += backdropLabels;
     }
     y += 30;
   }
@@ -15148,20 +15152,19 @@ async function shareFontsReady(){
     ]);
   }catch(e){}
 }
-// A run's height along the way, for the share card: a filled hill in the card's red, at least 25 m top
+// A run's height along the way, for the share card: a soft grey hill behind the route, at least 25 m top
 // to bottom (as on the summary), so a flat run draws as a gentle line, not a mountain range.
-function drawElevOnCanvas(ctx, prof, x, y, w, h, c){
+function drawElevOnCanvas(ctx, prof, x, y, w, h){
   const maxD = prof.d[prof.d.length-1] || 1, lo = Math.min(...prof.a), hi = Math.max(...prof.a);
   const span = Math.max(hi-lo, 25), base = (hi+lo)/2 - span/2;
   const px = d=> x + d/maxD*w, py = a=> y + h - 4 - (a-base)/span*(h-10);
   const g = ctx.createLinearGradient(0, y, 0, y+h);
-  g.addColorStop(0, 'rgba(218,20,25,0.55)'); g.addColorStop(1, 'rgba(218,20,25,0.06)');
+  g.addColorStop(0, 'rgba(255,255,255,0.13)'); g.addColorStop(1, 'rgba(255,255,255,0.02)');
   ctx.beginPath(); ctx.moveTo(x, y+h);
   prof.d.forEach((d, i)=> ctx.lineTo(px(d), py(prof.a[i])));
   ctx.lineTo(x+w, y+h); ctx.closePath(); ctx.fillStyle = g; ctx.fill();
   ctx.beginPath(); prof.d.forEach((d, i)=> i ? ctx.lineTo(px(d), py(prof.a[i])) : ctx.moveTo(px(d), py(prof.a[i])));
-  ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = c.RED_B; ctx.lineWidth = 4; ctx.stroke();
-  ctx.strokeStyle = c.LINE; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y+h); ctx.lineTo(x+w, y+h); ctx.stroke();
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(255,255,255,0.30)'; ctx.lineWidth = 3; ctx.stroke();
 }
 // The route by itself, for a card with no map: a red line (white edge) on a dark panel, start in green.
 // (bare: just the route, on whatever is already there -- the share card's background.)

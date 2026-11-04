@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 
-// A tracked run's elevation on its share card: a strip under the route with its low and high points, on
-// the post and the story, with every split still on the card (a 4.5-mile hilly run, five splits). The
+// A tracked run's elevation on its share card: a soft grey hill behind the route (so the route keeps its
+// room), with its low and high points under it, on the post and the story, with every split still on the card (a 4.5-mile hilly run, five splits). The
 // climb's tile says "Climb" (it fits); the Elevation chip turns the strip off and on, and is remembered.
 // Set SHARE_ELEV_OUT=<folder> to keep the pictures. Skipped without Playwright.
 let chromium;
@@ -99,7 +99,7 @@ const LAT0 = 33.6681, LNG0 = -117.3273, M_LAT = 1/111195;
     if(fmt==='story') await page.tap('[data-share-format="story"]');
     const texts = await waitCard(h);
     const low = texts.find(t=> /^Low \d/.test(t.text)), high = texts.find(t=> /^High \d/.test(t.text));
-    check(`${fmt}: the elevation strip's low and high points are on the card`, !!low && !!high && /ft$/.test(low.text) && /ft$/.test(high.text), texts.map(t=> t.text).join(' | ').slice(0, 300));
+    check(`${fmt}: the elevation's low and high points are on the card`, !!low && !!high && /ft$/.test(low.text) && /ft$/.test(high.text), texts.map(t=> t.text).join(' | ').slice(0, 300));
     check(`${fmt}: ...inside the card's margins`, !!low && !!high && low.x>=80 && low.x+low.w<=1000+1 && high.x-high.w>=80-1 && high.x<=1000+1);
     const labels = texts.filter(t=> /^Mile \d+$|^0\.\d+ mi$/.test(t.text)).map(t=> t.text);
     check(`${fmt}: every split is still on the card`, labels.length===5 && labels.includes('Mile 4') && !texts.some(t=> /more$/.test(t.text)), labels.join(','));

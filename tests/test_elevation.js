@@ -116,7 +116,7 @@ const wobble = i => [0, 2.5, -2, 3, -3, 1, -2.5, 2, -1, 0][i%10];
     await page.tap('#shareWorkoutBtn');
     let alt = '';
     for(let i=0; i<60; i++){ alt = await page.evaluate(()=>{ const i = document.getElementById('shareCardPreview'); return i.complete && i.naturalHeight===1350 ? i.alt : ''; }); if(alt) break; await sleep(100); }
-    check('The share card shows the climb', alt.includes(`Elevation Gain: ↑ ${G} ft`), alt);
+    check('The share card shows the climb', alt.includes(`Climb: ↑ ${G} ft`), alt);
     check('No page errors', errors.length===0, errors.join(' | '));
     await page.context().close();
   }

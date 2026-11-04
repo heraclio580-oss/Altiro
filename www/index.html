@@ -1548,6 +1548,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .elev-profile .ep-meta{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));color:var(--text-3);margin-top:4px;}
 .gps-log-row{margin-top:8px;}
 .gps-log-send{flex:none;width:auto;padding:8px 16px;font-size:calc(13px * var(--fs, 1));}
+.share-elev-chip{margin-left:auto;}
+.share-elev-chip[hidden]{display:none;}
 .discard-workout{text-align:center;margin:14px 0 4px;}
 .discard-link{background:none;border:none;color:var(--text-3);font:inherit;font-size:calc(13px * var(--fs, 1));text-decoration:underline;cursor:pointer;padding:6px;}
 .discard-ask{margin-top:6px;padding:12px;border-radius:14px;background:var(--well);border:1px solid var(--divider);}
@@ -2438,6 +2440,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="chip-row share-format" id="shareFormatChips">
         <div class="chip sel" data-share-format="post" data-i18n="shareFormatPost"></div>
         <div class="chip" data-share-format="story" data-i18n="shareFormatStory"></div>
+        <div class="chip share-elev-chip" id="shareElevChip" role="switch" aria-checked="true" tabindex="0" data-i18n="shareElevChip" hidden></div>
       </div>
       <div class="share-preview"><img id="shareCardPreview" alt=""></div>
       <div class="share-actions">
@@ -4030,7 +4033,7 @@ const STR = {
     hardRunDayNoteAuto: "Your week's faster run (tempo, intervals, hills or fartlek) goes early in the week, away from the long run. Pick a day to always have it then.",
     hardRunDayNote: "Your week's faster run (tempo, intervals, hills or fartlek) goes on {day}, unless a hard class is that day.",
     backToTodayBtn: "Back to Today", summaryBackBtn: "Back", summaryEditBtn: "Edit",
-    shareWorkoutBtn: "Share workout", shareCardTitle: "Share your workout", shareFormatPost: "Post", shareFormatStory: "Story",
+    shareWorkoutBtn: "Share workout", shareCardTitle: "Share your workout", shareFormatPost: "Post", shareFormatStory: "Story", shareElevChip: "Elevation", shareStatClimb: "Climb",
     gpsTrackBtn: "Track a run with GPS", gpsTrackInLog: "Track this run with GPS", gpsTitle: "GPS run",
     gpsFinding: "Finding GPS…", gpsGood: "GPS ready", gpsWeak: "Weak GPS signal", gpsPausedLabel: "Paused",
     gpsStart: "Start", gpsPause: "Pause", gpsResume: "Resume", gpsHoldFinish: "Hold to finish",
@@ -4815,7 +4818,7 @@ const STR = {
     hardRunDayNoteAuto: "La carrera rápida de la semana (tempo, intervalos, cuestas o fartlek) va al principio de la semana, lejos de la carrera larga. Elige un día para tenerla siempre ese día.",
     hardRunDayNote: "La carrera rápida de la semana (tempo, intervalos, cuestas o fartlek) va el {day}, salvo que ese día tengas una clase intensa.",
     backToTodayBtn: "Volver a hoy", summaryBackBtn: "Volver", summaryEditBtn: "Editar",
-    shareWorkoutBtn: "Compartir entrenamiento", shareCardTitle: "Comparte tu entrenamiento", shareFormatPost: "Publicación", shareFormatStory: "Historia",
+    shareWorkoutBtn: "Compartir entrenamiento", shareCardTitle: "Comparte tu entrenamiento", shareFormatPost: "Publicación", shareFormatStory: "Historia", shareElevChip: "Elevación", shareStatClimb: "Subida",
     gpsTrackBtn: "Registrar carrera con GPS", gpsTrackInLog: "Registrar esta carrera con GPS", gpsTitle: "Carrera con GPS",
     gpsFinding: "Buscando GPS…", gpsGood: "GPS listo", gpsWeak: "Señal de GPS débil", gpsPausedLabel: "En pausa",
     gpsStart: "Empezar", gpsPause: "Pausa", gpsResume: "Seguir", gpsHoldFinish: "Mantén para terminar",
@@ -14859,7 +14862,8 @@ function shareCardData(){
     if(mi) stats.push({l:L.statDistance, v:`${(+mi).toFixed(gpsRun ? 2 : 1)} mi`});
     if(min) stats.push({l:L.statTime, v:fmtDurationClock(min)});
     if(mi && min && (gpsRun || !isPaceFree(session))) stats.push({l:L.statPace, v:`${fmtPace(min/mi)}/mi`});
-    if(logged.elevGain!=null && logged.elevGain>=1) stats.push({l:L.statElevGain, v:`↑ ${fmtElev(logged.elevGain)}`});
+    // ("Climb": "Elevation gain" didn't fit its tile -- the arrow says the rest.)
+    if(logged.elevGain!=null && logged.elevGain>=1) stats.push({l:L.shareStatClimb, v:`↑ ${fmtElev(logged.elevGain)}`});
   } else if(session.t==='interval'){
     const cfg = session.interval || {rounds:6, workSec:180, restSec:60};
     const rounds = logged.rounds || cfg.rounds;
@@ -14877,7 +14881,13 @@ function shareCardData(){
   // A tracked run's splits, every one, with the fastest marked.
   const sp = session.t==='run' && logged.route ? runSplitList(logged) : null;
   const splits = sp && sp.splits.length ? sp.splits.map(x=> ({label: x.label, pace: `${fmtPaceSec(x.pace)}/${sp.unit}`, best: x.pace===sp.best})) : [];
-  return {kicker: L.workoutCompleteTitle, title: sessL.title || L.workoutCompleteTitle, date, stats, rows, splits,
+  // A tracked run's height along the way, drawn under its route (see the Elevation chip): heights in
+  // metres, with its low and high points as the summary shows them.
+  const prof = session.t==='run' && logged.route && logged.elevProfile;
+  const elevAvail = !!(prof && Array.isArray(prof.d) && prof.d.length>=2 && Array.isArray(prof.a) && prof.a.length===prof.d.length);
+  const elev = elevAvail && shareShowElev ? {d: prof.d, a: prof.a,
+    low: `${state.lang==='es' ? 'Mín' : 'Low'} ${fmtElev(Math.min(...prof.a))}`, high: `${state.lang==='es' ? 'Máx' : 'High'} ${fmtElev(Math.max(...prof.a))}`} : null;
+  return {kicker: L.workoutCompleteTitle, title: sessL.title || L.workoutCompleteTitle, date, stats, rows, splits, elev, elevAvail,
     streak: state.streak>=1 ? L.shareStreak.replace('{n}', state.streak) : '', footer: L.shareFooter,
     routeSegs: session.t==='run' && logged.route ? routeSegments(logged.route) : null};
 }
@@ -14979,15 +14989,28 @@ function drawShareCard(canvas, d, format){
   const splits = d.splits || [];
   const statsH = d.stats.length ? 150 : 0, splitHead = 64 + 18;
   let splitLay = null;
+  // (With its elevation strip under the route when that's on: the route gives up a little room for it.)
+  const elevH = hasRoute && d.elev ? (story ? 140 : 76) : 0, elevBlock = elevH ? 22 + elevH + 46 : 0;
   if(hasRoute){
-    const free = areaH - y - statsH - 30 - 10;
+    const free = areaH - y - statsH - 30 - 10 - elevBlock;
     const opts = splits.length ? [{cols:1, rowH: story ? 60 : 54}, {cols:2, rowH: story ? 56 : 48}, {cols:2, rowH:40}] : [];
-    const minRoute = 200, maxRoute = story ? 620 : 360;
+    const minRoute = elevH && !story ? 170 : 200, maxRoute = story ? 620 : 360;
     splitLay = opts.find(o=> free - (splitHead + Math.ceil(splits.length/o.cols)*o.rowH) >= minRoute) || (opts.length ? opts[opts.length-1] : null);
     const need = splitLay ? splitHead + Math.ceil(splits.length/splitLay.cols)*splitLay.rowH : 0;
     const routeH = Math.max(minRoute, Math.min(maxRoute, free - need));
     drawRouteOnCanvas(b, d.routeSegs, P, y, CW, routeH, true);
-    y += routeH + 30;
+    y += routeH;
+    if(elevH){
+      y += 22;
+      drawElevOnCanvas(b, d.elev, P, y, CW, elevH, {RED, RED_B, LINE});
+      y += elevH;
+      b.fillStyle = TEXT2; b.font = MONO(24);
+      b.textAlign = 'left'; b.fillText(d.elev.low, P, y + 36);
+      b.textAlign = 'right'; b.fillText(d.elev.high, W - P, y + 36);
+      b.textAlign = 'left';
+      y += 46;
+    }
+    y += 30;
   }
   // The numbers: one row of tiles when there's an exercise list (or a map) with them, a big 2-column grid when not.
   const big = !d.rows.length && !hasRoute;
@@ -15125,6 +15148,21 @@ async function shareFontsReady(){
     ]);
   }catch(e){}
 }
+// A run's height along the way, for the share card: a filled hill in the card's red, at least 25 m top
+// to bottom (as on the summary), so a flat run draws as a gentle line, not a mountain range.
+function drawElevOnCanvas(ctx, prof, x, y, w, h, c){
+  const maxD = prof.d[prof.d.length-1] || 1, lo = Math.min(...prof.a), hi = Math.max(...prof.a);
+  const span = Math.max(hi-lo, 25), base = (hi+lo)/2 - span/2;
+  const px = d=> x + d/maxD*w, py = a=> y + h - 4 - (a-base)/span*(h-10);
+  const g = ctx.createLinearGradient(0, y, 0, y+h);
+  g.addColorStop(0, 'rgba(218,20,25,0.55)'); g.addColorStop(1, 'rgba(218,20,25,0.06)');
+  ctx.beginPath(); ctx.moveTo(x, y+h);
+  prof.d.forEach((d, i)=> ctx.lineTo(px(d), py(prof.a[i])));
+  ctx.lineTo(x+w, y+h); ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+  ctx.beginPath(); prof.d.forEach((d, i)=> i ? ctx.lineTo(px(d), py(prof.a[i])) : ctx.moveTo(px(d), py(prof.a[i])));
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = c.RED_B; ctx.lineWidth = 4; ctx.stroke();
+  ctx.strokeStyle = c.LINE; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y+h); ctx.lineTo(x+w, y+h); ctx.stroke();
+}
 // The route by itself, for a card with no map: a red line (white edge) on a dark panel, start in green.
 // (bare: just the route, on whatever is already there -- the share card's background.)
 function drawRouteOnCanvas(ctx, segs, x, y, w, h, bare){
@@ -15162,13 +15200,17 @@ function drawRouteOnCanvas(ctx, segs, x, y, w, h, bare){
 async function renderShareCard(){
   const token = ++shareCardToken;
   const img = document.getElementById('shareCardPreview');
-  document.querySelectorAll('#shareFormatChips .chip').forEach(c=> c.classList.toggle('sel', c.dataset.shareFormat===shareFormat));
+  document.querySelectorAll('#shareFormatChips .chip[data-share-format]').forEach(c=> c.classList.toggle('sel', c.dataset.shareFormat===shareFormat));
   shareCardBlob = null;
   const canvas = document.createElement('canvas');
   if(!canvas.getContext || !canvas.getContext('2d')) return 'unsupported';
   await shareFontsReady();
   if(token!==shareCardToken) return false;
   const d = shareCardData();
+  const elevChip = document.getElementById('shareElevChip');
+  elevChip.hidden = !d.elevAvail;
+  elevChip.classList.toggle('sel', shareShowElev);
+  elevChip.setAttribute('aria-checked', String(shareShowElev));
   drawShareCard(canvas, d, shareFormat);
   const blob = await new Promise(res=>{ try{ canvas.toBlob(res, 'image/jpeg', 0.9); }catch(e){ res(null); } });
   if(token!==shareCardToken || !blob) return false;
@@ -15282,7 +15324,16 @@ document.getElementById('closeShareCard').addEventListener('click', closeShareCa
 document.getElementById('shareCardPreview').addEventListener('click', openShareFull);
 document.getElementById('shareCardFull').addEventListener('click', closeShareFull);
 document.getElementById('shareCardOverlay').addEventListener('click', e=>{ if(e.target.id==='shareCardOverlay') closeShareCard(); });
-document.querySelectorAll('#shareFormatChips .chip').forEach(c=> c.addEventListener('click', ()=>{
+// The Elevation chip: a tracked run's elevation strip on the card, or not (remembered on this device).
+let shareShowElev = (()=>{ try{ return localStorage.getItem('altiro_share_elev')!=='0'; }catch(e){ return true; } })();
+function toggleShareElev(){
+  shareShowElev = !shareShowElev;
+  try{ localStorage.setItem('altiro_share_elev', shareShowElev ? '1' : '0'); }catch(e){}
+  renderShareCard();
+}
+document.getElementById('shareElevChip').addEventListener('click', toggleShareElev);
+document.getElementById('shareElevChip').addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleShareElev(); } });
+document.querySelectorAll('#shareFormatChips .chip[data-share-format]').forEach(c=> c.addEventListener('click', ()=>{
   if(shareFormat===c.dataset.shareFormat) return;
   shareFormat = c.dataset.shareFormat;
   renderShareCard();

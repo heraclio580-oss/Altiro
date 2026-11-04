@@ -1549,6 +1549,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .gps-log-row{margin-top:8px;}
 .gps-log-send{flex:none;width:auto;padding:8px 16px;font-size:calc(13px * var(--fs, 1));}
 .share-elev-chip{margin-left:auto;}
+.share-elev-chip[hidden] + .share-clear-chip{margin-left:auto;}
+/* A clear card's preview: a light checkerboard behind it shows what's see-through. */
+.share-preview img.clear{background:repeating-conic-gradient(#3A3A3E 0% 25%, #26262A 0% 50%) 50% / 24px 24px;}
 .share-elev-chip[hidden]{display:none;}
 .discard-workout{text-align:center;margin:14px 0 4px;}
 .discard-link{background:none;border:none;color:var(--text-3);font:inherit;font-size:calc(13px * var(--fs, 1));text-decoration:underline;cursor:pointer;padding:6px;}
@@ -2441,6 +2444,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="chip sel" data-share-format="post" data-i18n="shareFormatPost"></div>
         <div class="chip" data-share-format="story" data-i18n="shareFormatStory"></div>
         <div class="chip share-elev-chip" id="shareElevChip" role="switch" aria-checked="true" tabindex="0" data-i18n="shareElevChip" hidden></div>
+        <div class="chip share-clear-chip" id="shareClearChip" role="switch" aria-checked="false" tabindex="0" data-i18n="shareClearChip"></div>
       </div>
       <div class="share-preview"><img id="shareCardPreview" alt=""></div>
       <div class="share-actions">
@@ -4033,7 +4037,7 @@ const STR = {
     hardRunDayNoteAuto: "Your week's faster run (tempo, intervals, hills or fartlek) goes early in the week, away from the long run. Pick a day to always have it then.",
     hardRunDayNote: "Your week's faster run (tempo, intervals, hills or fartlek) goes on {day}, unless a hard class is that day.",
     backToTodayBtn: "Back to Today", summaryBackBtn: "Back", summaryEditBtn: "Edit",
-    shareWorkoutBtn: "Share workout", shareCardTitle: "Share your workout", shareFormatPost: "Post", shareFormatStory: "Story", shareElevChip: "Elevation", shareStatClimb: "Climb",
+    shareWorkoutBtn: "Share workout", shareCardTitle: "Share your workout", shareFormatPost: "Post", shareFormatStory: "Story", shareElevChip: "Elevation", shareStatClimb: "Climb", shareClearChip: "Clear",
     gpsTrackBtn: "Track a run with GPS", gpsTrackInLog: "Track this run with GPS", gpsTitle: "GPS run",
     gpsFinding: "Finding GPS…", gpsGood: "GPS ready", gpsWeak: "Weak GPS signal", gpsPausedLabel: "Paused",
     gpsStart: "Start", gpsPause: "Pause", gpsResume: "Resume", gpsHoldFinish: "Hold to finish",
@@ -4818,7 +4822,7 @@ const STR = {
     hardRunDayNoteAuto: "La carrera rápida de la semana (tempo, intervalos, cuestas o fartlek) va al principio de la semana, lejos de la carrera larga. Elige un día para tenerla siempre ese día.",
     hardRunDayNote: "La carrera rápida de la semana (tempo, intervalos, cuestas o fartlek) va el {day}, salvo que ese día tengas una clase intensa.",
     backToTodayBtn: "Volver a hoy", summaryBackBtn: "Volver", summaryEditBtn: "Editar",
-    shareWorkoutBtn: "Compartir entrenamiento", shareCardTitle: "Comparte tu entrenamiento", shareFormatPost: "Publicación", shareFormatStory: "Historia", shareElevChip: "Elevación", shareStatClimb: "Subida",
+    shareWorkoutBtn: "Compartir entrenamiento", shareCardTitle: "Comparte tu entrenamiento", shareFormatPost: "Publicación", shareFormatStory: "Historia", shareElevChip: "Elevación", shareStatClimb: "Subida", shareClearChip: "Transparente",
     gpsTrackBtn: "Registrar carrera con GPS", gpsTrackInLog: "Registrar esta carrera con GPS", gpsTitle: "Carrera con GPS",
     gpsFinding: "Buscando GPS…", gpsGood: "GPS listo", gpsWeak: "Señal de GPS débil", gpsPausedLabel: "En pausa",
     gpsStart: "Empezar", gpsPause: "Pausa", gpsResume: "Seguir", gpsHoldFinish: "Mantén para terminar",
@@ -14925,11 +14929,14 @@ function roundRect(ctx, x, y, w, h, r){
   ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r);
   ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
 }
-function drawShareCard(canvas, d, format){
+// clear: no background -- a see-through PNG to lay over a photo or video in a story or post. The text gets
+// a soft shadow, its grey is lighter, and the tiles keep a see-through dark fill, so it reads over anything.
+function drawShareCard(canvas, d, format, clear){
   const {w:W, h:H} = SHARE_FORMATS[format];
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
-  const RED = '#DA1419', RED_B = '#FF5257', GREEN = '#2ECC71', TEXT = '#F5F5F5', TEXT2 = '#A8A8AC', TILE = '#17171A', LINE = '#2C2C30';
+  const RED = '#DA1419', RED_B = '#FF5257', GREEN = '#2ECC71', TEXT = '#F5F5F5', TEXT2 = clear ? '#E4E4E7' : '#A8A8AC', TILE = clear ? 'rgba(10,10,11,0.55)' : '#17171A', LINE = clear ? 'rgba(255,255,255,0.28)' : '#2C2C30';
+  const shade = c=>{ if(clear){ c.shadowColor = 'rgba(0,0,0,0.45)'; c.shadowBlur = 6; c.shadowOffsetY = 1; } };
   const DISPLAY = px=> `800 ${px}px Montserrat, "Arial Black", sans-serif`;
   const DISPLAY6 = px=> `700 ${px}px Montserrat, Arial, sans-serif`;
   const BODY = px=> `600 ${px}px "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif`;
@@ -14937,20 +14944,25 @@ function drawShareCard(canvas, d, format){
   const spacing = (c, on)=>{ if('letterSpacing' in c) c.letterSpacing = on ? '4px' : '0px'; };
   const story = format==='story';
   const P = 80, CW = W - 2*P;
-  // Background: near-black with the logo's red and green glowing in from opposite corners.
-  ctx.fillStyle = '#0A0A0B'; ctx.fillRect(0, 0, W, H);
-  let g = ctx.createRadialGradient(W, 0, 0, W, 0, W*0.9);
-  g.addColorStop(0, 'rgba(218,20,25,0.30)'); g.addColorStop(1, 'rgba(218,20,25,0)');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  g = ctx.createRadialGradient(0, H, 0, 0, H, W*0.8);
-  g.addColorStop(0, 'rgba(46,204,113,0.16)'); g.addColorStop(1, 'rgba(46,204,113,0)');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // Background: near-black with the logo's red and green glowing in from opposite corners (none when clear).
+  let g;
+  if(!clear){
+    ctx.fillStyle = '#0A0A0B'; ctx.fillRect(0, 0, W, H);
+    g = ctx.createRadialGradient(W, 0, 0, W, 0, W*0.9);
+    g.addColorStop(0, 'rgba(218,20,25,0.30)'); g.addColorStop(1, 'rgba(218,20,25,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    g = ctx.createRadialGradient(0, H, 0, 0, H, W*0.8);
+    g.addColorStop(0, 'rgba(46,204,113,0.16)'); g.addColorStop(1, 'rgba(46,204,113,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  shade(ctx);
   // Instagram/TikTok stories cover the top and bottom ~250px with their own buttons.
   const top = story ? 230 : 80, footerY = H - (story ? 250 : 80);
   // Logo top-left (its black backdrop drops out with "lighten"), date top-right.
   const logo = document.getElementById('brandLogoFull');
   const logoH = 118, logoW = logo && logo.naturalWidth ? logoH*logo.naturalWidth/logo.naturalHeight : 0;
-  if(logoW){ try{ ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(logo, P-6, top, logoW, logoH); ctx.restore(); }catch(e){} }
+  // (On a clear card its black backdrop is made see-through instead -- "lighten" needs something under it.)
+  if(logoW){ try{ ctx.save(); if(clear) ctx.drawImage(logoWithoutBlack(logo), P-6, top, logoW, logoH); else { ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(logo, P-6, top, logoW, logoH); } ctx.restore(); }catch(e){} }
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'right'; ctx.fillStyle = TEXT2; spacing(ctx, false);
   const dateFit = fitText(ctx, d.date.toUpperCase(), CW - logoW - 30, MONO, 30, 20);
   ctx.font = MONO(dateFit.px); ctx.fillText(dateFit.text, W-P, top+logoH/2+10);
@@ -14971,6 +14983,7 @@ function drawShareCard(canvas, d, format){
   layer.width = W; layer.height = Math.max(1, Math.ceil(areaH));
   const b = layer.getContext('2d');
   b.textBaseline = 'alphabetic'; b.textAlign = 'left';
+  shade(b);
   let y = 30;
   // "WORKOUT COMPLETE" and the workout's name.
   b.fillStyle = RED_B; b.font = DISPLAY6(30); spacing(b, true);
@@ -14993,27 +15006,28 @@ function drawShareCard(canvas, d, format){
   let splitLay = null;
   // Its elevation, when that's on, goes behind the route -- a soft grey hill across the card under the
   // route's lower half, the low and high points in small print under it -- so the route keeps its room.
-  const backdrop = hasRoute && !!d.elev, backdropLabels = backdrop ? 40 : 0;
+  // (Its low and high points sit inside the hill's bottom corners: the route is the same size either way.)
+  const backdrop = hasRoute && !!d.elev;
   if(hasRoute){
-    const free = areaH - y - statsH - 30 - 10 - backdropLabels;
+    const free = areaH - y - statsH - 30 - 10;
     const opts = splits.length ? [{cols:1, rowH: story ? 60 : 54}, {cols:2, rowH: story ? 56 : 48}, {cols:2, rowH:40}] : [];
     const minRoute = 200, maxRoute = story ? 640 : 420;
-    splitLay = opts.find(o=> free - (splitHead + Math.ceil(splits.length/o.cols)*o.rowH) >= minRoute) || (opts.length ? opts[opts.length-1] : null);
+    // One column while the route still gets a good size; two when that makes the route bigger.
+    const routeFor = o=> free - (splitHead + Math.ceil(splits.length/o.cols)*o.rowH), goodRoute = story ? 520 : 380;
+    splitLay = opts.find(o=> routeFor(o) >= goodRoute) || opts.find(o=> o.cols===2 && routeFor(o) >= minRoute)
+      || opts.find(o=> routeFor(o) >= minRoute) || (opts.length ? opts[opts.length-1] : null);
     const need = splitLay ? splitHead + Math.ceil(splits.length/splitLay.cols)*splitLay.rowH : 0;
     const routeH = Math.max(minRoute, Math.min(maxRoute, free - need));
     if(backdrop){
       const hillH = Math.round(routeH*0.55);
       drawElevOnCanvas(b, d.elev, 0, y + routeH - hillH, W, hillH);
+      b.fillStyle = TEXT2; b.font = MONO(22);
+      b.textAlign = 'left'; b.fillText(d.elev.low, P, y + routeH - 12);
+      b.textAlign = 'right'; b.fillText(d.elev.high, W - P, y + routeH - 12);
+      b.textAlign = 'left';
     }
     drawRouteOnCanvas(b, d.routeSegs, P, y, CW, routeH, true);
     y += routeH;
-    if(backdrop){
-      b.fillStyle = TEXT2; b.font = MONO(22);
-      b.textAlign = 'left'; b.fillText(d.elev.low, P, y + 30);
-      b.textAlign = 'right'; b.fillText(d.elev.high, W - P, y + 30);
-      b.textAlign = 'left';
-      y += backdropLabels;
-    }
     y += 30;
   }
   // The numbers: one row of tiles when there's an exercise list (or a map) with them, a big 2-column grid when not.
@@ -15140,6 +15154,7 @@ function drawShareCard(canvas, d, format){
   const bodyH = Math.min(areaH, y + 10);
   // A bit above dead centre reads better than exactly centred.
   const offset = Math.max(0, (areaH - bodyH)*0.42);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; // (the layer has its own)
   ctx.drawImage(layer, 0, 0, W, bodyH, 0, areaTop + offset, W, bodyH);
   return canvas;
 }
@@ -15151,6 +15166,26 @@ async function shareFontsReady(){
       new Promise(r=> setTimeout(r, 1500)),
     ]);
   }catch(e){}
+}
+// The logo with its black backdrop made see-through, for a clear card: each pixel's brightness becomes how
+// much of it shows (what "lighten" does over a dark background). Made once.
+let logoClearCanvas = null;
+function logoWithoutBlack(img){
+  if(logoClearCanvas) return logoClearCanvas;
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const x = c.getContext('2d');
+  x.drawImage(img, 0, 0);
+  try{
+    const px = x.getImageData(0, 0, c.width, c.height), a = px.data;
+    for(let i=0; i<a.length; i+=4){
+      const m = Math.max(a[i], a[i+1], a[i+2]);
+      if(m===0){ a[i+3] = 0; continue; }
+      a[i] = Math.round(a[i]*255/m); a[i+1] = Math.round(a[i+1]*255/m); a[i+2] = Math.round(a[i+2]*255/m); a[i+3] = m;
+    }
+    x.putImageData(px, 0, 0);
+  }catch(e){}
+  return (logoClearCanvas = c);
 }
 // A run's height along the way, for the share card: a soft grey hill behind the route, at least 25 m top
 // to bottom (as on the summary), so a flat run draws as a gentle line, not a mountain range.
@@ -15214,8 +15249,12 @@ async function renderShareCard(){
   elevChip.hidden = !d.elevAvail;
   elevChip.classList.toggle('sel', shareShowElev);
   elevChip.setAttribute('aria-checked', String(shareShowElev));
-  drawShareCard(canvas, d, shareFormat);
-  const blob = await new Promise(res=>{ try{ canvas.toBlob(res, 'image/jpeg', 0.9); }catch(e){ res(null); } });
+  const clearChip = document.getElementById('shareClearChip');
+  clearChip.classList.toggle('sel', shareClear);
+  clearChip.setAttribute('aria-checked', String(shareClear));
+  drawShareCard(canvas, d, shareFormat, shareClear);
+  // (A clear card is a PNG: a JPEG can't be see-through.)
+  const blob = await new Promise(res=>{ try{ canvas.toBlob(res, shareClear ? 'image/png' : 'image/jpeg', 0.9); }catch(e){ res(null); } });
   if(token!==shareCardToken || !blob) return false;
   shareCardBlob = blob;
   shareCardCanvas = canvas;
@@ -15224,9 +15263,11 @@ async function renderShareCard(){
   img.src = shareCardUrl;
   img.alt = shareCardAlt(d);
   img.dataset.format = shareFormat;
+  img.classList.toggle('clear', shareClear);
   return true;
 }
-function shareCardFileName(){ return `altiro-workout-${dateKey(TODAY_DATE)}${shareFormat==='story' ? '-story' : ''}.jpg`; }
+function shareCardFileName(){ return `altiro-workout-${dateKey(TODAY_DATE)}${shareFormat==='story' ? '-story' : ''}${shareClear ? '-clear.png' : '.jpg'}`; }
+const shareCardMime = ()=> shareClear ? 'image/png' : 'image/jpeg';
 function shareCardMessage(){ return STR[state.lang].shareText.replace('{title}', shareCardData().title); }
 function saveShareCardImage(){
   if(!shareCardBlob) return false;
@@ -15247,7 +15288,7 @@ async function saveShareCardToPhotos(){
   const Media = isNativeShell() && window.Capacitor.Plugins && window.Capacitor.Plugins.Media;
   if(Media){
     try{
-      const opts = {path: 'data:image/jpeg;base64,' + await blobToBase64(shareCardBlob), fileName: shareCardFileName().replace(/\.jpg$/, '')};
+      const opts = {path: `data:${shareCardMime()};base64,` + await blobToBase64(shareCardBlob), fileName: shareCardFileName().replace(/\.(jpg|png)$/, '')};
       if(window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='android'){
         const {path} = await Media.getAlbumsPath();
         try{ await Media.createAlbum({name:'Altiro'}); }catch(e){ /* already there */ }
@@ -15291,7 +15332,7 @@ async function shareShareCard(){
       await plugins.Share.share({title: L.shareCardTitle, text: shareCardMessage(), files: [file.uri], dialogTitle: L.shareCardTitle});
       return;
     }
-    const file = typeof File==='function' ? new File([shareCardBlob], shareCardFileName(), {type:'image/jpeg'}) : null;
+    const file = typeof File==='function' ? new File([shareCardBlob], shareCardFileName(), {type: shareCardMime()}) : null;
     if(file && navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
       await navigator.share({files:[file], title: L.shareCardTitle, text: shareCardMessage()});
       return;
@@ -15335,6 +15376,15 @@ function toggleShareElev(){
   renderShareCard();
 }
 document.getElementById('shareElevChip').addEventListener('click', toggleShareElev);
+// The Clear chip: no background, to lay the card over a photo or video (remembered on this device).
+let shareClear = (()=>{ try{ return localStorage.getItem('altiro_share_clear')==='1'; }catch(e){ return false; } })();
+function toggleShareClear(){
+  shareClear = !shareClear;
+  try{ localStorage.setItem('altiro_share_clear', shareClear ? '1' : '0'); }catch(e){}
+  renderShareCard();
+}
+document.getElementById('shareClearChip').addEventListener('click', toggleShareClear);
+document.getElementById('shareClearChip').addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleShareClear(); } });
 document.getElementById('shareElevChip').addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleShareElev(); } });
 document.querySelectorAll('#shareFormatChips .chip[data-share-format]').forEach(c=> c.addEventListener('click', ()=>{
   if(shareFormat===c.dataset.shareFormat) return;

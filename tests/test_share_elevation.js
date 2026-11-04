@@ -3,8 +3,10 @@ const path = require('path');
 const http = require('http');
 
 // A tracked run's elevation on its share card: a soft grey hill behind the route (so the route keeps its
-// room), with its low and high points under it, on the post and the story, with every split still on the card (a 4.5-mile hilly run, five splits). The
+// room), with its low and high points in its bottom corners -- the route the same size with it or without
+// -- on the post and the story, with every split still on the card (a 4.5-mile hilly run, five splits). The
 // climb's tile says "Climb" (it fits); the Elevation chip turns the strip off and on, and is remembered.
+// The Clear chip makes the card a see-through PNG, to lay over a photo or video.
 // Set SHARE_ELEV_OUT=<folder> to keep the pictures. Skipped without Playwright.
 let chromium;
 for(const p of ['playwright', '/opt/node22/lib/node_modules/playwright']){ try{ ({ chromium } = require(p)); break; }catch(e){} }
@@ -82,6 +84,10 @@ const LAT0 = 33.6681, LNG0 = -117.3273, M_LAT = 1/111195;
       window.__drawn.push({text: String(text), x, y, w: this.measureText(text).width, align: this.textAlign, fill: String(this.fillStyle), cw: this.canvas.width, ch: this.canvas.height});
       return f.apply(this, arguments);
     };
+    // The route's start and finish dots (radius 11): where they land says how big the route was drawn.
+    window.__dots = [];
+    const arc = CanvasRenderingContext2D.prototype.arc;
+    CanvasRenderingContext2D.prototype.arc = function(x, y, r){ if(r===11 && this.canvas.width===1080) window.__dots.push([Math.round(x), Math.round(y)]); return arc.apply(this, arguments); };
   });
   await page.tap('#shareWorkoutBtn');
   const preview = ()=> page.evaluate(()=>{ const i = document.getElementById('shareCardPreview'); return {h:i.naturalHeight, src:i.src, complete:i.complete}; });
@@ -109,22 +115,42 @@ const LAT0 = 33.6681, LNG0 = -117.3273, M_LAT = 1/111195;
     check(`${fmt}: nothing runs past the space above the footer`, body.length>0 && body.every(t=> t.y <= t.ch), body.filter(t=> t.y > t.ch).map(t=> t.text).join(','));
     await save(`elev-${fmt}.jpg`);
   }
-  // Off: no strip; the route gets its room back.
+  // Off: no strip -- and the route exactly as big as with it.
+  const dotsOn = await page.evaluate(()=> window.__dots.splice(0).slice(-2));
   await page.tap('#shareElevChip');
   let texts = await waitCard(1920);
   check('Elevation chip off: no strip on the card', !texts.some(t=> /^Low |^High /.test(t.text)) && !(await chip()).on);
+  const dotsOff = await page.evaluate(()=> window.__dots.splice(0).slice(-2));
+  check('...the route the same size and place with the elevation or without', dotsOn.length===2 && JSON.stringify(dotsOn)===JSON.stringify(dotsOff), JSON.stringify([dotsOn, dotsOff]));
   await save('no-elev-story.jpg');
   check('...remembered for next time', await page.evaluate(()=> localStorage.getItem('altiro_share_elev'))==='0');
   await page.tap('#shareElevChip');
   texts = await waitCard(1920);
   check('...and back on', texts.some(t=> /^Low /.test(t.text)));
+  // Clear: a see-through PNG, remembered.
+  const clearChip = ()=> page.evaluate(()=>{ const c = document.getElementById('shareClearChip'); return {on: c.classList.contains('sel'), text: c.textContent}; });
+  check('A Clear chip, off to start with', (await clearChip()).text==='Clear' && !(await clearChip()).on);
+  await page.tap('#shareClearChip');
+  await waitCard(1920);
+  const clear = await page.evaluate(async ()=>{
+    const img = document.getElementById('shareCardPreview'), blob = await (await fetch(img.src)).blob();
+    const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+    const corner = x.getImageData(5, 5, 1, 1).data[3], mid = x.getImageData(540, 1700, 1, 1).data[3];
+    return {type: blob.type, corner, mid, cls: img.className, on: localStorage.getItem('altiro_share_clear')};
+  });
+  check('Clear: the card is a PNG with no background (see-through corners)', clear.type==='image/png' && clear.corner===0 && clear.mid===0, JSON.stringify(clear));
+  check('...its preview shows a checkerboard behind it, and it\'s remembered', /clear/.test(clear.cls) && clear.on==='1');
+  await page.tap('#shareClearChip');
+  await waitCard(1920);
+  check('Clear off: a JPEG with its dark background again', await page.evaluate(async ()=>{ const b = await (await fetch(document.getElementById('shareCardPreview').src)).blob(); return b.type==='image/jpeg'; }));
   // In Spanish.
   await page.evaluate(()=>{ document.getElementById('closeShareCard').click(); document.querySelector('.lang-btn[data-lang="es"]').click(); });
   await sleep(100);
   await page.tap('#shareWorkoutBtn');
   last = '';
   texts = await waitCard(1920);
-  check('In Spanish: Elevación, Mín / Máx and SUBIDA', (await chip()).text==='Elevación' && texts.some(t=> /^Mín \d/.test(t.text)) && texts.some(t=> /^Máx \d/.test(t.text)) && texts.some(t=> t.text==='SUBIDA'), texts.map(t=> t.text).join(' | ').slice(0, 300));
+  check('In Spanish: Elevación, Transparente, Mín / Máx and SUBIDA', (await chip()).text==='Elevación' && (await clearChip()).text==='Transparente' && texts.some(t=> /^Mín \d/.test(t.text)) && texts.some(t=> /^Máx \d/.test(t.text)) && texts.some(t=> t.text==='SUBIDA'), texts.map(t=> t.text).join(' | ').slice(0, 300));
   check('No page errors', errors.length===0, errors.join(' | '));
   await browser.close();
   server.close();

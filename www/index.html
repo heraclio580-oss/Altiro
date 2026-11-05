@@ -4330,7 +4330,7 @@ const STR = {
     textSizeLabel: "Text size", textSizeNote: "Makes the words in Altiro bigger on this device.",
     gpsLogTitle: "GPS log", gpsLogSend: "Send",
     gpsLogNone: "Track a run with GPS and the phone's raw readings from it are kept here, to send for tuning the tracker.",
-    gpsLogLast: "Last run: {date} · {dist} · {n} readings",
+    gpsLogLast: "Last run: {date} · {dist} · {n} readings", gpsLogRuns: "{n} runs saved",
     gpsLogFileTitle: "Altiro GPS log", gpsLogFailed: "Couldn't share the GPS log",
     testingLabel: "Testing", freePreviewTitle: "Preview free version", freePreviewSub: "See Altiro as a free account would. Only changes what's shown: turn it off to go back to everything.",
     paywallTitle: "Altiro Pro",
@@ -5115,7 +5115,7 @@ const STR = {
     textSizeLabel: "Tamaño del texto", textSizeNote: "Agranda las letras de Altiro en este dispositivo.",
     gpsLogTitle: "Registro GPS", gpsLogSend: "Enviar",
     gpsLogNone: "Registra una carrera con GPS y las lecturas sin procesar del teléfono se guardan aquí, para enviarlas y ajustar el registro.",
-    gpsLogLast: "Última carrera: {date} · {dist} · {n} lecturas",
+    gpsLogLast: "Última carrera: {date} · {dist} · {n} lecturas", gpsLogRuns: "{n} carreras guardadas",
     gpsLogFileTitle: "Registro GPS de Altiro", gpsLogFailed: "No se pudo compartir el registro GPS",
     testingLabel: "Pruebas", freePreviewTitle: "Ver la versión gratuita", freePreviewSub: "Mira Altiro como lo vería una cuenta gratuita. Solo cambia lo que se muestra: desactívalo para volver a tenerlo todo.",
     paywallTitle: "Altiro Pro",
@@ -16180,8 +16180,8 @@ document.getElementById('locPromptLater').addEventListener('click', ()=>{
 // smoothing, anything -- with the phone's own speed and heading, when the run was paused and picked up
 // again, what the tracker made of it, and the terrain heights it was checked against: so the tracker can
 // be tuned against a watch's recording of the same run. Kept on this phone only (the run going on, and
-// the last one finished), and sent only when the tester taps Send in Settings.
-const GPS_LOG_LIVE_KEY = 'altiro_gps_log_live', GPS_LOG_KEY = 'altiro_gps_log', GPS_LOG_MAX_FIXES = 30000;
+// the last 5 finished), and sent -- all of them, in one file -- only when the tester taps Send in Settings.
+const GPS_LOG_LIVE_KEY = 'altiro_gps_log_live', GPS_LOGS_KEY = 'altiro_gps_logs', GPS_LOG_OLD_KEY = 'altiro_gps_log', GPS_LOG_MAX_FIXES = 30000, GPS_LOGS_KEPT = 5;
 let gpsLog = null, gpsLogSavedAt = 0;
 function gpsLogOn(){ return !!(state.tester && state.userId); }
 function gpsLogLive(){
@@ -16221,7 +16221,7 @@ function gpsLogFinish(result){
     elevGain: result.elevGain, elevLoss: result.elevLoss, gpsStats: result.gpsStats, startedAt: result.startedAt, finishedAt: result.finishedAt,
     settings: {maxAccuracyM: GPS_MAX_ACCURACY_M, maxSpeedMs: GPS_MAX_SPEED_MS, q: GPS_Q, minStepM: GPS_MIN_STEP_M}};
   log.route = gps.segs.map(sg=> sg.map(p=> [p[2] || 0, r6(p[0]), r6(p[1]), p[3]==null ? null : r1(p[3])]));
-  try{ localStorage.setItem(GPS_LOG_KEY, JSON.stringify(log)); }catch(e){}
+  saveGpsLogs([...gpsLogs(), log].slice(-GPS_LOGS_KEPT));
   gpsLogDrop();
   renderGpsLogSetting();
 }
@@ -16229,32 +16229,52 @@ function gpsLogFinish(result){
 function gpsLogTerrain(segs, pts, heights, gain, loss){
   if(!gpsLogOn()) return;
   try{
-    const log = JSON.parse(localStorage.getItem(GPS_LOG_KEY) || 'null');
+    // (The run just finished: the newest log.)
+    const logs = gpsLogs(), log = logs[logs.length-1];
     if(!log || !log.route || log.terrain) return;
     log.terrain = {pts: pts.map((p, i)=> [Math.round(p.d), p.seg, r6(p.lat), r6(p.lng), heights[i]]), gain: r1(gain), loss: r1(loss),
       settings: {gapM: ELEV_GAP_M, smoothM: ELEV_SMOOTH_M, stepM: ELEV_STEP_M}};
-    localStorage.setItem(GPS_LOG_KEY, JSON.stringify(log));
+    saveGpsLogs(logs);
   }catch(e){}
 }
-function lastGpsLog(){ try{ return JSON.parse(localStorage.getItem(GPS_LOG_KEY) || 'null'); }catch(e){ return null; } }
+// The last 5 runs' logs, oldest first. (A phone that kept just one, before: that one.)
+function gpsLogs(){
+  try{
+    const list = JSON.parse(localStorage.getItem(GPS_LOGS_KEY) || 'null');
+    if(Array.isArray(list)) return list.filter(l=> l && Array.isArray(l.fixes));
+    const old = JSON.parse(localStorage.getItem(GPS_LOG_OLD_KEY) || 'null');
+    return old && Array.isArray(old.fixes) ? [old] : [];
+  }catch(e){ return []; }
+}
+// Kept on the phone; if they don't fit in its storage, the oldest go first.
+function saveGpsLogs(list){
+  let keep = list.slice(-GPS_LOGS_KEPT);
+  while(keep.length){
+    try{ localStorage.setItem(GPS_LOGS_KEY, JSON.stringify(keep)); break; }catch(e){ keep = keep.slice(1); }
+  }
+  try{ if(!keep.length) localStorage.removeItem(GPS_LOGS_KEY); localStorage.removeItem(GPS_LOG_OLD_KEY); }catch(e){}
+}
+function lastGpsLog(){ const l = gpsLogs(); return l[l.length-1] || null; }
 function renderGpsLogSetting(){
   const sub = document.getElementById('gpsLogSub');
   if(!sub) return;
-  const L = STR[state.lang], log = lastGpsLog();
+  const L = STR[state.lang], logs = gpsLogs(), log = logs[logs.length-1] || null;
   const btn = document.getElementById('gpsLogSendBtn');
   btn.disabled = !log;
   if(!log || !log.app){ sub.textContent = L.gpsLogNone; return; }
   const d = new Date(log.app.startedAt || log.fixes[0][0]);
   const mo = MONTHS_SHORT[state.lang][d.getMonth()];
-  sub.textContent = L.gpsLogLast.replace('{date}', state.lang==='es' ? `${d.getDate()} ${mo}` : `${mo} ${d.getDate()}`)
+  const last = L.gpsLogLast.replace('{date}', state.lang==='es' ? `${d.getDate()} ${mo}` : `${mo} ${d.getDate()}`)
     .replace('{dist}', `${(log.app.distM/unitMeters()).toFixed(2)} ${distUnit()}`).replace('{n}', log.fixes.length.toLocaleString(state.lang==='es' ? 'es' : 'en-US'));
+  sub.textContent = logs.length>1 ? `${L.gpsLogRuns.replace('{n}', logs.length)} · ${last}` : last;
 }
+// Every kept run's log in one file: {runs: [...]}, oldest first.
 async function sendGpsLog(){
-  const L = STR[state.lang], log = lastGpsLog();
-  if(!log) return;
-  const d = new Date((log.app && log.app.startedAt) || Date.now());
-  const name = `altiro-gps-${dateKey(d)}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.json`;
-  const json = JSON.stringify(log);
+  const L = STR[state.lang], logs = gpsLogs();
+  if(!logs.length) return;
+  const d = new Date((logs[logs.length-1].app && logs[logs.length-1].app.startedAt) || Date.now());
+  const name = `altiro-gps-${logs.length}-run${logs.length>1 ? 's' : ''}-${dateKey(d)}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.json`;
+  const json = JSON.stringify({v: 2, runs: logs});
   const plugins = isNativeShell() && window.Capacitor.Plugins;
   try{
     if(plugins && plugins.Share && plugins.Filesystem){

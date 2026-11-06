@@ -9,7 +9,7 @@ const { JSDOM } = require('jsdom');
 //   which workout it was -- done, counted in the week and its miles;
 // - logging a workout keeps which workout it was with it, so the day shows that same workout after the
 //   plan restarts (and after a reload);
-// - a done workout's share card has the day it was done, not the day it's shared.
+// - a done workout's share card has no date on it (it's often shared days later).
 const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 let failures = 0;
@@ -116,7 +116,7 @@ async function dayDetail(doc, key){
     doc.getElementById('shareWorkoutBtn').click();
     await wait(200);
     const alt = (doc.getElementById('shareCardPreview') || {}).alt || '';
-    check('Share card of Monday\'s run: dated Mon, Nov 2, not today', /Mon, Nov 2, 2026/.test(alt) && !/Nov 6/.test(alt), alt.slice(0, 120));
+    check('Share card of Monday\'s run: Monday\'s run, with no date on it', /Run/.test(alt) && /3\.12 mi/.test(alt) && !/Nov|2026/.test(alt), alt.slice(0, 120));
     w.close();
   }
 

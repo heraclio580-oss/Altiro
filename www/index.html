@@ -14884,7 +14884,7 @@ function shareSetsText(res){
   return sets.map(x=> `${fmtShareWeight(Number(x.weight)||0)}×${Number(x.reps)||0}`).join(' · ') + ` ${unit}`;
 }
 // Everything the card shows, from the workout just saved.
-// The day the shared workout was done: the one being looked back at on its Summary, else today's.
+// The day the shared workout was done (for its file's name): the one being looked back at on its Summary, else today's.
 function shareCardDayKey(){
   return (summaryView && summaryView.target && summaryView.target.dayKey) || dateKey(TODAY_DATE);
 }
@@ -14922,7 +14922,6 @@ function shareCardData(){
     if(session.t==='strength' && logged.weight>0) stats.push({l:L.shareStatTopSet, v:`${fmtShareWeight(logged.weight)} ${unit} × ${logged.reps||0}`});
   }
   const sessL = ST(session);
-  const date = parseDateKey(shareCardDayKey()).toLocaleDateString(state.lang==='es' ? 'es' : 'en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
   stats.forEach(st=>{ st.v = kmText(st.v); }); // the card is drawn, not on the page, so it's converted here
   // A tracked run's splits, every one, with the fastest marked.
   const sp = session.t==='run' && logged.route ? runSplitList(logged) : null;
@@ -14933,13 +14932,13 @@ function shareCardData(){
   const elevAvail = !!(prof && Array.isArray(prof.d) && prof.d.length>=2 && Array.isArray(prof.a) && prof.a.length===prof.d.length);
   const elev = elevAvail && shareShowElev ? {d: prof.d, a: prof.a,
     low: `${state.lang==='es' ? 'Mín' : 'Low'} ${fmtElev(Math.min(...prof.a))}`, high: `${state.lang==='es' ? 'Máx' : 'High'} ${fmtElev(Math.max(...prof.a))}`} : null;
-  return {kicker: L.workoutCompleteTitle, title: sessL.title || L.workoutCompleteTitle, date, stats, rows, splits, elev, elevAvail,
+  return {kicker: L.workoutCompleteTitle, title: sessL.title || L.workoutCompleteTitle, stats, rows, splits, elev, elevAvail,
     streak: state.streak>=1 ? L.shareStreak.replace('{n}', state.streak) : '', footer: L.shareFooter,
     routeSegs: session.t==='run' && logged.route ? routeSegments(logged.route) : null};
 }
 function shareCardAlt(d){
   const L = STR[state.lang];
-  return [d.title, d.date, ...d.stats.map(s=>`${s.l}: ${s.v}`), ...d.rows.map(r=>`${r.name}: ${r.detail}`),
+  return [d.title, ...d.stats.map(s=>`${s.l}: ${s.v}`), ...d.rows.map(r=>`${r.name}: ${r.detail}`),
     ...(d.splits || []).map(x=> `${x.label}: ${x.pace}${x.best ? ` (${L.shareFastest})` : ''}`)].join('. ');
 }
 // Shrinks a font size until the text fits, then cuts it with "…" if it still doesn't.
@@ -15014,15 +15013,12 @@ function drawShareCard(canvas, d, format, clear){
   shade(ctx);
   // Instagram/TikTok stories cover the top and bottom ~250px with their own buttons.
   const top = story ? 230 : 80, footerY = H - (story ? 250 : 80);
-  // Logo top-left (its black backdrop drops out with "lighten"), date top-right.
+  // Logo top-left (its black backdrop drops out with "lighten"). (No date: a card is often shared days later.)
   const logo = document.getElementById('brandLogoFull');
   const logoH = 118, logoW = logo && logo.naturalWidth ? logoH*logo.naturalWidth/logo.naturalHeight : 0;
   // (On a clear card its black backdrop is made see-through instead -- "lighten" needs something under it.)
   if(logoW){ try{ ctx.save(); if(clear) ctx.drawImage(logoWithoutBlack(logo), P-6, top, logoW, logoH); else { ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(logo, P-6, top, logoW, logoH); } ctx.restore(); }catch(e){} }
-  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'right'; ctx.fillStyle = TEXT2; spacing(ctx, false);
-  const dateFit = fitText(ctx, d.date.toUpperCase(), CW - logoW - 30, MONO, 30, 20);
-  ctx.font = MONO(dateFit.px); ctx.fillText(dateFit.text, W-P, top+logoH/2+10);
-  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'; spacing(ctx, false);
   // Footer: a red-to-green rule (the logo's swoosh), "Tracked with Altiro", and the streak.
   g = ctx.createLinearGradient(P, 0, W-P, 0);
   g.addColorStop(0, RED); g.addColorStop(1, GREEN);

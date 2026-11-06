@@ -4047,7 +4047,7 @@ const STR = {
     gpsDenied: "Altiro can't use your location. Allow it in your phone's settings to track runs.", gpsUnsupported: "This device can't share its location.",
     gpsOpenSettings: "Open settings", gpsDiscardQ: "Discard this run?", gpsDiscardYes: "Discard", gpsDiscardKeep: "Keep it",
     gpsResumedToast: "Your run was paused. Tap Resume to carry on.", gpsTooShort: "Run a little farther first. There's nothing to save yet.",
-    gpsNotifTitle: "Altiro is tracking your run", gpsNotifMsg: "Tap to go back to your run.", gpsRunTitle: "Run",
+    gpsNotifTitle: "Altiro is tracking your run", gpsNotifMsg: "Tap to go back to your run.", gpsRunTitle: "Run", loggedLiftTitle: "Lifting workout",
     gpsGapLive: "GPS stopped while the screen was off, so that stretch will read short. Keep Altiro open with the screen on until you finish.",
     gpsGapSummaryOne: "GPS dropped out for {total} during this run. That stretch is a straight line on the map, so the distance may read short.",
     gpsGapSummary: "GPS dropped out {n} times during this run, {total} in all (longest {longest}). Those stretches are straight lines on the map, so the distance may read short.",
@@ -4832,7 +4832,7 @@ const STR = {
     gpsDenied: "Altiro no puede usar tu ubicación. Permítela en los ajustes del teléfono para registrar carreras.", gpsUnsupported: "Este dispositivo no puede compartir su ubicación.",
     gpsOpenSettings: "Abrir ajustes", gpsDiscardQ: "¿Descartar esta carrera?", gpsDiscardYes: "Descartar", gpsDiscardKeep: "Conservarla",
     gpsResumedToast: "Tu carrera quedó en pausa. Toca Seguir para continuar.", gpsTooShort: "Corre un poco más primero. Aún no hay nada que guardar.",
-    gpsNotifTitle: "Altiro está registrando tu carrera", gpsNotifMsg: "Toca para volver a tu carrera.", gpsRunTitle: "Carrera",
+    gpsNotifTitle: "Altiro está registrando tu carrera", gpsNotifMsg: "Toca para volver a tu carrera.", gpsRunTitle: "Carrera", loggedLiftTitle: "Entrenamiento de pesas",
     gpsGapLive: "El GPS se detuvo mientras la pantalla estaba apagada, así que ese tramo marcará de menos. Deja Altiro abierta con la pantalla encendida hasta terminar.",
     gpsGapSummaryOne: "El GPS se cortó durante {total} en esta carrera. Ese tramo es una línea recta en el mapa, así que la distancia puede marcar de menos.",
     gpsGapSummary: "El GPS se cortó {n} veces en esta carrera, {total} en total (el más largo {longest}). Esos tramos son líneas rectas en el mapa, así que la distancia puede marcar de menos.",
@@ -7162,7 +7162,13 @@ function getDayData(date){
   // happened -- fall back to the first logged entry as this day's effective content.
   // Which record the displayed session actually came from -- a tap on it has to open Log Performance
   // for THAT workout (see primaryLogTarget()), not for the empty rest slot underneath it.
-  let primarySource = 'plan', primaryExtraId = null;
+  let primarySource = 'plan', primaryExtraId = null, inferredFromLog = false;
+  // A day with a workout logged on it shows that workout -- even if the plan later changed under it
+  // (restarted, a new weekly mileage) -- unless the user changed the day themselves (isCustom).
+  if(log && log.performance && !isCustom && (p.t==='rest' || log.performance.session)){
+    const was = loggedSession(log.performance);
+    if(was && (p.t==='rest' || was.t!==p.t || was.en.title!==p.en.title || (was.en.detail||'')!==(p.en.detail||''))){ p = was; c = null; inferredFromLog = !log.performance.session; }
+  }
   if(p.t==='rest' && manualEntries.length>0){
     const first = manualEntries[0];
     p = ses(first.type, first.name, first.volume||'', first.name, first.volume||'');
@@ -7202,7 +7208,7 @@ function getDayData(date){
   return {
     missed: (log && log.missed) || null, // why the day's workout was missed, if the user said (see setMissedReason)
     markedNotDone: !!(log && log.completedOverride===false),
-    key, date, p, c, completed, active, manualEntries, isCustom, extraWorkouts, actualRunDistance, primarySource, primaryExtraId,
+    key, date, p, c, completed, active, manualEntries, isCustom, extraWorkouts, actualRunDistance, primarySource, primaryExtraId, inferredFromLog,
     isToday: key===dateKey(TODAY_DATE),
     isPast: date.getTime() < TODAY_DATE.getTime(),
     isFuture: date.getTime() > TODAY_DATE.getTime(),
@@ -9614,9 +9620,39 @@ function storeLoggedPerformance(t, resolved, logged){
     resolved.record.performance = logged;
     if(resolved.record.supabaseId) cloudSetManualEntryPerformance(resolved.record.supabaseId, logged);
   } else {
-    ensureDayLog(t.dayKey).performance = logged;
+    // Which workout this was goes with it, so the day keeps showing it whatever the plan says later
+    // (a plan restarted mid-week, a new weekly mileage): a done workout only changes when the user changes it.
+    const log = ensureDayLog(t.dayKey), prev = log.performance && log.performance.session;
+    if(logged && !logged.session){
+      const dd = getDayData(parseDateKey(t.dayKey));
+      if(dd.p.t!=='rest' && !dd.inferredFromLog) logged.session = sessionSnapshot(dd.p);
+      else if(prev) logged.session = prev;
+    }
+    log.performance = logged;
     cloudSetDayPerformance(t.dayKey, logged);
   }
+}
+// A copy of a day's workout to keep with what was logged for it (just its own fields: type, titles,
+// exercises, interval...).
+function sessionSnapshot(p){
+  try{ return JSON.parse(JSON.stringify(p)); }catch(e){ return {t:p.t, en:{...p.en}, es:{...p.es}}; }
+}
+// The workout a day's logged performance was for: the one saved with it, or -- logged before that was
+// saved -- what it shows it was (a distance: a run; exercises: a lifting workout). null if it can't tell.
+function loggedSession(perf){
+  if(!perf) return null;
+  const s = perf.session;
+  if(s && s.t && s.t!=='rest' && s.en && s.es) return sessionSnapshot(s);
+  if(perf.distance!=null || (Array.isArray(perf.route) && perf.route.length)){
+    const det = perf.distance!=null ? `${+(+perf.distance).toFixed(2)} mi` : '';
+    return ses('run', STR.en.gpsRunTitle, det, STR.es.gpsRunTitle, det);
+  }
+  if(Array.isArray(perf.exercises) && perf.exercises.length){
+    const p = ses('strength', STR.en.loggedLiftTitle, '', STR.es.loggedLiftTitle, '');
+    p.exercises = perf.exercises.map(e=> ({key: e.key || e.name, name: e.name || e.key, sets: Array.isArray(e.sets) ? e.sets.length : (e.sets||3), reps: e.reps || 10}));
+    return p;
+  }
+  return null;
 }
 // Everything a Log Performance save means besides the performance itself, for any save that ISN'T
 // today's first real recording (that one still goes through startWorkout() -- streak, Summary,
@@ -14848,6 +14884,10 @@ function shareSetsText(res){
   return sets.map(x=> `${fmtShareWeight(Number(x.weight)||0)}×${Number(x.reps)||0}`).join(' · ') + ` ${unit}`;
 }
 // Everything the card shows, from the workout just saved.
+// The day the shared workout was done: the one being looked back at on its Summary, else today's.
+function shareCardDayKey(){
+  return (summaryView && summaryView.target && summaryView.target.dayKey) || dateKey(TODAY_DATE);
+}
 function shareCardData(){
   const L = STR[state.lang];
   const session = state._lastSession || todaySession();
@@ -14882,7 +14922,7 @@ function shareCardData(){
     if(session.t==='strength' && logged.weight>0) stats.push({l:L.shareStatTopSet, v:`${fmtShareWeight(logged.weight)} ${unit} × ${logged.reps||0}`});
   }
   const sessL = ST(session);
-  const date = TODAY_DATE.toLocaleDateString(state.lang==='es' ? 'es' : 'en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+  const date = parseDateKey(shareCardDayKey()).toLocaleDateString(state.lang==='es' ? 'es' : 'en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
   stats.forEach(st=>{ st.v = kmText(st.v); }); // the card is drawn, not on the page, so it's converted here
   // A tracked run's splits, every one, with the fastest marked.
   const sp = session.t==='run' && logged.route ? runSplitList(logged) : null;
@@ -15287,7 +15327,7 @@ async function renderShareCard(){
 function shareCardFileName(){
   const slug = String(shareCardData().title || 'workout').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'workout';
   const now = new Date(), hhmmss = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n=> String(n).padStart(2, '0')).join('');
-  return `altiro-${slug}-${dateKey(TODAY_DATE)}-${hhmmss}${shareFormat==='story' ? '-story' : ''}${shareClear ? '-clear.png' : '.jpg'}`;
+  return `altiro-${slug}-${shareCardDayKey()}-${hhmmss}${shareFormat==='story' ? '-story' : ''}${shareClear ? '-clear.png' : '.jpg'}`;
 }
 const shareCardMime = ()=> shareClear ? 'image/png' : 'image/jpeg';
 function shareCardMessage(){ return STR[state.lang].shareText.replace('{title}', shareCardData().title); }

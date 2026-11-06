@@ -16549,7 +16549,7 @@ function elevProfileFrom(segs, altOf){
 // provider as the weather -- it gets sample points along the route, nothing else), which is far steadier
 // than a phone's altitude. If it answers, its gain, loss and profile replace the GPS ones in the run
 // waiting to be saved (and in Log Performance, unless they've been typed over); if not, the GPS ones stay.
-const ELEV_GAP_M = 60, ELEV_SMOOTH_M = 90, ELEV_STEP_M = 3;
+const ELEV_GAP_M = 60, ELEV_SMOOTH_M = 80, ELEV_STEP_M = 2;
 async function refineElevation(target, segs){
   try{
     let total = 0;
@@ -16588,10 +16588,12 @@ async function refineElevation(target, segs){
     }
     // Terrain data comes in 90 m squares, so along a road it steps up and down by a few metres from one
     // square to the next (and with the slopes beside the road) -- counted as is, a 236 ft run (Garmin's
-    // barometer) came out at 482. So the heights are averaged over about 180 m of route first (two
-    // squares), and only a 3 m change counts; whatever is left at the end of each stretch is counted too.
+    // barometer) came out at 482. So the heights are averaged over about 160 m of route first (nearly
+    // two squares), and only a 2 m change counts; whatever is left at the end of each stretch is counted
+    // too. (Checked against a tester's 4-mile hilly run beside a Garmin: 236 ft on the watch, 231 here --
+    // averaging over 180 m and counting 3 m said 220, smoothing away real rises.)
     // (Along a lake shore the squares flip between water and bank, 5 m apart: averaged over 120 m and
-    // counting 2 m, a flat 5-mile lakeside run climbed 95 ft.)
+    // counting 2 m, a flat 5-mile lakeside run climbed 95 ft -- so no less averaging than this.)
     // (The window is the same each side: near the start or end of a stretch it narrows, so a steady
     // climb from the start isn't averaged up into a head start.)
     const segFrom = {}, segTo = {};

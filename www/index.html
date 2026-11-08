@@ -1294,6 +1294,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   cursor:pointer;
 }
 .watch-demo-btn:hover{color:var(--text);border-color:var(--hover-border);}
+/* "Also add it to your next workouts?" -- under the add box, after adding an exercise. */
+.keep-ex{margin-top:10px;padding:12px 14px;border:1px solid var(--accent);border-radius:14px;background:var(--surface-2, rgba(255,255,255,0.04));}
+.keep-ex p{margin:0 0 10px;font-size:calc(14px * var(--fs, 1));line-height:1.4;}
+.keep-ex .keep-ex-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.keep-ex .btn{flex:1 1 auto;min-width:0;padding:10px 14px;}
 /* Today's "Change exercises" (rearrange, add, supersets): outlined in the accent, easy to spot. */
 #changeExercisesBtn{border-color:var(--accent);}
 /* One-time tip on how to move exercises (and superset them), until it's closed or something's moved. */
@@ -2853,6 +2858,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
             <button type="button" class="btn btn-ghost" id="wpAddExerciseBtn" data-i18n="liveAddBtn"></button>
           </div>
           <div class="name-suggest" id="wpAddSuggest" role="listbox" hidden></div>
+          <div class="keep-ex" id="wpKeepEx" role="group" hidden></div>
         </div>
       </div>
       <div class="sheet-section" id="wpCompanionSection" hidden>
@@ -3070,6 +3076,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <!-- Names matching what's typed: below the box, in the sheet itself (a phone's own suggestion
              pop-up sat over the box and the keyboard) -->
         <div class="name-suggest" id="logPerfAddSuggest" role="listbox" hidden></div>
+        <div class="keep-ex" id="logPerfKeepEx" role="group" hidden></div>
       </div>
 
       <div class="sheet-section" id="logPerfWeightSection">
@@ -3940,6 +3947,11 @@ const STR = {
     repeatOtherDays: "Days without one of your workouts",
     repeatKeepPlan: "Keep Altiro's plan", repeatRestDays: "Make them rest days",
     repeatNote: "{n} workouts a week, copied into {weeks} ({range}). Your weights and reps carry over from your lift numbers, so they update as you log.",
+    repeatNoteOne: "1 workout a week, copied into {weeks} ({range}). Your weights and reps carry over from your lift numbers, so they update as you log.",
+    repeatNoteMerge: "A workout already there with the same name keeps your changes and just gets any exercises it's missing.",
+    keepExAskMany: "Also add {ex} to your next {n} “{name}” workouts?", keepExAskOne: "Also add {ex} to your next “{name}” workout?",
+    keepExAll: "Add to all {n}", keepExIt: "Add to it", keepExJust: "Just this one",
+    keepExDoneMany: "{ex} added to your next {n} “{name}” workouts", keepExDoneOne: "{ex} added to your next “{name}” workout",
     repeatNoteWeek: "1 week", repeatNoteWeeks: "{n} weeks",
     repeatPickEnd: "Pick the last day to copy it to.",
     repeatApplyBtn: "Repeat week",
@@ -4725,6 +4737,11 @@ const STR = {
     repeatOtherDays: "Días sin uno de tus entrenamientos",
     repeatKeepPlan: "Mantener el plan de Altiro", repeatRestDays: "Hacerlos días de descanso",
     repeatNote: "{n} entrenamientos por semana, copiados en {weeks} ({range}). Tus pesos y repeticiones siguen tus números de cada ejercicio, así que se actualizan al registrar.",
+    repeatNoteOne: "1 entrenamiento por semana, copiado en {weeks} ({range}). Tus pesos y repeticiones siguen tus números de cada ejercicio, así que se actualizan al registrar.",
+    repeatNoteMerge: "Un entrenamiento que ya está ahí con el mismo nombre conserva tus cambios y solo recibe los ejercicios que le falten.",
+    keepExAskMany: "¿Añadir también {ex} a tus próximos {n} entrenamientos «{name}»?", keepExAskOne: "¿Añadir también {ex} a tu próximo entrenamiento «{name}»?",
+    keepExAll: "Añadir a los {n}", keepExIt: "Añadir", keepExJust: "Solo este",
+    keepExDoneMany: "{ex} añadido a tus próximos {n} entrenamientos «{name}»", keepExDoneOne: "{ex} añadido a tu próximo entrenamiento «{name}»",
     repeatNoteWeek: "1 semana", repeatNoteWeeks: "{n} semanas",
     repeatPickEnd: "Elige el último día al que copiarla.",
     repeatApplyBtn: "Repetir semana",
@@ -7650,8 +7667,9 @@ function renderRepeatWeek(){
   else {
     const last = targets[targets.length-1];
     const weeksText = targets.length===1 ? L.repeatNoteWeek : L.repeatNoteWeeks.replace('{n}', targets.length);
-    note.textContent = L.repeatNote.replace('{n}', src.count).replace('{weeks}', weeksText)
-      .replace('{range}', fmtShortRange(targets[0], new Date(last.getFullYear(), last.getMonth(), last.getDate()+6)));
+    note.textContent = (src.count===1 ? L.repeatNoteOne : L.repeatNote).replace('{n}', src.count).replace('{weeks}', weeksText)
+      .replace('{range}', fmtShortRange(targets[0], new Date(last.getFullYear(), last.getMonth(), last.getDate()+6)))
+      + (repeatHasSameNamed(src, targets) ? ' ' + L.repeatNoteMerge : '');
   }
   document.getElementById('applyRepeatBtn').disabled = !targets.length || !src.count;
   renderRepeatClear();
@@ -7693,6 +7711,8 @@ function applyRepeatWeek(){
         const log = state.dayLog[key];
         const extras = ((log && log.extraWorkouts) || []).map(w=>w.session && w.session.en.title);
         if(theirs.en.title!==day.own.en.title && !extras.includes(day.own.en.title)) addExtraWorkout(key, cloneSession(day.own));
+        // (The same workout already there: it keeps any changes made to it, and gets what it's missing.)
+        else if(theirs.en.title===day.own.en.title) mergeMissingInto({dayKey: key, kind:'primary', id:null}, day.own);
       } else if(day.own){
         const session = cloneSession(day.own);
         writeDaySlot(date, {p: session, c: null, completed: false, isCustom: true});
@@ -7704,8 +7724,12 @@ function applyRepeatWeek(){
       }
       // Additional Workouts: added unless that day already has one with the same name (repeating twice
       // doesn't double them up).
-      const have = ((state.dayLog[key] && state.dayLog[key].extraWorkouts) || []).map(w=>w.session && w.session.en.title);
-      day.extras.forEach(sess=>{ if(!have.includes(sess.en.title)) addExtraWorkout(key, cloneSession(sess)); });
+      const haveW = (state.dayLog[key] && state.dayLog[key].extraWorkouts) || [], have = haveW.map(w=>w.session && w.session.en.title);
+      day.extras.forEach(sess=>{
+        if(!have.includes(sess.en.title)){ addExtraWorkout(key, cloneSession(sess)); return; }
+        const w = haveW.find(x=> x.session && x.session.en.title===sess.en.title);
+        if(w) mergeMissingInto({dayKey: key, kind:'extra', id: w.id}, sess);
+      });
     });
   });
   const weeksText = targets.length===1 ? L.repeatNoteWeek : L.repeatNoteWeeks.replace('{n}', targets.length);
@@ -9801,6 +9825,8 @@ function openLogPerformanceFor(logTarget, mode){
   const isToday = logTarget.dayKey===dateKey(TODAY_DATE);
   if(!mode) mode = (isToday && logTarget.kind!=='entry' && !resolved.completed) ? 'record' : 'revisit';
   if(!isToday) mode = 'revisit';
+  // (The "also add it to the next ones?" question is for the exercise just added, in this workout only.)
+  if(!state._logTarget || logTargetKey(state._logTarget)!==logTargetKey(logTarget)){ const k = document.getElementById('logPerfKeepEx'); k.hidden = true; k.innerHTML = ''; }
   state._logTarget = logTarget;
   state._logMode = mode;
   const canRename = mode==='revisit' && renamableWorkout(logTarget, resolved);
@@ -10089,6 +10115,94 @@ function setSessionExercises(t, list){
   writeDaySlot(date, {p, c: slot.c, completed: slot.completed, isCustom: true});
   cloudSavePlannedSession(t.dayKey, p);
 }
+// ---- An exercise added to one of the user's own workouts can go into the upcoming ones of the same name
+// too ("Also add Champagnes to your next 4 'Back and chest' workouts?"). Only ever adds: whatever else
+// was changed in those workouts stays as it is, and done ones aren't touched.
+const KEEP_EX_DAYS = 400;
+// The user's own workouts named `title` still to come after `fromKey` (not done): as log targets.
+function upcomingSameWorkouts(title, fromKey){
+  if(!title) return [];
+  const out = [], start = parseDateKey(fromKey);
+  // (As far as anything is saved ahead -- or the end of this week, whose days live on the week itself.)
+  const lastKey = [...Object.keys(state.dayLog), dateKey(weekDates(0)[6])].filter(k=> k>fromKey).sort().pop();
+  if(!lastKey) return out;
+  for(let i=1; i<=KEEP_EX_DAYS; i++){
+    const date = new Date(start.getFullYear(), start.getMonth(), start.getDate()+i), key = dateKey(date);
+    if(key > lastKey) break;
+    const dd = getDayData(date);
+    if(dd.isCustom && dd.primarySource==='plan' && !dd.completed && !(state.dayLog[key] && state.dayLog[key].performance) && dd.p.t==='strength' && namedAs(dd.p, title)) out.push({dayKey: key, kind:'primary', id:null});
+    dd.extraWorkouts.forEach(w=>{ if(!w.completed && !w.performance && w.session && w.session.t==='strength' && namedAs(w.session, title)) out.push({dayKey: key, kind:'extra', id: w.id}); });
+  }
+  return out;
+}
+// A workout's own exercise list (written out from the plan's picks if it has none of its own yet).
+function ownExerciseList(t){
+  const r = resolveLogTarget(t);
+  if(!r || !r.session) return null;
+  if(Array.isArray(r.session.exercises)) return r.session.exercises.map(ex=> ({...ex}));
+  return (exercisesForSession(r.session, parseDateKey(t.dayKey)) || []).map(ex=>{ const c = {...ex}; delete c.swappedFrom; delete c.pyramid; delete c.ownOf; return c; });
+}
+// Puts `ex` into a workout's list after the exercise it follows in `source` (or at the end). false if
+// it's already there.
+function insertExerciseLike(list, ex, source){
+  if(list.some(e=> e.key===ex.key || sameLift(e.key, ex.key))) return false;
+  const clean = {...ex}; delete clean.live; delete clean.swappedFrom; delete clean.pyramid; delete clean.ownOf; delete clean.superset;
+  if(!(clean.sets>1)) clean.sets = 3;
+  const at = (source || []).findIndex(e=> e.key===ex.key);
+  let pos = list.length;
+  for(let j=at-1; j>=0; j--){ const k = list.findIndex(e=> e.key===source[j].key); if(k>=0){ pos = k+1; break; } }
+  list.splice(pos, 0, clean);
+  return true;
+}
+// Adds an exercise to each of these workouts that doesn't have it yet; how many got it.
+function addExerciseToWorkouts(targets, ex, source){
+  let n = 0;
+  targets.forEach(t=>{
+    const list = ownExerciseList(t);
+    if(list && insertExerciseLike(list, ex, source)){ setSessionExercises(t, list); n++; }
+  });
+  return n;
+}
+// The exercises a workout (repeated onto a day that already has it) is missing, added in.
+function mergeMissingInto(t, session){
+  const r = resolveLogTarget(t);
+  if(!r || r.completed || r.performance || !Array.isArray(session.exercises)) return;
+  const list = ownExerciseList(t);
+  if(!list) return;
+  let changed = false;
+  session.exercises.forEach(ex=>{ if(insertExerciseLike(list, ex, session.exercises)) changed = true; });
+  if(changed) setSessionExercises(t, list);
+}
+// Whether repeating would land on any of the same workouts already there (the note then says what happens).
+function repeatHasSameNamed(src, targets){
+  return targets.some(monday=> src.days.some((day, i)=>{
+    const date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+i);
+    if(dateKey(date) < dateKey(TODAY_DATE)) return false;
+    const slot = getRawDaySlot(date), log = state.dayLog[dateKey(date)];
+    const titles = [slot.isCustom && slot.p.t!=='rest' ? slot.p.en.title : null, ...((log && log.extraWorkouts) || []).map(w=> w.session && w.session.en.title)];
+    return [day.own, ...day.extras].some(sess=> sess && titles.includes(sess.en.title));
+  }));
+}
+// After adding an exercise: the question, under the add box (boxId), when there are upcoming workouts
+// of the same name. Hidden otherwise.
+function askKeepExercise(boxId, t, ex, source){
+  const box = document.getElementById(boxId);
+  const r = t && resolveLogTarget(t), title = r && r.session && r.session.t==='strength' && ST(r.session).title;
+  const upcoming = title ? upcomingSameWorkouts(r.session.en.title, t.dayKey) : [];
+  if(!upcoming.length){ box.hidden = true; box.innerHTML = ''; return; }
+  const L = STR[state.lang], n = upcoming.length, fill = (s, k)=> s.replace('{ex}', ex.name || ex.key).replace('{n}', k==null ? n : k).replace('{name}', title);
+  box.innerHTML = `<p>${escapeHtml(fill(n===1 ? L.keepExAskOne : L.keepExAskMany))}</p>
+    <div class="keep-ex-btns"><button type="button" class="btn btn-primary" data-keep-all>${escapeHtml(fill(n===1 ? L.keepExIt : L.keepExAll))}</button>
+    <button type="button" class="btn btn-ghost" data-keep-just>${escapeHtml(L.keepExJust)}</button></div>`;
+  box.hidden = false;
+  box.querySelector('[data-keep-all]').addEventListener('click', ()=>{
+    const added = addExerciseToWorkouts(upcoming, ex, source);
+    box.hidden = true; box.innerHTML = '';
+    if(added) showToast(fill(added===1 ? L.keepExDoneOne : L.keepExDoneMany, added));
+    refreshViews();
+  });
+  box.querySelector('[data-keep-just]').addEventListener('click', ()=>{ box.hidden = true; box.innerHTML = ''; });
+}
 // Exercise names to pick from as they're typed: the app's lifts, and any the user has logged before.
 function fillExerciseNameList(){
   const names = new Set(Object.values(EXERCISES).map(d=> state.lang==='es' ? d.es : d.en));
@@ -10132,10 +10246,12 @@ function addLiveExercise(){
   const list = liveExerciseList(t, resolved);
   input.value = '';
   if(!list.some(e=>e.key===key)){
-    list.push({...to, sets: 1, reps: (EXERCISES[key] && EXERCISES[key].reps) || 10, live: true});
+    const added = {...to, sets: 1, reps: (EXERCISES[key] && EXERCISES[key].reps) || 10, live: true};
+    list.push(added);
     saveLogPerfDraft();
     setSessionExercises(t, list);
     rerenderLogPerf();
+    askKeepExercise('logPerfKeepEx', t, added, list);
   }
   // The exercise just added (or picked again) is the one being worked on.
   logPerfSelectedKey = key;
@@ -11831,6 +11947,7 @@ let wp = null; // {dayKey, target: {kind:'primary'} | {kind:'extra', id}, editId
 // anything changed.
 function openWorkoutPreview(dayKey, target, opts){
   wp = {dayKey, target: target || {kind:'primary'}, editIdx:null, choice:null, tuneIdx:null, fromLog: !!(opts && opts.fromLog), changed:false};
+  { const k = document.getElementById('wpKeepEx'); k.hidden = true; k.innerHTML = ''; }
   // Opened by tapping one exercise (Today card): go straight to that lift's numbers.
   if(opts && opts.tuneKey){
     const r = previewedWorkout();
@@ -12034,9 +12151,11 @@ function wpAddExercise(){
   const to = exerciseFromTyped(raw), list = wpBaseList(r);
   input.value = '';
   if(!list.some(ex=> wpShownKey(ex)===to.key)){
-    list.push({...to, sets: 3, reps: (EXERCISES[to.key] && EXERCISES[to.key].reps) || 10, live: true});
+    const added = {...to, sets: 3, reps: (EXERCISES[to.key] && EXERCISES[to.key].reps) || 10, live: true};
+    list.push(added);
     wpSaveList(r, list);
     showToast(STR[state.lang].exerciseChangedToast);
+    askKeepExercise('wpKeepEx', {dayKey: wp.dayKey, ...(wp.target || {kind:'primary', id:null})}, added, list);
   }
   const row = [...document.querySelectorAll('#wpExerciseList .wp-ex')].find(el=> el.getAttribute('data-key')===to.key);
   if(row && row.scrollIntoView) row.scrollIntoView({block:'center'});
@@ -15073,9 +15192,16 @@ function drawShareCard(canvas, d, format, clear){
     if(backdrop){
       const hillH = Math.round(routeH*0.55);
       drawElevOnCanvas(b, d.elev, 0, y + routeH - hillH, W, hillH);
-      b.fillStyle = TEXT2; b.font = MONO(22);
-      b.textAlign = 'left'; b.fillText(d.elev.low, P, y + routeH - 12);
-      b.textAlign = 'right'; b.fillText(d.elev.high, W - P, y + routeH - 12);
+      b.font = MONO(22);
+      // (Each on a small dark backing, so the hill's line never runs through it.)
+      const tag = (text, x, right)=>{
+        const w = b.measureText(text).width, bx = right ? x - w - 10 : x - 10, by = y + routeH - 12 - 22;
+        b.save(); b.shadowBlur = 0; b.shadowColor = 'transparent'; b.fillStyle = 'rgba(10,10,12,0.72)';
+        b.beginPath(); if(b.roundRect) b.roundRect(bx, by, w + 20, 32, 8); else b.rect(bx, by, w + 20, 32); b.fill(); b.restore();
+        b.fillStyle = TEXT2; b.textAlign = right ? 'right' : 'left'; b.fillText(text, x, y + routeH - 12);
+      };
+      tag(d.elev.low, P, false);
+      tag(d.elev.high, W - P, true);
       b.textAlign = 'left';
     }
     drawRouteOnCanvas(b, d.routeSegs, P, y, CW, routeH, true);

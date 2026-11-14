@@ -70,6 +70,9 @@ export type Db = {
   // Inserts only activities not already stored, so a run the app has already filed (applied_at set)
   // is never reset to "new" and imported twice.
   insertNewActivities(rows: Record<string, unknown>[]): Promise<void>;
+  // Of these runs, the ones whose best efforts are already stored (null while the database doesn't have
+  // that column yet: then none are fetched).
+  idsWithBests?(ids: number[]): Promise<Set<number> | null>;
   deleteUnappliedActivities(userId: string): Promise<void>;
   deleteUnappliedActivity(activityId: number): Promise<void>;
 };
@@ -142,7 +145,44 @@ function runRow(a: any, userId: string) {
     // The watch's own climb (a barometer, for most running watches), in metres -- steadier than terrain
     // data checked along the phone's route, which smooths away the small rises.
     elev_gain_m: typeof a.total_elevation_gain === "number" ? a.total_elevation_gain : null,
+    // Strava's own fastest stretches of the run (a run's full details only -- the list of runs leaves them
+    // out): the app counts them for its best efforts instead of the run's average pace.
+    ...(Array.isArray(a.best_efforts) ? { best_efforts: bestEfforts(a.best_efforts) } : {}),
   };
+}
+// Strava's best efforts, as the app's own keys: {"1mi": 539, "5k": 1780, ...} -- seconds, for 1 mile, 5K,
+// 10K, half marathon and marathon. {} when it has none (a run too short, or without GPS).
+const BEST_KEYS: Record<string, string> = { "1mile": "1mi", "5k": "5k", "10k": "10k", "halfmarathon": "half", "marathon": "full" };
+// deno-lint-ignore no-explicit-any
+export function bestEfforts(list: any[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  list.forEach((e) => {
+    const k = BEST_KEYS[String(e && e.name || "").toLowerCase().replace(/[\s-]+/g, "")];
+    const sec = Number(e && (e.elapsed_time ?? e.moving_time));
+    if (k && sec > 0 && (!out[k] || sec < out[k])) out[k] = Math.round(sec);
+  });
+  return out;
+}
+// The list of runs leaves best efforts out: a few runs at a time, each one's full details are fetched for
+// them (once -- a run whose best efforts are stored isn't asked for again).
+const DETAIL_FETCHES_PER_SYNC = 8;
+// deno-lint-ignore no-explicit-any
+async function addBestEfforts(deps: Deps, conn: Connection, runs: any[]) {
+  if (!runs.length || !deps.db.idsWithBests) return;
+  let have: Set<number> | null = null;
+  try { have = await deps.db.idsWithBests(runs.map((r) => Number(r.id))); } catch { have = null; }
+  if (!have) return;
+  const todo = runs.filter((r) => !have!.has(Number(r.id))).slice(0, DETAIL_FETCHES_PER_SYNC);
+  for (const r of todo) {
+    try {
+      const res = await deps.fetch(`${STRAVA}/api/v3/activities/${encodeURIComponent(String(r.id))}`, {
+        headers: { Authorization: `Bearer ${conn.access_token}` },
+      });
+      if (!res.ok) { if (res.status === 429) break; continue; }
+      const a = await res.json();
+      r.best_efforts = bestEfforts(Array.isArray(a.best_efforts) ? a.best_efforts : []);
+    } catch { /* the next sync tries again */ }
+  }
 }
 
 // ---------------- Strava's webhook: new runs arrive on their own ----------------
@@ -231,6 +271,7 @@ async function syncRuns(deps: Deps, userId: string) {
   const runs = (Array.isArray(activities) ? activities : [])
     .filter(isRun)
     .map((a) => runRow(a, userId));
+  await addBestEfforts(deps, conn, runs);
   if (runs.length) await deps.db.insertNewActivities(runs);
   await deps.db.saveConnection({ ...conn, last_synced_at: new Date(deps.now()).toISOString() });
   return { connected: true, athlete_name: conn.athlete_name, fetched: runs.length };
@@ -395,11 +436,25 @@ function supabaseDb(): Db {
       return count ?? 0;
     },
     async insertNewActivities(rows) {
-      check(await admin.from("strava_activities").upsert(rows, { onConflict: "id", ignoreDuplicates: true }));
+      // (Best efforts go in on their own below, so runs still come in while the database doesn't have
+      // that column yet.)
+      const plain = rows.map((r) => { const { best_efforts: _b, ...rest } = r; return rest; });
+      check(await admin.from("strava_activities").upsert(plain, { onConflict: "id", ignoreDuplicates: true }));
+      const bests = rows.filter((r) => r.best_efforts != null).map((r) => ({ id: r.id, user_id: r.user_id, local_date: r.local_date, best_efforts: r.best_efforts }));
+      if (bests.length) {
+        const { error } = await admin.from("strava_activities").upsert(bests, { onConflict: "id" });
+        if (error) console.log(JSON.stringify({ best_efforts_error: error.message }));
+      }
       // Runs stored before their climb was kept get it now (only that column -- applied_at, and anything
       // else the app relies on, stays as it was).
       const climbs = rows.filter((r) => r.elev_gain_m != null).map((r) => ({ id: r.id, user_id: r.user_id, local_date: r.local_date, elev_gain_m: r.elev_gain_m }));
       if (climbs.length) check(await admin.from("strava_activities").upsert(climbs, { onConflict: "id" }));
+    },
+    async idsWithBests(ids) {
+      if (!ids.length) return new Set();
+      const { data, error } = await admin.from("strava_activities").select("id").in("id", ids).not("best_efforts", "is", null);
+      if (error) return null; // (no best_efforts column yet)
+      return new Set((data || []).map((r: { id: number }) => Number(r.id)));
     },
     async deleteUnappliedActivities(userId) {
       check(await admin.from("strava_activities").delete().eq("user_id", userId).is("applied_at", null));

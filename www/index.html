@@ -4089,7 +4089,7 @@ const STR = {
     weatherConditionClear: "Clear",
     trophiesLabel: "Trophies", trophiesCount: "{n} badges earned", trophiesCount1: "1 badge earned", trophiesSub: "Badges and best efforts", trophiesNew: "New badge",
     trophyFirsts: "Firsts", trophyStreaks: "Weeks in a row", trophyMilestones: "Milestones", trophyMonths: "Months",
-    bestEffortsLabel: "Best efforts", bestNone: "No run this far yet", bestNote: "Runs tracked with GPS count their fastest stretch; runs logged by hand or from a watch alone use their average pace.",
+    bestEffortsLabel: "Best efforts", bestNone: "No run this far yet", bestNote: "Runs tracked with GPS or synced from Strava count their fastest stretch; runs logged by hand, or only through Health Connect or Apple Health, use their average pace.",
     badgeDistName: "{n} {u}", badgeDistDesc: "{n} {u} run in total.",
     badgeVolName: "{n} {u} lifted", badgeVolDesc: "{n} {u} lifted in total.",
     badgeMonthDesc: "Every week of the month counted toward your streak.",
@@ -4879,7 +4879,7 @@ const STR = {
     weatherConditionClear: "Despejado",
     trophiesLabel: "Trofeos", trophiesCount: "{n} insignias ganadas", trophiesCount1: "1 insignia ganada", trophiesSub: "Insignias y mejores marcas", trophiesNew: "Insignia nueva",
     trophyFirsts: "Primeras veces", trophyStreaks: "Semanas seguidas", trophyMilestones: "Hitos", trophyMonths: "Meses",
-    bestEffortsLabel: "Mejores marcas", bestNone: "Aún sin una carrera tan larga", bestNote: "Las carreras con GPS cuentan su tramo más rápido; las registradas a mano o solo con el reloj usan su ritmo promedio.",
+    bestEffortsLabel: "Mejores marcas", bestNone: "Aún sin una carrera tan larga", bestNote: "Las carreras con GPS o sincronizadas desde Strava cuentan su tramo más rápido; las registradas a mano, o solo mediante Health Connect o Apple Health, usan su ritmo promedio.",
     badgeDistName: "{n} {u}", badgeDistDesc: "{n} {u} corridas en total.",
     badgeVolName: "{n} {u} levantadas", badgeVolDesc: "{n} {u} levantadas en total.",
     badgeMonthDesc: "Cada semana del mes contó para tu racha.",
@@ -17697,7 +17697,7 @@ function keepPhoneNumbers(prev, phone, watch){
   delete perf.splits; delete perf.lastSplit; delete perf.phoneDistance; delete perf.phoneTime;
   if(phone.splits) perf.splits = phone.splits;
   if(phone.lastSplit) perf.lastSplit = phone.lastSplit;
-  if(phone.bests) perf.bests = phone.bests;
+  if(phone.bests && prev.bestsFrom!=='strava') perf.bests = phone.bests;
   if(watch.stravaId) perf.stravaId = watch.stravaId;
   if(watch.healthId) perf.healthId = watch.healthId;
   if(watch.calories && !perf.calories) perf.calories = watch.calories;
@@ -17729,7 +17729,7 @@ function takeWatchNumbers(target, watch){
   if(watch.calories) perf.calories = watch.calories;
   if(watch.start){ perf.startedAt = watch.start; perf.finishedAt = watch.end; }
   delete perf.splits; delete perf.lastSplit;
-  if(prev.bests) perf.bests = scaleBests(prev.bests, prev.distance, perf.distance);
+  if(prev.bests) perf.bests = prev.bestsFrom==='strava' ? prev.bests : scaleBests(prev.bests, prev.distance, perf.distance);
   const re = rescaleSplits(prev, perf.distance, perf.time);
   if(re){ perf.splits = re.splits; if(re.lastSplit) perf.lastSplit = re.lastSplit; }
   const climbed = withWatchClimb(perf, watch.elevGain) || perf;
@@ -17794,6 +17794,8 @@ function mergeWatchDuplicates(){
       ['route', 'elevGain', 'elevLoss', 'elevProfile', 'gpsStats', 'splitUnit'].forEach(k=>{ if(g.perf[k]!=null) extra[k] = g.perf[k]; });
       const re = rescaleSplits(g.perf, w.perf.distance!=null ? w.perf.distance : w.dist, w.perf.time);
       if(g.perf.bests) extra.bests = scaleBests(g.perf.bests, g.perf.distance, w.perf.distance!=null ? w.perf.distance : w.dist);
+      // (Strava's own best efforts, when the watch's copy has them, win over the phone's.)
+      if(w.perf.bestsFrom==='strava' && w.perf.bests) extra.bests = {...(extra.bests || {}), ...w.perf.bests};
       if(re){ extra.splits = re.splits; if(re.lastSplit) extra.lastSplit = re.lastSplit; }
       let both = {...w.perf, ...extra};
       // (The watch's climb stays, with the loss from the route's own rise and fall.)
@@ -17834,6 +17836,7 @@ function absorbStravaTwin(target, logged){
   logged.numbersFrom = wp.stravaId && !wp.healthId ? 'strava' : (wp.source || 'strava');
   logged.distance = watchMi;
   if(logged.bests) logged.bests = scaleBests(logged.bests, phoneMi, logged.distance);
+  if(wp.bestsFrom==='strava' && wp.bests){ logged.bests = {...(logged.bests || {}), ...wp.bests}; logged.bestsFrom = 'strava'; }
   if(wp.time || twin.durationMin) logged.time = wp.time || twin.durationMin;
   if(wp.stravaId) logged.stravaId = wp.stravaId;
   if(wp.healthId) logged.healthId = wp.healthId;
@@ -17872,7 +17875,33 @@ const stravaActivityUrl = id => `https://www.strava.com/activities/${encodeURICo
 function fileStravaRun(row){
   return fileWatchRun({key: String(row.local_date).slice(0,10), miles: +(Number(row.distance_m||0)/1609.344).toFixed(2),
     minutes: row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null, win: stravaRowWindow(row), name: row.name,
-    source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null});
+    source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null, bests: stravaBests(row.best_efforts)});
+}
+// Strava's own fastest stretches of a run ({"1mi": 539, "5k": 1780, ...}, seconds -- see the strava
+// function), for the best efforts: a run from the watch has no route here to find them in, so without
+// these it would count at its average pace. null if there are none.
+function stravaBests(raw){
+  if(!raw || typeof raw!=='object') return null;
+  const out = {};
+  BEST_EFFORTS.forEach(b=>{ const v = Number(raw[b.k]); if(v>0 && isFinite(v)) out[b.k] = Math.round(v); });
+  return Object.keys(out).length ? out : null;
+}
+// A run's performance with Strava's best efforts in it (they win over the phone's: they're the watch's
+// whole file) -- or null when that changes nothing.
+function withStravaBests(perf, bests){
+  if(!perf || !bests) return null;
+  const merged = {...(perf.bests || {}), ...bests};
+  if(perf.bestsFrom==='strava' && JSON.stringify(merged)===JSON.stringify(perf.bests || {})) return null;
+  return {...perf, bests: merged, bestsFrom: 'strava'};
+}
+// Puts Strava's best efforts on the run filed for this target (see withStravaBests); whether it did.
+function giveStravaBests(target, bests){
+  const r = target && bests && resolveLogTarget(target);
+  const perf = r && (r.performance || (r.record && r.record.performance));
+  const next = withStravaBests(perf, bests);
+  if(!next) return false;
+  storeLoggedPerformance(target, r, next);
+  return true;
 }
 // A run from a watch -- through Strava, or Apple Health / Health Connect: {key, miles, minutes, win, name,
 // source, stravaId | healthId}. The same run coming in both ways counts once (matched by its time).
@@ -17897,12 +17926,15 @@ function fileWatchRun(run){
       const climbed = withWatchClimb(more, run.elevGain);
       if(climbed || Object.keys(ids).some(k=> !perf[k]) || run.calories && !perf.calories) storeLoggedPerformance(match, r, climbed || more);
     }
+    // (And Strava's best efforts for it, whichever way it was logged.)
+    if(run.bests) giveStravaBests(match, run.bests);
     return false;
   }
 
   const logged = {distance: miles, time: minutes, notes: '', source: run.source, ...ids,
     ...(win ? {startedAt: win.start, finishedAt: win.end} : {}), ...(run.calories ? {calories: run.calories} : {}),
-    ...(run.elevGain!=null && isFinite(run.elevGain) ? {elevGain: Math.round(run.elevGain*10)/10, elevSource: 'watch'} : {})};
+    ...(run.elevGain!=null && isFinite(run.elevGain) ? {elevGain: Math.round(run.elevGain*10)/10, elevSource: 'watch'} : {}),
+    ...(run.bests ? {bests: run.bests, bestsFrom: 'strava'} : {})};
   // The day's planned run, or else its first Additional Workout run, if no distance is logged on it
   // yet -- otherwise this is an extra run that day, filed as its own Logged Workout.
   let target = null;
@@ -17930,11 +17962,13 @@ function fileWatchRun(run){
   return true;
 }
 const STRAVA_LINK_BACKFILL_DAYS = 30;
-// Rows from strava_activities with the watch's climb -- or without it, while the database doesn't have
-// that column yet (it came later: see supabase/schema.sql), so runs still come in.
+// Rows from strava_activities with the watch's climb and Strava's best efforts -- or without them, while
+// the database doesn't have those columns yet (they came later: see supabase/schema.sql), so runs still come in.
 async function selectStravaRows(cols, narrow){
-  const res = await narrow(sb.from('strava_activities').select(cols + ', elev_gain_m'));
-  if(res && res.error && (res.error.code==='42703' || /elev_gain_m/.test(res.error.message || ''))) return await narrow(sb.from('strava_activities').select(cols));
+  const missing = res=> res && res.error && (res.error.code==='42703' || /elev_gain_m|best_efforts/.test(res.error.message || ''));
+  let res = await narrow(sb.from('strava_activities').select(cols + ', elev_gain_m, best_efforts'));
+  if(missing(res)) res = await narrow(sb.from('strava_activities').select(cols + ', elev_gain_m'));
+  if(missing(res)) res = await narrow(sb.from('strava_activities').select(cols));
   return res;
 }
 async function importStravaActivities(){
@@ -17968,6 +18002,8 @@ async function importStravaActivities(){
       const perf = r && (r.performance || (r.record && r.record.performance));
       const climbed = perf && withWatchClimb(perf, Number(row.elev_gain_m));
       if(climbed){ storeLoggedPerformance(match, r, climbed); linked++; }
+      // A run filed before Strava's best efforts were kept takes them now (its fastest mile, not its average).
+      if(match && giveStravaBests(match, stravaBests(row.best_efforts))) linked++;
     });
     if((mergeWatchDuplicates() || linked) && (!rows || !rows.length)) refreshViews();
   }catch(e){ /* best-effort */ }

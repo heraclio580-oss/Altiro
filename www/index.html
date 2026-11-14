@@ -11664,7 +11664,7 @@ function maybeShowTrialEnded(){
 // RevenueCat, in the store app: it runs the App Store and Google Play subscriptions. Its public SDK keys
 // (RevenueCat -> Project -> API keys) go here: goog_... for Google Play, appl_... for the App Store --
 // they're meant to be in the app. Empty, subscriptions aren't open yet. See docs/pro-setup.md.
-const REVENUECAT_KEYS = window.__ALTIRO_TEST_RC_KEYS__ || {android: '', ios: ''}; // (tests set their own)
+const REVENUECAT_KEYS = window.__ALTIRO_TEST_RC_KEYS__ || {android: 'goog_njaiShJYzmgIABFUGYBWwZNnBCn', ios: ''}; // (public SDK keys; tests set their own)
 const PRO_ENTITLEMENT = 'pro';
 const PRO_PRICES = {yearly: {text: '$49.99', amount: 49.99}, monthly: {text: '$7.99', amount: 7.99}, currency: 'USD'}; // until the store's own prices load
 function rcPlugin(){

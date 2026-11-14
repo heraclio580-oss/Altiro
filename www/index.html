@@ -186,7 +186,11 @@ html,body{overflow-x:hidden;}
 @keyframes screenIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
 @media (prefers-reduced-motion: reduce){.screen.anim{animation:none;}}
 .screen::-webkit-scrollbar{width:0;height:0;}
-.tab-screen{padding-bottom:calc(70px + env(safe-area-inset-bottom,0px));}
+.tab-screen{padding-bottom:0;}
+/* Room under a tab's last item to scroll it above the bottom bar -- a spacer at the end, not the screen's
+   own bottom padding, which Safari can leave out of what a scrolling box scrolls (the last things on an
+   iPhone stayed behind the bar). */
+.tab-screen::after{content:"";display:block;flex:0 0 auto;height:calc(70px + env(safe-area-inset-bottom,0px));}
 
 .pad{padding:34px 20px 24px;}
 .grow{flex:1;}
@@ -4086,6 +4090,7 @@ const STR = {
     navToday: "Today", navPlan: "Plan", navCalendar: "Calendar", navProgress: "Progress", navSettings: "Settings",
     greetingRest: "Rest up, {name}.",
     greetingActive: "Today's the day, {name}.",
+    greetingRestNoName: "Rest up.", greetingActiveNoName: "Today's the day.",
     weatherConditionClear: "Clear",
     trophiesLabel: "Trophies", trophiesCount: "{n} badges earned", trophiesCount1: "1 badge earned", trophiesSub: "Badges and best efforts", trophiesNew: "New badge",
     trophyFirsts: "Firsts", trophyStreaks: "Weeks in a row", trophyMilestones: "Milestones", trophyMonths: "Months",
@@ -4876,6 +4881,7 @@ const STR = {
     navToday: "Hoy", navPlan: "Plan", navCalendar: "Calendario", navProgress: "Progreso", navSettings: "Ajustes",
     greetingRest: "Descansa, {name}.",
     greetingActive: "Hoy es el día, {name}.",
+    greetingRestNoName: "Descansa.", greetingActiveNoName: "Hoy es el día.",
     weatherConditionClear: "Despejado",
     trophiesLabel: "Trofeos", trophiesCount: "{n} insignias ganadas", trophiesCount1: "1 insignia ganada", trophiesSub: "Insignias y mejores marcas", trophiesNew: "Insignia nueva",
     trophyFirsts: "Primeras veces", trophyStreaks: "Semanas seguidas", trophyMilestones: "Hitos", trophyMonths: "Meses",
@@ -7258,7 +7264,27 @@ let missedOpenKey = null; // the day whose "Can't make it?" reasons were opened 
 document.getElementById('missedWhyLabel').addEventListener('click', ()=>{
   missedOpenKey = missedOpenKey===state.openDayKey ? null : state.openDayKey;
   renderDayDetail();
+  if(missedOpenKey) revealOpened(document.getElementById('missedBody'));
 });
+// Something that just opened below what was tapped (a More menu, "More options"...): the page scrolls just
+// enough to show all of it -- above the bottom tab bar on a tab -- or, if it's taller than the screen, its
+// top. (It opened behind the bar on an iPhone, at the bottom of a rest day's card.) topOnly: only its top.
+function revealOpened(el, topOnly){
+  const scr = el && !el.hidden && el.closest('.screen, .sheet-panel');
+  if(!scr) return;
+  requestAnimationFrame(()=>{
+    const r = el.getBoundingClientRect(), box = scr.getBoundingClientRect();
+    const nav = scr.classList.contains('tab-screen') && document.querySelector('.bottom-nav');
+    const navTop = nav && nav.getClientRects().length ? nav.getBoundingClientRect().top : Infinity;
+    const bottom = Math.min(box.bottom, navTop) - 12, top = box.top + 12;
+    let d = (topOnly ? Math.min(r.bottom, r.top + 120) : r.bottom) - bottom;
+    if(d<=0) return;
+    d = Math.min(d, r.top - top); // (never past its own top)
+    if(d<=0) return;
+    const smooth = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    try{ scr.scrollBy({top: d, behavior: smooth ? 'smooth' : 'auto'}); }catch(e){ scr.scrollTop += d; }
+  });
+}
 const MISSED_REASONS = ['sick','injured','vacation','busy','rest','other'];
 // These pause the streak: a week that falls short because of them doesn't break it (see computeStreak).
 const STREAK_PAUSE_REASONS = ['sick','injured','vacation'];
@@ -8976,7 +9002,8 @@ function renderHome(){
   const suggestedTarget = (isPro() && !hasExerciseList && !isPaceFree(eff) && !runBreakdown(eff) && (eff.t==='strength'||eff.t==='run')) ? getProgressionTarget(eff, state.intensityIdx) : null;
   const suggestedTargetStr = suggestedTarget ? (eff.t==='strength' ? `${suggestedTarget.weight} lb x ${suggestedTarget.reps}` : `${fmtPace(suggestedTarget.pace)}/mi`) : null;
 
-  document.getElementById('homeGreeting').textContent = (eff.t==='rest' ? L.greetingRest : L.greetingActive).replace('{name}', state.userName.split(' ')[0]);
+  const gName = greetingName();
+  document.getElementById('homeGreeting').textContent = gName ? (eff.t==='rest' ? L.greetingRest : L.greetingActive).replace('{name}', gName) : (eff.t==='rest' ? L.greetingRestNoName : L.greetingActiveNoName);
   renderWeatherChip();
   refreshStreak();
   const streakChip = document.getElementById('streakChip');
@@ -9105,6 +9132,7 @@ function renderHome(){
     homeMoreOpen = !homeMoreOpen;
     document.getElementById('homeMorePanel').hidden = !homeMoreOpen;
     document.getElementById('homeMoreBtn').setAttribute('aria-expanded', homeMoreOpen);
+    if(homeMoreOpen) revealOpened(document.getElementById('homeMorePanel'));
   });
   // Doing any of them closes the panel again (marking done keeps it open, to see the switch flip).
   document.querySelectorAll('#homeMorePanel .watch-demo-btn').forEach(b=> b.addEventListener('click', ()=>{
@@ -13886,7 +13914,7 @@ function renderTrophyCase(){
     ${group(L.trophyMilestones, BADGES.filter(b=>b.g==='totals'))}
     ${group(L.trophyMonths, monthDefs)}
     </div>`;
-  el.querySelector('#trophyToggle').addEventListener('click', ()=> setTrophiesOpen(!trophiesOpen));
+  el.querySelector('#trophyToggle').addEventListener('click', ()=>{ setTrophiesOpen(!trophiesOpen); if(trophiesOpen) revealOpened(document.getElementById('trophyBody'), true); });
   el.querySelectorAll('[data-badge]').forEach(b=> b.addEventListener('click', ()=>{
     const id = b.dataset.badge;
     openBadgeMoment({type:'badge', id, detail:true, progress: b.dataset.progress});
@@ -14440,7 +14468,11 @@ function setAdjMore(open){
   document.getElementById('adjMore').hidden = !open;
   document.getElementById('adjMoreBtn').setAttribute('aria-expanded', open);
 }
-document.getElementById('adjMoreBtn').addEventListener('click', ()=> setAdjMore(document.getElementById('adjMore').hidden));
+document.getElementById('adjMoreBtn').addEventListener('click', ()=>{
+  const open = document.getElementById('adjMore').hidden;
+  setAdjMore(open);
+  if(open) revealOpened(document.getElementById('adjMore'));
+});
 document.getElementById('adjOwnToggle').addEventListener('click', ()=>{
   if(!state.adjustDraft) return;
   state.adjustDraft.own = !state.adjustDraft.own;
@@ -18502,12 +18534,24 @@ document.getElementById('passwordInput').addEventListener('input', updateEmailSi
 // loading it twice at the same time used to duplicate Additional Workouts.
 let signedInLoad = null; // {userId, promise}
 let signingUp = false;
+// The first name to greet them by -- or none, when all there is is their email's first part ("Rest up.",
+// not "Rest up, rveronica.homes.").
+function greetingName(){
+  const name = String(state.userName || '').trim();
+  const local = String(state.userEmail || '').split('@')[0].trim();
+  if(!name || name.includes('@') || (local && name.toLowerCase()===local.toLowerCase())) return '';
+  return name.split(/\s+/)[0];
+}
 function setSignedInUser(user){
   if(state.userId!==user.id){ resetBadgeChecks(); state.badges = null; state.joinedOn = null; }
   state.signedIn = true;
   proUser = user; proSub = null; proRc = null; state.pro = null; // (decided once the account's data is in)
   state.userEmail = user.email || '';
-  state.userName = (user.email || '').split('@')[0]; // replaced by the profile's real name, if there is one
+  // The name they signed up with (Google and Apple give one), else their email's first part -- replaced by
+  // the profile's real name, if there is one.
+  const md = user.user_metadata || {};
+  const metaName = String(md.full_name || md.name || [md.given_name, md.family_name].filter(Boolean).join(' ') || '').trim();
+  state.userName = metaName || (user.email || '').split('@')[0];
   state.userId = user.id;
 }
 function enterSignedIn(user){

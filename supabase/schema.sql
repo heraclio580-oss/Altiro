@@ -215,10 +215,14 @@ create table if not exists strava_activities (
   moving_time_s int,
   elapsed_time_s int,
   elev_gain_m numeric,               -- the watch's own climb (its barometer), in metres
+  best_efforts jsonb,                -- Strava's fastest 1 mile / 5K / 10K / half / marathon, in seconds
   applied_at timestamptz,            -- set by the app once the run has been filed onto its day
   created_at timestamptz default now()
 );
 alter table strava_activities add column if not exists elev_gain_m numeric;
+-- Strava's own fastest stretches of the run, as {"1mi": 539, "5k": 1780, ...} (seconds): the app's best
+-- efforts use them instead of the run's average pace.
+alter table strava_activities add column if not exists best_efforts jsonb;
 alter table strava_activities enable row level security;
 drop policy if exists "read own strava activities" on strava_activities;
 create policy "read own strava activities" on strava_activities

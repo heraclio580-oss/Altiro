@@ -2,11 +2,11 @@
 // (tests/run-all.js runs it too when `deno` is installed.) Strava and the database are both faked --
 // this checks the function's own logic: sign-in exchange, token refresh, run filtering, revocation.
 import { assertEquals } from "jsr:@std/assert@1";
-import { makeHandler, type Deps } from "./index.ts";
+import { bestEfforts, makeHandler, type Deps } from "./index.ts";
 
 const NOW = Date.parse("2026-09-27T15:00:00Z");
 
-function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatus?: number; limit?: string; others?: number; countFails?: boolean } = {}) {
+function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatus?: number; limit?: string; others?: number; countFails?: boolean; bests?: boolean } = {}) {
   const connections: Record<string, any> = {};
   const activities: Record<string, any> = {};
   const calls: string[] = [];
@@ -15,6 +15,12 @@ function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatu
     { id: 2, name: "Leg Day", sport_type: "WeightTraining", distance: 0, moving_time: 3000, elapsed_time: 3000, start_date: "2026-09-26T22:00:00Z", start_date_local: "2026-09-26T18:00:00Z" },
     { id: 3, name: "Treadmill", type: "VirtualRun", distance: 4828, moving_time: 1800, elapsed_time: 1800, start_date: "2026-09-26T01:30:00Z", start_date_local: "2026-09-25T21:30:00Z" },
   ];
+  const details: Record<number, any[]> = {
+    1: [
+      { name: "400m", elapsed_time: 131 }, { name: "1 mile", elapsed_time: 539, moving_time: 539 }, { name: "2 mile", elapsed_time: 1091 },
+      { name: "5K", elapsed_time: 1780 }, { name: "10K", elapsed_time: 3720 }, { name: "Half-Marathon", elapsed_time: 7900 },
+    ],
+  };
   const deps: Deps = {
     now: () => NOW,
     env: (n) => ({ STRAVA_CLIENT_ID: "123", STRAVA_CLIENT_SECRET: "shh", STRAVA_WEBHOOK_TOKEN: "hook-token", SUPABASE_URL: "https://proj.supabase.co", ...(opts.limit ? { STRAVA_ATHLETE_LIMIT: opts.limit } : {}) } as Record<string, string>)[n],
@@ -35,7 +41,8 @@ function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatu
       const one = url.match(/\/api\/v3\/activities\/(\d+)$/);
       if (one) {
         const a = stravaActivities.find((x) => String(x.id) === one[1]);
-        return a ? Response.json(a) : new Response("{}", { status: 404 });
+        // (A run's full details carry its best efforts; the list of runs doesn't.)
+        return a ? Response.json({ ...a, best_efforts: details[a.id] || [] }) : new Response("{}", { status: 404 });
       }
       if (url.endsWith("/api/v3/push_subscriptions") && init?.method === "POST") {
         calls.push(`BODY ${String(init.body)}`);
@@ -62,13 +69,17 @@ function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatu
         rows.forEach((r) => {
           const had = activities[r.id as number];
           if (!had) activities[r.id as number] = r;
-          else if (r.elev_gain_m != null) had.elev_gain_m = r.elev_gain_m;
+          else {
+            if (r.elev_gain_m != null) had.elev_gain_m = r.elev_gain_m;
+            if (r.best_efforts != null) had.best_efforts = r.best_efforts;
+          }
         });
       },
       deleteUnappliedActivities: async (u) => {
         Object.keys(activities).forEach((k) => { if (activities[k].user_id === u && !activities[k].applied_at) delete activities[k]; });
       },
       deleteUnappliedActivity: async (id) => { if (activities[id] && !activities[id].applied_at) delete activities[id]; },
+      ...(opts.bests ? { idsWithBests: async (ids: number[]) => new Set(ids.filter((id) => activities[id] && activities[id].best_efforts != null)) } : {}),
     },
   };
   const call = async (body: unknown, jwt = "good-jwt", headers?: Record<string, string>) => {
@@ -312,4 +323,46 @@ Deno.test("webhook setup: subscribes this function's address, only with the key"
   assertEquals(sent.get("callback_url"), "https://proj.supabase.co/functions/v1/strava");
   assertEquals(sent.get("verify_token"), "hook-token");
   assertEquals(sent.get("client_id"), "123");
+});
+
+Deno.test("best efforts: Strava's names as the app's keys, in seconds", () => {
+  assertEquals(bestEfforts([{ name: "400m", elapsed_time: 131 }, { name: "1 mile", elapsed_time: 539 }, { name: "5k", elapsed_time: 1780 },
+    { name: "10K", elapsed_time: 3720 }, { name: "Half-Marathon", elapsed_time: 7900 }, { name: "Marathon", elapsed_time: 16000 }, { name: "1 mile", elapsed_time: 0 }]),
+    { "1mi": 539, "5k": 1780, "10k": 3720, half: 7900, full: 16000 });
+  assertEquals(bestEfforts([]), {});
+});
+
+Deno.test("sync fetches each new run's full details once, for its best efforts", async () => {
+  const { call, activities, calls } = setup({ bests: true });
+  await call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
+  assertEquals(activities[1].best_efforts, { "1mi": 539, "5k": 1780, "10k": 3720, half: 7900 });
+  assertEquals(activities[3].best_efforts, {}); // (a treadmill run: none)
+  const details = calls.filter((c) => /\/api\/v3\/activities\/\d+$/.test(c)).length;
+  assertEquals(details, 2);
+  // The next sync doesn't ask again.
+  await call({ action: "sync" });
+  assertEquals(calls.filter((c) => /\/api\/v3\/activities\/\d+$/.test(c)).length, 2);
+});
+
+Deno.test("a run already filed gets its best efforts on the next sync, and stays filed", async () => {
+  const { call, activities, connections } = setup({ bests: true });
+  await call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
+  activities[1] = { ...activities[1], best_efforts: null, applied_at: "2026-09-27T14:00:00Z" };
+  connections["user-1"].last_synced_at = new Date(NOW - 3600 * 1000).toISOString();
+  await call({ action: "sync" });
+  assertEquals(activities[1].best_efforts["1mi"], 539);
+  assertEquals(activities[1].applied_at, "2026-09-27T14:00:00Z");
+});
+
+Deno.test("without the best efforts column yet, runs still come in and no details are fetched", async () => {
+  const { call, activities, calls } = setup();
+  await call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
+  assertEquals(Object.keys(activities).sort(), ["1", "3"]);
+  assertEquals(calls.filter((c) => /\/api\/v3\/activities\/\d+$/.test(c)).length, 0);
+});
+
+Deno.test("webhook: a new run's best efforts come with it", async () => {
+  const { raw, activities } = await connected();
+  await raw(event({ object_type: "activity", aspect_type: "create", object_id: 1, owner_id: 99 }));
+  assertEquals(activities[1]?.best_efforts?.["5k"], 1780);
 });

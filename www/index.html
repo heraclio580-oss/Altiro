@@ -1472,7 +1472,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .stats-grid .cell .l{font-family:var(--font-mono);font-size:calc(10.5px * var(--fs, 1));letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
 .stats-grid .cell .v{font-family:var(--font-mono);font-weight:600;font-size:calc(19px * var(--fs, 1));color:var(--text);margin-top:5px;}
 
-.gps-overlay{position:absolute;inset:0;z-index:95;background:var(--screen-bg);display:flex;flex-direction:column;}
+.gps-overlay{position:absolute;inset:0;z-index:95;background:var(--screen-bg);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+/* (On a short screen, or with large text, the map gives up its room first so Start stays in view; if it
+   still doesn't fit, the screen scrolls rather than cutting the buttons off.) */
+.gps-top,.gps-panel{flex-shrink:0;}
 .gps-overlay[hidden]{display:none;}
 .gps-top{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;}
 .gps-top .label{flex:1;}
@@ -1498,13 +1501,14 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .gps-signal::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px;background:var(--warn);}
 .gps-signal.good::before{background:var(--ok-icon);}
 .gps-signal.weak::before{background:var(--alert);}
-.gps-map{position:relative;flex:1;min-height:200px;margin:0 16px;border-radius:20px;overflow:hidden;border:1px solid var(--border);}
+.gps-map{position:relative;flex:1 1 0;min-height:120px;margin:0 16px;border-radius:20px;overflow:hidden;border:1px solid var(--border);}
 .gps-recenter{position:absolute;right:28px;margin-top:-52px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid var(--border);background:var(--sheet-bg);color:var(--text);font-size:calc(12px * var(--fs, 1));cursor:pointer;z-index:2;}
 .gps-recenter[hidden]{display:none;}
 .gps-recenter svg{width:14px;height:14px;}
 .gps-panel{padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));text-align:center;}
 .gps-status{font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));letter-spacing:0.14em;text-transform:uppercase;color:var(--warn);min-height:14px;}
 .gps-time{font-family:var(--font-mono);font-weight:700;font-size:calc(54px * var(--fs, 1));line-height:1.05;color:var(--text);letter-spacing:0.02em;}
+@media (max-height:700px){ .gps-time{font-size:calc(44px * var(--fs, 1));} .gps-grid{margin:6px 0 10px;} }
 .gps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 14px;}
 .gps-grid .v{font-family:var(--font-display);font-weight:800;font-size:calc(24px * var(--fs, 1));color:var(--text);}
 .gps-grid .l{font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);margin-top:2px;}
@@ -4087,6 +4091,7 @@ const STR = {
     gpsFinding: "Finding GPS…", gpsGood: "GPS ready", gpsWeak: "Weak GPS signal", gpsPausedLabel: "Paused",
     gpsStart: "Start", gpsPause: "Pause", gpsResume: "Resume", gpsHoldFinish: "Hold to finish",
     gpsStatTime: "Time", gpsStatDistance: "Miles", gpsStatPace: "Pace /mi", gpsStatAvgPace: "Avg pace",
+    gpsWebNoteShort: "Keep the screen on while you run.", gpsWebNoteMore: "Why?",
     gpsWebNote: "Keep Altiro open with the screen on while you run: browsers pause GPS when the screen turns off. Phone going in your pocket? Tap the lock at the top instead of the power button: the screen goes dark and ignores touches, and GPS keeps going.",
     gpsLockLabel: "Pocket lock", gpsPocketMsg: "Pocket lock is on: GPS keeps tracking. Don't press the power button, that stops GPS in the browser.", gpsPocketUnlock: "Hold to unlock",
     gpsDenied: "Altiro can't use your location. Allow it in your phone's settings to track runs.", gpsUnsupported: "This device can't share its location.",
@@ -4877,6 +4882,7 @@ const STR = {
     gpsFinding: "Buscando GPS…", gpsGood: "GPS listo", gpsWeak: "Señal de GPS débil", gpsPausedLabel: "En pausa",
     gpsStart: "Empezar", gpsPause: "Pausa", gpsResume: "Seguir", gpsHoldFinish: "Mantén para terminar",
     gpsStatTime: "Tiempo", gpsStatDistance: "Millas", gpsStatPace: "Ritmo /mi", gpsStatAvgPace: "Ritmo medio",
+    gpsWebNoteShort: "Mantén la pantalla encendida mientras corres.", gpsWebNoteMore: "¿Por qué?",
     gpsWebNote: "Deja Altiro abierta con la pantalla encendida mientras corres: los navegadores pausan el GPS cuando se apaga la pantalla. ¿El teléfono va al bolsillo? Toca el candado de arriba en vez del botón de encendido: la pantalla se oscurece e ignora los toques, y el GPS sigue.",
     gpsLockLabel: "Bloqueo de bolsillo", gpsPocketMsg: "Bloqueo de bolsillo activado: el GPS sigue registrando. No presiones el botón de encendido, eso detiene el GPS en el navegador.", gpsPocketUnlock: "Mantén para desbloquear",
     gpsDenied: "Altiro no puede usar tu ubicación. Permítela en los ajustes del teléfono para registrar carreras.", gpsUnsupported: "Este dispositivo no puede compartir su ubicación.",
@@ -16050,7 +16056,10 @@ function openGpsTracker(target){
   document.getElementById('gpsDiscardConfirm').hidden = true;
   const note = document.getElementById('gpsNote');
   note.classList.remove('alert');
-  note.textContent = nativeGeo() ? '' : L.gpsWebNote;
+  // (In a browser: one short line, the whole why a tap away -- it took the room Start needs on a small phone.)
+  note.innerHTML = nativeGeo() ? '' : `${escapeHtml(L.gpsWebNoteShort)} <button type="button" class="link-btn" id="gpsNoteMore">${escapeHtml(L.gpsWebNoteMore)}</button>`;
+  const more = document.getElementById('gpsNoteMore');
+  if(more) more.addEventListener('click', ()=>{ note.textContent = L.gpsWebNote; });
   note.hidden = !!nativeGeo();
   renderGps();
   startGpsWatch();
@@ -16073,6 +16082,7 @@ function openGpsTracker(target){
   renderGps(); // (after the map box is set up, so the route shows straight away)
 }
 function setGpsPocket(on){
+  if(on) document.getElementById('gpsOverlay').scrollTop = 0; // the dark screen covers the top of it
   document.getElementById('gpsPocket').hidden = !on;
   if(on) gpsKeepAwake(true); // the screen has to stay on for GPS to keep coming in
   renderGps();

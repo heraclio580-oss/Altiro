@@ -1572,8 +1572,6 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .bw-log-row{display:flex;gap:8px;margin-top:12px;}
 .bw-log-row .btn{width:auto;flex:0 0 auto;padding:0 18px;}
 .elev-profile .ep-meta{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));color:var(--text-3);margin-top:4px;}
-.gps-log-row{margin-top:8px;}
-.gps-log-send{flex:none;width:auto;padding:8px 16px;font-size:calc(13px * var(--fs, 1));}
 .share-elev-chip{margin-left:auto;}
 .share-elev-chip[hidden] + .share-clear-chip{margin-left:auto;}
 /* A clear card's preview: a light checkerboard behind it shows what's see-through. */
@@ -2309,24 +2307,6 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         </div>
       </div>
 
-      <!-- A tester account only: see the app as a free account would (see freePreviewOn). -->
-      <div class="sheet-section" id="freePreviewSection" hidden>
-        <div class="st-label" data-i18n="testingLabel"></div>
-        <div class="toggle-row">
-          <div>
-            <div class="tt" data-i18n="freePreviewTitle"></div>
-            <div class="ts" data-i18n="freePreviewSub"></div>
-          </div>
-          <div class="toggle" id="freePreviewToggle" role="switch" tabindex="0"><div class="knob"></div></div>
-        </div>
-        <div class="toggle-row gps-log-row">
-          <div>
-            <div class="tt" data-i18n="gpsLogTitle"></div>
-            <div class="ts" id="gpsLogSub"></div>
-          </div>
-          <button type="button" class="btn btn-ghost gps-log-send" id="gpsLogSendBtn" data-i18n="gpsLogSend"></button>
-        </div>
-      </div>
 
       <!-- Help and feedback: one short list, not four separate buttons. -->
       <div class="sheet-section">
@@ -2592,7 +2572,6 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <button class="btn-text paywall-restore" id="paywallRestoreBtn" type="button" data-i18n="paywallRestore" hidden></button>
       <p class="paywall-fine" id="paywallFine"></p>
       <div class="legal-links"><a class="settings-link terms-link" href="terms.html" target="_blank" rel="noopener" data-i18n="termsLink"></a><span>·</span><a class="settings-link" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a></div>
-      <p class="footer-note" id="paywallPreviewNote" data-i18n="proSheetPreviewNote" hidden></p>
     </div>
   </div>
   <div class="sheet-overlay" id="termOverlay" hidden>
@@ -4395,11 +4374,6 @@ const STR = {
     offlineBar: "You're offline. Changes won't be saved until you're back online.",
     saveFailedBar: "Your last change didn't save. Check your connection, then do it again.",
     textSizeLabel: "Text size", textSizeNote: "Makes the words in Altiro bigger on this device.",
-    gpsLogTitle: "GPS log", gpsLogSend: "Send",
-    gpsLogNone: "Track a run with GPS and the phone's raw readings from it are kept here, to send for tuning the tracker.",
-    gpsLogLast: "Last run: {date} · {dist} · {n} readings", gpsLogRuns: "{n} runs saved",
-    gpsLogFileTitle: "Altiro GPS log", gpsLogFailed: "Couldn't share the GPS log",
-    testingLabel: "Testing", freePreviewTitle: "Preview free version", freePreviewSub: "See Altiro as a free account would. Only changes what's shown: turn it off to go back to everything.",
     paywallTitle: "Altiro Pro",
     paywallPerk1: "A personalized plan built around your goal, days and equipment",
     paywallPerk2: "Paces and weights that move up every week, with easier weeks to recover",
@@ -4426,7 +4400,7 @@ const STR = {
     proStatusLifetime: "Pro, for life", proStatusFree: "Free plan", proStatusFreeSub: "Logging, GPS runs and your own workouts are free. Your plan and its progression are part of Pro.",
     proSeePlans: "See plans", proGetPro: "Get Pro", proManageLink: "Manage subscription",
     deleteAccountSubNote: "Deleting your account doesn't cancel your Altiro Pro subscription. Cancel it first in your App Store or Google Play settings.",
-    proSheetTitle: "Part of Altiro Pro", proSheetPreviewNote: "(You're previewing the free version: turn it off in Settings -> Testing.)",
+    proSheetTitle: "Part of Altiro Pro",
     proUnlockPlan: "Unlock your plan", proLearnMore: "Learn more",
     proWhy_plan: "Your personalized plan -- built around your goal, days and equipment, with paces and weights that progress each week -- is part of Pro. Your own workouts, logging and GPS runs stay free.",
     proWhy_adjust: "Adjusting your plan (focus, days, intensity, miles, equipment) is part of Pro.",
@@ -5188,11 +5162,6 @@ const STR = {
     offlineBar: "Sin conexión. Los cambios no se guardarán hasta que vuelvas a estar en línea.",
     saveFailedBar: "Tu último cambio no se guardó. Revisa tu conexión y vuelve a hacerlo.",
     textSizeLabel: "Tamaño del texto", textSizeNote: "Agranda las letras de Altiro en este dispositivo.",
-    gpsLogTitle: "Registro GPS", gpsLogSend: "Enviar",
-    gpsLogNone: "Registra una carrera con GPS y las lecturas sin procesar del teléfono se guardan aquí, para enviarlas y ajustar el registro.",
-    gpsLogLast: "Última carrera: {date} · {dist} · {n} lecturas", gpsLogRuns: "{n} carreras guardadas",
-    gpsLogFileTitle: "Registro GPS de Altiro", gpsLogFailed: "No se pudo compartir el registro GPS",
-    testingLabel: "Pruebas", freePreviewTitle: "Ver la versión gratuita", freePreviewSub: "Mira Altiro como lo vería una cuenta gratuita. Solo cambia lo que se muestra: desactívalo para volver a tenerlo todo.",
     paywallTitle: "Altiro Pro",
     paywallPerk1: "Un plan personalizado según tu objetivo, tus días y tu equipo",
     paywallPerk2: "Ritmos y pesos que suben cada semana, con semanas más suaves para recuperarte",
@@ -5219,7 +5188,7 @@ const STR = {
     proStatusLifetime: "Pro, de por vida", proStatusFree: "Plan gratuito", proStatusFreeSub: "Registrar, correr con GPS y tus propios entrenamientos son gratis. Tu plan y su progresión son parte de Pro.",
     proSeePlans: "Ver planes", proGetPro: "Obtener Pro", proManageLink: "Administrar suscripción",
     deleteAccountSubNote: "Eliminar tu cuenta no cancela tu suscripción a Altiro Pro. Cancélala primero en los ajustes de App Store o Google Play.",
-    proSheetTitle: "Parte de Altiro Pro", proSheetPreviewNote: "(Estás viendo la versión gratuita: desactívala en Ajustes -> Pruebas.)",
+    proSheetTitle: "Parte de Altiro Pro",
     proUnlockPlan: "Desbloquea tu plan", proLearnMore: "Más información",
     proWhy_plan: "Tu plan personalizado -- hecho a partir de tu objetivo, días y equipo, con ritmos y pesos que progresan cada semana -- es parte de Pro. Tus propios entrenamientos, el registro y las carreras con GPS siguen siendo gratis.",
     proWhy_adjust: "Ajustar tu plan (enfoque, días, intensidad, distancia, equipo) es parte de Pro.",
@@ -6301,17 +6270,12 @@ function planWeekFor(date){ return generatedWeek(planConfig(), planWeekIndex(dat
 // The day Pro goes live in the stores, e.g. '2026-12-01'. (Tests set window.__ALTIRO_TEST_PRO_LAUNCH__.)
 const PRO_LAUNCH_AT = ((typeof window!=='undefined') && window.__ALTIRO_TEST_PRO_LAUNCH__) || null;
 const PRO_TRIAL_DAYS = 7;
-const FREE_PREVIEW_KEY = 'altiro_free_preview';
-function freePreviewOn(){
-  if(!state.tester || !state.userId) return false;
-  try{ return localStorage.getItem(FREE_PREVIEW_KEY+'_'+state.userId)==='1'; }catch(e){ return false; }
-}
 function proActive(){
   const p = state.pro;
   if(!state.userId || !p) return true;
   return !!p.lifetime || (!!p.until && Date.now() < p.until);
 }
-const isPro = () => !freePreviewOn() && proActive();
+const isPro = () => proActive();
 // No generated plan: their own workouts (or, previewing free, no plan to make them).
 const ownMode = () => !!state.ownWorkouts || !isPro();
 // The generated session for a date, as a fresh copy (callers may edit it).
@@ -11678,22 +11642,6 @@ function openTerm(key){
   document.getElementById('termOverlay').hidden = false;
 }
 function closeTerm(){ document.getElementById('termOverlay').hidden = true; }
-// Free / Pro preview (see freePreviewOn): the Settings switch, and "Part of Altiro Pro".
-function setFreePreview(on){
-  try{ localStorage.setItem(FREE_PREVIEW_KEY+'_'+state.userId, on ? '1' : '0'); }catch(e){}
-  // The days still to come follow the plan again, or don't (nothing saved changes).
-  state.week = regenerateUpcomingWeek();
-  state.doneCount = computeDoneCount();
-  refreshViews();
-  renderFreePreviewSetting();
-}
-function renderFreePreviewSetting(){
-  const sec = document.getElementById('freePreviewSection');
-  if(!sec) return;
-  sec.hidden = !state.tester;
-  document.getElementById('freePreviewToggle').classList.toggle('on', freePreviewOn());
-  renderGpsLogSetting();
-}
 /* ---------------- Altiro Pro: status, the paywall, and buying it ---------------- */
 // What decides Pro (state.pro, read by proActive): when the account was made -- before Pro launched, Pro
 // for life; after, a week free -- its row in `subscriptions` (kept up to date by the RevenueCat webhook,
@@ -11746,7 +11694,7 @@ function forgetProStatus(){ proUser = proSub = proRc = null; state.pro = null; }
 // Once, on the first visit after the free week ends: what's changed, and the plans.
 function maybeShowTrialEnded(){
   const p = state.pro;
-  if(!p || p.source!=='free' || freePreviewOn() || !state.userId) return;
+  if(!p || p.source!=='free' || !state.userId) return;
   const key = 'altiro_trial_ended_seen_' + state.userId;
   try{ if(localStorage.getItem(key)) return; localStorage.setItem(key, '1'); }catch(e){ return; }
   setTimeout(()=> openPaywall('trialEnded'), 600);
@@ -11808,7 +11756,6 @@ async function openPaywall(feature){
   const whyEl = document.getElementById('paywallWhy');
   whyEl.textContent = why || '';
   whyEl.hidden = !why;
-  document.getElementById('paywallPreviewNote').hidden = !freePreviewOn();
   document.getElementById('paywallError').hidden = true;
   paywallPlan = 'yearly';
   renderPaywall();
@@ -14421,10 +14368,7 @@ document.getElementById('progWeeksNext').addEventListener('click', ()=>{
 });
 
 /* ---------------- settings ---------------- */
-document.getElementById('freePreviewToggle').addEventListener('click', ()=> setFreePreview(!freePreviewOn()));
-document.getElementById('freePreviewToggle').addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); setFreePreview(!freePreviewOn()); } });
 function renderSettings(){
-  renderFreePreviewSetting();
   renderProSettings();
   document.getElementById('deleteAccountBtn').hidden = !state.signedIn;
   document.getElementById('profileAvatar').textContent = state.userName.charAt(0);
@@ -15948,7 +15892,6 @@ function gpsSignalState(){
 // distance from GPS wobble).
 function onGpsFix(lat, lng, acc, time, alt, altAcc, speed, bearing){
   if(!isFinite(lat) || !isFinite(lng)) return;
-  gpsLogFix(lat, lng, acc, time, alt, altAcc, speed, bearing);
   gpsLastFix = {lat, lng, acc: acc || 0, at: Date.now()};
   if(gps && gps.status==='running'){
     gps.stats.fixes++;
@@ -16229,7 +16172,6 @@ document.getElementById('gpsActRow').addEventListener('click', e=>{
 });
 document.getElementById('gpsStartBtn').addEventListener('click', ()=>{
   if(!gps) return;
-  gpsLogEvent(gps.status==='running' ? 'pause' : gps.status==='idle' ? 'start' : 'resume');
   if(gps.status==='running'){
     gpsCatchUp();
     noteGpsGap(Date.now()); gps.lastGoodT = null;
@@ -16253,7 +16195,7 @@ document.getElementById('gpsClose').addEventListener('click', ()=>{
   clearGpsRun(); gps = null; closeGpsTracker();
 });
 document.getElementById('gpsDiscardKeep').addEventListener('click', ()=>{ document.getElementById('gpsDiscardConfirm').hidden = true; });
-document.getElementById('gpsDiscardYes').addEventListener('click', ()=>{ clearGpsRun(); gpsLogDrop(); gps = null; closeGpsTracker(); });
+document.getElementById('gpsDiscardYes').addEventListener('click', ()=>{ clearGpsRun(); gps = null; closeGpsTracker(); });
 document.getElementById('gpsRecenter').addEventListener('click', ()=>{ gpsMapFollow = true; renderGps(); });
 document.getElementById('gpsVoiceBtn').addEventListener('click', ()=>{
   if(!isPro()){ openProSheet('voice'); return; }
@@ -16404,7 +16346,6 @@ function finishGpsRun(msAtPress){
     target = {dayKey: key, kind: where.kind, id: where.id};
   }
   announceRun('finished', {meters: gps.distM, ms, elevGain: gps.elevSeen ? gps.elevGain : null}, gps.activity);
-  gpsLogFinish(result);
   setGpsHandoff({target, result});
   refineElevation(target, gps.segs);
   clearGpsRun(); gps = null;
@@ -16544,130 +16485,9 @@ document.getElementById('locPromptLater').addEventListener('click', ()=>{
   document.getElementById('locPromptOverlay').hidden = true;
   try{ localStorage.setItem(LOC_ASKED_KEY, 'later'); }catch(e){}
 });
-// ---- The GPS log (tester accounts only) ----
-// Every fix the phone gives while a run is being tracked, raw -- before the accuracy check, the
-// smoothing, anything -- with the phone's own speed and heading, when the run was paused and picked up
-// again, what the tracker made of it, and the terrain heights it was checked against: so the tracker can
-// be tuned against a watch's recording of the same run. Kept on this phone only (the run going on, and
-// the last 5 finished), and sent -- all of them, in one file -- only when the tester taps Send in Settings.
-const GPS_LOG_LIVE_KEY = 'altiro_gps_log_live', GPS_LOGS_KEY = 'altiro_gps_logs', GPS_LOG_OLD_KEY = 'altiro_gps_log', GPS_LOG_MAX_FIXES = 30000, GPS_LOGS_KEPT = 5;
-let gpsLog = null, gpsLogSavedAt = 0;
-function gpsLogOn(){ return !!(state.tester && state.userId); }
-function gpsLogLive(){
-  if(gpsLog) return gpsLog;
-  try{ gpsLog = JSON.parse(localStorage.getItem(GPS_LOG_LIVE_KEY) || 'null'); }catch(e){ gpsLog = null; }
-  if(!gpsLog) gpsLog = {v: 1, fields: ['t', 'lat', 'lng', 'acc', 'alt', 'altAcc', 'speed', 'bearing'], fixes: [], events: [],
-    build: APP_BUILD, native: !!nativeGeo(), ua: (navigator.userAgent || '').slice(0, 200), splitUnit: gps ? gps.splitUnit : distUnit()};
-  return gpsLog;
-}
-function saveGpsLogLive(force){
-  if(!gpsLog || (!force && Date.now()-gpsLogSavedAt < 5000)) return;
-  gpsLogSavedAt = Date.now();
-  try{ localStorage.setItem(GPS_LOG_LIVE_KEY, JSON.stringify(gpsLog)); }catch(e){}
-}
-const logRound = (x, k)=> x==null || !isFinite(x) ? null : Math.round(x*k)/k;
-const r6 = x=> logRound(x, 1e6), r1 = x=> logRound(x, 10), r2 = x=> logRound(x, 100);
-function gpsLogFix(lat, lng, acc, time, alt, altAcc, speed, bearing){
-  if(!gps || gps.status!=='running' || !gpsLogOn()) return;
-  const log = gpsLogLive();
-  if(log.fixes.length >= GPS_LOG_MAX_FIXES) return;
-  log.fixes.push([time || Date.now(), r6(lat), r6(lng), r1(acc), r1(alt), r1(altAcc), r2(speed), bearing==null || !isFinite(bearing) ? null : Math.round(bearing)]);
-  saveGpsLogLive();
-}
-function gpsLogEvent(kind){
-  if(!gpsLogOn()) return;
-  gpsLogLive().events.push([Date.now(), kind]);
-  saveGpsLogLive(true);
-}
-function gpsLogDrop(){ gpsLog = null; try{ localStorage.removeItem(GPS_LOG_LIVE_KEY); }catch(e){} }
-// Finished: what the tracker made of it goes with it, and it becomes the last run's log.
-function gpsLogFinish(result){
-  if(!gpsLogOn()) return;
-  const log = gpsLogLive();
-  if(!log.fixes.length){ gpsLogDrop(); return; }
-  log.events.push([Date.now(), 'finish']);
-  log.app = {distance: result.distance, time: result.time, distM: Math.round(gps.distM*10)/10, splits: result.splits, lastSplit: result.lastSplit, splitUnit: result.splitUnit,
-    elevGain: result.elevGain, elevLoss: result.elevLoss, gpsStats: result.gpsStats, startedAt: result.startedAt, finishedAt: result.finishedAt,
-    settings: {maxAccuracyM: GPS_MAX_ACCURACY_M, maxSpeedMs: GPS_MAX_SPEED_MS, q: GPS_Q, minStepM: GPS_MIN_STEP_M}};
-  log.route = gps.segs.map(sg=> sg.map(p=> [p[2] || 0, r6(p[0]), r6(p[1]), p[3]==null ? null : r1(p[3])]));
-  saveGpsLogs([...gpsLogs(), log].slice(-GPS_LOGS_KEPT));
-  gpsLogDrop();
-  renderGpsLogSetting();
-}
-// The terrain heights the finished run was checked against, as they came, and the climb made of them.
-function gpsLogTerrain(segs, pts, heights, gain, loss){
-  if(!gpsLogOn()) return;
-  try{
-    // (The run just finished: the newest log.)
-    const logs = gpsLogs(), log = logs[logs.length-1];
-    if(!log || !log.route || log.terrain) return;
-    log.terrain = {pts: pts.map((p, i)=> [Math.round(p.d), p.seg, r6(p.lat), r6(p.lng), heights[i]]), gain: r1(gain), loss: r1(loss),
-      settings: {gapM: ELEV_GAP_M, smoothM: ELEV_SMOOTH_M, stepM: ELEV_STEP_M}};
-    saveGpsLogs(logs);
-  }catch(e){}
-}
-// The last 5 runs' logs, oldest first. (A phone that kept just one, before: that one.)
-function gpsLogs(){
-  try{
-    const list = JSON.parse(localStorage.getItem(GPS_LOGS_KEY) || 'null');
-    if(Array.isArray(list)) return list.filter(l=> l && Array.isArray(l.fixes));
-    const old = JSON.parse(localStorage.getItem(GPS_LOG_OLD_KEY) || 'null');
-    return old && Array.isArray(old.fixes) ? [old] : [];
-  }catch(e){ return []; }
-}
-// Kept on the phone; if they don't fit in its storage, the oldest go first.
-function saveGpsLogs(list){
-  let keep = list.slice(-GPS_LOGS_KEPT);
-  while(keep.length){
-    try{ localStorage.setItem(GPS_LOGS_KEY, JSON.stringify(keep)); break; }catch(e){ keep = keep.slice(1); }
-  }
-  try{ if(!keep.length) localStorage.removeItem(GPS_LOGS_KEY); localStorage.removeItem(GPS_LOG_OLD_KEY); }catch(e){}
-}
-function lastGpsLog(){ const l = gpsLogs(); return l[l.length-1] || null; }
-function renderGpsLogSetting(){
-  const sub = document.getElementById('gpsLogSub');
-  if(!sub) return;
-  const L = STR[state.lang], logs = gpsLogs(), log = logs[logs.length-1] || null;
-  const btn = document.getElementById('gpsLogSendBtn');
-  btn.disabled = !log;
-  if(!log || !log.app){ sub.textContent = L.gpsLogNone; return; }
-  const d = new Date(log.app.startedAt || log.fixes[0][0]);
-  const mo = MONTHS_SHORT[state.lang][d.getMonth()];
-  const last = L.gpsLogLast.replace('{date}', state.lang==='es' ? `${d.getDate()} ${mo}` : `${mo} ${d.getDate()}`)
-    .replace('{dist}', `${(log.app.distM/unitMeters()).toFixed(2)} ${distUnit()}`).replace('{n}', log.fixes.length.toLocaleString(state.lang==='es' ? 'es' : 'en-US'));
-  sub.textContent = logs.length>1 ? `${L.gpsLogRuns.replace('{n}', logs.length)} · ${last}` : last;
-}
-// Every kept run's log in one file: {runs: [...]}, oldest first.
-async function sendGpsLog(){
-  const L = STR[state.lang], logs = gpsLogs();
-  if(!logs.length) return;
-  const d = new Date((logs[logs.length-1].app && logs[logs.length-1].app.startedAt) || Date.now());
-  const name = `altiro-gps-${logs.length}-run${logs.length>1 ? 's' : ''}-${dateKey(d)}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.json`;
-  const json = JSON.stringify({v: 2, runs: logs});
-  const plugins = isNativeShell() && window.Capacitor.Plugins;
-  try{
-    if(plugins && plugins.Share && plugins.Filesystem){
-      const file = await plugins.Filesystem.writeFile({path: name, data: json, directory: 'CACHE', encoding: 'utf8'});
-      await plugins.Share.share({title: L.gpsLogFileTitle, files: [file.uri], dialogTitle: L.gpsLogFileTitle});
-      return;
-    }
-    const file = typeof File==='function' ? new File([json], name, {type: 'application/json'}) : null;
-    if(file && navigator.canShare && navigator.canShare({files: [file]}) && navigator.share){
-      await navigator.share({files: [file], title: L.gpsLogFileTitle});
-      return;
-    }
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([json], {type: 'application/json'}));
-    a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
-  }catch(e){
-    if(e && (e.name==='AbortError' || /cancel/i.test(String(e.message||e)))) return;
-    showToast(L.gpsLogFailed);
-  }
-}
-document.getElementById('gpsLogSendBtn').addEventListener('click', sendGpsLog);
 
+// (GPS logs a tester's phone kept for tuning the tracker, from before: cleared -- they're no longer sent.)
+try{ ['altiro_gps_log_live', 'altiro_gps_logs', 'altiro_gps_log'].forEach(k=> localStorage.removeItem(k)); }catch(e){}
 // A run that was being tracked when the app was closed comes back on Today.
 function resumeGpsIfAny(){
   const saved = loadGpsRun();
@@ -16989,7 +16809,6 @@ async function refineElevation(target, segs){
     const every = Math.ceil(pts.length/150);
     const prof = {d: [], a: []};
     pts.forEach((p, i)=>{ if((i%every===0 || i===pts.length-1) && isFinite(smoothed[i])){ prof.d.push(Math.round(p.d)); prof.a.push(Math.round(smoothed[i]*10)/10); } });
-    gpsLogTerrain(segs, pts, heights, gain, loss);
     const h = gpsHandoff;
     if(!h || !sameLogTarget(h.target, target)) return;
     Object.assign(h.result, {elevGain: Math.round(gain*10)/10, elevLoss: Math.round(loss*10)/10, elevProfile: prof, elevSource: 'dem'});

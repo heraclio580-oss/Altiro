@@ -277,15 +277,14 @@ async function app(o){
     check('The store app before subscriptions are set up: "aren\'t open yet", nothing to press', p.open && p.buy.disabled && /aren't open yet/.test(text(p.note)) && p.restore.hidden && rc.log.configure.length===0);
     a.dom.window.close();
   }
-  // ---- Previewing free (a tester with Pro) ----
+  // ---- A tester: no "Preview free version" switch any more (it was for testing before launch) ----
   {
     const a = await app({launch: LAUNCH, createdAt: '2025-11-02T10:00:00Z', tester: true});
     a.go('settings'); await wait(10);
-    a.doc.getElementById('freePreviewToggle').click(); await wait(30);
+    check('No "Preview free version" switch or GPS log in Settings', !a.doc.getElementById('freePreviewToggle') && !a.doc.getElementById('gpsLogSendBtn')
+      && !/Preview free version|GPS log/.test(a.doc.getElementById('screen-settings').textContent));
     a.go('home'); await wait(20);
-    check('A tester previewing free sees the locks', a.planLocked());
-    a.doc.querySelector('#sessionCard [data-pro="plan"]').click(); await wait(30);
-    check('...and the paywall, noting it\'s a preview', a.paywall().open && !a.doc.getElementById('paywallPreviewNote').hidden);
+    check('...and the app is all there for them (Pro)', !a.planLocked());
     a.dom.window.close();
   }
   // ---- Spanish ----

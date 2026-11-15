@@ -69,7 +69,7 @@ const LAT0 = 37.7749, LNG0 = -122.4194, M_LAT = 1/111195; // metres to degrees o
   // ---- A run nobody planned, from Today ----
   {
     const {page, errors} = await openApp();
-    check('Today has a "Track a run with GPS" button (under More on a day that isn\'t a run)', /Track a run with GPS/.test(await txt(page, '#trackRunBtn')));
+    check('Today has a "Track with GPS" button (under More on a day that isn\'t a run)', /Track with GPS/.test(await txt(page, '#trackRunBtn')));
     await tapTrack(page);
     await sleep(100);
     check('It opens the run tracker', await shown(page, '#gpsOverlay'));

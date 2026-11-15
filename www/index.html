@@ -742,6 +742,23 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .type-btn svg{width:16px;height:16px;flex-shrink:0;}
 .type-btn span{font-size:calc(11.5px * var(--fs, 1));line-height:1.1;text-align:center;}
 .type-btn.sel{border-color:var(--accent);background:var(--accent-tint);color:var(--text);}
+/* The GPS tracker: what's being tracked -- a run, walk, hike or ride -- picked before starting. */
+.gps-act{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:4px 0 12px;}
+.gps-act button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:var(--r-md);border:1px solid var(--border);
+  background:var(--well);color:var(--text-2);font-family:var(--font-body);font-size:calc(11.5px * var(--fs, 1));cursor:pointer;min-width:0;}
+.gps-act button svg{width:17px;height:17px;}
+.gps-act button[aria-checked="true"]{border-color:var(--accent);background:var(--accent-tint);color:var(--text);}
+/* Cardio: one button, with the kind picked from a list under it (Run, Walk, Hike, Bike ride). */
+.type-pick{position:relative;flex:1;display:flex;min-width:0;}
+.type-pick > .type-btn{width:100%;}
+.type-btn .type-caret{display:inline-block;margin-left:3px;font-size:0.8em;opacity:0.8;}
+.type-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:30;min-width:190px;padding:6px;display:flex;flex-direction:column;gap:2px;
+  background:var(--sheet-bg, var(--card));border:1px solid var(--border);border-radius:var(--r-md);box-shadow:0 12px 30px -10px rgba(0,0,0,0.55);}
+.type-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border:0;border-radius:var(--r-sm, 10px);background:transparent;color:var(--text);
+  font-family:var(--font-body);font-size:calc(14px * var(--fs, 1));text-align:left;cursor:pointer;}
+.type-menu button svg{width:18px;height:18px;flex-shrink:0;color:var(--text-2);}
+.type-menu button[aria-selected="true"]{background:var(--accent-tint);}
+.type-menu button[aria-selected="true"] svg{color:var(--accent);}
 .prow-class{display:flex;align-items:center;gap:6px;margin:5px 0 0 4px;font-size:calc(11.5px * var(--fs, 1));color:var(--text-2);}
 .prow-class svg{width:13px;height:13px;flex-shrink:0;}
 .prow-class-t{font-family:var(--font-mono);font-size:calc(11.5px * var(--fs, 1));color:var(--text-3);}
@@ -1630,6 +1647,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .act-tile{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;min-width:0;}
 .act-tile .l{font-family:var(--font-mono);font-size:calc(10px * var(--fs, 1));letter-spacing:0.06em;text-transform:uppercase;color:var(--text-3);}
 .act-tile .v{font-family:var(--font-mono);font-size:calc(18px * var(--fs, 1));font-weight:600;color:var(--text);margin-top:4px;}
+.other-act .act-tile .l{display:flex;align-items:center;gap:5px;}
+.other-act .act-tile .l svg{width:13px;height:13px;flex-shrink:0;}
+.other-act .act-tile .s{font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));color:var(--text-3);margin-top:3px;}
 /* lift progress: a row per lift on Progress, and a sheet with its chart, bests and history */
 .lift-row{display:flex;align-items:center;gap:10px;width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;margin-top:8px;color:var(--text);font-family:var(--font-body);text-align:left;cursor:pointer;}
 .lift-row .lr-main{flex:1;min-width:0;}
@@ -2111,6 +2131,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="st-label" data-i18n="activityLabel"></div>
         <div id="progActivity"></div>
       </div>
+      <div class="sheet-section" id="otherActSection" style="margin-top:26px;" hidden>
+        <div class="st-label" data-i18n="otherActLabel"></div>
+        <div class="act-tiles other-act" id="otherActTiles"></div>
+      </div>
       <div class="sheet-section" id="stepsSection" style="margin-top:26px;" hidden>
         <div class="steps-head">
           <div class="st-label" data-i18n="stepsSectionLabel" style="margin-bottom:0;"></div>
@@ -2261,6 +2285,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
           <button class="btn-text" id="stravaDisconnectBtn" type="button" data-i18n="stravaDisconnectBtn" hidden></button>
         </div>
         <a class="settings-link" href="privacy.html#strava" target="_blank" rel="noopener" data-i18n="stravaPrivacyLink"></a>
+        <!-- Walks, hikes and bike rides from Strava and Health Connect, besides runs (see importOtherOn). -->
+        <div class="toggle-row" style="margin-top:14px;">
+          <div><div class="tt" data-i18n="importOtherTitle"></div><div class="ts" data-i18n="importOtherSub"></div></div>
+          <div class="toggle" id="importOtherToggle" role="switch" tabindex="0" aria-checked="true"><div class="knob"></div></div>
+        </div>
       </div>
 
 
@@ -3001,7 +3030,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         </div>
         <div class="stat-row readonly">
           <span class="sr-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14a7 7 0 0 1 14 0"/><path d="M10 14l3-4"/><circle cx="10" cy="14" r="1" fill="currentColor" stroke="none"/></svg></span>
-          <span class="sr-label" data-i18n="cardioPaceLabel"></span>
+          <span class="sr-label" id="manualPaceLabel" data-i18n="cardioPaceLabel"></span>
           <span class="sr-value" id="manualPaceDisplay">-:--/mi</span>
         </div>
       </div>
@@ -3157,7 +3186,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
   <div class="gps-overlay" id="gpsOverlay" hidden>
     <div class="gps-top">
       <button class="iconbtn" id="gpsClose" type="button" aria-label="Close"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
-      <span class="label" data-i18n="gpsTitle"></span>
+      <span class="label" id="gpsTitleEl" data-i18n="gpsTitle"></span>
       <button class="iconbtn gps-voice" id="gpsVoiceBtn" type="button" aria-pressed="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8v4h3l4 3V5L6 8H3z"/><path class="wave" d="M13 7.5a3.5 3.5 0 0 1 0 5M15.2 5.5a6.5 6.5 0 0 1 0 9"/><path class="mute" d="M13 8l4 4M17 8l-4 4"/></svg></button>
       <button class="iconbtn gps-lock" id="gpsLockBtn" type="button" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="9" width="11" height="8" rx="1.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/></svg></button>
       <span class="gps-signal finding" id="gpsSignal"></span>
@@ -3169,11 +3198,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="gps-time" id="gpsTime">0:00</div>
       <div class="gps-grid">
         <div><div class="v" id="gpsDist">0.00</div><div class="l" data-i18n="gpsStatDistance"></div></div>
-        <div><div class="v" id="gpsPace">--:--</div><div class="l" data-i18n="gpsStatPace"></div></div>
-        <div><div class="v" id="gpsAvgPace">--:--</div><div class="l" data-i18n="gpsStatAvgPace"></div></div>
+        <div><div class="v" id="gpsPace">--:--</div><div class="l" id="gpsPaceLabel" data-i18n="gpsStatPace"></div></div>
+        <div><div class="v" id="gpsAvgPace">--:--</div><div class="l" id="gpsAvgPaceLabel" data-i18n="gpsStatAvgPace"></div></div>
       </div>
       <div class="gps-elev" id="gpsElev" hidden></div>
       <div class="gps-note" id="gpsNote" hidden></div>
+      <!-- What's being tracked: picked before it starts -->
+      <div class="gps-act" id="gpsActRow" role="radiogroup" hidden></div>
       <button class="btn btn-primary" id="gpsStartBtn" type="button"></button>
       <button class="hold-end-btn" id="gpsHoldFinish" type="button" style="margin-top:10px;" hidden><span class="hold-end-fill"></span><span class="hold-end-label" data-i18n="gpsHoldFinish"></span></button>
       <div class="gps-confirm" id="gpsDiscardConfirm" hidden>
@@ -3623,6 +3654,8 @@ const ICONS = {
   run: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 15l3.5-4 2.5 2 3-5.5M13 4l2 2-2 2M15.5 9l1.5 1.5-2 2"/><circle cx="14" cy="4" r="1.4" fill="currentColor" stroke="none"/></svg>',
   strength: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="3" height="6" rx="0.5"/><rect x="15" y="7" width="3" height="6" rx="0.5"/><rect x="6" y="9" width="8" height="2" rx="0.3"/></svg>',
   hike: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2 15l5-9 3 5 1.5-2.5L16 15z"/><circle cx="6" cy="4" r="1.3" fill="currentColor" stroke="none"/></svg>',
+  walk: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="3.6" r="1.4" fill="currentColor" stroke="none"/><path d="M10.5 6.5l-1.2 5 2.7 2.4.8 3.6M9.3 11.5l-1.6 2.1-2.4 3.4M10.5 6.5l2.6 2.4 2.4.6M10.5 6.5L8 8l-1 2.6"/></svg>',
+  ride: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="13.5" r="3.2"/><circle cx="15" cy="13.5" r="3.2"/><path d="M5 13.5l3.2-6h5.3L15 13.5M8.2 7.5L10.5 13.5h-5.5M7 5.5h2.6M13 5h1.8l-1.3 2.5"/></svg>',
   class: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 2.5v3M13 2.5v3"/><path d="M10 10.5v2.5l1.6 1"/></svg>',
   rest: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12.5 3.5A6 6 0 1 0 16.5 12 5 5 0 0 1 12.5 3.5z"/></svg>',
   checkSm: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 10l4 4 8-9"/></svg>',
@@ -3647,8 +3680,25 @@ const ICONS = {
   swap: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11l-3-3M16 13H5l3 3"/></svg>',
   gauge: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14a7 7 0 0 1 14 0"/><path d="M10 14l3-4"/><circle cx="10" cy="14" r="1" fill="currentColor" stroke="none"/></svg>'
 };
-const TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, interval: ICONS.interval, rest: ICONS.rest, class: ICONS.class};
-const MANUAL_TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, other: ICONS.flame, interval: ICONS.interval, class: ICONS.class};
+const TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, walk: ICONS.walk, ride: ICONS.ride, interval: ICONS.interval, rest: ICONS.rest, class: ICONS.class};
+const MANUAL_TYPE_ICON = {run: ICONS.run, strength: ICONS.strength, hike: ICONS.hike, walk: ICONS.walk, ride: ICONS.ride, other: ICONS.flame, interval: ICONS.interval, class: ICONS.class};
+// Distance workouts: a run, a walk, a hike, a bike ride -- each logged with a distance and a time. Only
+// runs count toward the plan, running miles, run badges and best efforts; the others count as workouts
+// (and toward the weekly streak), with their own totals in Progress.
+const CARDIO_TYPES = ['run', 'walk', 'hike', 'ride'];
+const isCardio = t => CARDIO_TYPES.includes(t);
+// A bike ride reads in speed (mph); the rest in pace (min/mi).
+const usesSpeed = t => t==='ride';
+// About how long a mile takes, in minutes, for each -- a time to start from when none was logged.
+const CARDIO_PACE = {run: 9.5, walk: 18, hike: 22, ride: 4};
+function cardioName(t, lang){
+  const L = STR[lang || state.lang];
+  return ({run: L.actRun, walk: L.actWalk, hike: L.actHike, ride: L.actRide})[t] || L.typeCardio;
+}
+// "15.2 mph" (shown as km/h where the app is set to km -- see kmText).
+function fmtSpeed(min, mi){ return min>0 && mi>0 ? `${(mi/(min/60)).toFixed(1)} mph` : '-- mph'; }
+// A distance workout's pace or (a ride's) speed.
+function fmtCardioRate(t, min, mi){ return usesSpeed(t) ? fmtSpeed(min, mi) : (min>0 && mi>0 ? fmtPace(min/mi)+'/mi' : '-:--/mi'); }
 
 /* ---------------- translations ---------------- */
 const STR = {
@@ -4054,7 +4104,7 @@ const STR = {
     hardRunDayNote: "Your week's faster run (tempo, intervals, hills or fartlek) goes on {day}, unless a hard class is that day.",
     backToTodayBtn: "Back to Today", summaryBackBtn: "Back", summaryEditBtn: "Edit",
     shareWorkoutBtn: "Share workout", shareCardTitle: "Share your workout", shareFormatPost: "Post", shareFormatStory: "Story", shareElevChip: "Elevation", shareStatClimb: "Climb", shareClearChip: "Clear",
-    gpsTrackBtn: "Track a run with GPS", gpsTrackInLog: "Track this run with GPS", gpsTitle: "GPS run",
+    gpsTrackBtn: "Track with GPS", gpsTrackInLog: "Track this run with GPS", gpsTitle: "GPS run",
     gpsFinding: "Finding GPS…", gpsGood: "GPS ready", gpsWeak: "Weak GPS signal", gpsPausedLabel: "Paused",
     gpsStart: "Start", gpsPause: "Pause", gpsResume: "Resume", gpsHoldFinish: "Hold to finish",
     gpsStatTime: "Time", gpsStatDistance: "Miles", gpsStatPace: "Pace /mi", gpsStatAvgPace: "Avg pace",
@@ -4240,7 +4290,7 @@ const STR = {
     stravaFullWebSub: "Strava connections are full for now. In the Altiro phone app, your watch can sync through Health Connect or Apple Health.",
     stravaImportedToast: "From Strava: {name} · {mi} mi",
     watchNumbersToast: "Your watch recorded this run too: using its {mi}",
-    stravaImportedManyToast: "Imported {count} runs from Strava",
+    stravaImportedManyToast: "Imported {count} runs from Strava", stravaImportedManyActToast: "Imported {count} activities from Strava",
     stravaUpToDateToast: "Already up to date",
     myLiftsLabel: "My Lifts",
     myLiftsBtn: "Set my weights & reps",
@@ -4283,8 +4333,8 @@ const STR = {
     healthConnectBtn: "Connect {name}",
     healthOffBtn: "Turn off",
     healthConnectedToast: "{name} connected. Runs from your watch will come in on their own.",
-    healthImportedToast: "Run from your watch added: {dist}",
-    healthImportedManyToast: "{count} runs from your watch added",
+    healthImportedToast: "Run from your watch added: {dist}", healthImportedOtherToast: "{kind} from your watch added: {dist}",
+    healthImportedManyToast: "{count} runs from your watch added", healthImportedManyActToast: "{count} activities from your watch added",
     healthUpToDateToast: "You're up to date",
     healthFailedToast: "Couldn't connect to {name}. Try again.",
     healthDeniedToast: "Altiro wasn't given access. You can allow it in {name}.",
@@ -4393,7 +4443,9 @@ const STR = {
     manualNameLabel: "What did you do?",
     manualNamePlaceholder: "e.g. Push-ups",
     manualTypeLabel: "Type",
-    typeCardio: "Cardio",
+    importOtherTitle: "Walks, hikes and bike rides", importOtherSub: "Bring them in from Strava and Health Connect too, next to your runs.",
+    otherActLabel: "Walks, hikes and rides", actWalked: "Walked", actHiked: "Hiked", actRidden: "Ridden", otherActTotal: "{mi} in all",
+    typeCardio: "Cardio", actRun: "Run", actWalk: "Walk", actHike: "Hike", actRide: "Bike ride", cardioPickLabel: "Kind of cardio", statSpeed: "Speed", statAvgSpeed: "Avg speed",
     typeWeightTraining: "Weight Training",
     typeInterval: "Interval",
     manualVolumeLabel: "Sets, reps, or duration",
@@ -4845,7 +4897,7 @@ const STR = {
     hardRunDayNote: "La carrera rápida de la semana (tempo, intervalos, cuestas o fartlek) va el {day}, salvo que ese día tengas una clase intensa.",
     backToTodayBtn: "Volver a hoy", summaryBackBtn: "Volver", summaryEditBtn: "Editar",
     shareWorkoutBtn: "Compartir entrenamiento", shareCardTitle: "Comparte tu entrenamiento", shareFormatPost: "Publicación", shareFormatStory: "Historia", shareElevChip: "Elevación", shareStatClimb: "Subida", shareClearChip: "Transparente",
-    gpsTrackBtn: "Registrar carrera con GPS", gpsTrackInLog: "Registrar esta carrera con GPS", gpsTitle: "Carrera con GPS",
+    gpsTrackBtn: "Registrar con GPS", gpsTrackInLog: "Registrar esta carrera con GPS", gpsTitle: "Carrera con GPS",
     gpsFinding: "Buscando GPS…", gpsGood: "GPS listo", gpsWeak: "Señal de GPS débil", gpsPausedLabel: "En pausa",
     gpsStart: "Empezar", gpsPause: "Pausa", gpsResume: "Seguir", gpsHoldFinish: "Mantén para terminar",
     gpsStatTime: "Tiempo", gpsStatDistance: "Millas", gpsStatPace: "Ritmo /mi", gpsStatAvgPace: "Ritmo medio",
@@ -5031,7 +5083,7 @@ const STR = {
     stravaFullWebSub: "Las conexiones con Strava están llenas por ahora. En la app de Altiro para el teléfono, tu reloj puede sincronizarse con Health Connect o Apple Health.",
     stravaImportedToast: "De Strava: {name} · {mi} mi",
     watchNumbersToast: "Tu reloj también registró esta carrera: se usan sus {mi}",
-    stravaImportedManyToast: "{count} carreras importadas de Strava",
+    stravaImportedManyToast: "{count} carreras importadas de Strava", stravaImportedManyActToast: "{count} actividades importadas de Strava",
     stravaUpToDateToast: "Ya está todo al día",
     myLiftsLabel: "Mis levantamientos",
     myLiftsBtn: "Ajustar mis pesos y repeticiones",
@@ -5074,8 +5126,8 @@ const STR = {
     healthConnectBtn: "Conectar {name}",
     healthOffBtn: "Desactivar",
     healthConnectedToast: "{name} conectado. Las carreras de tu reloj llegarán solas.",
-    healthImportedToast: "Carrera de tu reloj añadida: {dist}",
-    healthImportedManyToast: "{count} carreras de tu reloj añadidas",
+    healthImportedToast: "Carrera de tu reloj añadida: {dist}", healthImportedOtherToast: "{kind} de tu reloj añadida: {dist}",
+    healthImportedManyToast: "{count} carreras de tu reloj añadidas", healthImportedManyActToast: "{count} actividades de tu reloj añadidas",
     healthUpToDateToast: "Todo al día",
     healthFailedToast: "No se pudo conectar con {name}. Inténtalo de nuevo.",
     healthDeniedToast: "Altiro no recibió acceso. Puedes permitirlo en {name}.",
@@ -5184,7 +5236,9 @@ const STR = {
     manualNameLabel: "¿Qué hiciste?",
     manualNamePlaceholder: "ej. Flexiones",
     manualTypeLabel: "Tipo",
-    typeCardio: "Cardio",
+    importOtherTitle: "Caminatas, senderismo y bici", importOtherSub: "Tráelas también de Strava y Health Connect, junto a tus carreras.",
+    otherActLabel: "Caminatas, senderismo y bici", actWalked: "Caminado", actHiked: "Senderismo", actRidden: "En bici", otherActTotal: "{mi} en total",
+    typeCardio: "Cardio", actRun: "Carrera", actWalk: "Caminata", actHike: "Senderismo", actRide: "Bicicleta", cardioPickLabel: "Tipo de cardio", statSpeed: "Velocidad", statAvgSpeed: "Vel. media",
     typeWeightTraining: "Pesas",
     typeInterval: "Intervalos",
     manualVolumeLabel: "Series, repeticiones o duración",
@@ -5325,6 +5379,8 @@ const SESSION_TIP = {
   run: {en:"Keep it steady — an easy, conversational pace works.", es:"Mantén un ritmo constante y cómodo, que te permita conversar."},
   strength: {en:"Focus on form and control through each set.", es:"Concéntrate en la forma y el control en cada serie."},
   hike: {en:"Bring water and take the hills at your own pace.", es:"Lleva agua y toma las subidas a tu propio ritmo."},
+  walk: {en:"A brisk, easy walk: tall posture and an arm swing that matches your steps.", es:"Una caminata ágil y cómoda: postura erguida y brazos que acompañen el paso."},
+  ride: {en:"Bring water, wear a helmet, and keep an easy, steady cadence.", es:"Lleva agua, usa casco y mantén un pedaleo constante y cómodo."},
   interval: {en:"Push the work, breathe through the rest — the bell has you covered.", es:"Da todo en el trabajo, respira en el descanso — la campana te avisa."},
   rest: {en:"Recovery is part of the plan — take the day.", es:"La recuperación es parte del plan. Tómate el día."},
   class: {en:"Start it when class starts — the clock keeps your time.", es:"Empiézala cuando empiece la clase: el reloj lleva tu tiempo."},
@@ -5355,6 +5411,8 @@ const FOCUS_POINTS = {
   run: {en:['Posture','Breathing rhythm','Pace control'], es:['Postura','Ritmo de respiración','Control del ritmo']},
   strength: {en:['Form','Full range of motion','Controlled tempo'], es:['Forma','Rango de movimiento completo','Tempo controlado']},
   hike: {en:['Footing','Steady pace','Hydration'], es:['Pisada','Ritmo constante','Hidratación']},
+  walk: {en:['Posture','Arm swing','Steady pace'], es:['Postura','Movimiento de brazos','Ritmo constante']},
+  ride: {en:['Helmet on','Steady cadence','Hydration'], es:['Casco puesto','Pedaleo constante','Hidratación']},
   interval: {en:['Pacing effort','Fast recovery','Consistent rounds'], es:['Dosificar el esfuerzo','Recuperación rápida','Rondas constantes']},
 };
 // After a workout: how to recover for the next one -- one tip each to rehydrate, refuel and rest, for
@@ -5410,8 +5468,9 @@ const RECOVERY_TIPS = {
   },
 };
 function recoveryTips(session, logged, key){
-  const set = RECOVERY_TIPS[session.t==='run' ? 'run' : session.t==='strength' ? 'strength' : 'other'];
-  const long = session.t==='run' && logged && ((logged.time||0) >= 60 || (logged.distance||0) >= 6);
+  // (A hike or a ride is legs and sweat like a run; a walk, like the rest.)
+  const set = RECOVERY_TIPS[['run','hike','ride'].includes(session.t) ? 'run' : session.t==='strength' ? 'strength' : 'other'];
+  const long = ['run','hike','ride'].includes(session.t) && logged && ((logged.time||0) >= 60 || (session.t==='run' && (logged.distance||0) >= 6));
   // A different tip from day to day (the same one if the Summary is opened again).
   const seed = [...String(key || '')].reduce((n, c)=> n + c.charCodeAt(0), 0);
   const pick = (list, n)=> list[(seed + n) % list.length];
@@ -9048,14 +9107,14 @@ function renderHome(){
   if(todayLift) todayExtras.unshift(todayLift);
   // A run that's done shows what was actually run, not what was planned.
   let mainDetail = effL.detail;
-  if(!focusExtra && eff.t==='run' && mainDone){
+  if(!focusExtra && isCardio(eff.t) && mainDone){
     const r = resolveLogTarget({dayKey: todayKey, ...mainTarget});
     const perf = r && r.performance;
     if(perf && perf.distance!=null) mainDetail = [`${perf.distance} mi`, perf.time ? fmtDurationClock(perf.time) : ''].filter(Boolean).join(' · ');
   }
   const todayClasses = classRowsHtml(todayKey);
   // Tracking a run from here records today's run, while it's still to do -- otherwise it's an added run.
-  homeGpsTarget = eff.t==='run' && !mainDone ? {dayKey: todayKey, ...mainTarget} : null;
+  homeGpsTarget = isCardio(eff.t) && !mainDone ? {dayKey: todayKey, ...mainTarget} : null;
   document.getElementById('sessionCard').innerHTML = `
     <div class="session-desc-tap" id="sessionDescTap">
       <div class="top-row">
@@ -9084,7 +9143,7 @@ function renderHome(){
         del: eff.t!=='rest' ? `<button class="watch-demo-btn danger" id="deleteTodayWorkoutBtn" type="button">${ICONS.trash}${L.deleteWorkoutBtn}</button>` : '',
       };
       // (No "Watch demo": each exercise in the workout has its own picture or steps.)
-      const front = eff.t==='run' ? ['gps'] : eff.t==='rest' || !actions.change ? ['add'] : ['change'];
+      const front = isCardio(eff.t) ? ['gps'] : eff.t==='rest' || !actions.change ? ['add'] : ['change'];
       const more = ['change', 'gps', 'add', 'done', 'del'].filter(k=> !front.includes(k) && actions[k]);
       return `<div class="card-actions">${front.map(k=> actions[k]).join('')}
           <button class="watch-demo-btn" id="homeMoreBtn" type="button" aria-expanded="${homeMoreOpen}" aria-controls="homeMorePanel">${ICONS.dots}${L.moreBtn}</button></div>
@@ -9716,14 +9775,14 @@ function applyLoggedPerformance(t, resolved, logged){
     const w = resolved.record;
     w.completed = true;
     if(w.supabaseId) cloudSetExtraWorkoutCompleted(w.supabaseId, true);
-    if(w.session.t==='run' && logged.distance!=null){
+    if(isCardio(w.session.t) && logged.distance!=null){
       w.actualDistance = logged.distance;
       if(w.supabaseId) cloudSetExtraWorkoutDistance(w.supabaseId, logged.distance);
     }
   } else if(t.kind==='entry'){
     const e = resolved.record;
     e.notes = logged.notes;
-    if(e.type==='run'){
+    if(isCardio(e.type)){
       e.distance = logged.distance;
       e.durationMin = logged.time;
       e.volume = [e.distance!=null ? `${e.distance} mi` : '', e.durationMin!=null ? fmtDurationClock(e.durationMin) : ''].filter(Boolean).join(' · ');
@@ -10023,7 +10082,7 @@ function openLogPerformanceFor(logTarget, mode){
   const target = getProgressionTarget(eff, state.intensityIdx);
   document.getElementById('logPerfWeightSection').hidden = !(eff.t==='strength' && !exercises);
   document.getElementById('logPerfRepsSection').hidden = !(eff.t==='strength' && !exercises);
-  document.getElementById('logPerfDistanceSection').hidden = eff.t!=='run';
+  document.getElementById('logPerfDistanceSection').hidden = !isCardio(eff.t);
   // A walk/jog asks how long they jogged without stopping -- the baseline the next sessions build from.
   const jogBlock = plannedJogBlock(eff);
   document.getElementById('logPerfJogSection').hidden = jogBlock==null;
@@ -10032,15 +10091,15 @@ function openLogPerformanceFor(logTarget, mode){
   // when it was started to when it's saved, and can be corrected.
   document.getElementById('logPerfTimeSection').hidden = eff.t==='rest' || eff.t==='interval';
   // A workout being done (not a run being logged) can be discarded -- closing it no longer does that.
-  document.getElementById('discardWorkout').hidden = !(mode==='record' && eff.t!=='run' && eff.t!=='rest');
+  document.getElementById('discardWorkout').hidden = !(mode==='record' && !isCardio(eff.t) && eff.t!=='rest');
   document.getElementById('discardWorkoutAsk').hidden = true;
   document.getElementById('discardWorkoutBtn').hidden = false;
-  document.getElementById('logPerfTimeLabelEl').textContent = eff.t==='run' ? STR[state.lang].logPerfTimeLabel : STR[state.lang].logPerfWorkoutTimeLabel;
+  document.getElementById('logPerfTimeLabelEl').textContent = isCardio(eff.t) ? STR[state.lang].logPerfTimeLabel : STR[state.lang].logPerfWorkoutTimeLabel;
   const timeNote = document.getElementById('logPerfTimeNote');
-  timeNote.hidden = eff.t==='run' || mode!=='record';
+  timeNote.hidden = isCardio(eff.t) || mode!=='record';
   timeNote.textContent = STR[state.lang].logPerfWorkoutTimeNote;
   stopWorkoutClock();
-  if(eff.t!=='run'){
+  if(!isCardio(eff.t)){
     const knownTime = perf && perf.time!=null ? perf.time : null;
     if(mode==='record' && knownTime==null){
       const startKey = logTarget.dayKey+'|'+logTarget.kind+'|'+(logTarget.id||'');
@@ -10062,7 +10121,7 @@ function openLogPerformanceFor(logTarget, mode){
     const said = textVolume(eff.en.detail, eff.en.title);
     document.getElementById('logPerfRepsInput').value = (perf && perf.reps!=null) ? perf.reps : said.sets ? said.reps/said.sets : (target ? target.reps : '');
   }
-  if(eff.t==='run'){
+  if(isCardio(eff.t)){
     // Whatever was actually run wins over the plan's prescribed distance -- the plan's number is
     // only a starting point for a workout that hasn't been logged yet.
     const rec = resolved.record;
@@ -10076,8 +10135,9 @@ function openLogPerformanceFor(logTarget, mode){
     // A timed session (walk, run/walk) has no planned distance -- the field starts empty (optional)
     // and the time starts at its planned minutes; anything else starts from the plan's miles and a
     // time at the target pace -- except for someone going by feel, who never gets a pace-based guess.
+    // (A walk, hike or ride starts from the distance it was planned with, or empty.)
     const planned = plannedMilesOf(eff);
-    const dist = knownDist!=null ? knownDist : (planned || (plannedMinutesOf(eff)!=null ? '' : 3));
+    const dist = knownDist!=null ? knownDist : (planned || (plannedMinutesOf(eff)!=null || eff.t!=='run' ? '' : 3));
     document.getElementById('logPerfDistanceInput').value = dist==='' || dist==null ? '' : +toDispDist(dist).toFixed(2);
     const knownTime = (perf && perf.time!=null) ? perf.time
       : (mode==='revisit' && logTarget.kind==='entry' && rec.durationMin!=null) ? rec.durationMin
@@ -10651,8 +10711,8 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     logged.weight = parseFloat(document.getElementById('logPerfWeightInput').value) || (target && target.weight) || 0;
     logged.reps = parseFloat(document.getElementById('logPerfRepsInput').value) || (target && target.reps) || 0;
   }
-  if(eff.t==='run'){
-    const plannedDist = plannedMilesOf(eff) || (plannedMinutesOf(eff)!=null ? null : 3);
+  if(isCardio(eff.t)){
+    const plannedDist = plannedMilesOf(eff) || (plannedMinutesOf(eff)!=null || eff.t!=='run' ? null : 3);
     const typedDist = parseFloat(document.getElementById('logPerfDistanceInput').value);
     logged.distance = typedDist>0 ? +fromDispDist(typedDist).toFixed(2) : plannedDist;
     const jogBlock = plannedJogBlock(eff);
@@ -10660,9 +10720,9 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
       const jog = parseFloat(document.getElementById('logPerfJogInput').value);
       if(jog>=0){ logged.jogMin = jog; recordJogBaseline(jog, jogBlock, parseDateKey(logTarget.dayKey)); }
     }
-    logged.time = readHmsMinutes('logPerfTime') || plannedMinutesOf(eff) || ((target ? target.pace : 9.5)*(logged.distance || 0)) || null;
+    logged.time = readHmsMinutes('logPerfTime') || plannedMinutesOf(eff) || ((target ? target.pace : CARDIO_PACE[eff.t] || 9.5)*(logged.distance || 0)) || null;
   }
-  if(eff.t!=='run'){
+  if(!isCardio(eff.t)){
     // What's in the field -- the running clock since the workout was started, or the user's own number.
     const t = workoutClockTouched || !workoutClockTimer ? readHmsMinutes('logPerfTime') : elapsedWorkoutMinutes();
     if(t) logged.time = t;
@@ -10676,20 +10736,22 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   const prevPerf = resolved && resolved.performance;
   if(prevPerf && prevPerf.stravaId){ logged.source = prevPerf.source || 'strava'; logged.stravaId = prevPerf.stravaId; }
   // A run tracked with GPS keeps its route and splits -- fresh from the tracker, or from when it was saved.
-  const gpsRes = eff.t==='run' ? gpsHandoffFor(logTarget) : null;
-  const routeFrom = gpsRes || (eff.t==='run' && prevPerf && prevPerf.route ? prevPerf : null);
+  const gpsRes = isCardio(eff.t) ? gpsHandoffFor(logTarget) : null;
+  const routeFrom = gpsRes || (isCardio(eff.t) && prevPerf && prevPerf.route ? prevPerf : null);
   if(routeFrom){
     logged.route = routeFrom.route; logged.splits = routeFrom.splits || [];
     if(routeFrom.lastSplit) logged.lastSplit = routeFrom.lastSplit;
     if(routeFrom.splitUnit) logged.splitUnit = routeFrom.splitUnit;
     if(routeFrom.gpsStats) logged.gpsStats = routeFrom.gpsStats;
     if(routeFrom.bests) logged.bests = routeFrom.bests;
+    if(routeFrom.activity) logged.activity = routeFrom.activity;
+    if(routeFrom.splitEvery) logged.splitEvery = routeFrom.splitEvery;
     if(routeFrom.startedAt) logged.startedAt = routeFrom.startedAt;
     if(routeFrom.finishedAt) logged.finishedAt = routeFrom.finishedAt;
     if(!logged.source) logged.source = 'gps';
   }
   if(routeFrom && routeFrom.elevProfile) logged.elevProfile = routeFrom.elevProfile;
-  if(eff.t==='run'){
+  if(isCardio(eff.t)){
     const g = parseFloat(document.getElementById('logPerfElevGainInput').value), l = parseFloat(document.getElementById('logPerfElevLossInput').value);
     if(g>=0) logged.elevGain = Math.round(fromDispElev(g)*10)/10;
     if(l>=0) logged.elevLoss = Math.round(fromDispElev(l)*10)/10;
@@ -10812,15 +10874,16 @@ function startWorkout(logged){
     const w = findExtraWorkout(dateKey(TODAY_DATE), extraId);
     if(w){
       w.completed = true;
-      if(eff.t==='run'){
+      if(isCardio(eff.t)){
         // Re-logging the same extra workout (e.g. correcting a mistaken distance) replaces its
         // previous contribution instead of stacking on top of it -- otherwise re-recording the
         // same workout twice silently inflates the running mileage totals a second time.
+        // (A walk, hike or ride keeps its distance too, but only a run counts toward running miles.)
         const mi = (logged && logged.distance!=null) ? logged.distance : plannedMilesOf(eff);
         const prevMi = w.actualDistance!=null ? w.actualDistance : 0;
         const delta = +(mi-prevMi).toFixed(1);
         w.actualDistance = mi;
-        state.totalDistance = +(state.totalDistance+delta).toFixed(1);
+        if(eff.t==='run') state.totalDistance = +(state.totalDistance+delta).toFixed(1);
         if(w.supabaseId) cloudSetExtraWorkoutDistance(w.supabaseId, mi);
       }
       if(w.supabaseId) cloudSetExtraWorkoutCompleted(w.supabaseId, true);
@@ -12727,15 +12790,37 @@ function toggleTodayCompleted(){
 let manualEntryType = 'strength';
 let createMarkCompleted = true;
 let manualExercises = []; // {key, name, sets, reps} -- optional, user-built sets/reps list for a strength entry
+// Cardio is one button: tapping it picks cardio and opens the list of kinds under it (Run, Walk, Hike,
+// Bike ride); the button then says which. (Its data-type is the kind picked -- a run until another is.)
+let cardioMenuOpen = false;
 function renderManualTypeRow(){
   const L = STR[state.lang];
   const row = document.getElementById('manualTypeRow');
-  const types = [['run', L.typeCardio], ['strength', L.typeWeightTraining], ['interval', L.typeInterval], ['class', L.typeClass]];
-  row.innerHTML = types.map(([t,label])=>`<button type="button" class="type-btn ${t===manualEntryType?'sel':''}" data-type="${t}">${MANUAL_TYPE_ICON[t]}<span>${label}</span></button>`).join('');
+  const cardioOn = isCardio(manualEntryType), kind = cardioOn ? manualEntryType : 'run';
+  const cardio = `<div class="type-pick"><button type="button" class="type-btn ${cardioOn?'sel':''}" data-type="${kind}" aria-haspopup="listbox" aria-expanded="${cardioMenuOpen}">${MANUAL_TYPE_ICON[kind]}<span>${escapeHtml(cardioOn ? cardioName(kind) : L.typeCardio)}<span class="type-caret">▾</span></span></button>`
+    + (cardioMenuOpen ? `<div class="type-menu" role="listbox" aria-label="${escapeHtml(L.cardioPickLabel)}">${CARDIO_TYPES.map(t=> `<button type="button" role="option" data-cardio="${t}" aria-selected="${t===manualEntryType}">${MANUAL_TYPE_ICON[t]}<span>${escapeHtml(cardioName(t))}</span></button>`).join('')}</div>` : '')
+    + `</div>`;
+  const types = [['strength', L.typeWeightTraining], ['interval', L.typeInterval], ['class', L.typeClass]];
+  row.innerHTML = cardio + types.map(([t,label])=>`<button type="button" class="type-btn ${t===manualEntryType?'sel':''}" data-type="${t}">${MANUAL_TYPE_ICON[t]}<span>${label}</span></button>`).join('');
   row.querySelectorAll('.type-btn').forEach(b=>{
-    b.addEventListener('click', ()=>{ manualEntryType = b.getAttribute('data-type'); renderManualTypeRow(); updateCreateTargetSections(); });
+    b.addEventListener('click', ()=>{
+      const t = b.getAttribute('data-type');
+      if(isCardio(t)){ cardioMenuOpen = isCardio(manualEntryType) ? !cardioMenuOpen : true; manualEntryType = t; }
+      else { cardioMenuOpen = false; manualEntryType = t; }
+      renderManualTypeRow(); updateCreateTargetSections();
+    });
+  });
+  row.querySelectorAll('[data-cardio]').forEach(b=>{
+    b.addEventListener('click', ()=>{ manualEntryType = b.getAttribute('data-cardio'); cardioMenuOpen = false; renderManualTypeRow(); updateCreateTargetSections(); });
   });
 }
+// (A tap anywhere else closes the list.)
+document.addEventListener('click', e=>{
+  // (A tap on the list's own button redraws it -- that tap's target is gone from the page by now.)
+  if(!cardioMenuOpen || !e.target.isConnected || (e.target.closest && e.target.closest('#manualTypeRow .type-pick'))) return;
+  cardioMenuOpen = false;
+  if(!document.getElementById('manualEntryOverlay').hidden) renderManualTypeRow();
+});
 function updateCreateNameLabel(){
   document.getElementById('createNameLabel').textContent = createMarkCompleted ? STR[state.lang].manualNameLabel : STR[state.lang].planNameLabel;
 }
@@ -12801,14 +12886,15 @@ function updateCreateTargetSections(){
   // A cardio entry that's already done gets the structured Date/Duration/Distance/Pace layout
   // instead of the generic free-text Volume field -- planning a future run (not yet done) still
   // uses the simpler pace-target field above, since there's no real distance/duration to record yet.
-  const isCardioLog = manualEntryType==='run' && createMarkCompleted;
+  const isCardioLog = isCardio(manualEntryType) && createMarkCompleted;
   document.getElementById('cardioLogSection').hidden = !isCardioLog;
   document.getElementById('manualVolumeSection').hidden = isCardioLog;
   // A lifting or interval workout's top line is a description of it ("Back day, high intensity"); a
   // run's is its distance or time (the plan reads a run's miles from it).
   const L = STR[state.lang];
-  document.getElementById('manualVolumeLabel').textContent = manualEntryType==='run' ? L.runVolumeLabel : L.descriptionLabel;
-  document.getElementById('manualVolumeInput').placeholder = manualEntryType==='run' ? L.runVolumePlaceholder : L.descriptionPlaceholder;
+  document.getElementById('manualVolumeLabel').textContent = isCardio(manualEntryType) ? L.runVolumeLabel : L.descriptionLabel;
+  document.getElementById('manualVolumeInput').placeholder = isCardio(manualEntryType) ? L.runVolumePlaceholder : L.descriptionPlaceholder;
+  updateManualPaceDisplay();
 }
 // The Duration stat reads as separate hour/minute/second fields (so a logged run's real clock time,
 // e.g. a 1:23:45 half marathon, doesn't get crammed into a single "minutes" box), but everything
@@ -12818,7 +12904,9 @@ function updateManualPaceDisplay(){
   const dur = readHmsMinutes('manualDuration');
   const dist = fromDispDist(parseFloat(document.getElementById('manualDistanceInput').value));
   const paceEl = document.getElementById('manualPaceDisplay');
-  paceEl.textContent = (dur>0 && dist>0) ? fmtPace(dur/dist)+'/mi' : '-:--/mi';
+  paceEl.textContent = kmText(fmtCardioRate(manualEntryType, dur, dist));
+  const paceLabel = document.getElementById('manualPaceLabel');
+  if(paceLabel) paceLabel.textContent = usesSpeed(manualEntryType) ? STR[state.lang].statSpeed : STR[state.lang].cardioPaceLabel;
 }
 ['manualDurationHInput','manualDurationMInput','manualDurationSInput','manualDistanceInput'].forEach(id=>{
   document.getElementById(id).addEventListener('input', updateManualPaceDisplay);
@@ -12941,6 +13029,7 @@ function renderCreateLive(){
 function toggleCreateLive(){
   createLive = !createLive;
   if(createLive) manualEntryType = 'strength';
+  cardioMenuOpen = false;
   document.getElementById('manualNameInput').style.borderColor = '';
   renderManualTypeRow();
   updateCreateTargetSections();
@@ -12951,6 +13040,7 @@ function openManualEntry(){
   createLive = false;
   manualEntryAlongside = false;
   manualEntryType = 'strength';
+  cardioMenuOpen = false;
   // A class starts on the day it was opened for, at 6 PM, for an hour, every week.
   classDays = state.openDayKey ? [(parseDateKey(state.openDayKey).getDay()+6)%7] : [];
   classRepeat = true; classAutoName = '';
@@ -13074,7 +13164,7 @@ document.getElementById('saveManualEntry').addEventListener('click', ()=>{
   const name = nameInput.value.trim();
   if(!name || !state.openDayKey){ nameInput.style.borderColor = 'var(--accent)'; nameInput.focus(); return; }
   const notes = document.getElementById('manualNotesInput').value.trim();
-  const isCardioLog = manualEntryType==='run' && createMarkCompleted;
+  const isCardioLog = isCardio(manualEntryType) && createMarkCompleted;
   let volume = document.getElementById('manualVolumeInput').value.trim();
   let cardioDistance = null, cardioDuration = null;
   if(isCardioLog){
@@ -13501,6 +13591,28 @@ function renderActivity(){
     </div>
     <div class="act-note">${L.activityNote}</div>`;
   el.querySelectorAll('[data-act-day]').forEach(b=> b.addEventListener('click', ()=>{ state.progActivityDay = b.dataset.actDay; renderActivity(); }));
+  renderOtherActivities();
+}
+// Walks, hikes and bike rides: their miles in the week shown, and in all -- kept apart from running miles.
+// (Only the kinds someone has done.)
+const OTHER_ACT = ['walk', 'hike', 'ride'];
+function otherActivityMiles(keys){
+  const out = {walk: 0, hike: 0, ride: 0};
+  keys.forEach(k=> doneWorkoutsOn(k).forEach(it=>{ if(OTHER_ACT.includes(it.type)) out[it.type] += Number(it.distance) || 0; }));
+  return out;
+}
+function renderOtherActivities(){
+  const L = STR[state.lang], todayKey = dateKey(TODAY_DATE);
+  const all = otherActivityMiles(Object.keys(state.dayLog).filter(k=> k<=todayKey));
+  const week = otherActivityMiles(weekDates(state.progSelectedOffset).map(dateKey).filter(k=> k<=todayKey));
+  const kinds = OTHER_ACT.filter(t=> all[t] > 0);
+  const section = document.getElementById('otherActSection');
+  section.hidden = !kinds.length;
+  if(!kinds.length) return;
+  const label = {walk: L.actWalked, hike: L.actHiked, ride: L.actRidden};
+  const mi = v=> `${+v.toFixed(1)} mi`;
+  document.getElementById('otherActTiles').innerHTML = kinds.map(t=>
+    `<div class="act-tile" data-other-act="${t}"><div class="l">${TYPE_ICON[t]}${escapeHtml(label[t])}</div><div class="v">${mi(week[t])}</div><div class="s">${escapeHtml(L.otherActTotal.replace('{mi}', mi(all[t])))}</div></div>`).join('');
 }
 
 /* ---------------- trophies: badges and best efforts ---------------- */
@@ -14831,6 +14943,18 @@ function calorieStats(logged){
 function getSummaryStats(session, intensityIdx, logged){
   const L = STR[state.lang];
   const tier = INTENSITY[intensityIdx];
+  // A walk, hike or bike ride: what was done -- distance, time, pace (a ride: speed), climb, calories.
+  if(isCardio(session.t) && session.t!=='run'){
+    const mi = (logged && logged.distance!=null) ? Number(logged.distance) : plannedMilesOf(session);
+    const min = (logged && logged.time) ? Number(logged.time) : plannedMinutesOf(session);
+    const exact = !!(logged && (logged.route && logged.route.length || logged.stravaId || logged.healthId));
+    const stats = [];
+    if(mi) stats.push({l:L.statDistance, v:(+mi).toFixed(exact ? 2 : 1)+' mi'});
+    if(min) stats.push({l:L.statTime, v:fmtDurationClock(min)});
+    if(mi && min) stats.push({l: usesSpeed(session.t) ? L.statAvgSpeed : L.statPace, v: fmtCardioRate(session.t, min, mi)});
+    stats.push(...elevStats(logged), ...calorieStats(logged));
+    return stats;
+  }
   if(session.t==='run'){
     // What was actually run (if it was logged) is what the summary/pace should reflect --
     // the planned distance is only a fallback for the pre-completion seeded preview.
@@ -14884,14 +15008,6 @@ function getSummaryStats(session, intensityIdx, logged){
     stats.push({l:L.statTopSet, v: `${weight} lb x ${reps}`});
     if(target && state._reviewSubmitted && isPro()) stats.push({l:L.statProgress, v:`${target.weight} lb`});
     return stats;
-  }
-  if(session.t==='hike'){
-    return [
-      {l:L.statDistance, v:'3.2 mi'},
-      {l:L.statTime, v:'58 min'},
-      {l:L.statElevGain, v:'410 ft'},
-      {l:L.statAvgPace, v:'18:07/mi'},
-    ];
   }
   if(session.t==='interval'){
     const cfg = session.interval || {rounds:6, workSec:180, restSec:60};
@@ -15053,12 +15169,12 @@ function shareCardData(){
     stats.push({l:L.shareStatReps, v:fmtShareNum(v.reps)});
     if(volume>0) stats.push({l:L.shareStatVolume, v:`${volume>=100000 ? Math.round(volume/1000)+'k' : fmtShareNum(volume)} ${unit}`});
     logged.exercises.forEach(e=> rows.push({name: e.name, detail: shareSetsText(e)}));
-  } else if(session.t==='run'){
+  } else if(isCardio(session.t)){
     const mi = logged.distance!=null ? Number(logged.distance) : plannedMilesOf(session);
     const gpsRun = !!(logged.route && logged.route.length);
     if(mi) stats.push({l:L.statDistance, v:`${(+mi).toFixed(gpsRun ? 2 : 1)} mi`});
     if(min) stats.push({l:L.statTime, v:fmtDurationClock(min)});
-    if(mi && min && (gpsRun || !isPaceFree(session))) stats.push({l:L.statPace, v:`${fmtPace(min/mi)}/mi`});
+    if(mi && min && (gpsRun || !isPaceFree(session))) stats.push({l: usesSpeed(session.t) ? L.statSpeed : L.statPace, v: fmtCardioRate(session.t, min, mi)});
     // ("Climb": "Elevation gain" didn't fit its tile -- the arrow says the rest.)
     if(logged.elevGain!=null && logged.elevGain>=1) stats.push({l:L.shareStatClimb, v:`↑ ${fmtElev(logged.elevGain)}`});
   } else if(session.t==='interval'){
@@ -15075,17 +15191,17 @@ function shareCardData(){
   const sessL = ST(session);
   stats.forEach(st=>{ st.v = kmText(st.v); }); // the card is drawn, not on the page, so it's converted here
   // A tracked run's splits, every one, with the fastest marked.
-  const sp = session.t==='run' && logged.route ? runSplitList(logged) : null;
-  const splits = sp && sp.splits.length ? sp.splits.map(x=> ({label: x.label, pace: `${fmtPaceSec(x.pace)}/${sp.unit}`, best: x.pace===sp.best})) : [];
+  const sp = isCardio(session.t) && logged.route ? runSplitList(logged) : null;
+  const splits = sp && sp.splits.length ? sp.splits.map(x=> ({label: x.label, pace: splitRate(logged, x.pace, sp.unit), best: x.pace===sp.best})) : [];
   // A tracked run's height along the way, drawn under its route (see the Elevation chip): heights in
   // metres, with its low and high points as the summary shows them.
-  const prof = session.t==='run' && logged.route && logged.elevProfile;
+  const prof = isCardio(session.t) && logged.route && logged.elevProfile;
   const elevAvail = !!(prof && Array.isArray(prof.d) && prof.d.length>=2 && Array.isArray(prof.a) && prof.a.length===prof.d.length);
   const elev = elevAvail && shareShowElev ? {d: prof.d, a: prof.a,
     low: `${state.lang==='es' ? 'Mín' : 'Low'} ${fmtElev(Math.min(...prof.a))}`, high: `${state.lang==='es' ? 'Máx' : 'High'} ${fmtElev(Math.max(...prof.a))}`} : null;
   return {kicker: L.workoutCompleteTitle, title: sessL.title || L.workoutCompleteTitle, stats, rows, splits, elev, elevAvail,
     streak: state.streak>=1 ? L.shareStreak.replace('{n}', state.streak) : '', footer: L.shareFooter,
-    routeSegs: session.t==='run' && logged.route ? routeSegments(logged.route) : null};
+    routeSegs: isCardio(session.t) && logged.route ? routeSegments(logged.route) : null};
 }
 function shareCardAlt(d){
   const L = STR[state.lang];
@@ -15622,7 +15738,7 @@ document.getElementById('shareCardFullBtn').addEventListener('click', openShareF
 // performance as encoded polylines, one per stretch between pauses.
 const MI_M = 1609.344;
 const GPS_KEY = 'altiro_gps_run', GPS_DONE_KEY = 'altiro_gps_done';
-const GPS_MAX_ACCURACY_M = 35, GPS_MAX_SPEED_MS = 12;
+const GPS_MAX_ACCURACY_M = 35, GPS_MAX_SPEED_MS = 12, GPS_MAX_RIDE_SPEED_MS = 25;
 // Smoothing: each fix is blended into a running estimate of where the runner really is (a simple Kalman
 // filter -- how much it trusts a fix depends on that fix's accuracy and how long since the last one),
 // and distance only counts once the estimate has moved GPS_MIN_STEP_M. Adding up raw fixes counted every
@@ -15771,8 +15887,12 @@ function drawRouteSvg(el, segs){
 let gps = null;          // the run being tracked (see newGpsRun)
 let gpsWatch = null;     // {kind:'web', id} | {kind:'native', id}
 let gpsMap = null, gpsMapReady = false, gpsMapFollow = true, gpsTick = null, gpsWakeLock = null, gpsLastFix = null, gpsSaveAt = 0;
-function newGpsRun(target){
-  return {target: target || null, status:'idle', segs:[], distM:0, movingMs:0, runningSince:null, startedAt:null, splits:[], lastPt:null, newSeg:true, splitM: unitMeters(), splitUnit: distUnit(),
+// What's being tracked: a run, walk, hike or bike ride (activity). A ride's splits are every 5 miles (or km).
+const gpsSplitEvery = act => act==='ride' ? 5 : 1;
+function newGpsRun(target, activity){
+  const act = isCardio(activity) ? activity : 'run';
+  return {target: target || null, planTarget: target || null, activity: act, splitEvery: gpsSplitEvery(act),
+    status:'idle', segs:[], distM:0, movingMs:0, runningSince:null, startedAt:null, splits:[], lastPt:null, newSeg:true, splitM: unitMeters()*gpsSplitEvery(act), splitUnit: distUnit(),
     elevGain:0, elevLoss:0, elevSm:null, elevAnchor:null, elevSeen:false, stats: newGpsStats(), lastGoodT:null, hiddenAt:null};
 }
 // How well GPS kept up during a run, kept with it so a run that reads short can say why: fixes received,
@@ -15812,6 +15932,7 @@ function loadGpsRun(){
     g.elevGain = g.elevGain || 0; g.elevLoss = g.elevLoss || 0; g.elevSm = null; g.elevAnchor = null;
     g.newSeg = true; g.lastPt = null; g.status = g.status==='idle' ? 'idle' : 'paused'; g.runningSince = null;
     if(!g.splitM){ g.splitM = MI_M; g.splitUnit = 'mi'; }
+    if(!isCardio(g.activity)){ g.activity = 'run'; g.splitEvery = 1; }
     g.stats = {...newGpsStats(), ...(g.stats || {})}; g.lastGoodT = null; g.hiddenAt = null;
     return g;
   }catch(e){ return null; }
@@ -15848,7 +15969,9 @@ function onGpsFix(lat, lng, acc, time, alt, altAcc, speed, bearing){
       if(!gps.kf) gps.kf = {lat: gps.lastPt[0], lng: gps.lastPt[1], v: Math.max(acc || 0, 3)**2, t: gps.lastPt[2]};
       const sinceKf = (t - gps.kf.t)/1000;
       const jump = haversineM([gps.kf.lat, gps.kf.lng], p);
-      if(sinceKf > 0 && !(jump/sinceKf > GPS_MAX_SPEED_MS && jump > 2*Math.max(acc || 0, 10))){
+      // (A jump no runner -- or, on a bike, no rider -- could make is GPS noise.)
+      const maxSpeed = gps.activity==='ride' ? GPS_MAX_RIDE_SPEED_MS : GPS_MAX_SPEED_MS;
+      if(sinceKf > 0 && !(jump/sinceKf > maxSpeed && jump > 2*Math.max(acc || 0, 10))){
         gpsSmooth(gps.kf, lat, lng, acc, t);
         gps.lastRaw = {lat, lng, t, alt, altAcc};
       }
@@ -15868,7 +15991,7 @@ function onGpsFix(lat, lng, acc, time, alt, altAcc, speed, bearing){
           const atMs = now - (1-frac)*dt*1000;
           const prev = gps.splits.reduce((a,b)=> a+b, 0);
           gps.splits.push(Math.max(1, Math.round(atMs/1000 - prev)));
-          announceSplit(gps.splits.length, atMs, gps.splits[gps.splits.length-1], gps.splitUnit);
+          announceSplit(gps.splits.length*(gps.splitEvery || 1), atMs, gps.splits[gps.splits.length-1], gps.splitUnit, gps.activity, gps.splitEvery || 1);
         }
       }
     }
@@ -15964,7 +16087,11 @@ function openGpsTracker(target){
   if(saved && saved.status!=='idle' && (saved.distM>0 || saved.movingMs>0)){
     gps = saved;                                   // a run that was under way when the app closed
     showToast(L.gpsResumedToast);
-  } else gps = newGpsRun(target);
+  } else {
+    // (Tracking a planned walk, hike or ride starts as that; anything else, as a run -- changeable before Start.)
+    const r = target && resolveLogTarget(target), t = r && r.session && r.session.t;
+    gps = newGpsRun(target, isCardio(t) ? t : 'run');
+  }
   gpsMapFollow = true;
   document.getElementById('gpsOverlay').hidden = false;
   document.getElementById('gpsDiscardConfirm').hidden = true;
@@ -16025,7 +16152,13 @@ function renderGps(){
   const ms = gpsElapsedMs(), units = gpsLiveDistM()/unitMeters();
   document.getElementById('gpsTime').textContent = fmtRunClock(ms);
   document.getElementById('gpsDist').textContent = units.toFixed(2);
-  document.getElementById('gpsAvgPace').textContent = units >= 0.05 ? fmtPaceSec(ms/1000/units) : '--:--';
+  const ride = gps.activity==='ride';
+  document.getElementById('gpsAvgPace').textContent = units >= 0.05 ? (ride ? (units/(ms/3600000)).toFixed(1) : fmtPaceSec(ms/1000/units)) : (ride ? '--' : '--:--');
+  document.getElementById('gpsPaceLabel').textContent = ride ? `${L.statSpeed} (${useKm() ? 'km/h' : 'mph'})` : L.gpsStatPace;
+  document.getElementById('gpsAvgPaceLabel').textContent = ride ? L.statAvgSpeed : L.gpsStatAvgPace;
+  renderGpsActivity();
+  // (The header says what's being tracked: "GPS run", or "Bike ride · GPS".)
+  document.getElementById('gpsTitleEl').textContent = gps.activity && gps.activity!=='run' ? `${cardioName(gps.activity)} · GPS` : L.gpsTitle;
   const ev = document.getElementById('gpsElev');
   ev.hidden = !gps.elevSeen;
   if(gps.elevSeen) ev.innerHTML = `${L.gpsElevLabel}: <b>↑ ${fmtElev(gps.elevGain)}</b> · <b>↓ ${fmtElev(gps.elevLoss)}</b>`;
@@ -16040,8 +16173,9 @@ function renderGps(){
     let i = seg.length-1, d = 0;
     while(i>0 && end[2]-seg[i-1][2] <= 30000){ d += haversineM(seg[i-1], seg[i]); i--; }
     const dt = (end[2]-seg[i][2])/1000;
-    if(d >= 20 && dt > 0) cur = fmtPaceSec(dt/(d/unitMeters()));
+    if(d >= 20 && dt > 0) cur = ride ? ((d/unitMeters())/(dt/3600)).toFixed(1) : fmtPaceSec(dt/(d/unitMeters()));
   }
+  if(ride && cur==='--:--') cur = '--';
   document.getElementById('gpsPace').textContent = cur;
   const sig = gpsSignalState(), sigEl = document.getElementById('gpsSignal');
   sigEl.className = 'gps-signal ' + sig;
@@ -16072,6 +16206,27 @@ function renderGps(){
     if(here && gpsMapFollow) gpsMap.easeTo({center:[here[1], here[0]], zoom: Math.max(gpsMap.getZoom(), 15), duration: 600});
   } else if(gps.segs.flat().length>1) drawRouteSvg(mapEl, gps.segs); // no map (yet): the route by itself
 }
+// Run, walk, hike or ride: picked before Start (then it stays). A planned workout stays the one tracked only
+// while what's picked is that kind; anything else is added to the day on its own.
+function renderGpsActivity(){
+  const row = document.getElementById('gpsActRow');
+  row.hidden = !gps || gps.status!=='idle';
+  if(row.hidden) return;
+  const L = STR[state.lang];
+  row.setAttribute('aria-label', L.cardioPickLabel);
+  const html = CARDIO_TYPES.map(t=> `<button type="button" role="radio" data-gps-act="${t}" aria-checked="${t===gps.activity}">${TYPE_ICON[t]}<span>${escapeHtml(cardioName(t))}</span></button>`).join('');
+  if(row.innerHTML!==html) row.innerHTML = html;
+}
+document.getElementById('gpsActRow').addEventListener('click', e=>{
+  const b = e.target.closest && e.target.closest('[data-gps-act]');
+  if(!b || !gps || gps.status!=='idle') return;
+  const t = b.getAttribute('data-gps-act');
+  gps.activity = t; gps.splitEvery = gpsSplitEvery(t); gps.splitM = unitMeters()*gps.splitEvery;
+  const r = gps.planTarget && resolveLogTarget(gps.planTarget), planned = r && r.session && r.session.t;
+  gps.target = planned===t ? gps.planTarget : null;
+  saveGpsRun(true);
+  renderGps();
+});
 document.getElementById('gpsStartBtn').addEventListener('click', ()=>{
   if(!gps) return;
   gpsLogEvent(gps.status==='running' ? 'pause' : gps.status==='idle' ? 'start' : 'resume');
@@ -16080,9 +16235,9 @@ document.getElementById('gpsStartBtn').addEventListener('click', ()=>{
     noteGpsGap(Date.now()); gps.lastGoodT = null;
     gps.movingMs = gpsElapsedMs(); gps.runningSince = null; gps.status = 'paused';
     gpsKeepAwake(false);
-    announceRun('paused');
+    announceRun('paused', null, gps.activity);
   } else {
-    announceRun(gps.status==='idle' ? 'started' : 'resumed');
+    announceRun(gps.status==='idle' ? 'started' : 'resumed', null, gps.activity);
     if(gps.status==='idle') gps.startedAt = Date.now();
     gps.status = 'running'; gps.runningSince = Date.now(); gps.newSeg = true; gps.lastPt = null;
     gps.lastGoodT = Date.now();
@@ -16149,27 +16304,36 @@ function pickRunVoice(prefix){
     return voices.find(v=> male.test(v.name)) || voices.find(v=> !female.test(v.name)) || voices[0];
   }catch(e){ return null; }
 }
-function announceSplit(n, atMs, splitSec, unit){
+function announceSplit(n, atMs, splitSec, unit, activity, every){
   if(!gpsVoiceOn()) return;
   const es = state.lang==='es';
   const name = unit==='km' ? (es ? `Kilómetro ${n}` : `Kilometer ${n}`) : (es ? `Milla ${n}` : `Mile ${n}`);
+  // A ride: its speed over the last 5 miles (or km).
+  if(activity==='ride'){
+    const v = ((every || 1)*3600/splitSec).toFixed(1), per = unit==='km' ? (es ? 'kilómetros por hora' : 'kilometers per hour') : (es ? 'millas por hora' : 'miles per hour');
+    speakRun(es ? `${name}. Tiempo, ${spokenDuration(atMs/1000, true)}. Velocidad, ${v} ${per}.` : `${name}. Time, ${spokenDuration(atMs/1000, false)}. Speed, ${v} ${per}.`);
+    return;
+  }
   const last = unit==='km' ? (es ? 'Último kilómetro' : 'Last kilometer') : (es ? 'Última milla' : 'Last mile');
   speakRun(es ? `${name}. Tiempo, ${spokenDuration(atMs/1000, true)}. ${last}, ${spokenPace(splitSec, true)}.`
               : `${name}. Time, ${spokenDuration(atMs/1000, false)}. ${last}, ${spokenPace(splitSec, false)}.`);
 }
-function announceRun(what, info){
+function announceRun(what, info, activity){
   if(!gpsVoiceOn()) return;
   const es = state.lang==='es';
-  if(what==='started') speakRun(es ? 'Carrera iniciada' : 'Run started');
-  else if(what==='paused') speakRun(es ? 'Carrera en pausa' : 'Run paused');
-  else if(what==='resumed') speakRun(es ? 'Seguimos' : 'Run resumed');
+  // (A walk, hike or ride says so -- in Spanish, "actividad".)
+  const other = isCardio(activity) && activity!=='run';
+  const noun = ({walk:'Walk', hike:'Hike', ride:'Ride'})[activity] || 'Run';
+  if(what==='started') speakRun(es ? (other ? 'Actividad iniciada' : 'Carrera iniciada') : `${noun} started`);
+  else if(what==='paused') speakRun(es ? (other ? 'Actividad en pausa' : 'Carrera en pausa') : `${noun} paused`);
+  else if(what==='resumed') speakRun(es ? 'Seguimos' : `${noun} resumed`);
   else if(what==='finished' && info){
     const units = info.meters/unitMeters(), d = units.toFixed(2);
     const uw = useKm() ? (es ? 'kilómetros' : 'kilometers') : (es ? 'millas' : 'miles');
     const up = info.elevGain>=1 ? Math.round(toDispElev(info.elevGain)) : null;
     const eu = useKm() ? (es ? 'metros' : 'meters') : (es ? 'pies' : 'feet');
-    speakRun(es ? `Carrera terminada. ${d} ${uw} en ${spokenDuration(info.ms/1000, true)}.${up!=null ? ` Desnivel positivo, ${up} ${eu}.` : ''}`
-                : `Run complete. ${d} ${uw} in ${spokenDuration(info.ms/1000, false)}.${up!=null ? ` Elevation gain, ${up} ${eu}.` : ''}`);
+    speakRun(es ? `${other ? 'Actividad terminada' : 'Carrera terminada'}. ${d} ${uw} en ${spokenDuration(info.ms/1000, true)}.${up!=null ? ` Desnivel positivo, ${up} ${eu}.` : ''}`
+                : `${noun} complete. ${d} ${uw} in ${spokenDuration(info.ms/1000, false)}.${up!=null ? ` Elevation gain, ${up} ${eu}.` : ''}`);
   }
 }
 // Finishing takes a press-and-hold, like ending an interval workout, so a bump can't end a run.
@@ -16225,17 +16389,21 @@ function finishGpsRun(msAtPress){
     lastSplit: lastPart>0.01 ? {dist: Math.round(lastPart*100)/100, sec: Math.max(1, Math.round(ms/1000 - gps.splits.reduce((a,b)=>a+b,0)))} : null,
     startedAt: gps.startedAt,
     finishedAt: Date.now(),
-    bests: (()=>{ const pm = gps.segs.reduce((t, sg)=>{ for(let i=1; i<sg.length; i++) t += haversineM(sg[i-1], sg[i]); return t; }, 0); return bestEffortsFromSegs(gps.segs, pm>0 ? gps.distM/pm : 1); })(),
+    ...(gps.activity && gps.activity!=='run' ? {activity: gps.activity} : {}),
+    ...((gps.splitEvery || 1)>1 ? {splitEvery: gps.splitEvery} : {}),
+    // (Best efforts are a run's.)
+    bests: gps.activity && gps.activity!=='run' ? null : (()=>{ const pm = gps.segs.reduce((t, sg)=>{ for(let i=1; i<sg.length; i++) t += haversineM(sg[i-1], sg[i]); return t; }, 0); return bestEffortsFromSegs(gps.segs, pm>0 ? gps.distM/pm : 1); })(),
     gpsStats: Object.fromEntries(Object.entries(gps.stats).map(([k, v])=> [k, Math.round(v)])),
   };
+  if(!result.bests) delete result.bests;
   let target = gps.target;
   if(!target){
-    // A run nobody planned: it's added to today as "Run".
-    const key = dateKey(TODAY_DATE);
-    const where = planCustomWorkout(key, {title: L.gpsRunTitle, type:'run', detail: `${result.distance} mi`, alongside: true});
+    // One nobody planned: it's added to today as "Run" (or "Walk", "Hike", "Bike ride").
+    const key = dateKey(TODAY_DATE), act = gps.activity || 'run';
+    const where = planCustomWorkout(key, {title: act==='run' ? L.gpsRunTitle : cardioName(act), type: act, detail: `${result.distance} mi`, alongside: true});
     target = {dayKey: key, kind: where.kind, id: where.id};
   }
-  announceRun('finished', {meters: gps.distM, ms, elevGain: gps.elevSeen ? gps.elevGain : null});
+  announceRun('finished', {meters: gps.distM, ms, elevGain: gps.elevSeen ? gps.elevGain : null}, gps.activity);
   gpsLogFinish(result);
   setGpsHandoff({target, result});
   refineElevation(target, gps.segs);
@@ -16258,7 +16426,7 @@ function gpsHandoffFor(target){ return gpsHandoff && sameLogTarget(gpsHandoff.ta
 // run's numbers and route filled in.
 function applyGpsToLogPerf(logTarget, mode, eff, perf){
   const L = STR[state.lang];
-  const isRun = eff && eff.t==='run';
+  const isRun = !!eff && isCardio(eff.t); // (any distance workout: a run, walk, hike or ride)
   const res = isRun ? gpsHandoffFor(logTarget) : null;
   document.getElementById('logPerfGpsBtn').hidden = !(isRun && mode==='record' && !res);
   renderLogPerfElevation(isRun, res, perf);
@@ -16291,14 +16459,21 @@ document.addEventListener('click', e=>{ if(e.target.closest && e.target.closest(
 // tracked in (labelled so), whatever the setting is now.
 function runSplitList(logged){
   const unit = logged && logged.splitUnit==='km' ? 'km' : 'mi';
-  const label = n=> unit==='km' ? `Km ${n}` : (state.lang==='es' ? `Milla ${n}` : `Mile ${n}`);
-  const splits = ((logged && logged.splits) || []).map((sec, i)=> ({label: label(i+1), pace: sec}));
-  const ls = logged && logged.lastSplit, lsDist = ls ? (ls.dist!=null ? ls.dist : ls.mi) : 0;
-  if(ls && lsDist>0) splits.push({label: `${lsDist} ${unit}`, pace: ls.sec/lsDist});
+  // (A bike ride's splits are every 5 miles or km -- each split's pace is still per one.)
+  const every = logged && logged.splitEvery>1 ? logged.splitEvery : 1;
+  const label = n=> unit==='km' ? `Km ${n*every}` : (state.lang==='es' ? `Milla ${n*every}` : `Mile ${n*every}`);
+  const splits = ((logged && logged.splits) || []).map((sec, i)=> ({label: label(i+1), pace: sec/every}));
+  const ls = logged && logged.lastSplit, lsDist = ls ? (ls.dist!=null ? ls.dist : ls.mi)*every : 0;
+  if(ls && lsDist>0) splits.push({label: `${+lsDist.toFixed(2)} ${unit}`, pace: ls.sec/lsDist});
   const best = splits.length>1 ? Math.min(...splits.map(x=> x.pace)) : null;
   return {unit, splits, best};
 }
 let summaryMap = null;
+// A split's pace ("8:59/mi") -- or, for a bike ride, its speed ("16.2 mph").
+function splitRate(logged, secPerUnit, unit){
+  if(logged && logged.activity==='ride') return `${(3600/secPerUnit).toFixed(1)} ${unit==='km' ? 'km/h' : 'mph'}`;
+  return `${fmtPaceSec(secPerUnit)}/${unit}`;
+}
 function renderSummaryRoute(logged){
   const L = STR[state.lang];
   const card = document.getElementById('summaryRouteCard');
@@ -16310,7 +16485,7 @@ function renderSummaryRoute(logged){
   const box = document.getElementById('summarySplits');
   box.setAttribute('data-keep-units', '');
   box.innerHTML = splits.length ? `<div class="st-label">${L.gpsSplitsLabel}</div>` + splits.map(s=>
-    `<div class="split-row${s.pace===best ? ' best' : ''}"><span>${escapeHtml(s.label)}</span><span>${fmtPaceSec(s.pace)}/${unit}</span></div>`).join('') : '';
+    `<div class="split-row${s.pace===best ? ' best' : ''}"><span>${escapeHtml(s.label)}</span><span>${splitRate(logged, s.pace, unit)}</span></div>`).join('') : '';
   renderElevProfile(document.getElementById('summaryElevProfile'), logged.elevProfile);
   // GPS that dropped out for a while (half a minute or more in all): the distance likely reads short.
   const gs = logged.gpsStats, gapNote = document.getElementById('summaryGpsNote');
@@ -16626,6 +16801,7 @@ function kmText(str){
   const per = (m, sec)=> fmtPace((Number(m) + Number(sec)/60)/1.609344);
   const dist = v=>{ const dp = Math.max(1, Math.min(2, ((String(v).split('.')[1]) || '').length)); return String(+(Number(v)*1.609344).toFixed(dp)); };
   return String(str)
+    .replace(/(\d+(?:\.\d+)?)\s*mph\b/g, (x, v)=> `${(Number(v)*1.609344).toFixed(1)} km/h`)
     .replace(/(\d+):(\d{2})(\s*[–-]\s*)(\d+):(\d{2})\s*\/\s*mi\b/g, (x, a, b, sep, c, d)=> `${per(a, b)}${sep}${per(c, d)}/km`)
     .replace(/(\d+):(\d{2})\s*\/\s*mi\b/g, (x, a, b)=> `${per(a, b)}/km`)
     .replace(/(\d+(?:\.\d+)?)(\s*[–-]\s*)(\d+(?:\.\d+)?)\s*(?:miles?|millas?|mi)\b/gi, (x, a, sep, c)=> `${dist(a)}${sep}${dist(c)} km`)
@@ -17905,9 +18081,86 @@ const stravaActivityUrl = id => `https://www.strava.com/activities/${encodeURICo
 // watch's distance rarely matches to the hundredth, so anything within 5% (or a quarter mile) of a run
 // already logged that day counts as the same run.
 function fileStravaRun(row){
+  // A walk, hike or bike ride: filed as one (see fileOtherActivity) -- never onto a planned run.
+  const kind = stravaKind(row.sport_type);
+  if(kind!=='run'){
+    if(!kind || !importOtherOn()) return false;
+    return fileOtherActivity({kind, key: String(row.local_date).slice(0,10), miles: +(Number(row.distance_m||0)/1609.344).toFixed(2),
+      minutes: row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null, win: stravaRowWindow(row), name: row.name,
+      source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null});
+  }
   return fileWatchRun({key: String(row.local_date).slice(0,10), miles: +(Number(row.distance_m||0)/1609.344).toFixed(2),
     minutes: row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null, win: stravaRowWindow(row), name: row.name,
     source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null, bests: stravaBests(row.best_efforts)});
+}
+// Walks, hikes and bike rides from Strava and Health Connect (on unless turned off in Settings -- the
+// Strava sync is told which kinds this app takes in).
+const IMPORT_OTHER_KEY = 'altiro_import_other';
+function importOtherOn(){ try{ return localStorage.getItem(IMPORT_OTHER_KEY)!=='0'; }catch(e){ return true; } }
+function renderImportOther(){
+  const t = document.getElementById('importOtherToggle');
+  t.classList.toggle('on', importOtherOn());
+  t.setAttribute('aria-checked', String(importOtherOn()));
+}
+function toggleImportOther(){
+  const on = !importOtherOn();
+  try{ localStorage.setItem(IMPORT_OTHER_KEY, on ? '1' : '0'); }catch(e){}
+  renderImportOther();
+  // (Turned on: the last week's come in now. Either way, Strava is told.)
+  if(state.userId && strava.connected) syncStrava({force: true});
+  if(on && typeof syncHealth==='function') syncHealth({force: true});
+}
+document.getElementById('importOtherToggle').addEventListener('click', toggleImportOther);
+document.getElementById('importOtherToggle').addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleImportOther(); } });
+renderImportOther();
+function importKinds(){ return importOtherOn() ? ['run', 'walk', 'hike', 'ride'] : ['run']; }
+const STRAVA_KINDS = {Run:'run', TrailRun:'run', VirtualRun:'run', Walk:'walk', Hike:'hike',
+  Ride:'ride', VirtualRide:'ride', EBikeRide:'ride', GravelRide:'ride', MountainBikeRide:'ride', EMountainBikeRide:'ride'};
+// (A row from before sport_type was read counts as a run, as every row then was.)
+function stravaKind(sport){ return sport ? (STRAVA_KINDS[sport] || null) : 'run'; }
+// A day's logged walks, hikes or rides of one kind: as {target, perf}.
+function dayLoggedOf(dd, kind){
+  const out = [];
+  if(dd.p.t===kind && dd.primarySource==='plan'){ const t = primaryLogTarget(dd), r = resolveLogTarget(t); out.push({target: t, perf: r && (r.performance || (r.record && r.record.performance))}); }
+  dd.extraWorkouts.filter(x=> x.session && x.session.t===kind).forEach(w=> out.push({target: {dayKey: dd.key, kind:'extra', id: w.id}, perf: w.performance || null}));
+  dd.manualEntries.filter(x=> x.type===kind).forEach(e=> out.push({target: {dayKey: dd.key, kind:'entry', id: e.id}, perf: e.performance || null}));
+  return out;
+}
+// A walk, hike or bike ride from a watch (through Strava or Health Connect): {kind, key, miles, minutes,
+// win, name, source, stravaId | healthId, elevGain, calories}. Filed on its day as a logged workout of its
+// own -- the day's workout on a rest day -- never onto a planned run. The same one arriving both ways, or
+// already tracked here with GPS at the same time, counts once (it takes the watch's numbers and the link).
+// A walk on a day the plan has a Brisk Walk is that walk. Whether it was filed as a new one.
+function fileOtherActivity(act){
+  const {kind, key, miles, minutes, win} = act;
+  const ids = {...(act.stravaId ? {stravaId: act.stravaId} : {}), ...(act.healthId ? {healthId: act.healthId} : {})};
+  const dd = getDayData(parseDateKey(key));
+  const items = dayLoggedOf(dd, kind);
+  const match = items.find(x=> x.perf && ((act.stravaId && x.perf.stravaId===act.stravaId) || (act.healthId && x.perf.healthId===act.healthId)))
+    || items.find(x=> x.perf && win && runWindow(x.perf) && sameTime(runWindow(x.perf), win));
+  if(match){
+    const r = resolveLogTarget(match.target);
+    const perf = r && (r.performance || (r.record && r.record.performance));
+    if(!r || !perf) return false;
+    let next = {...perf, ...ids};
+    if(act.calories && !perf.calories) next.calories = act.calories;
+    // (Tracked here, now from the watch too: the watch's distance and time.)
+    const fromWatch = !perf.stravaId && !perf.healthId && miles>0;
+    if(fromWatch){ next.distance = miles; if(minutes) next.time = minutes; next.fromWatch = true; next.numbersFrom = act.source; }
+    next = withWatchClimb(next, act.elevGain) || next;
+    storeLoggedPerformance(match.target, r, next);
+    if(fromWatch) applyLoggedPerformance(match.target, r, next);
+    return false;
+  }
+  if(kind==='walk' && dd.p.t==='run' && dd.primarySource==='plan' && !dd.isCustom && /^Brisk Walk$/.test(dd.p.en.title) && !dd.completed){
+    return fileWatchRun({key, miles, minutes, win, name: act.name, source: act.source, ...ids, elevGain: act.elevGain, calories: act.calories});
+  }
+  const logged = {distance: miles, time: minutes, notes: '', source: act.source, ...ids,
+    ...(win ? {startedAt: win.start, finishedAt: win.end} : {}), ...(act.calories ? {calories: act.calories} : {}),
+    ...(act.elevGain!=null && isFinite(act.elevGain) ? {elevGain: Math.round(act.elevGain*10)/10, elevSource: 'watch'} : {})};
+  const volume = [`${miles} mi`, minutes!=null ? fmtDurationClock(minutes) : ''].filter(Boolean).join(' · ');
+  logCompletedEntry(key, {name: act.name || cardioName(kind), type: kind, volume, notes:'', distance: miles, durationMin: minutes, performance: logged});
+  return true;
 }
 // Strava's own fastest stretches of a run ({"1mi": 539, "5k": 1780, ...}, seconds -- see the strava
 // function), for the best efforts: a run from the watch has no route here to find them in, so without
@@ -18005,18 +18258,18 @@ async function selectStravaRows(cols, narrow){
 }
 async function importStravaActivities(){
   if(!state.userId) return 0;
-  const { data: rows, error } = await selectStravaRows('id, name, local_date, start_date, distance_m, moving_time_s, elapsed_time_s',
+  const { data: rows, error } = await selectStravaRows('id, name, sport_type, local_date, start_date, distance_m, moving_time_s, elapsed_time_s',
     q=> q.eq('user_id', state.userId).is('applied_at', null).order('start_date', {ascending: true}));
   // Runs that were skipped earlier because they'd already been logged by hand get tied to their
   // Strava activity now, so they link back to it too (only fills in a link that's missing).
   const since = dateKey(new Date(TODAY_DATE.getTime() - STRAVA_LINK_BACKFILL_DAYS*86400000));
   try{
-    const { data: done } = await selectStravaRows('id, local_date, start_date, distance_m, moving_time_s, elapsed_time_s',
+    const { data: done } = await selectStravaRows('id, sport_type, local_date, start_date, distance_m, moving_time_s, elapsed_time_s',
       q=> q.eq('user_id', state.userId).not('applied_at', 'is', null).gte('local_date', since));
     let linked = 0;
     (done || []).forEach(row=>{
       const key = String(row.local_date).slice(0,10);
-      if(!state.dayLog[key]) return;
+      if(!state.dayLog[key] || stravaKind(row.sport_type)!=='run') return; // (runs: see fileOtherActivity for the rest)
       const miles = +(Number(row.distance_m||0)/1609.344).toFixed(2);
       const match = stravaMatchTarget(getDayData(parseDateKey(key)), miles, stravaRowWindow(row));
       if(match && linkStravaId(match, row.id)) linked++;
@@ -18043,6 +18296,8 @@ async function importStravaActivities(){
   const imported = [], pending = gpsPendingWindow();
   for(const row of rows){
     if(pending && sameTime(pending, stravaRowWindow(row))) continue; // (see gpsPendingWindow)
+    // (A walk, hike or ride while those are turned off: left for if they're turned back on.)
+    if(stravaKind(row.sport_type)!=='run' && !importOtherOn()) continue;
     // Claim the run before filing it, so two devices syncing at the same moment can't both file it.
     const { data: claimed } = await sb.from('strava_activities')
       .update({applied_at: new Date().toISOString()}).eq('id', row.id).is('applied_at', null).select('id');
@@ -18052,9 +18307,10 @@ async function importStravaActivities(){
   if(!imported.length) return 0;
   refreshViews();
   const L = STR[state.lang];
+  const allRuns = imported.every(r=> stravaKind(r.sport_type)==='run');
   showToast(imported.length===1
     ? L.stravaImportedToast.replace('{name}', imported[0].name || 'Run').replace('{mi}', (imported[0].distance_m/1609.344).toFixed(1))
-    : L.stravaImportedManyToast.replace('{count}', imported.length));
+    : (allRuns ? L.stravaImportedManyToast : L.stravaImportedManyActToast).replace('{count}', imported.length));
   return imported.length;
 }
 // Runs on sign-in, whenever the app comes back to the foreground, and from "Sync now" -- at most once a
@@ -18067,7 +18323,7 @@ async function syncStrava(opts){
   const wasUnavailable = strava.status==='unavailable';
   strava.status = 'syncing';
   renderStravaSettings();
-  const { data, error } = await stravaCall('sync');
+  const { data, error } = await stravaCall('sync', {kinds: importKinds()});
   strava.checked = true; // (whether they're connected is known now -- see renderWatchCard)
   if(error){
     strava.status = (stravaUnavailable(error) || wasUnavailable) && !strava.connected ? 'unavailable' : 'idle';
@@ -18130,7 +18386,7 @@ async function finishStravaConnect(handed){
   if(params.get('error') || !params.get('code')){ showToast(L.stravaCancelledToast); return true; }
   strava.status = 'syncing';
   renderStravaSettings();
-  const { data, error } = await stravaCall('connect', {code: params.get('code'), scope: params.get('scope') || ''});
+  const { data, error } = await stravaCall('connect', {code: params.get('code'), scope: params.get('scope') || '', kinds: importKinds()});
   strava.status = 'idle';
   if(error || !data || !data.connected){
     if(error && error.code==='athlete_limit') strava.spotsOpen = false;
@@ -18221,6 +18477,10 @@ document.addEventListener('visibilitychange', ()=>{
 // Read-only. Turning it on is this phone's choice (health permissions belong to the device).
 const HEALTH_READ = ['workouts', 'steps', 'distance', 'calories', 'totalCalories'];
 const HEALTH_RUN_TYPES = ['running', 'runningTreadmill', 'trackAndField', 'wheelchairRunPace'];
+// Walks, hikes and bike rides too (see fileOtherActivity). A phone logs short walks on its own -- only one
+// of 15 minutes or more comes in, so a walk to the store doesn't land in Altiro.
+const HEALTH_OTHER_KINDS = {walking:'walk', wheelchairWalkPace:'walk', hiking:'hike', cycling:'ride', bikingStationary:'ride', handCycling:'ride'};
+const HEALTH_WALK_MIN_S = 15*60;
 const HEALTH_LOOKBACK_DAYS = 7; // a watch can pass a run on hours, or a day or two, after it
 const HEALTH_RESYNC_MS = 60*1000, HEALTH_OPEN_SYNC_MS = 5*60*1000;
 let health = {status:'idle', steps:null, lastSyncAt:0, stepHistAt:0}; // status: 'idle' | 'syncing' | 'unavailable'
@@ -18258,8 +18518,22 @@ async function importHealthWorkouts(H){
   const res = await H.queryWorkouts({startDate: from.toISOString(), endDate: now.toISOString(), limit: 100, ascending: true});
   const seen = new Set(healthSeen()), looked = [], imported = [], pending = gpsPendingWindow();
   ((res && res.workouts) || []).forEach(w=>{
-    if(!HEALTH_RUN_TYPES.includes(w.workoutType)) return; // (runs only, as from Strava)
+    const other = HEALTH_OTHER_KINDS[w.workoutType];
+    if(!HEALTH_RUN_TYPES.includes(w.workoutType) && !(other && importOtherOn())) return;
     const id = w.platformId || `${w.sourceId || ''}|${w.startDate}`;
+    if(other){
+      if(seen.has(id) || healthIdLogged(id)) return;
+      const start = Date.parse(w.startDate), end = Date.parse(w.endDate), meters = Number(w.totalDistance) || 0, sec = Number(w.duration) || (isFinite(end) ? (end-start)/1000 : 0);
+      if(!isFinite(start) || (other!=='ride' && other!=='hike' && sec < HEALTH_WALK_MIN_S)) return;
+      if(isFinite(end) && now.getTime() - end < 20*60*1000) return; // (still being written: looked at next time)
+      const win = {start, end: isFinite(end) ? end : start + sec*1000};
+      if(pending && sameTime(pending, win)) return;
+      looked.push(id);
+      const act = {kind: other, key: dateKey(new Date(start)), miles: +(meters/1609.344).toFixed(2), minutes: sec ? +(sec/60).toFixed(2) : null, win,
+        name: cardioName(other), source: 'health', healthId: id, calories: Number(w.totalEnergyBurned) > 0 ? Math.round(Number(w.totalEnergyBurned)) : null};
+      if(fileOtherActivity(act)) imported.push({...act, miles: act.miles});
+      return;
+    }
     const start = Date.parse(w.startDate), end = Date.parse(w.endDate), meters = Number(w.totalDistance) || 0;
     const recent = isFinite(end) && now.getTime() - end < HEALTH_RECHECK_MS;
     if(seen.has(id) && !recent) return;
@@ -18307,9 +18581,10 @@ async function syncHealth(opts){
   if(imported.length){
     refreshViews();
     const L = STR[state.lang], r = imported[0];
+    const dist = `${toDispDist(r.miles).toFixed(1)} ${useKm() ? 'km' : 'mi'}`;
     showToast(imported.length===1
-      ? L.healthImportedToast.replace('{dist}', `${toDispDist(r.miles).toFixed(1)} ${useKm() ? 'km' : 'mi'}`)
-      : L.healthImportedManyToast.replace('{count}', imported.length));
+      ? (r.kind && r.kind!=='run' ? L.healthImportedOtherToast.replace('{kind}', cardioName(r.kind)).replace('{dist}', dist) : L.healthImportedToast.replace('{dist}', dist))
+      : (imported.some(x=> x.kind && x.kind!=='run') ? L.healthImportedManyActToast : L.healthImportedManyToast).replace('{count}', imported.length));
   }
   return imported.length;
 }

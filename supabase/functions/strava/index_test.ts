@@ -6,7 +6,7 @@ import { bestEfforts, makeHandler, type Deps } from "./index.ts";
 
 const NOW = Date.parse("2026-09-27T15:00:00Z");
 
-function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatus?: number; limit?: string; others?: number; countFails?: boolean; bests?: boolean } = {}) {
+function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatus?: number; limit?: string; others?: number; countFails?: boolean; bests?: boolean; others2?: boolean } = {}) {
   const connections: Record<string, any> = {};
   const activities: Record<string, any> = {};
   const calls: string[] = [];
@@ -14,6 +14,12 @@ function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatu
     { id: 1, name: "Long Run", sport_type: "Run", distance: 25749.5, moving_time: 8400, elapsed_time: 8700, total_elevation_gain: 68, start_date: "2026-09-27T12:02:00Z", start_date_local: "2026-09-27T08:02:00Z" },
     { id: 2, name: "Leg Day", sport_type: "WeightTraining", distance: 0, moving_time: 3000, elapsed_time: 3000, start_date: "2026-09-26T22:00:00Z", start_date_local: "2026-09-26T18:00:00Z" },
     { id: 3, name: "Treadmill", type: "VirtualRun", distance: 4828, moving_time: 1800, elapsed_time: 1800, start_date: "2026-09-26T01:30:00Z", start_date_local: "2026-09-25T21:30:00Z" },
+    ...(opts.others2 ? [
+      { id: 4, name: "Afternoon Hike", sport_type: "Hike", distance: 8047, moving_time: 7200, elapsed_time: 7800, total_elevation_gain: 300, start_date: "2026-09-26T21:00:00Z", start_date_local: "2026-09-26T14:00:00Z" },
+      { id: 5, name: "Gravel Grind", sport_type: "GravelRide", distance: 40234, moving_time: 5400, elapsed_time: 5600, start_date: "2026-09-25T15:00:00Z", start_date_local: "2026-09-25T08:00:00Z" },
+      { id: 6, name: "Dog Walk", sport_type: "Walk", distance: 2414, moving_time: 1800, elapsed_time: 1900, start_date: "2026-09-24T15:00:00Z", start_date_local: "2026-09-24T08:00:00Z" },
+      { id: 7, name: "Swim", sport_type: "Swim", distance: 1000, moving_time: 1800, elapsed_time: 1800, start_date: "2026-09-24T12:00:00Z", start_date_local: "2026-09-24T05:00:00Z" },
+    ] : []),
   ];
   const details: Record<number, any[]> = {
     1: [
@@ -365,4 +371,46 @@ Deno.test("webhook: a new run's best efforts come with it", async () => {
   const { raw, activities } = await connected();
   await raw(event({ object_type: "activity", aspect_type: "create", object_id: 1, owner_id: 99 }));
   assertEquals(activities[1]?.best_efforts?.["5k"], 1780);
+});
+
+Deno.test("walks, hikes and rides come in only for an app that asks for them", async () => {
+  const { call, activities, connections } = setup({ others2: true });
+  // An app from before (no kinds): runs only -- it would file a hike as a run.
+  await call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
+  assertEquals(Object.keys(activities).sort(), ["1", "3"]);
+  // A new app asks for them: the hike, the gravel ride and the walk come in (not the swim), dated as runs are.
+  connections["user-1"].last_synced_at = new Date(NOW - 3600 * 1000).toISOString();
+  const { body } = await call({ action: "sync", kinds: ["run", "walk", "hike", "ride", "swim"] });
+  assertEquals(Object.keys(activities).sort(), ["1", "3", "4", "5", "6"]);
+  assertEquals(activities[4].sport_type, "Hike");
+  assertEquals(activities[4].local_date, "2026-09-26");
+  assertEquals(activities[5].sport_type, "GravelRide");
+  assertEquals(connections["user-1"].import_kinds, ["run", "walk", "hike", "ride"]);
+  assertEquals(body.fetched, 5);
+});
+
+Deno.test("an app that turned walks, hikes and rides off gets runs only again", async () => {
+  const { call, activities, connections } = setup({ others2: true });
+  await call({ action: "connect", code: "abc", scope: "read,activity:read_all", kinds: ["run"] });
+  assertEquals(Object.keys(activities).sort(), ["1", "3"]);
+  assertEquals(connections["user-1"].import_kinds, ["run"]);
+});
+
+Deno.test("webhook: a new hike comes in for an app that asked for hikes, not otherwise", async () => {
+  const a = setup({ others2: true });
+  await a.call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
+  await a.raw(event({ object_type: "activity", aspect_type: "create", object_id: 4, owner_id: 99 }));
+  assertEquals(a.activities[4], undefined);
+  const b = setup({ others2: true });
+  await b.call({ action: "connect", code: "abc", scope: "read,activity:read_all", kinds: ["run", "hike"] });
+  delete b.activities[4];
+  await b.raw(event({ object_type: "activity", aspect_type: "create", object_id: 4, owner_id: 99 }));
+  assertEquals(b.activities[4]?.sport_type, "Hike");
+});
+
+Deno.test("best efforts are fetched for runs only", async () => {
+  const { call, calls } = setup({ others2: true, bests: true });
+  await call({ action: "connect", code: "abc", scope: "read,activity:read_all", kinds: ["run", "walk", "hike", "ride"] });
+  const details = calls.filter((c) => /\/api\/v3\/activities\/\d+$/.test(c)).map((c) => c.split("/").pop());
+  assertEquals(details.sort(), ["1", "3"]);
 });

@@ -42,6 +42,14 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const STRAVA = "https://www.strava.com";
 const RUN_TYPES = ["Run", "TrailRun", "VirtualRun"];
+// Walks, hikes and bike rides come in too -- for an app that asks for them (it sends `kinds` with a sync,
+// kept on the connection as import_kinds). An app from before doesn't know them, and would file a hike
+// as a run, so without that only runs come in.
+const OTHER_KINDS: Record<string, string> = {
+  Walk: "walk", Hike: "hike",
+  Ride: "ride", VirtualRide: "ride", EBikeRide: "ride", GravelRide: "ride", MountainBikeRide: "ride", EMountainBikeRide: "ride",
+};
+const KINDS = ["run", "walk", "hike", "ride"];
 const DAY_SEC = 24 * 60 * 60;
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -58,6 +66,7 @@ type Connection = {
   expires_at: string;
   scope: string | null;
   last_synced_at: string | null;
+  import_kinds?: string[] | null;
 };
 
 export type Db = {
@@ -128,6 +137,14 @@ async function freshConnection(deps: Deps, conn: Connection): Promise<Connection
 
 // deno-lint-ignore no-explicit-any
 const isRun = (a: any) => RUN_TYPES.includes(a.sport_type || a.type);
+// deno-lint-ignore no-explicit-any
+const kindOf = (a: any): string | null => isRun(a) ? "run" : OTHER_KINDS[a.sport_type || a.type] || null;
+// Whether this activity is one the athlete's app takes in: runs always, the rest when it asked for them.
+// deno-lint-ignore no-explicit-any
+function wanted(conn: Connection, a: any) {
+  const k = kindOf(a);
+  return k === "run" || (!!k && Array.isArray(conn.import_kinds) && conn.import_kinds.includes(k));
+}
 // deno-lint-ignore no-explicit-any
 function runRow(a: any, userId: string) {
   return {
@@ -212,9 +229,9 @@ async function handleWebhookEvent(deps: Deps, ev: any) {
   });
   if (!res.ok) return { handled: false, reason: `strava_activity_${res.status}` };
   const a = await res.json();
-  if (!isRun(a)) return { handled: true, run: false };
+  if (!wanted(conn, a)) return { handled: true, run: false };
   await deps.db.insertNewActivities([runRow(a, conn.user_id)]);
-  return { handled: true, run: true, id: a.id };
+  return { handled: true, run: isRun(a), kind: kindOf(a), id: a.id };
 }
 // One-time setup, from a browser: subscribes Altiro to Strava's webhook with this function as the address.
 async function subscribeWebhook(deps: Deps) {
@@ -241,9 +258,12 @@ async function subscribeWebhook(deps: Deps) {
 // Pulls recent runs into strava_activities. Looks back a week on every sync (a run can reach Strava
 // hours after it happened, once the watch syncs), or further if the app hasn't synced in longer than
 // that -- capped at 60 days.
-async function syncRuns(deps: Deps, userId: string) {
-  const stored = await deps.db.getConnection(userId);
-  if (!stored) return { connected: false };
+async function syncRuns(deps: Deps, userId: string, kinds?: unknown) {
+  const stored0 = await deps.db.getConnection(userId);
+  if (!stored0) return { connected: false };
+  // (The kinds this app takes in -- see OTHER_KINDS -- kept for the webhook too.)
+  const asked = Array.isArray(kinds) ? KINDS.filter((k) => (kinds as unknown[]).includes(k)) : null;
+  const stored = asked ? { ...stored0, import_kinds: asked } : stored0;
   let conn: Connection;
   try {
     conn = await freshConnection(deps, stored);
@@ -269,9 +289,10 @@ async function syncRuns(deps: Deps, userId: string) {
   if (!res.ok) throw new Error(`strava_activities_${res.status}`);
   const activities = await res.json();
   const runs = (Array.isArray(activities) ? activities : [])
-    .filter(isRun)
+    .filter((a) => wanted(conn, a))
     .map((a) => runRow(a, userId));
-  await addBestEfforts(deps, conn, runs);
+  // (Best efforts are a run's.)
+  await addBestEfforts(deps, conn, runs.filter((r) => RUN_TYPES.includes(String(r.sport_type))));
   if (runs.length) await deps.db.insertNewActivities(runs);
   await deps.db.saveConnection({ ...conn, last_synced_at: new Date(deps.now()).toISOString() });
   return { connected: true, athlete_name: conn.athlete_name, fetched: runs.length };
@@ -375,10 +396,10 @@ export function makeHandler(deps: Deps) {
             scope: body.scope || null,
             last_synced_at: null,
           });
-          return json(await withSpots(deps, await syncRuns(deps, userId)));
+          return json(await withSpots(deps, await syncRuns(deps, userId, (body as Record<string, unknown>).kinds)));
         }
         case "sync":
-          return json(await withSpots(deps, await syncRuns(deps, userId)));
+          return json(await withSpots(deps, await syncRuns(deps, userId, (body as Record<string, unknown>).kinds)));
         case "disconnect": {
           const conn = await deps.db.getConnection(userId);
           if (conn) {
@@ -425,7 +446,14 @@ function supabaseDb(): Db {
       return data;
     },
     async saveConnection(row) {
-      check(await admin.from("strava_connections").upsert(row, { onConflict: "user_id" }));
+      const res = await admin.from("strava_connections").upsert(row, { onConflict: "user_id" });
+      // (Saved without import_kinds while the database doesn't have that column yet.)
+      if (res.error && "import_kinds" in row && /import_kinds/.test(res.error.message || "")) {
+        const { import_kinds: _k, ...rest } = row;
+        check(await admin.from("strava_connections").upsert(rest, { onConflict: "user_id" }));
+        return;
+      }
+      check(res);
     },
     async deleteConnection(userId) {
       check(await admin.from("strava_connections").delete().eq("user_id", userId));

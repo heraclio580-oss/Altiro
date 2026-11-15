@@ -113,6 +113,8 @@ function purchases(opts){
       log.bought.push(aPackage.product.identifier);
       if(opts.cancel) throw {code: '1', message: 'Purchase was cancelled.', userCancelled: true};
       if(opts.fail) throw {code: '2', message: 'There was a problem with the store.'};
+      if(opts.owned) throw {code: '6', message: 'This product is already active for the user.'};
+      if(opts.noEntitlement) return {productIdentifier: aPackage.product.identifier, customerInfo: none};
       owned = true;
       return {productIdentifier: aPackage.product.identifier, customerInfo: proInfo};
     },
@@ -259,6 +261,22 @@ async function app(o){
     check('A purchase that fails says nothing was charged', !a.paywall().err.hidden && /Nothing was charged/.test(text(a.paywall().err)));
     a.paywall().restore.click(); await wait(60);
     check('Restore with nothing to restore says so', rc.log.restored===1 && /No Altiro Pro subscription was found/.test(text(a.doc.getElementById('toastMsg'))));
+    a.dom.window.close();
+  }
+  {
+    const rc = purchases({noEntitlement: true});
+    const a = await app({launch: LAUNCH, createdAt: ago(10), rc});
+    await wait(700);
+    a.paywall().buy.click(); await wait(60);
+    check('Paid but Pro didn\'t switch on: the paywall says so and points to Restore', a.paywall().open && !a.paywall().err.hidden && /Purchase received, but Pro isn't on yet/.test(text(a.paywall().err)) && /Restore purchases/.test(text(a.paywall().err)), text(a.paywall().err));
+    a.dom.window.close();
+  }
+  {
+    const rc = purchases({owned: true});
+    const a = await app({launch: LAUNCH, createdAt: ago(10), rc});
+    await wait(700);
+    a.paywall().buy.click(); await wait(60);
+    check('Store says it\'s already owned: points to Restore purchases', !a.paywall().err.hidden && /already have Altiro Pro on this store account/.test(text(a.paywall().err)), text(a.paywall().err));
     a.dom.window.close();
   }
   {

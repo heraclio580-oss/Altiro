@@ -4387,6 +4387,8 @@ const STR = {
     paywallWebNote: "Subscribe in the Altiro app on your iPhone or Android phone. Pro then works here too, with the same account.",
     paywallNotReady: "Subscriptions aren't open yet. Check back soon.",
     paywallBuyFailed: "The purchase didn't go through. Nothing was charged. Try again in a moment.",
+    paywallBuyPending: "Purchase received, but Pro isn't on yet. Wait a moment, then tap Restore purchases.",
+    paywallAlreadyOwned: "You already have Altiro Pro on this store account. Tap Restore purchases to turn it on.",
     paywallRestoreNone: "No Altiro Pro subscription was found for this store account.",
     paywallWelcomeToast: "Welcome to Altiro Pro", paywallRestoredToast: "Altiro Pro restored",
     paywallTrialEnded: "Your free week of Pro has ended. Your workouts and history are all still here; your plan and its progression are part of Pro.",
@@ -5175,6 +5177,8 @@ const STR = {
     paywallWebNote: "Suscríbete en la app de Altiro en tu iPhone o Android. Después Pro también funciona aquí, con la misma cuenta.",
     paywallNotReady: "Las suscripciones aún no están abiertas. Vuelve pronto.",
     paywallBuyFailed: "La compra no se completó. No se cobró nada. Inténtalo de nuevo en un momento.",
+    paywallBuyPending: "Compra recibida, pero Pro aún no está activo. Espera un momento y toca Restaurar compras.",
+    paywallAlreadyOwned: "Ya tienes Altiro Pro en esta cuenta de la tienda. Toca Restaurar compras para activarlo.",
     paywallRestoreNone: "No se encontró una suscripción a Altiro Pro en esta cuenta de la tienda.",
     paywallWelcomeToast: "Bienvenido a Altiro Pro", paywallRestoredToast: "Altiro Pro restaurado",
     paywallTrialEnded: "Tu semana gratis de Pro terminó. Tus entrenamientos y tu historial siguen aquí; tu plan y su progresión son parte de Pro.",
@@ -11814,11 +11818,17 @@ async function buyPro(){
     proRc = proFromCustomerInfo(ciOf(await P.purchasePackage({aPackage: pkg})));
     refreshPro();
     if(proRc){ closePaywall(); showToast(L.paywallWelcomeToast); }
+    else{
+      // Paid, but the store's answer didn't switch Pro on (yet): say so, rather than nothing.
+      const err = document.getElementById('paywallError');
+      err.textContent = L.paywallBuyPending; err.hidden = false;
+    }
   }catch(e){
     // Backing out of the store's sheet isn't a failure.
     if(!(e && (e.userCancelled || String(e.code)==='1'))){
       const err = document.getElementById('paywallError');
-      err.textContent = L.paywallBuyFailed; err.hidden = false;
+      // '6': the store says this subscription is already owned (bought before on this store account).
+      err.textContent = String(e && e.code)==='6' ? L.paywallAlreadyOwned : L.paywallBuyFailed; err.hidden = false;
     }
   }
   paywallBusy = false;

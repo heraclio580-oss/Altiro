@@ -1514,6 +1514,9 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .gps-grid .l{font-family:var(--font-mono);font-size:calc(11px * var(--fs, 1));letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);margin-top:2px;}
 .gps-note{font-size:calc(12px * var(--fs, 1));line-height:1.45;color:var(--text-2);background:var(--well);border-radius:12px;padding:9px 12px;margin-bottom:12px;text-align:left;}
 .gps-note.alert{color:var(--alert);}
+.gps-note.closable{position:relative;padding-right:36px;}
+.gps-note-x{position:absolute;top:3px;right:3px;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border:none;background:none;color:var(--text-3);border-radius:50%;cursor:pointer;padding:0;}
+.gps-note-x svg{width:14px;height:14px;}
 .gps-note .link-btn{background:none;border:none;color:var(--accent-hover);font-weight:600;padding:0;cursor:pointer;}
 .gps-panel .btn{width:100%;}
 .gps-confirm{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:calc(13px * var(--fs, 1));color:var(--text);}
@@ -4091,7 +4094,7 @@ const STR = {
     gpsFinding: "Finding GPS…", gpsGood: "GPS ready", gpsWeak: "Weak GPS signal", gpsPausedLabel: "Paused",
     gpsStart: "Start", gpsPause: "Pause", gpsResume: "Resume", gpsHoldFinish: "Hold to finish",
     gpsStatTime: "Time", gpsStatDistance: "Miles", gpsStatPace: "Pace /mi", gpsStatAvgPace: "Avg pace",
-    gpsWebNoteShort: "Keep the screen on while you run.", gpsWebNoteMore: "Why?",
+    gpsWebNoteShort: "Keep the screen on while you run.", gpsWebNoteMore: "Why?", gpsWebNoteHide: "Hide this note",
     gpsWebNote: "Keep Altiro open with the screen on while you run: browsers pause GPS when the screen turns off. Phone going in your pocket? Tap the lock at the top instead of the power button: the screen goes dark and ignores touches, and GPS keeps going.",
     gpsLockLabel: "Pocket lock", gpsPocketMsg: "Pocket lock is on: GPS keeps tracking. Don't press the power button, that stops GPS in the browser.", gpsPocketUnlock: "Hold to unlock",
     gpsDenied: "Altiro can't use your location. Allow it in your phone's settings to track runs.", gpsUnsupported: "This device can't share its location.",
@@ -4882,7 +4885,7 @@ const STR = {
     gpsFinding: "Buscando GPS…", gpsGood: "GPS listo", gpsWeak: "Señal de GPS débil", gpsPausedLabel: "En pausa",
     gpsStart: "Empezar", gpsPause: "Pausa", gpsResume: "Seguir", gpsHoldFinish: "Mantén para terminar",
     gpsStatTime: "Tiempo", gpsStatDistance: "Millas", gpsStatPace: "Ritmo /mi", gpsStatAvgPace: "Ritmo medio",
-    gpsWebNoteShort: "Mantén la pantalla encendida mientras corres.", gpsWebNoteMore: "¿Por qué?",
+    gpsWebNoteShort: "Mantén la pantalla encendida mientras corres.", gpsWebNoteMore: "¿Por qué?", gpsWebNoteHide: "Ocultar esta nota",
     gpsWebNote: "Deja Altiro abierta con la pantalla encendida mientras corres: los navegadores pausan el GPS cuando se apaga la pantalla. ¿El teléfono va al bolsillo? Toca el candado de arriba en vez del botón de encendido: la pantalla se oscurece e ignora los toques, y el GPS sigue.",
     gpsLockLabel: "Bloqueo de bolsillo", gpsPocketMsg: "Bloqueo de bolsillo activado: el GPS sigue registrando. No presiones el botón de encendido, eso detiene el GPS en el navegador.", gpsPocketUnlock: "Mantén para desbloquear",
     gpsDenied: "Altiro no puede usar tu ubicación. Permítela en los ajustes del teléfono para registrar carreras.", gpsUnsupported: "Este dispositivo no puede compartir su ubicación.",
@@ -15986,7 +15989,7 @@ function onGpsError(code){
     if(b) b.addEventListener('click', ()=>{ try{ nativeGeo().openSettings(); }catch(e){} });
   } else if(code==='unsupported') note.textContent = L.gpsUnsupported;
   note.hidden = false;
-  note.classList.add('alert');
+  note.classList.add('alert'); note.classList.remove('closable');
 }
 async function startGpsWatch(){
   if(gpsWatch) return;
@@ -16034,12 +16037,13 @@ document.addEventListener('visibilitychange', ()=>{
   if(!nativeGeo() && gps.lastGoodT!=null && Date.now() - gps.lastGoodT > GPS_GAP_S*1000){
     const note = document.getElementById('gpsNote');
     note.textContent = STR[state.lang].gpsGapLive;
-    note.classList.add('alert');
+    note.classList.add('alert'); note.classList.remove('closable');
     note.hidden = false;
   }
 });
 // target: the workout being recorded ({dayKey, kind, id}), or none -- a run nobody planned, which
 // becomes today's added "Run" when it's finished.
+const GPS_NOTE_HIDDEN_KEY = 'altiro_gps_note_hidden';
 function openGpsTracker(target){
   const L = STR[state.lang];
   const saved = loadGpsRun();
@@ -16057,10 +16061,21 @@ function openGpsTracker(target){
   const note = document.getElementById('gpsNote');
   note.classList.remove('alert');
   // (In a browser: one short line, the whole why a tap away -- it took the room Start needs on a small phone.)
-  note.innerHTML = nativeGeo() ? '' : `${escapeHtml(L.gpsWebNoteShort)} <button type="button" class="link-btn" id="gpsNoteMore">${escapeHtml(L.gpsWebNoteMore)}</button>`;
+  // (It's advice: an × hides it, for good on this device. A warning -- GPS stopped, location blocked --
+  // still shows.)
+  let noteGone = false;
+  try{ noteGone = localStorage.getItem(GPS_NOTE_HIDDEN_KEY)==='1'; }catch(e){}
+  const xBtn = `<button type="button" class="gps-note-x" id="gpsNoteX" aria-label="${escapeHtml(L.gpsWebNoteHide)}"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l10 10M15 5L5 15"/></svg></button>`;
+  const wireX = ()=>{ const x = document.getElementById('gpsNoteX'); if(x) x.addEventListener('click', ()=>{
+    try{ localStorage.setItem(GPS_NOTE_HIDDEN_KEY, '1'); }catch(e){}
+    note.hidden = true; note.classList.remove('closable'); note.innerHTML = ''; }); };
+  const web = !nativeGeo() && !noteGone;
+  note.classList.toggle('closable', web);
+  note.innerHTML = web ? `${escapeHtml(L.gpsWebNoteShort)} <button type="button" class="link-btn" id="gpsNoteMore">${escapeHtml(L.gpsWebNoteMore)}</button>${xBtn}` : '';
   const more = document.getElementById('gpsNoteMore');
-  if(more) more.addEventListener('click', ()=>{ note.textContent = L.gpsWebNote; });
-  note.hidden = !!nativeGeo();
+  if(more) more.addEventListener('click', ()=>{ note.innerHTML = escapeHtml(L.gpsWebNote) + xBtn; wireX(); });
+  wireX();
+  note.hidden = !web;
   renderGps();
   startGpsWatch();
   clearInterval(gpsTick);

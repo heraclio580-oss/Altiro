@@ -5,7 +5,8 @@ const http = require('http');
 // The GPS screen fits a small phone with large text: an iPhone user (Spanish, large text) saw the map,
 // the time and the long browser note, and no Run/Walk/Hike/Bike ride choice or Start -- the bottom was cut
 // off and couldn't be scrolled. Now the map gives up its room first, the browser note is one short line
-// (the whole why a tap away), and if it still doesn't fit, the screen scrolls. Skipped without Playwright.
+// (the whole why a tap away, an × to hide it for good), and if it still doesn't fit, the screen scrolls.
+// Skipped without Playwright.
 let chromium;
 for(const p of ['playwright', '/opt/node22/lib/node_modules/playwright']){ try{ ({ chromium } = require(p)); break; }catch(e){} }
 const exe = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find(f=> fs.existsSync(f));
@@ -72,9 +73,33 @@ const www = path.join(__dirname, '..', 'www');
     check('...Why? shows the whole of it (the lock, the pocket)', /browsers pause GPS when the screen turns off/.test(await note()) && /Tap the lock at the top/.test(await note()), await note());
     await ctx.close();
   }
+  // The × hides it, for good on this phone (it's advice; a warning still shows).
+  {
+    const {ctx, page} = await openGps(390, 844, '1', 'en');
+    check('The note has an × in its corner ("Hide this note")', await page.evaluate(()=>{ const x = document.getElementById('gpsNoteX'); return !!x && x.getAttribute('aria-label')==='Hide this note'; }));
+    const mapBefore = await page.evaluate(()=> document.getElementById('gpsMap').getBoundingClientRect().height);
+    await page.tap('#gpsNoteMore');
+    check('...still there with the whole why open', await page.evaluate(()=> !!document.getElementById('gpsNoteX')));
+    await page.tap('#gpsNoteX');
+    await sleep(50);
+    check('Tapped: the note is gone, and the map has its room', await page.evaluate(()=> document.getElementById('gpsNote').hidden) && await page.evaluate(()=> document.getElementById('gpsMap').getBoundingClientRect().height) > mapBefore);
+    await page.evaluate(()=> document.getElementById('gpsClose').click());
+    await sleep(100);
+    await page.evaluate(()=> document.getElementById('trackRunBtn').click());
+    await sleep(200);
+    check('...and it stays gone next time', await page.evaluate(()=> document.getElementById('gpsOverlay').hidden===false && document.getElementById('gpsNote').hidden));
+    await page.reload(); await sleep(400);
+    await page.evaluate(()=>{ [...document.querySelectorAll('.proto-pill')].find(p=>p.dataset.navId==='home').click(); document.documentElement.classList.remove('proto-on'); });
+    await sleep(150);
+    await page.evaluate(()=>{ const b = document.getElementById('trackRunBtn'); if(b.closest('[hidden]')) document.getElementById('homeMoreBtn').click(); });
+    await page.evaluate(()=> document.getElementById('trackRunBtn').click());
+    await sleep(200);
+    check('...even after the app is reopened', await page.evaluate(()=> document.getElementById('gpsNote').hidden));
+    await ctx.close();
+  }
   {
     const {ctx, page} = await openGps(375, 667, '1', 'es');
-    check('In Spanish: "Mantén la pantalla encendida mientras corres. ¿Por qué?"', await page.evaluate(()=> document.getElementById('gpsNote').textContent.replace(/\s+/g, ' ').trim())==='Mantén la pantalla encendida mientras corres. ¿Por qué?');
+    check('In Spanish: "Mantén la pantalla encendida mientras corres. ¿Por qué?", × "Ocultar esta nota"', await page.evaluate(()=> document.getElementById('gpsNote').textContent.replace(/\s+/g, ' ').trim())==='Mantén la pantalla encendida mientras corres. ¿Por qué?' && await page.evaluate(()=> document.getElementById('gpsNoteX').getAttribute('aria-label'))==='Ocultar esta nota');
     await ctx.close();
   }
 

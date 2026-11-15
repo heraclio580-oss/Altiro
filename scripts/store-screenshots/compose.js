@@ -19,8 +19,8 @@ async function serveFonts(page){
 }
 
 const CAP = {
-  en: ['Your workout for today, ready to start', 'Running and lifting in one weekly plan', 'Every set, weight and rep, checked off', 'Your days, your mix, your intensity', 'Plans around your classes', 'See your progress week by week'],
-  es: ['Tu entrenamiento de hoy, listo para empezar', 'Correr y pesas en un plan semanal', 'Cada serie, peso y repetición, marcada', 'Tus días, tu mezcla, tu intensidad', 'Planea alrededor de tus clases', 'Mira tu progreso semana a semana'],
+  en: ['Your workout for today, ready to start', 'Running and lifting in one weekly plan', 'Every set, weight and rep, checked off', 'Runs, walks, hikes and rides, all in one place', 'Share every workout, route and all', 'See your progress week by week', 'Your days, your mix, your intensity', 'Plans around your classes'],
+  es: ['Tu entrenamiento de hoy, listo para empezar', 'Correr y pesas en un plan semanal', 'Cada serie, peso y repetición, marcada', 'Carreras, caminatas, senderismo y bici, todo en un lugar', 'Comparte cada entrenamiento, con tu ruta', 'Mira tu progreso semana a semana', 'Tus días, tu mezcla, tu intensidad', 'Planea alrededor de tus clases'],
 };
 // CSS px; x3 = output: iPhone 6.7" 1290x2796, Android 1080x1920.
 const SIZES = {

@@ -131,6 +131,8 @@ Bienvenido a Altiro: tu plan de correr y de fuerza en una sola app.
 | 1 | Today | Your workout for today, ready to start | Tu entrenamiento de hoy, listo para empezar |
 | 2 | Plan | Running and lifting in one weekly plan | Correr y pesas en un plan semanal |
 | 3 | Workout | Every set, weight and rep, checked off | Cada serie, peso y repetición, marcada |
-| 4 | Adjust | Your days, your mix, your intensity | Tus días, tu mezcla, tu intensidad |
-| 5 | Classes | Plans around your classes | Planea alrededor de tus clases |
+| 4 | Walks, hikes, rides | Runs, walks, hikes and rides, all in one place | Carreras, caminatas, senderismo y bici, todo en un lugar |
+| 5 | Share card | Share every workout, route and all | Comparte cada entrenamiento, con tu ruta |
 | 6 | Progress | See your progress week by week | Mira tu progreso semana a semana |
+| 7 | Adjust | Your days, your mix, your intensity | Tus días, tu mezcla, tu intensidad |
+| 8 | Classes | Plans around your classes | Planea alrededor de tus clases |

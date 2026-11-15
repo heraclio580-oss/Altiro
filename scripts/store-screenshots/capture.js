@@ -1,4 +1,4 @@
-// Store screenshots, step 2: the six screens with the demo account, at 1290x2796 (EN or ES).
+// Store screenshots, step 2: the eight screens with the demo account, at 1290x2796 (EN or ES).
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
 // The app's own fonts (Montserrat, IBM Plex Sans/Mono from @fontsource), served to the page locally.
@@ -57,7 +57,8 @@ const FAKE = ({logs, lang}) => {
   await page.route(/vendor\/supabase\.js/, r=>r.fulfill({status:200, contentType:'text/javascript', body:''}));
   await page.addInitScript(FAKE, {logs: DATA.logs, lang: LANG});
   await page.goto(process.env.APP_URL || 'http://localhost:8765/'); await page.evaluate(()=>document.fonts.ready); await sleep(1800);
-  await page.evaluate(()=>document.documentElement.classList.remove('proto-on'));
+  // (The first-run moments -- earned badges, location -- aren't part of the screens.)
+  await page.evaluate(()=>{ document.documentElement.classList.remove('proto-on'); for(const id of ['badgeOverlay','locPromptOverlay']){ const e = document.getElementById(id); if(e) e.hidden = true; } });
   const nav = id => page.evaluate(id=>[...document.querySelectorAll('.proto-pill')].find(p=>p.dataset.navId===id).click(), id);
   const shot = async name => { await sleep(500); await page.screenshot({path:`${OUT}/${name}.png`}); };
   const top = () => page.evaluate(()=>{ const s=[...document.querySelectorAll('.screen')].find(x=>!x.hidden); if(s) s.scrollTop=0; });
@@ -66,15 +67,31 @@ const FAKE = ({logs, lang}) => {
   await nav('week'); await sleep(300); await top(); await shot('2-plan');
   await nav('home'); await top(); await page.click('#recordBtn'); await sleep(900); await shot('3-workout');
   await page.evaluate(()=>{ document.querySelectorAll('.sheet-overlay').forEach(o=>o.hidden=true); });
-  await nav('adjust'); await sleep(400); await shot('4-adjust');
+  // A hike, picked from the Cardio menu (left open, Hike ticked).
+  await nav('home'); await sleep(300);
+  await page.evaluate(()=>document.getElementById('addTodayWorkoutBtn').click()); await sleep(400);
+  await page.evaluate(()=>document.querySelector('#manualTypeRow [data-type="run"]').click()); await sleep(150);
+  await page.evaluate(()=>document.querySelector('#manualTypeRow [data-cardio="hike"]').click()); await sleep(150);
+  await page.evaluate(lang=>{ const i = document.getElementById('manualNameInput'); if(i){ i.value = lang==='es' ? 'Ruta del sábado' : 'Saturday hike'; i.dispatchEvent(new Event('input', {bubbles:true})); } }, LANG);
+  await page.evaluate(()=>document.querySelector('#manualTypeRow [data-type="hike"]').click()); await sleep(200);
+  await page.evaluate(()=>{ const sh = document.querySelector('#manualEntryOverlay .sheet-panel'); if(sh) sh.scrollTop = 0; });
+  await shot('4-activities');
+  await page.evaluate(()=>{ document.querySelectorAll('.sheet-overlay').forEach(o=>o.hidden=true); });
+  // Monday's GPS run, shared.
+  await nav('calendar'); await sleep(300);
+  await page.evaluate(()=>document.querySelector('#screen-calendar .mo-cell[data-date="2026-10-05"]').click()); await sleep(300);
+  await page.evaluate(()=>document.getElementById('dayDetailPlanRow').click()); await sleep(600);
+  await page.evaluate(()=>document.getElementById('shareWorkoutBtn').click()); await sleep(1500);
+  await shot('5-share');
+  await page.evaluate(()=>{ document.querySelectorAll('.sheet-overlay').forEach(o=>o.hidden=true); });
+  await nav('progress'); await sleep(300); await top(); await shot('6-progress');
+  await nav('adjust'); await sleep(400); await shot('7-adjust');
   await nav('home'); await sleep(300);
   await page.evaluate(()=>document.getElementById('addTodayWorkoutBtn').click()); await sleep(400);
   await page.evaluate(()=>document.querySelector('#manualTypeRow [data-type="class"]').click()); await sleep(200);
   await page.selectOption('#classKindSelect', 'jiujitsu'); await sleep(150);
   await page.evaluate(()=>{ document.getElementById('classTimeInput').value='18:00'; document.getElementById('classLenHInput').value='1'; document.getElementById('classLenMInput').value='30';
     const sh = document.querySelector('#manualEntryOverlay .sheet-panel'); if(sh) sh.scrollTop = 0; });
-  await shot('5-classes');
-  await page.evaluate(()=>{ document.querySelectorAll('.sheet-overlay').forEach(o=>o.hidden=true); });
-  await nav('progress'); await sleep(300); await top(); await shot('6-progress');
+  await shot('8-classes');
   await browser.close();
 })();

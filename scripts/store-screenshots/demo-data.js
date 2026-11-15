@@ -35,5 +35,26 @@ for(let d = new Date(2026,8,7); d < new Date(2026,9,9); d.setDate(d.getDate()+1)
       sets: Array.from({length: ex.sets||3}, (_,i)=>({reps: ex.reps||10, weight: ex.bodyweight ? 0 : (base[ex.key] || 60) + 5*Math.min(i,2)}))}))}});
   }
 }
+// Walks, hikes and bike rides (from a watch), on the days between.
+const OTHER = [['2026-09-13','hike','Ridge Trail Hike',4.2,118],['2026-09-15','walk','Evening Walk',2.1,41],['2026-09-20','ride','Sunday Ride',18.4,71],
+  ['2026-09-27','hike','Ridge Trail Hike',5.6,152],['2026-09-29','walk','Evening Walk',2.4,46],['2026-10-04','walk','Evening Walk',2.2,43],
+  ['2026-10-06','ride','Morning Ride',16.8,62],['2026-10-07','walk','Evening Walk',2.6,49],['2026-10-08','hike','Lakeside Hike',3.8,97]];
+OTHER.forEach(([k, type, name, miles, min], i)=>{
+  const h = Math.floor(min/60), m = min%60, vol = `${miles} mi · ${h ? h+':'+String(m).padStart(2,'0')+':00' : m+':00'}`;
+  const entry = {id:'o'+i, name, type, volume: vol, notes:'', distance: miles, duration_min: min, performance:{distance: miles, time: min, notes:'', source:'strava', stravaId: 9000+i}};
+  const row = logs.find(l=> l.log_date===k);
+  if(row) (row.manual_entries = row.manual_entries || []).push(entry); else logs.push({log_date:k, manual_entries:[entry]});
+});
+// Monday's run tracked with the phone's GPS: a loop around a lake, for its share card.
+{
+  const run = logs.find(l=> l.log_date==='2026-10-05');
+  const n = 160, t0 = Date.UTC(2026,9,5,11,32), route = [];
+  for(let i=0;i<=n;i++){
+    const a = i/n*2*Math.PI, r = 1 + 0.08*Math.sin(3*a) + 0.04*Math.cos(7*a);
+    route.push([+(40.7812 + 0.0185*r*Math.sin(a)).toFixed(6), +(-73.9665 + 0.017*r*Math.cos(a) - 0.017).toFixed(6)]);
+  }
+  run.performance = {...run.performance, route: [route], source:'gps', startedAt: t0, finishedAt: t0 + run.performance.time*60000};
+}
+logs.sort((x, y)=> x.log_date<y.log_date ? -1 : 1);
 fs.writeFileSync(require('path').join(__dirname, '.demo-data.json'), JSON.stringify({logs}, null, 1));
 console.log(logs.length, 'logs', logs.slice(-3).map(l=>l.log_date+' '+(l.actual_run_distance||'lift')).join(', '));

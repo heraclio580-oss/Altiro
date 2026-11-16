@@ -2002,7 +2002,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
       <div class="footer-note" style="margin-top:14px;" data-i18n="mockAuthNote"></div>
       <div class="footer-note" style="margin-top:6px;" data-i18n="agreeTermsNote"></div>
-      <div class="legal-links"><a class="settings-link terms-link" href="terms.html" target="_blank" rel="noopener" data-i18n="termsLink"></a><span>·</span><a class="settings-link" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a></div>
+      <div class="legal-links"><a class="settings-link terms-link" href="terms.html" data-app-page data-i18n="termsLink"></a><span>·</span><a class="settings-link" href="privacy.html" data-app-page data-i18n="privacyPolicyLink"></a></div>
     </div>
   </section>
 
@@ -2289,7 +2289,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
           </span>
           <button class="btn-text" id="stravaDisconnectBtn" type="button" data-i18n="stravaDisconnectBtn" hidden></button>
         </div>
-        <a class="settings-link" href="privacy.html#strava" target="_blank" rel="noopener" data-i18n="stravaPrivacyLink"></a>
+        <a class="settings-link" href="privacy.html#strava" data-app-page data-i18n="stravaPrivacyLink"></a>
         <!-- Walks, hikes and bike rides from Strava and Health Connect, besides runs (see importOtherOn). -->
         <div class="toggle-row" style="margin-top:14px;">
           <div><div class="tt" data-i18n="importOtherTitle"></div><div class="ts" data-i18n="importOtherSub"></div></div>
@@ -2327,7 +2327,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
             <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 4.5v11l9-5.5z"/></svg></span>
             <span data-i18n="seeHowItWorks"></span>
           </button>
-          <a class="settings-list-row support-link" id="settingsSupportLink" href="support.html" target="_blank" rel="noopener">
+          <a class="settings-list-row support-link" id="settingsSupportLink" href="support.html" data-app-page>
             <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M7.8 7.8a2.3 2.3 0 0 1 4.4.9c0 1.5-2.2 1.9-2.2 3.1M10 14.4v.1"/></svg></span>
             <span data-i18n="supportLink"></span>
           </a>
@@ -2340,7 +2340,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
       <button class="btn btn-ghost" style="margin-top:28px;" id="signOutBtn" data-i18n="signOutBtn"></button>
       <button class="btn-text delete-account-link" type="button" id="deleteAccountBtn" data-i18n="deleteAccountBtn" hidden></button>
-      <div class="legal-links" style="margin-top:14px;"><a class="settings-link terms-link" href="terms.html" target="_blank" rel="noopener" data-i18n="termsLink"></a><span>·</span><a class="settings-link" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a></div>
+      <div class="legal-links" style="margin-top:14px;"><a class="settings-link terms-link" href="terms.html" data-app-page data-i18n="termsLink"></a><span>·</span><a class="settings-link" href="privacy.html" data-app-page data-i18n="privacyPolicyLink"></a></div>
     </div>
   </section>
 
@@ -2578,7 +2578,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <p class="paywall-error" id="paywallError" hidden></p>
       <button class="btn-text paywall-restore" id="paywallRestoreBtn" type="button" data-i18n="paywallRestore" hidden></button>
       <p class="paywall-fine" id="paywallFine"></p>
-      <div class="legal-links"><a class="settings-link terms-link" href="terms.html" target="_blank" rel="noopener" data-i18n="termsLink"></a><span>·</span><a class="settings-link" href="privacy.html" target="_blank" rel="noopener" data-i18n="privacyPolicyLink"></a></div>
+      <div class="legal-links"><a class="settings-link terms-link" href="terms.html" data-app-page data-i18n="termsLink"></a><span>·</span><a class="settings-link" href="privacy.html" data-app-page data-i18n="privacyPolicyLink"></a></div>
     </div>
   </div>
   <div class="sheet-overlay" id="termOverlay" hidden>
@@ -14998,6 +14998,20 @@ function getSummaryExercises(logged){
 // A done workout, opened from Today, the day sheet or Also today: straight to its Summary (stats, route,
 // elevation, splits) -- with Edit for changing what was logged. One with nothing logged to show (just
 // marked done) opens Log Performance as before.
+// Support, Terms and Privacy open in the app's own window (on an iPhone home screen there's no browser
+// around it to get back with); each has a "Back to Altiro" bar, and coming back lands on the tab they were
+// opened from (Settings, usually), not Today.
+const RETURN_SCREEN_KEY = 'altiro_return_screen';
+document.addEventListener('click', e=>{
+  const a = e.target.closest && e.target.closest('a[data-app-page]');
+  if(!a) return;
+  try{ sessionStorage.setItem(RETURN_SCREEN_KEY, currentScreenId()); }catch(err){}
+});
+function takeReturnScreen(){
+  let s = null;
+  try{ s = sessionStorage.getItem(RETURN_SCREEN_KEY); sessionStorage.removeItem(RETURN_SCREEN_KEY); }catch(e){}
+  return TAB_SCREENS.includes(s) ? s : null;
+}
 function currentScreenId(){ return SCREEN_IDS.find(s=>{ const el = elFor(s); return el && !el.hidden; }) || 'home'; }
 function openWorkoutSummary(target){
   const r = resolveLogTarget(target);
@@ -18732,7 +18746,7 @@ function enterSignedIn(user){
     // Straight to Home, not the "Building your plan" loading screen -- that screen's animation ends
     // by regenerating state.week from scratch, which would wipe out the planned/logged workouts just
     // loaded (a returning user's plan already exists, there's nothing to "build").
-    showScreen('home');
+    showScreen(takeReturnScreen() || 'home');
     if(!state.tourPending) resumeWorkoutIfAny();
     startStravaSync();
     syncHealth({force:true});

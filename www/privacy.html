@@ -17,7 +17,7 @@
 }
 *{box-sizing:border-box;}
 body{margin:0;background:var(--bg);color:var(--text-2);font:15px/1.6 'IBM Plex Sans',system-ui,-apple-system,sans-serif;}
-main{max-width:680px;margin:0 auto;padding:40px 16px 64px;}
+main{max-width:680px;margin:0 auto;padding:28px 16px 64px;}
 .brand{font-family:Montserrat,sans-serif;font-weight:800;letter-spacing:0.14em;font-size:13px;color:var(--accent);text-transform:uppercase;}
 h1{font-family:Montserrat,sans-serif;font-weight:800;color:var(--text);font-size:30px;line-height:1.15;margin:8px 0 6px;}
 .updated{font-size:13px;color:var(--text-3);margin:0 0 28px;}
@@ -32,9 +32,24 @@ a{color:var(--text);text-underline-offset:3px;}
 .card.strava{border-left:4px solid var(--strava);}
 .strava-mark{width:14px;height:14px;vertical-align:-2px;color:var(--strava);}
 .back{display:inline-block;margin-top:36px;font-size:14px;}
+.app-back{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--border);padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;}
+.app-back a{display:inline-flex;align-items:center;gap:8px;min-height:36px;font-family:Montserrat,sans-serif;font-weight:700;font-size:15px;color:var(--text);text-decoration:none;}
+.app-back svg{width:18px;height:18px;}
 </style>
 </head>
 <body>
+<!-- Back to the app: added to the home screen, Altiro runs full screen with no browser buttons, so this page needs its own way back. -->
+<nav class="app-back"><a href="./" id="appBack"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5L7 10l5.5 5.5"/></svg><span id="appBackLabel">Back to Altiro</span></a></nav>
+<script>
+(function(){
+  var lang = 'en';
+  try{ lang = localStorage.getItem('altiro_lang') || lang; }catch(e){}
+  if(location.hash==='#es') lang = 'es';
+  if(lang==='es') document.getElementById('appBackLabel').textContent = 'Volver a Altiro';
+  // (Replaced, not added: the app's history doesn't fill up with these pages.)
+  document.getElementById('appBack').addEventListener('click', function(e){ e.preventDefault(); location.replace('./'); });
+})();
+</script>
 <main>
   <div class="brand">Altiro</div>
   <h1>Privacy Policy</h1>

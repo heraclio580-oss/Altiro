@@ -11,7 +11,7 @@ Altiro: Run + Strength Plans
 Running and lifting, one plan
 
 **Short description (Google Play)** [80]
-Your running and strength training plan in one app, built around your week.
+Run and lift on one plan. Track runs, walks, hikes and rides with GPS.
 
 **Promotional text (App Store)** [170]
 New: plan around your classes. Add jiu-jitsu, spin or yoga to your week and Altiro moves your long run and heavy lifting to other days.
@@ -37,11 +37,20 @@ AROUND YOUR LIFE
 • Move a workout to another day, swap an exercise, or skip one
 • Rather build your own? Turn off the generated plan and create every workout yourself
 
+TRACK EVERY RUN, WALK, HIKE AND RIDE
+• Track with your phone's GPS: your route on a map, splits and voice updates as you go
+• Runs, walks, hikes and bike rides, all in one place
+• Connect Strava, or Health Connect on Android, and activities from your Garmin or other watch log themselves
+• Best efforts for your fastest mile, 5K, 10K and more, and badges as you hit milestones
+
 EVERY WORKOUT, LOGGED
 • Start a workout to time it and check off your sets, weights, reps or miles
 • Exercise demos with form cues for common lifts
-• Connect Strava and your runs, including from a Garmin or other watch, log themselves
-• Progress by week: workouts, miles, time, sets, reps and personal records
+• Add an exercise to one workout and keep it in your next ones with one tap
+• Progress by week: workouts, miles, time, sets, reps, personal records, and miles walked, hiked and ridden
+
+SHARE IT
+• A share card for every workout, with your route, distance, time and pace, as a post or a story
 
 AND
 • Daily workout reminders at the time you choose
@@ -76,7 +85,7 @@ Altiro: Correr + Fuerza
 Correr y pesas, un solo plan
 
 **Descripción corta (Google Play)** [80]
-Tu plan de correr y de fuerza en una sola app, hecho a la medida de tu semana.
+Correr y pesas en un solo plan. Registra carreras, caminatas y bici con GPS.
 
 **Texto promocional (App Store)** [170]
 Novedad: planea alrededor de tus clases. Añade jiu-jitsu, spinning o yoga y Altiro mueve tu carrera larga y las pesas pesadas a otros días.
@@ -102,11 +111,20 @@ ALREDEDOR DE TU VIDA
 • Mueve un entrenamiento a otro día, cambia un ejercicio u omítelo
 • ¿Prefieres crear los tuyos? Desactiva el plan generado y crea cada entrenamiento tú mismo
 
+REGISTRA CADA CARRERA, CAMINATA, RUTA Y PASEO EN BICI
+• Registra con el GPS de tu teléfono: tu ruta en el mapa, parciales y avisos de voz mientras avanzas
+• Carreras, caminatas, senderismo y bicicleta, todo en un solo lugar
+• Conecta Strava, o Health Connect en Android, y las actividades de tu Garmin u otro reloj se registran solas
+• Mejores marcas en tu milla, 5K, 10K y más, e insignias al alcanzar cada meta
+
 CADA ENTRENAMIENTO, REGISTRADO
 • Empieza un entrenamiento para cronometrarlo y marcar tus series, pesos, repeticiones o millas
 • Demostraciones de ejercicios con consejos de técnica para los levantamientos comunes
-• Conecta Strava y tus carreras, también las de un reloj Garmin u otro, se registran solas
-• Progreso por semana: entrenamientos, millas, tiempo, series, repeticiones y récords personales
+• Añade un ejercicio a un entrenamiento y mantenlo en los próximos con un toque
+• Progreso por semana: entrenamientos, millas, tiempo, series, repeticiones, récords personales y millas caminadas, de senderismo y en bici
+
+COMPÁRTELO
+• Una tarjeta para compartir cada entrenamiento, con tu ruta, distancia, tiempo y ritmo, como publicación o historia
 
 Y ADEMÁS
 • Recordatorios diarios a la hora que elijas

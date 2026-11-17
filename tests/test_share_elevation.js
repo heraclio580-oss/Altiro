@@ -92,7 +92,7 @@ const LAT0 = 33.6681, LNG0 = -117.3273, M_LAT = 1/111195;
   await page.tap('#shareWorkoutBtn');
   const preview = ()=> page.evaluate(()=>{ const i = document.getElementById('shareCardPreview'); return {h:i.naturalHeight, src:i.src, complete:i.complete}; });
   let last = '';
-  const waitCard = async h=>{ let pv; for(let i=0; i<60; i++){ pv = await preview(); if(pv.complete && pv.h===h && pv.src!==last) break; await sleep(100); } last = pv.src; await sleep(200); return (await page.evaluate(()=> window.__drawn.splice(0))).filter(t=> t.cw===1080); };
+  const waitCard = async h=>{ let pv; for(let i=0; i<200; i++){ pv = await preview(); if(pv.complete && pv.h===h && pv.src!==last) break; await sleep(100); } last = pv.src; await sleep(200); return (await page.evaluate(()=> window.__drawn.splice(0))).filter(t=> t.cw===1080); };
   const save = async name=>{
     if(!outDir) return;
     fs.mkdirSync(outDir, {recursive:true});

@@ -103,7 +103,7 @@ const outDir = process.env.SHARE_CARD_OUT;
   });
   const drawn = page => page.evaluate(()=> window.__drawn.splice(0));
   const preview = page => page.evaluate(()=>{ const i = document.getElementById('shareCardPreview'); return {w:i.naturalWidth, h:i.naturalHeight, alt:i.alt, src:!!i.getAttribute('src'), complete:i.complete}; });
-  const waitPreview = async (page, h) => { for(let i=0; i<40; i++){ const p = await preview(page); if(p.complete && p.h===h) return p; await sleep(100); } return preview(page); };
+  const waitPreview = async (page, h) => { for(let i=0; i<200; i++){ const p = await preview(page); if(p.complete && p.h===h) return p; await sleep(100); } return preview(page); };
   async function keep(page, name){
     if(!outDir) return;
     fs.mkdirSync(outDir, {recursive:true});

@@ -58,9 +58,9 @@ const www = path.join(__dirname, '..', 'www');
 
   for(const [w, h, ts, lang, name] of [[375, 667, '1.25', 'es', 'iPhone SE size, large text, Spanish'], [390, 844, '1.25', 'es', 'iPhone 14 size, large text'], [360, 640, '1.12', 'en', 'small Android'], [320, 568, '1.25', 'es', 'smallest iPhone, large text']]){
     const {ctx, page} = await openGps(w, h, ts, lang);
-    check(`${name}: Start is on screen without scrolling`, await inView(page, '#gpsStartBtn'));
+    check(`${name}: Start is on screen without scrolling (with the Indoor switch)`, await inView(page, '#gpsStartBtn') && await inView(page, '#gpsIndoorRow'));
     check('...and the Run/Walk/Hike/Bike ride choice', await inView(page, '#gpsActRow'));
-    check('...the map is still there', await page.evaluate(()=> document.getElementById('gpsMap').getBoundingClientRect().height >= 119));
+    check('...the map is still there', await page.evaluate(()=> document.getElementById('gpsMap').getBoundingClientRect().height >= 95));
     await ctx.close();
   }
 

@@ -1502,6 +1502,16 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .gps-signal.good::before{background:var(--ok-icon);}
 .gps-signal.weak::before{background:var(--alert);}
 .gps-map{position:relative;flex:1 1 0;min-height:120px;margin:0 16px;border-radius:20px;overflow:hidden;border:1px solid var(--border);}
+.gps-indoor-row{margin:0 0 10px;padding:7px 12px;text-align:left;}
+.gps-indoor-row[hidden],.gps-map[hidden],#gpsOverlay .gps-grid[hidden]{display:none;}
+.gps-indoor-box{flex:1 1 0;min-height:120px;margin:0 16px;border-radius:20px;border:1px solid var(--border);background:var(--well);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px 22px;text-align:center;color:var(--text-2);}
+.gps-indoor-box[hidden]{display:none;}
+.gps-indoor-box svg{width:44px;height:44px;color:var(--text-3);}
+.gps-indoor-box p{margin:0;font-size:calc(13px * var(--fs, 1));line-height:1.45;max-width:300px;}
+.gps-signal.indoor::before{background:var(--text-3);}
+.indoor-dist-note{margin:6px 0 0;font-size:calc(12px * var(--fs, 1));color:var(--accent-hover);}
+/* (The smallest phones: the map gives a little more, so Start still fits with the Indoor switch.) */
+@media (max-height:620px){ .gps-map,.gps-indoor-box{min-height:96px;} }
 .gps-recenter{position:absolute;right:28px;margin-top:-52px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid var(--border);background:var(--sheet-bg);color:var(--text);font-size:calc(12px * var(--fs, 1));cursor:pointer;z-index:2;}
 .gps-recenter[hidden]{display:none;}
 .gps-recenter svg{width:14px;height:14px;}
@@ -3117,6 +3127,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="sheet-section" id="logPerfDistanceSection">
         <div class="st-label" data-i18n="logPerfDistanceLabel"></div>
         <input type="number" inputmode="decimal" step="0.01" class="text-input" id="logPerfDistanceInput">
+        <p class="indoor-dist-note" id="logPerfIndoorNote" hidden></p>
       </div>
 
       <div class="sheet-section" id="logPerfElevSection" hidden>
@@ -3178,6 +3189,8 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <span class="gps-signal finding" id="gpsSignal"></span>
     </div>
     <div class="gps-map route-map" id="gpsMap"></div>
+    <!-- Indoors (treadmill, spin bike): no GPS, no map -- just the timer; the distance comes from the machine at the end. -->
+    <div class="gps-indoor-box" id="gpsIndoorBox" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h13l4-9"/><path d="M5 18l-1 3M15 18l1 3"/><circle cx="13" cy="5" r="1.6"/><path d="M11 13l1.5-4 2.5 2 2 .5M12.5 9l-2 1-1 2"/></svg><p id="gpsIndoorNote"></p></div>
     <button class="gps-recenter" id="gpsRecenter" type="button" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18s5.5-5.2 5.5-9.5a5.5 5.5 0 0 0-11 0C4.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.5" r="2"/></svg><span data-i18n="gpsRecenter"></span></button>
     <div class="gps-panel">
       <div class="gps-status" id="gpsStatus"></div>
@@ -3191,6 +3204,10 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <div class="gps-note" id="gpsNote" hidden></div>
       <!-- What's being tracked: picked before it starts -->
       <div class="gps-act" id="gpsActRow" role="radiogroup" hidden></div>
+      <div class="toggle-row gps-indoor-row" id="gpsIndoorRow" hidden>
+        <div class="tt" id="gpsIndoorLabel"></div>
+        <div class="toggle" id="gpsIndoorToggle" role="switch" tabindex="0" aria-checked="false"><div class="knob"></div></div>
+      </div>
       <button class="btn btn-primary" id="gpsStartBtn" type="button"></button>
       <button class="hold-end-btn" id="gpsHoldFinish" type="button" style="margin-top:10px;" hidden><span class="hold-end-fill"></span><span class="hold-end-label" data-i18n="gpsHoldFinish"></span></button>
       <div class="gps-confirm" id="gpsDiscardConfirm" hidden>
@@ -4100,6 +4117,12 @@ const STR = {
     gpsDenied: "Altiro can't use your location. Allow it in your phone's settings to track runs.", gpsUnsupported: "This device can't share its location.",
     gpsOpenSettings: "Open settings", gpsDiscardQ: "Discard this run?", gpsDiscardYes: "Discard", gpsDiscardKeep: "Keep it",
     gpsResumedToast: "Your run was paused. Tap Resume to carry on.", gpsTooShort: "Run a little farther first. There's nothing to save yet.",
+    gpsIndoorRun: "Indoor (treadmill)", gpsIndoorRide: "Indoor (spin bike)", gpsIndoorSignal: "Indoor",
+    gpsIndoorNoteRun: "No GPS needed indoors: just the timer. When you finish, add the distance from the treadmill's screen.",
+    gpsIndoorNoteRide: "No GPS needed indoors: just the timer. When you finish, add the distance from the bike's screen.",
+    gpsIndoorTooShort: "Keep going a little longer first. There's nothing to save yet.",
+    indoorNameRun: "Treadmill run", indoorNameWalk: "Treadmill walk", indoorNameRide: "Indoor ride", indoorTagTread: "Treadmill", indoorTagRide: "Indoor",
+    indoorAddDistRun: "Add the distance from the treadmill's screen.", indoorAddDistRide: "Add the distance from the bike's screen.",
     gpsNotifTitle: "Altiro is tracking your run", gpsNotifMsg: "Tap to go back to your run.", gpsRunTitle: "Run", loggedLiftTitle: "Lifting workout",
     gpsGapLive: "GPS stopped while the screen was off, so that stretch will read short. Keep Altiro open with the screen on until you finish.",
     gpsGapSummaryOne: "GPS dropped out for {total} during this run. That stretch is a straight line on the map, so the distance may read short.",
@@ -4891,6 +4914,12 @@ const STR = {
     gpsDenied: "Altiro no puede usar tu ubicación. Permítela en los ajustes del teléfono para registrar carreras.", gpsUnsupported: "Este dispositivo no puede compartir su ubicación.",
     gpsOpenSettings: "Abrir ajustes", gpsDiscardQ: "¿Descartar esta carrera?", gpsDiscardYes: "Descartar", gpsDiscardKeep: "Conservarla",
     gpsResumedToast: "Tu carrera quedó en pausa. Toca Seguir para continuar.", gpsTooShort: "Corre un poco más primero. Aún no hay nada que guardar.",
+    gpsIndoorRun: "Interior (caminadora)", gpsIndoorRide: "Interior (bici estática)", gpsIndoorSignal: "Interior",
+    gpsIndoorNoteRun: "En interior no hace falta GPS: solo el cronómetro. Al terminar, añade la distancia que marca la caminadora.",
+    gpsIndoorNoteRide: "En interior no hace falta GPS: solo el cronómetro. Al terminar, añade la distancia que marca la bici.",
+    gpsIndoorTooShort: "Sigue un poco más primero. Aún no hay nada que guardar.",
+    indoorNameRun: "Carrera en caminadora", indoorNameWalk: "Caminata en caminadora", indoorNameRide: "Bici estática", indoorTagTread: "Caminadora", indoorTagRide: "Interior",
+    indoorAddDistRun: "Añade la distancia que marca la caminadora.", indoorAddDistRide: "Añade la distancia que marca la bici.",
     gpsNotifTitle: "Altiro está registrando tu carrera", gpsNotifMsg: "Toca para volver a tu carrera.", gpsRunTitle: "Carrera", loggedLiftTitle: "Entrenamiento de pesas",
     gpsGapLive: "El GPS se detuvo mientras la pantalla estaba apagada, así que ese tramo marcará de menos. Deja Altiro abierta con la pantalla encendida hasta terminar.",
     gpsGapSummaryOne: "El GPS se cortó durante {total} en esta carrera. Ese tramo es una línea recta en el mapa, así que la distancia puede marcar de menos.",
@@ -10640,6 +10669,15 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   const logTarget = state._logTarget || {dayKey: dateKey(TODAY_DATE), kind: state._activeExtraId ? 'extra' : 'primary', id: state._activeExtraId || null};
   const resolved = resolveLogTarget(logTarget);
   const eff = state._pendingSession || (resolved && resolved.session) || activeSession();
+  // Timed indoors: the distance has to come from the machine (there's no GPS distance to fall back on).
+  const indoorRes = isCardio(eff.t) ? gpsHandoffFor(logTarget) : null;
+  if(indoorRes && indoorRes.indoor && !(parseFloat(document.getElementById('logPerfDistanceInput').value) > 0)){
+    const L = STR[state.lang], box = document.getElementById('logPerfIndoorNote');
+    box.textContent = eff.t==='ride' ? L.indoorAddDistRide : L.indoorAddDistRun; box.hidden = false;
+    showToast(box.textContent);
+    try{ document.getElementById('logPerfDistanceInput').focus(); }catch(e){}
+    return;
+  }
   const target = getProgressionTarget(eff, state.intensityIdx);
   const logged = {};
   const exercises = exercisesForSession(eff, parseDateKey(logTarget.dayKey));
@@ -10714,7 +10752,17 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
   if(prevPerf && prevPerf.stravaId){ logged.source = prevPerf.source || 'strava'; logged.stravaId = prevPerf.stravaId; }
   // A run tracked with GPS keeps its route and splits -- fresh from the tracker, or from when it was saved.
   const gpsRes = isCardio(eff.t) ? gpsHandoffFor(logTarget) : null;
-  const routeFrom = gpsRes || (isCardio(eff.t) && prevPerf && prevPerf.route ? prevPerf : null);
+  const routeFrom = (gpsRes && !gpsRes.indoor ? gpsRes : null) || (isCardio(eff.t) && prevPerf && prevPerf.route ? prevPerf : null);
+  // Indoors (timed here, or from a watch): kept with it, through any later edit.
+  if(isCardio(eff.t) && ((gpsRes && gpsRes.indoor) || (prevPerf && prevPerf.indoor))){
+    logged.indoor = true;
+    if(gpsRes && gpsRes.indoor){
+      if(gpsRes.activity) logged.activity = gpsRes.activity;
+      if(gpsRes.startedAt) logged.startedAt = gpsRes.startedAt;
+      if(gpsRes.finishedAt) logged.finishedAt = gpsRes.finishedAt;
+      logged.source = logged.source || 'timer';
+    }
+  }
   if(routeFrom){
     logged.route = routeFrom.route; logged.splits = routeFrom.splits || [];
     if(routeFrom.lastSplit) logged.lastSplit = routeFrom.lastSplit;
@@ -15032,9 +15080,11 @@ function renderSummary(){
   // Looking back at a done workout (see openWorkoutSummary): its name and day, Edit, and Back to wherever
   // it was opened from -- no review to fill in again.
   const viewing = !!summaryView;
+  // (Indoors -- a treadmill, a spin bike -- it says so, unless its name already does.)
+  const lg = state._lastLogged, tag = lg && lg.indoor && isCardio(session.t) && !INDOOR_NAME_RE.test(sessL.title || '') ? ` · ${indoorTag(lg.activity || session.t)}` : '';
   document.getElementById('summarySessTitle').textContent = viewing
-    ? `${sessL.title} · ${fmtDayDate(summaryView.target.dayKey, state.lang)}`
-    : `${sessL.title}${sessL.detail?', '+sessL.detail:''}`;
+    ? `${sessL.title}${tag} · ${fmtDayDate(summaryView.target.dayKey, state.lang)}`
+    : `${sessL.title}${tag}${sessL.detail?', '+sessL.detail:''}`;
   document.getElementById('summaryEditBtn').hidden = !viewing;
   const backBtn = document.getElementById('summaryBackBtn');
   backBtn.setAttribute('data-go', viewing ? summaryView.from : 'home');
@@ -15866,10 +15916,20 @@ let gpsWatch = null;     // {kind:'web', id} | {kind:'native', id}
 let gpsMap = null, gpsMapReady = false, gpsMapFollow = true, gpsTick = null, gpsWakeLock = null, gpsLastFix = null, gpsSaveAt = 0;
 // What's being tracked: a run, walk, hike or bike ride (activity). A ride's splits are every 5 miles (or km).
 const gpsSplitEvery = act => act==='ride' ? 5 : 1;
+// Indoors -- a treadmill run or walk, a spin bike: no GPS, just the timer, and the distance from the machine
+// typed in at the end. (A hike is always outside.)
+const indoorOk = act => act==='run' || act==='walk' || act==='ride';
+function indoorName(act, lang){ const L = STR[lang || state.lang]; return act==='ride' ? L.indoorNameRide : act==='walk' ? L.indoorNameWalk : L.indoorNameRun; }
+function indoorTag(act, lang){ const L = STR[lang || state.lang]; return act==='ride' ? L.indoorTagRide : L.indoorTagTread; }
+// From a watch: Strava's virtual runs and rides (Zwift and the like), or a name that says so -- Garmin's
+// "Treadmill Running", "Indoor Cycling" -- and Health Connect's treadmill and stationary bike.
+const INDOOR_NAME_RE = /treadmill|indoor|spin(ning)?\b|stationary|zwift|peloton|trainer|caminadora|cinta|interior|est[aá]tica|rodillo/i;
+function stravaIndoor(row){ return !!row && (row.sport_type==='VirtualRun' || row.sport_type==='VirtualRide' || row.trainer===true || INDOOR_NAME_RE.test(String(row.name || ''))); }
+const HEALTH_INDOOR_TYPES = ['runningTreadmill', 'bikingStationary'];
 function newGpsRun(target, activity){
   const act = isCardio(activity) ? activity : 'run';
   return {target: target || null, planTarget: target || null, activity: act, splitEvery: gpsSplitEvery(act),
-    status:'idle', segs:[], distM:0, movingMs:0, runningSince:null, startedAt:null, splits:[], lastPt:null, newSeg:true, splitM: unitMeters()*gpsSplitEvery(act), splitUnit: distUnit(),
+    indoor:false, status:'idle', segs:[], distM:0, movingMs:0, runningSince:null, startedAt:null, splits:[], lastPt:null, newSeg:true, splitM: unitMeters()*gpsSplitEvery(act), splitUnit: distUnit(),
     elevGain:0, elevLoss:0, elevSm:null, elevAnchor:null, elevSeen:false, stats: newGpsStats(), lastGoodT:null, hiddenAt:null};
 }
 // How well GPS kept up during a run, kept with it so a run that reads short can say why: fixes received,
@@ -15910,6 +15970,7 @@ function loadGpsRun(){
     g.newSeg = true; g.lastPt = null; g.status = g.status==='idle' ? 'idle' : 'paused'; g.runningSince = null;
     if(!g.splitM){ g.splitM = MI_M; g.splitUnit = 'mi'; }
     if(!isCardio(g.activity)){ g.activity = 'run'; g.splitEvery = 1; }
+    g.indoor = !!g.indoor && indoorOk(g.activity);
     g.stats = {...newGpsStats(), ...(g.stats || {})}; g.lastGoodT = null; g.hiddenAt = null;
     return g;
   }catch(e){ return null; }
@@ -15925,6 +15986,7 @@ function gpsSignalState(){
 // distance from GPS wobble).
 function onGpsFix(lat, lng, acc, time, alt, altAcc, speed, bearing){
   if(!isFinite(lat) || !isFinite(lng)) return;
+  if(gps && gps.indoor) return; // (one still on its way after Indoor was switched on)
   gpsLastFix = {lat, lng, acc: acc || 0, at: Date.now()};
   if(gps && gps.status==='running'){
     gps.stats.fixes++;
@@ -16091,7 +16153,7 @@ function openGpsTracker(target){
   wireX();
   note.hidden = !web;
   renderGps();
-  startGpsWatch();
+  if(!gps.indoor) startGpsWatch();
   clearInterval(gpsTick);
   gpsTick = setInterval(renderGps, 1000);
   const mapEl = document.getElementById('gpsMap');
@@ -16143,6 +16205,7 @@ function renderGps(){
   const L = STR[state.lang];
   const ms = gpsElapsedMs(), units = gpsLiveDistM()/unitMeters();
   document.getElementById('gpsTime').textContent = fmtRunClock(ms);
+  renderGpsIndoor();
   document.getElementById('gpsDist').textContent = units.toFixed(2);
   const ride = gps.activity==='ride';
   document.getElementById('gpsAvgPace').textContent = units >= 0.05 ? (ride ? (units/(ms/3600000)).toFixed(1) : fmtPaceSec(ms/1000/units)) : (ride ? '--' : '--:--');
@@ -16150,7 +16213,7 @@ function renderGps(){
   document.getElementById('gpsAvgPaceLabel').textContent = ride ? L.statAvgSpeed : L.gpsStatAvgPace;
   renderGpsActivity();
   // (The header says what's being tracked: "GPS run", or "Bike ride · GPS".)
-  document.getElementById('gpsTitleEl').textContent = gps.activity && gps.activity!=='run' ? `${cardioName(gps.activity)} · GPS` : L.gpsTitle;
+  document.getElementById('gpsTitleEl').textContent = gps.indoor ? indoorName(gps.activity) : gps.activity && gps.activity!=='run' ? `${cardioName(gps.activity)} · GPS` : L.gpsTitle;
   const ev = document.getElementById('gpsElev');
   ev.hidden = !gps.elevSeen;
   if(gps.elevSeen) ev.innerHTML = `${L.gpsElevLabel}: <b>↑ ${fmtElev(gps.elevGain)}</b> · <b>↓ ${fmtElev(gps.elevLoss)}</b>`;
@@ -16170,8 +16233,8 @@ function renderGps(){
   if(ride && cur==='--:--') cur = '--';
   document.getElementById('gpsPace').textContent = cur;
   const sig = gpsSignalState(), sigEl = document.getElementById('gpsSignal');
-  sigEl.className = 'gps-signal ' + sig;
-  sigEl.textContent = sig==='good' ? L.gpsGood : sig==='weak' ? L.gpsWeak : L.gpsFinding;
+  sigEl.className = 'gps-signal ' + (gps.indoor ? 'indoor' : sig);
+  sigEl.textContent = gps.indoor ? L.gpsIndoorSignal : sig==='good' ? L.gpsGood : sig==='weak' ? L.gpsWeak : L.gpsFinding;
   const btn = document.getElementById('gpsStartBtn');
   btn.textContent = gps.status==='running' ? L.gpsPause : gps.status==='paused' ? L.gpsResume : L.gpsStart;
   btn.classList.toggle('btn-primary', gps.status!=='running');
@@ -16179,7 +16242,7 @@ function renderGps(){
   document.getElementById('gpsHoldFinish').hidden = gps.status==='idle';
   // Pocket lock: only where GPS needs the screen on (the browser), once the run has started.
   const lockBtn = document.getElementById('gpsLockBtn');
-  lockBtn.hidden = !!nativeGeo() || gps.status==='idle';
+  lockBtn.hidden = !!nativeGeo() || gps.status==='idle' || gps.indoor; // (indoors there's no GPS to keep going)
   lockBtn.setAttribute('aria-label', L.gpsLockLabel);
   if(!document.getElementById('gpsPocket').hidden){
     document.getElementById('gpsPocketTime').textContent = fmtRunClock(ms);
@@ -16191,7 +16254,7 @@ function renderGps(){
   mapEl.querySelectorAll('svg.route-svg').forEach(s=> s.remove());
   let mapReady = false;
   try{ mapReady = !!(gpsMapReady && gpsMap && gpsMap.getSource('route')); }catch(e){}
-  document.getElementById('gpsRecenter').hidden = !mapReady || gpsMapFollow;
+  document.getElementById('gpsRecenter').hidden = !mapReady || gpsMapFollow || gps.indoor;
   if(mapReady){
     setRouteData(gpsMap, gps.segs);
     const here = gps.lastPt || (gpsLastFix && [gpsLastFix.lat, gpsLastFix.lng]);
@@ -16209,11 +16272,41 @@ function renderGpsActivity(){
   const html = CARDIO_TYPES.map(t=> `<button type="button" role="radio" data-gps-act="${t}" aria-checked="${t===gps.activity}">${TYPE_ICON[t]}<span>${escapeHtml(cardioName(t))}</span></button>`).join('');
   if(row.innerHTML!==html) row.innerHTML = html;
 }
+// Indoors: the Indoor switch (before Start, for a run, walk or ride), the map's place taken by a note, and
+// no distance or pace while it runs -- the machine's distance is added at the end.
+function renderGpsIndoor(){
+  const L = STR[state.lang], row = document.getElementById('gpsIndoorRow');
+  row.hidden = !gps || gps.status!=='idle' || !indoorOk(gps.activity);
+  const ride = gps && gps.activity==='ride';
+  document.getElementById('gpsIndoorLabel').textContent = ride ? L.gpsIndoorRide : L.gpsIndoorRun;
+  const t = document.getElementById('gpsIndoorToggle'), on = !!(gps && gps.indoor);
+  t.classList.toggle('on', on); t.setAttribute('aria-checked', String(on));
+  t.setAttribute('aria-label', ride ? L.gpsIndoorRide : L.gpsIndoorRun);
+  document.getElementById('gpsIndoorBox').hidden = !on;
+  document.getElementById('gpsMap').hidden = on;
+  document.getElementById('gpsIndoorNote').textContent = ride ? L.gpsIndoorNoteRide : L.gpsIndoorNoteRun;
+  document.querySelector('#gpsOverlay .gps-grid').hidden = on;
+  // (The keep-the-screen-on note is about GPS: not indoors.)
+  const note = document.getElementById('gpsNote');
+  if(on && note.classList.contains('closable')) note.hidden = true;
+}
+function setGpsIndoor(on){
+  if(!gps || gps.status!=='idle') return;
+  gps.indoor = !!on && indoorOk(gps.activity);
+  if(gps.indoor) stopGpsWatch(); else startGpsWatch();
+  const note = document.getElementById('gpsNote');
+  if(!gps.indoor && note.classList.contains('closable') && note.innerHTML) note.hidden = false;
+  saveGpsRun(true);
+  renderGps();
+}
+document.getElementById('gpsIndoorToggle').addEventListener('click', ()=> setGpsIndoor(!(gps && gps.indoor)));
+document.getElementById('gpsIndoorToggle').addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); setGpsIndoor(!(gps && gps.indoor)); } });
 document.getElementById('gpsActRow').addEventListener('click', e=>{
   const b = e.target.closest && e.target.closest('[data-gps-act]');
   if(!b || !gps || gps.status!=='idle') return;
   const t = b.getAttribute('data-gps-act');
   gps.activity = t; gps.splitEvery = gpsSplitEvery(t); gps.splitM = unitMeters()*gps.splitEvery;
+  if(gps.indoor && !indoorOk(t)){ gps.indoor = false; startGpsWatch(); }
   const r = gps.planTarget && resolveLogTarget(gps.planTarget), planned = r && r.session && r.session.t;
   gps.target = planned===t ? gps.planTarget : null;
   saveGpsRun(true);
@@ -16233,8 +16326,7 @@ document.getElementById('gpsStartBtn').addEventListener('click', ()=>{
     gps.status = 'running'; gps.runningSince = Date.now(); gps.newSeg = true; gps.lastPt = null;
     gps.lastGoodT = Date.now();
     gpsMapFollow = true;
-    gpsKeepAwake(true);
-    startGpsWatch();
+    if(!gps.indoor){ gpsKeepAwake(true); startGpsWatch(); }
   }
   saveGpsRun(true);
   renderGps();
@@ -16318,6 +16410,9 @@ function announceRun(what, info, activity){
   if(what==='started') speakRun(es ? (other ? 'Actividad iniciada' : 'Carrera iniciada') : `${noun} started`);
   else if(what==='paused') speakRun(es ? (other ? 'Actividad en pausa' : 'Carrera en pausa') : `${noun} paused`);
   else if(what==='resumed') speakRun(es ? 'Seguimos' : `${noun} resumed`);
+  else if(what==='finished' && info && info.indoor){
+    speakRun(es ? `${other ? 'Actividad terminada' : 'Carrera terminada'}. ${spokenDuration(info.ms/1000, true)}.` : `${noun} complete. ${spokenDuration(info.ms/1000, false)}.`);
+  }
   else if(what==='finished' && info){
     const units = info.meters/unitMeters(), d = units.toFixed(2);
     const uw = useKm() ? (es ? 'kilómetros' : 'kilometers') : (es ? 'millas' : 'miles');
@@ -16368,6 +16463,7 @@ function finishGpsRun(msAtPress){
   if(gps.status==='running'){ gpsCatchUp(); noteGpsGap(Date.now()); }
   if(gps.hiddenAt){ gps.stats.hiddenS += (Date.now() - gps.hiddenAt)/1000; gps.hiddenAt = null; }
   const ms = msAtPress || gpsElapsedMs(), mi = gps.distM/MI_M;
+  if(gps.indoor){ finishIndoorRun(ms); return; }
   if(mi < 0.01){ showToast(L.gpsTooShort); return; }
   const lastPart = gps.distM/gps.splitM - gps.splits.length;
   const result = {
@@ -16402,6 +16498,26 @@ function finishGpsRun(msAtPress){
   refreshViews();
   openLogPerformanceFor(target, 'record');
 }
+// Indoors: the time, and the distance to add from the machine in Log Performance -- no route, splits or
+// best efforts (a treadmill's own numbers aren't a measured mile).
+function finishIndoorRun(ms){
+  const L = STR[state.lang];
+  if(ms < 60000){ showToast(L.gpsIndoorTooShort); return; }
+  const act = gps.activity || 'run';
+  const result = {indoor: true, distance: null, time: Math.round(ms/1000)/60, startedAt: gps.startedAt, finishedAt: Date.now(), ...(act!=='run' ? {activity: act} : {})};
+  let target = gps.target;
+  if(!target){
+    const key = dateKey(TODAY_DATE);
+    const where = planCustomWorkout(key, {title: indoorName(act), type: act, detail: '', alongside: true});
+    target = {dayKey: key, kind: where.kind, id: where.id};
+  }
+  announceRun('finished', {indoor: true, ms}, act);
+  setGpsHandoff({target, result});
+  clearGpsRun(); gps = null;
+  closeGpsTracker();
+  refreshViews();
+  openLogPerformanceFor(target, 'record');
+}
 // A finished GPS run waiting to be saved in Log Performance -- kept on the phone until it is, so
 // closing Log Performance doesn't lose it (reopening that workout brings it back).
 let gpsHandoff = null;
@@ -16420,6 +16536,16 @@ function applyGpsToLogPerf(logTarget, mode, eff, perf){
   const res = isRun ? gpsHandoffFor(logTarget) : null;
   document.getElementById('logPerfGpsBtn').hidden = !(isRun && mode==='record' && !res);
   renderLogPerfElevation(isRun, res, perf);
+  // Indoors: the time from the tracker, and the distance from the machine still to add.
+  const indoorNote = document.getElementById('logPerfIndoorNote');
+  const indoor = isRun && !!((res && res.indoor) || (perf && perf.indoor));
+  indoorNote.hidden = !(res && res.indoor);
+  if(res && res.indoor){
+    indoorNote.textContent = eff.t==='ride' ? L.indoorAddDistRide : L.indoorAddDistRun;
+    document.getElementById('logPerfDistanceInput').value = '';
+    writeHmsMinutes('logPerfTime', res.time);
+  }
+  if(indoor){ document.getElementById('logPerfRoute').hidden = true; return; }
   const route = res ? res.route : (perf && perf.route) || null;
   const box = document.getElementById('logPerfRoute');
   box.hidden = !(isRun && route);
@@ -17955,11 +18081,11 @@ function fileStravaRun(row){
     if(!kind || !importOtherOn()) return false;
     return fileOtherActivity({kind, key: String(row.local_date).slice(0,10), miles: +(Number(row.distance_m||0)/1609.344).toFixed(2),
       minutes: row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null, win: stravaRowWindow(row), name: row.name,
-      source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null});
+      source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null, indoor: stravaIndoor(row)});
   }
   return fileWatchRun({key: String(row.local_date).slice(0,10), miles: +(Number(row.distance_m||0)/1609.344).toFixed(2),
     minutes: row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null, win: stravaRowWindow(row), name: row.name,
-    source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null, bests: stravaBests(row.best_efforts)});
+    source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null, bests: stravaBests(row.best_efforts), indoor: stravaIndoor(row)});
 }
 // Walks, hikes and bike rides from Strava and Health Connect (on unless turned off in Settings -- the
 // Strava sync is told which kinds this app takes in).
@@ -18016,6 +18142,7 @@ function fileOtherActivity(act){
     const fromWatch = !perf.stravaId && !perf.healthId && miles>0;
     if(fromWatch){ next.distance = miles; if(minutes) next.time = minutes; next.fromWatch = true; next.numbersFrom = act.source; }
     next = withWatchClimb(next, act.elevGain) || next;
+    if(act.indoor) next.indoor = true;
     storeLoggedPerformance(match.target, r, next);
     if(fromWatch) applyLoggedPerformance(match.target, r, next);
     return false;
@@ -18023,11 +18150,11 @@ function fileOtherActivity(act){
   if(kind==='walk' && dd.p.t==='run' && dd.primarySource==='plan' && !dd.isCustom && /^Brisk Walk$/.test(dd.p.en.title) && !dd.completed){
     return fileWatchRun({key, miles, minutes, win, name: act.name, source: act.source, ...ids, elevGain: act.elevGain, calories: act.calories});
   }
-  const logged = {distance: miles, time: minutes, notes: '', source: act.source, ...ids,
+  const logged = {distance: miles, time: minutes, notes: '', source: act.source, ...ids, ...(act.indoor ? {indoor: true} : {}),
     ...(win ? {startedAt: win.start, finishedAt: win.end} : {}), ...(act.calories ? {calories: act.calories} : {}),
     ...(act.elevGain!=null && isFinite(act.elevGain) ? {elevGain: Math.round(act.elevGain*10)/10, elevSource: 'watch'} : {})};
   const volume = [`${miles} mi`, minutes!=null ? fmtDurationClock(minutes) : ''].filter(Boolean).join(' · ');
-  logCompletedEntry(key, {name: act.name || cardioName(kind), type: kind, volume, notes:'', distance: miles, durationMin: minutes, performance: logged});
+  logCompletedEntry(key, {name: act.name || (act.indoor ? indoorName(kind) : cardioName(kind)), type: kind, volume, notes:'', distance: miles, durationMin: minutes, performance: logged});
   return true;
 }
 // Strava's own fastest stretches of a run ({"1mi": 539, "5k": 1780, ...}, seconds -- see the strava
@@ -18058,6 +18185,13 @@ function giveStravaBests(target, bests){
 }
 // A run from a watch -- through Strava, or Apple Health / Health Connect: {key, miles, minutes, win, name,
 // source, stravaId | healthId}. The same run coming in both ways counts once (matched by its time).
+// A workout already logged turns out to have been indoors (the watch says so): it's marked so.
+function markIndoor(target){
+  const r = resolveLogTarget(target), perf = r && (r.performance || (r.record && r.record.performance));
+  if(!perf || perf.indoor) return false;
+  storeLoggedPerformance(target, r, {...perf, indoor: true});
+  return true;
+}
 function fileWatchRun(run){
   const {key, miles, minutes, win} = run;
   const ids = {...(run.stravaId ? {stravaId: run.stravaId} : {}), ...(run.healthId ? {healthId: run.healthId} : {})};
@@ -18081,10 +18215,11 @@ function fileWatchRun(run){
     }
     // (And Strava's best efforts for it, whichever way it was logged.)
     if(run.bests) giveStravaBests(match, run.bests);
+    if(run.indoor) markIndoor(match);
     return false;
   }
 
-  const logged = {distance: miles, time: minutes, notes: '', source: run.source, ...ids,
+  const logged = {distance: miles, time: minutes, notes: '', source: run.source, ...ids, ...(run.indoor ? {indoor: true} : {}),
     ...(win ? {startedAt: win.start, finishedAt: win.end} : {}), ...(run.calories ? {calories: run.calories} : {}),
     ...(run.elevGain!=null && isFinite(run.elevGain) ? {elevGain: Math.round(run.elevGain*10)/10, elevSource: 'watch'} : {}),
     ...(run.bests ? {bests: run.bests, bestsFrom: 'strava'} : {})};
@@ -18110,7 +18245,7 @@ function fileWatchRun(run){
   } else {
     const volume = [`${miles} mi`, minutes!=null ? fmtDurationClock(minutes) : ''].filter(Boolean).join(' · ');
     // Keeps the Strava id with it, so this run links back to Strava too.
-    logCompletedEntry(key, {name: run.name || 'Run', type:'run', volume, notes:'', distance: miles, durationMin: minutes, performance: logged});
+    logCompletedEntry(key, {name: run.name || (run.indoor ? indoorName('run') : 'Run'), type:'run', volume, notes:'', distance: miles, durationMin: minutes, performance: logged});
   }
   return true;
 }
@@ -18397,8 +18532,9 @@ async function importHealthWorkouts(H){
       const win = {start, end: isFinite(end) ? end : start + sec*1000};
       if(pending && sameTime(pending, win)) return;
       looked.push(id);
+      const indoor = HEALTH_INDOOR_TYPES.includes(w.workoutType);
       const act = {kind: other, key: dateKey(new Date(start)), miles: +(meters/1609.344).toFixed(2), minutes: sec ? +(sec/60).toFixed(2) : null, win,
-        name: cardioName(other), source: 'health', healthId: id, calories: Number(w.totalEnergyBurned) > 0 ? Math.round(Number(w.totalEnergyBurned)) : null};
+        name: indoor ? indoorName(other) : cardioName(other), source: 'health', healthId: id, indoor, calories: Number(w.totalEnergyBurned) > 0 ? Math.round(Number(w.totalEnergyBurned)) : null};
       if(fileOtherActivity(act)) imported.push({...act, miles: act.miles});
       return;
     }
@@ -18409,7 +18545,7 @@ async function importHealthWorkouts(H){
     const win = {start, end: isFinite(end) ? end : start + (Number(w.duration)||0)*1000};
     if(pending && sameTime(pending, win)) return; // (see gpsPendingWindow: looked at again once it's saved)
     const run = {key: dateKey(new Date(start)), miles: +(meters/1609.344).toFixed(2), minutes: w.duration ? +(w.duration/60).toFixed(2) : null,
-      win, name: STR[state.lang].healthRunName, source: 'health', healthId: id,
+      win, name: HEALTH_INDOOR_TYPES.includes(w.workoutType) ? indoorName('run') : STR[state.lang].healthRunName, source: 'health', healthId: id, indoor: HEALTH_INDOOR_TYPES.includes(w.workoutType),
       calories: Number(w.totalEnergyBurned) > 0 ? Math.round(Number(w.totalEnergyBurned)) : null};
     // Already in: just checked for a longer distance (a deleted one, not logged any more, stays gone).
     if(seen.has(id) || healthIdLogged(id)){ looked.push(id); if(recent && recheckHealthRun(id, run)) imported.push(run); return; }

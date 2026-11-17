@@ -11186,12 +11186,36 @@ function tickHoldEndFill(){
   if(fill) fill.style.width = pct+'%';
   if(pct<100) holdEndRAF = requestAnimationFrame(tickHoldEndFill);
 }
+// An interval workout's time: every round's work, and the rests between them (not after the last) -- in
+// minutes. cfg: {rounds, workSec, restSec}.
+function intervalMinutes(cfg, rounds){
+  const r = rounds!=null ? rounds : cfg.rounds;
+  return (r*cfg.workSec + Math.max(0, r-1)*cfg.restSec)/60;
+}
+// Ended early (the hold): the time actually done, to the second -- the rounds before this one, and this
+// one so far.
+function intervalElapsedMin(ts){
+  if(ts.phase==='countdown') return 0;
+  const done = (ts.roundNum-1)*(ts.workSec + ts.restSec);
+  const now = ts.phase==='work' ? ts.workSec - ts.remainingMs/1000 : ts.workSec + Math.max(0, ts.restSec - ts.remainingMs/1000);
+  return Math.max(0, Math.round(done + now))/60;
+}
+// Kept with the workout -- its rounds, work, rest and time -- so Progress counts its time (it used to
+// keep nothing, and showed 0 minutes).
+function saveIntervalDone(logged){
+  const key = dateKey(TODAY_DATE), extraId = state._activeExtraId;
+  const target = extraId ? {dayKey: key, kind:'extra', id: extraId} : primaryLogTarget(getDayData(TODAY_DATE));
+  const resolved = resolveLogTarget(target);
+  if(resolved && (target.kind==='primary' || resolved.record)) storeLoggedPerformance(target, resolved, logged);
+}
 function concludeWorkoutEarly(){
   if(!timerState) return;
-  const rounds = timerState.roundNum;
+  const ts = timerState, rounds = ts.roundNum;
+  const logged = {rounds, workSec: ts.workSec, restSec: ts.restSec, time: +intervalElapsedMin(ts).toFixed(2)};
   stopTimerTick();
   closeIntervalTimer();
-  startWorkout({rounds});
+  saveIntervalDone(logged);
+  startWorkout(logged);
 }
 const holdEndBtn = document.getElementById('timerHoldEndBtn');
 holdEndBtn.addEventListener('pointerdown', (e)=>{
@@ -11214,11 +11238,13 @@ document.querySelectorAll('#intervalTimerOverlay [data-field]').forEach(btn=>{
   });
 });
 document.getElementById('timerFinishBtn').addEventListener('click', ()=>{
-  const rounds = timerState ? timerState.rounds : null;
+  const ts = timerState, rounds = ts ? ts.rounds : null;
+  const logged = ts ? {rounds, workSec: ts.workSec, restSec: ts.restSec, time: +intervalMinutes(ts, rounds).toFixed(2)} : {rounds};
   closeIntervalTimer();
+  if(ts) saveIntervalDone(logged);
   // Interval workouts have no weight/reps/time to capture -- the round count from the timer itself
   // IS the performance data, so skip Log Performance and go straight into completion + review.
-  startWorkout({rounds});
+  startWorkout(logged);
 });
 
 /* ---------------- post-workout review ---------------- */
@@ -13554,11 +13580,13 @@ function dayActivity(date){
     if(name) names.push(name);
   };
   const liftTexts = sesn => sesn && sesn.t==='strength' && !(sesn.exercises && sesn.exercises.length) ? [sesn.en.detail, sesn.en.title] : null;
+  // (An interval workout done before its time was kept: its time from its rounds, work and rest.)
+  const planMin = (sesn, perf)=> sesn && sesn.t==='interval' ? intervalMinutes({rounds:6, workSec:180, restSec:60, ...(sesn.interval || {}), ...(perf && perf.workSec ? {workSec: perf.workSec, restSec: perf.restSec} : {})}, perf && perf.rounds) : plannedMinutesOf(sesn);
   if(dd.p.t!=='rest' && dd.primarySource==='plan' && log && log.completedOverride!==false
     && (log.completedOverride===true || log.performance || log.actualRunDistance!=null || (key===dateKey(TODAY_DATE) && state.todayCompleted))){
-    add(log.performance, dd.p, ST(dd.p).title, plannedMinutesOf(dd.p), dd.isCustom ? liftTexts(dd.p) : null);
+    add(log.performance, dd.p, ST(dd.p).title, planMin(dd.p, log.performance), dd.isCustom ? liftTexts(dd.p) : null);
   }
-  dd.extraWorkouts.forEach(w=>{ if(w.completed) add(w.performance, w.session, ST(w.session).title, plannedMinutesOf(w.session), liftTexts(w.session)); });
+  dd.extraWorkouts.forEach(w=>{ if(w.completed) add(w.performance, w.session, ST(w.session).title, planMin(w.session, w.performance), liftTexts(w.session)); });
   dd.manualEntries.forEach(e=>{
     const perf = e.performance || null;
     const fallback = e.durationMin!=null ? Number(e.durationMin) : Number((String(e.volume||'').match(/(\d+)\s*min/) || [])[1]) || null;
@@ -15021,9 +15049,10 @@ function getSummaryStats(session, intensityIdx, logged){
     return stats;
   }
   if(session.t==='interval'){
-    const cfg = session.interval || {rounds:6, workSec:180, restSec:60};
+    const base = session.interval || {rounds:6, workSec:180, restSec:60};
+    const cfg = {...base, ...(logged && logged.workSec ? {workSec: logged.workSec} : {}), ...(logged && logged.restSec ? {restSec: logged.restSec} : {})};
     const rounds = (logged && logged.rounds) || cfg.rounds;
-    const totalMin = (rounds*cfg.workSec + Math.max(0,rounds-1)*cfg.restSec)/60;
+    const totalMin = logged && logged.time>0 ? logged.time : intervalMinutes(cfg, rounds);
     return [
       {l:L.intervalRoundsLabel, v: rounds},
       {l:L.timerWorkShort, v: fmtClock(cfg.workSec)},
@@ -15205,12 +15234,13 @@ function shareCardData(){
     // ("Climb": "Elevation gain" didn't fit its tile -- the arrow says the rest.)
     if(logged.elevGain!=null && logged.elevGain>=1) stats.push({l:L.shareStatClimb, v:`↑ ${fmtElev(logged.elevGain)}`});
   } else if(session.t==='interval'){
-    const cfg = session.interval || {rounds:6, workSec:180, restSec:60};
+    const base = session.interval || {rounds:6, workSec:180, restSec:60};
+    const cfg = {...base, ...(logged.workSec ? {workSec: logged.workSec} : {}), ...(logged.restSec ? {restSec: logged.restSec} : {})};
     const rounds = logged.rounds || cfg.rounds;
     stats.push({l:L.intervalRoundsLabel, v:String(rounds)});
     stats.push({l:L.timerWorkShort, v:fmtClock(cfg.workSec)});
     stats.push({l:L.timerRestShort, v:fmtClock(cfg.restSec)});
-    stats.push({l:L.statTime, v:fmtDurationClock((rounds*cfg.workSec + Math.max(0,rounds-1)*cfg.restSec)/60)});
+    stats.push({l:L.statTime, v:fmtDurationClock(logged.time>0 ? logged.time : intervalMinutes(cfg, rounds))});
   } else {
     if(min>=1) stats.push({l:L.statTime, v:fmtActiveTime(min)});
     if(session.t==='strength' && logged.weight>0) stats.push({l:L.shareStatTopSet, v:`${fmtShareWeight(logged.weight)} ${unit} × ${logged.reps||0}`});

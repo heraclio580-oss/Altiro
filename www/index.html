@@ -4125,6 +4125,7 @@ const STR = {
     indoorAddDistRun: "Add the distance from the treadmill's screen.", indoorAddDistRide: "Add the distance from the bike's screen.",
     gpsNotifTitle: "Altiro is tracking your run", gpsNotifMsg: "Tap to go back to your run.", gpsRunTitle: "Run", loggedLiftTitle: "Lifting workout",
     gpsGapLive: "GPS stopped while the screen was off, so that stretch will read short. Keep Altiro open with the screen on until you finish.",
+    gpsPartialNote: "GPS lost signal after {d}, so the route stops there. The distance and time are from your watch.",
     gpsGapSummaryOne: "GPS dropped out for {total} during this run. That stretch is a straight line on the map, so the distance may read short.",
     gpsGapSummary: "GPS dropped out {n} times during this run, {total} in all (longest {longest}). Those stretches are straight lines on the map, so the distance may read short.",
     gpsGapSummaryScreen: "GPS stopped for {total} in all while the screen was off (longest {longest}). Those stretches are straight lines on the map, so the distance may read short. Keep Altiro open with the screen on while you run.",
@@ -4922,6 +4923,7 @@ const STR = {
     indoorAddDistRun: "Añade la distancia que marca la caminadora.", indoorAddDistRide: "Añade la distancia que marca la bici.",
     gpsNotifTitle: "Altiro está registrando tu carrera", gpsNotifMsg: "Toca para volver a tu carrera.", gpsRunTitle: "Carrera", loggedLiftTitle: "Entrenamiento de pesas",
     gpsGapLive: "El GPS se detuvo mientras la pantalla estaba apagada, así que ese tramo marcará de menos. Deja Altiro abierta con la pantalla encendida hasta terminar.",
+    gpsPartialNote: "El GPS perdió la señal después de {d}, así que la ruta termina ahí. La distancia y el tiempo son de tu reloj.",
     gpsGapSummaryOne: "El GPS se cortó durante {total} en esta carrera. Ese tramo es una línea recta en el mapa, así que la distancia puede marcar de menos.",
     gpsGapSummary: "El GPS se cortó {n} veces en esta carrera, {total} en total (el más largo {longest}). Esos tramos son líneas rectas en el mapa, así que la distancia puede marcar de menos.",
     gpsGapSummaryScreen: "El GPS se detuvo {total} en total mientras la pantalla estaba apagada (el más largo {longest}). Esos tramos son líneas rectas en el mapa, así que la distancia puede marcar de menos. Deja Altiro abierta con la pantalla encendida mientras corres.",
@@ -15248,11 +15250,12 @@ function shareCardData(){
   const sessL = ST(session);
   stats.forEach(st=>{ st.v = kmText(st.v); }); // the card is drawn, not on the page, so it's converted here
   // A tracked run's splits, every one, with the fastest marked.
-  const sp = isCardio(session.t) && logged.route ? runSplitList(logged) : null;
+  const partialRoute = isCardio(session.t) && routePartialMiles(logged) > 0;
+  const sp = isCardio(session.t) && logged.route && !partialRoute ? runSplitList(logged) : null;
   const splits = sp && sp.splits.length ? sp.splits.map(x=> ({label: x.label, pace: splitRate(logged, x.pace, sp.unit), best: x.pace===sp.best})) : [];
   // A tracked run's height along the way, drawn under its route (see the Elevation chip): heights in
   // metres, with its low and high points as the summary shows them.
-  const prof = isCardio(session.t) && logged.route && logged.elevProfile;
+  const prof = isCardio(session.t) && logged.route && !partialRoute && logged.elevProfile;
   const elevAvail = !!(prof && Array.isArray(prof.d) && prof.d.length>=2 && Array.isArray(prof.a) && prof.a.length===prof.d.length);
   const elev = elevAvail && shareShowElev ? {d: prof.d, a: prof.a,
     low: `${state.lang==='es' ? 'Mín' : 'Low'} ${fmtElev(Math.min(...prof.a))}`, high: `${state.lang==='es' ? 'Máx' : 'High'} ${fmtElev(Math.max(...prof.a))}`} : null;
@@ -15838,7 +15841,7 @@ function decodePolyline(str){
 }
 function routeSegments(route){ return (Array.isArray(route) ? route : []).map(r=> typeof r==='string' ? decodePolyline(r) : r).filter(s=> s.length>1); }
 function fmtPaceSec(secPerMi){
-  if(!isFinite(secPerMi) || secPerMi<=0 || secPerMi>60*60) return '--:--';
+  if(!isFinite(secPerMi) || secPerMi<=0 || secPerMi>4*60*60) return '--:--'; // (a steep climb can be over an hour a mile)
   const s = Math.round(secPerMi);
   return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
 }
@@ -16614,6 +16617,22 @@ function runSplitList(logged){
   const best = splits.length>1 ? Math.min(...splits.map(x=> x.pace)) : null;
   return {unit, splits, best};
 }
+// Tracked here only part of the way (GPS lost signal), with the whole of it from the watch: the miles the
+// phone's route covers -- or 0 when it covers it all. Its splits and height line are only of that part,
+// so they're left out (the route stays, with a note).
+function routeTrackedMiles(logged){
+  if(!logged || !logged.route) return 0;
+  const every = logged.splitEvery>1 ? logged.splitEvery : 1, ls = logged.lastSplit;
+  let units = Array.isArray(logged.splits) && (logged.splits.length || ls) ? logged.splits.length*every + (ls ? (ls.dist!=null ? ls.dist : ls.mi || 0)*every : 0) : 0;
+  if(units>0) return logged.splitUnit==='km' ? units*1000/MI_M : units;
+  const m = routeSegments(logged.route).reduce((t, sg)=>{ for(let i=1; i<sg.length; i++) t += haversineM(sg[i-1], sg[i]); return t; }, 0);
+  return m/MI_M;
+}
+function routePartialMiles(logged){
+  if(!logged || !logged.route || !(logged.stravaId || logged.healthId || logged.fromWatch)) return 0;
+  const tracked = routeTrackedMiles(logged), whole = Number(logged.distance) || 0;
+  return tracked>0 && whole > tracked*1.15 + 0.25 ? tracked : 0;
+}
 let summaryMap = null;
 // A split's pace ("8:59/mi") -- or, for a bike ride, its speed ("16.2 mph").
 function splitRate(logged, secPerUnit, unit){
@@ -16627,16 +16646,19 @@ function renderSummaryRoute(logged){
   if(summaryMap){ try{ summaryMap.remove(); }catch(e){} summaryMap = null; }
   card.hidden = !segs.length;
   if(!segs.length) return;
-  const {unit, splits, best} = runSplitList(logged);
+  const partial = routePartialMiles(logged);
+  const {unit, splits, best} = partial ? {unit: 'mi', splits: [], best: null} : runSplitList(logged);
   const box = document.getElementById('summarySplits');
   box.setAttribute('data-keep-units', '');
   box.innerHTML = splits.length ? `<div class="st-label">${L.gpsSplitsLabel}</div>` + splits.map(s=>
     `<div class="split-row${s.pace===best ? ' best' : ''}"><span>${escapeHtml(s.label)}</span><span>${splitRate(logged, s.pace, unit)}</span></div>`).join('') : '';
-  renderElevProfile(document.getElementById('summaryElevProfile'), logged.elevProfile);
+  renderElevProfile(document.getElementById('summaryElevProfile'), partial ? null : logged.elevProfile);
   // GPS that dropped out for a while (half a minute or more in all): the distance likely reads short.
   const gs = logged.gpsStats, gapNote = document.getElementById('summaryGpsNote');
-  gapNote.hidden = !(gs && gs.gapS >= 30);
-  if(!gapNote.hidden){
+  gapNote.hidden = !(gs && gs.gapS >= 30) && !partial;
+  if(partial){
+    gapNote.textContent = L.gpsPartialNote.replace('{d}', useKm() ? `${(partial*MI_M/1000).toFixed(1)} km` : `${partial.toFixed(1)} mi`);
+  } else if(!gapNote.hidden){
     gapNote.textContent = (gs.hiddenS >= gs.gapS/2 ? L.gpsGapSummaryScreen : gs.gaps===1 ? L.gpsGapSummaryOne : L.gpsGapSummary)
       .replace('{total}', fmtClock(gs.gapS)).replace('{longest}', fmtClock(gs.maxGapS)).replace('{n}', gs.gaps);
   }

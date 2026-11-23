@@ -16629,7 +16629,8 @@ function routeTrackedMiles(logged){
   return m/MI_M;
 }
 function routePartialMiles(logged){
-  if(!logged || !logged.route || !(logged.stravaId || logged.healthId || logged.fromWatch)) return 0;
+  // (Only when the watch's numbers replaced the phone's: a run just linked to its Strava copy keeps its own.)
+  if(!logged || !logged.route || !(logged.fromWatch || logged.numbersFrom)) return 0;
   const tracked = routeTrackedMiles(logged), whole = Number(logged.distance) || 0;
   return tracked>0 && whole > tracked*1.15 + 0.25 ? tracked : 0;
 }

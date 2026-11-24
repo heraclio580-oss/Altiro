@@ -2,16 +2,17 @@
 // (tests/run-all.js runs it too when `deno` is installed.) Strava and the database are both faked --
 // this checks the function's own logic: sign-in exchange, token refresh, run filtering, revocation.
 import { assertEquals } from "jsr:@std/assert@1";
-import { bestEfforts, makeHandler, type Deps } from "./index.ts";
+import { bestEfforts, makeHandler, routeOf, type Deps } from "./index.ts";
 
 const NOW = Date.parse("2026-09-27T15:00:00Z");
 
-function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatus?: number; limit?: string; others?: number; countFails?: boolean; bests?: boolean; others2?: boolean } = {}) {
+function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatus?: number; limit?: string; others?: number; countFails?: boolean; bests?: boolean; others2?: boolean; routes?: boolean } = {}) {
   const connections: Record<string, any> = {};
   const activities: Record<string, any> = {};
   const calls: string[] = [];
   const stravaActivities = [
-    { id: 1, name: "Long Run", sport_type: "Run", distance: 25749.5, moving_time: 8400, elapsed_time: 8700, total_elevation_gain: 68, start_date: "2026-09-27T12:02:00Z", start_date_local: "2026-09-27T08:02:00Z" },
+    { id: 1, name: "Long Run", sport_type: "Run", distance: 25749.5, moving_time: 8400, elapsed_time: 8700, total_elevation_gain: 68, start_date: "2026-09-27T12:02:00Z", start_date_local: "2026-09-27T08:02:00Z",
+      ...(opts.routes ? { map: { id: "a1", summary_polyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@", polyline: null } } : {}) },
     { id: 2, name: "Leg Day", sport_type: "WeightTraining", distance: 0, moving_time: 3000, elapsed_time: 3000, start_date: "2026-09-26T22:00:00Z", start_date_local: "2026-09-26T18:00:00Z" },
     { id: 3, name: "Treadmill", type: "VirtualRun", distance: 4828, moving_time: 1800, elapsed_time: 1800, start_date: "2026-09-26T01:30:00Z", start_date_local: "2026-09-25T21:30:00Z" },
     ...(opts.others2 ? [
@@ -78,6 +79,7 @@ function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatu
           else {
             if (r.elev_gain_m != null) had.elev_gain_m = r.elev_gain_m;
             if (r.best_efforts != null) had.best_efforts = r.best_efforts;
+            if (r.route_polyline != null) had.route_polyline = r.route_polyline;
           }
         });
       },
@@ -413,4 +415,25 @@ Deno.test("best efforts are fetched for runs only", async () => {
   await call({ action: "connect", code: "abc", scope: "read,activity:read_all", kinds: ["run", "walk", "hike", "ride"] });
   const details = calls.filter((c) => /\/api\/v3\/activities\/\d+$/.test(c)).map((c) => c.split("/").pop());
   assertEquals(details.sort(), ["1", "3"]);
+});
+
+Deno.test("keeps each activity's route, and adds it to one stored before routes were kept", async () => {
+  const { call, connections, activities } = setup({ routes: true });
+  await call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
+  assertEquals(activities[1].route_polyline, "_p~iF~ps|U_ulLnnqC_mqNvxq`@");
+  // A treadmill run has no route.
+  assertEquals(activities[3].route_polyline, undefined);
+  // Filed before routes were kept: the next sync adds it, and leaves the rest as it was.
+  activities[1] = { ...activities[1], route_polyline: undefined, applied_at: "2026-11-22T14:00:00Z" };
+  connections["user-1"].last_synced_at = new Date(NOW - 3600 * 1000).toISOString();
+  await call({ action: "sync" });
+  assertEquals(activities[1].route_polyline, "_p~iF~ps|U_ulLnnqC_mqNvxq`@");
+  assertEquals(activities[1].applied_at, "2026-11-22T14:00:00Z");
+});
+
+Deno.test("routeOf: the full polyline from an activity's details, else the summary one, else none", () => {
+  assertEquals(routeOf({ map: { polyline: "full", summary_polyline: "short" } }), "full");
+  assertEquals(routeOf({ map: { polyline: null, summary_polyline: "short" } }), "short");
+  assertEquals(routeOf({ map: { summary_polyline: "" } }), null);
+  assertEquals(routeOf({}), null);
 });

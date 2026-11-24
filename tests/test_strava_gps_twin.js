@@ -198,7 +198,7 @@ const T0 = new Date(2026, 8, 18, 8, 0).getTime(); // today (Fri 18th), 8:00
     const backend = makeBackend({connected:false});
     backend.db.profiles.u1 = {id:'u1', own_since:'2026-09-01'};
     backend.db.planned_workouts = {pw1: {id:'pw1', user_id:'u1', log_date:'2026-09-18', session_type:'run', title:'4.5 mile easy run', detail:'4.5 mi',
-      completed:true, actual_distance:4.03, performance:{distance:4.03, time:44.98, source:'gps', stravaId:401, route:['_p~iF~ps|U_ulLnnqC'], splits:[700, 690, 680], splitUnit:'mi'}}};
+      completed:true, actual_distance:4.03, performance:{distance:4.03, time:44.98, source:'gps', stravaId:401, route:['_p~iF~ps|U_ulLnnqC'], splits:[700, 690, 680, 690], lastSplit:{dist:0.03, sec:20}, splitUnit:'mi'}}}; // (4.03 mi: four whole miles and a bit)
     const dom = new JSDOM(html, {runScripts:'dangerously', pretendToBeVisual:true, url:'https://example.com/Altiro/',
       beforeParse(w){ w.supabase = {createClient: ()=> backend.createClient()}; w.__ALTIRO_TEST_TODAY__ = '2026-09-18'; }});
     await wait(300);

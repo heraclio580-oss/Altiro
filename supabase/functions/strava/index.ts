@@ -165,7 +165,16 @@ function runRow(a: any, userId: string) {
     // Strava's own fastest stretches of the run (a run's full details only -- the list of runs leaves them
     // out): the app counts them for its best efforts instead of the run's average pace.
     ...(Array.isArray(a.best_efforts) ? { best_efforts: bestEfforts(a.best_efforts) } : {}),
+    // Its route (Google's encoded polyline: the full one from an activity's own details, the summary one
+    // from the list) -- the app draws it when the phone's own route covers only part of the way.
+    ...(routeOf(a) ? { route_polyline: routeOf(a) } : {}),
   };
+}
+// deno-lint-ignore no-explicit-any
+export function routeOf(a: any): string | null {
+  const m = a && a.map;
+  const r = m && (m.polyline || m.summary_polyline);
+  return typeof r === "string" && r.length > 0 ? r : null;
 }
 // Strava's best efforts, as the app's own keys: {"1mi": 539, "5k": 1780, ...} -- seconds, for 1 mile, 5K,
 // 10K, half marathon and marathon. {} when it has none (a run too short, or without GPS).
@@ -466,7 +475,7 @@ function supabaseDb(): Db {
     async insertNewActivities(rows) {
       // (Best efforts go in on their own below, so runs still come in while the database doesn't have
       // that column yet.)
-      const plain = rows.map((r) => { const { best_efforts: _b, ...rest } = r; return rest; });
+      const plain = rows.map((r) => { const { best_efforts: _b, route_polyline: _r, ...rest } = r; return rest; });
       check(await admin.from("strava_activities").upsert(plain, { onConflict: "id", ignoreDuplicates: true }));
       const bests = rows.filter((r) => r.best_efforts != null).map((r) => ({ id: r.id, user_id: r.user_id, local_date: r.local_date, best_efforts: r.best_efforts }));
       if (bests.length) {
@@ -477,6 +486,13 @@ function supabaseDb(): Db {
       // else the app relies on, stays as it was).
       const climbs = rows.filter((r) => r.elev_gain_m != null).map((r) => ({ id: r.id, user_id: r.user_id, local_date: r.local_date, elev_gain_m: r.elev_gain_m }));
       if (climbs.length) check(await admin.from("strava_activities").upsert(climbs, { onConflict: "id" }));
+      // Routes on their own too (and onto ones stored before routes were kept): while the database doesn't
+      // have that column yet, everything else still comes in.
+      const routes = rows.filter((r) => r.route_polyline).map((r) => ({ id: r.id, user_id: r.user_id, local_date: r.local_date, route_polyline: r.route_polyline }));
+      if (routes.length) {
+        const { error } = await admin.from("strava_activities").upsert(routes, { onConflict: "id" });
+        if (error) console.log(JSON.stringify({ route_error: error.message }));
+      }
     },
     async idsWithBests(ids) {
       if (!ids.length) return new Set();

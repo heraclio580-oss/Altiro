@@ -82,6 +82,7 @@ export type Db = {
   // Of these runs, the ones whose best efforts are already stored (null while the database doesn't have
   // that column yet: then none are fetched).
   idsWithBests?(ids: number[]): Promise<Set<number> | null>;
+  idsWithProfiles?(ids: number[]): Promise<Set<number> | null>;
   deleteUnappliedActivities(userId: string): Promise<void>;
   deleteUnappliedActivity(activityId: number): Promise<void>;
 };
@@ -211,6 +212,59 @@ async function addBestEfforts(deps: Deps, conn: Connection, runs: any[]) {
   }
 }
 
+// The watch's height along the way (its barometer, from Strava's altitude stream): {d: metres along,
+// a: metres high, loss: metres descended} -- at most 150 points, enough for a smooth line; the descent
+// is counted on the whole stream, only once it has dropped 3 m from the last counted level (so the
+// barometer's flutter on the flat doesn't add up). null without both streams.
+export function elevProfile(dist: number[], alt: number[]): { d: number[]; a: number[]; loss: number } | null {
+  const n = Math.min(Array.isArray(dist) ? dist.length : 0, Array.isArray(alt) ? alt.length : 0);
+  const pts: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    const d = Number(dist[i]), a = Number(alt[i]);
+    if (isFinite(d) && isFinite(a)) pts.push([d, a]);
+  }
+  if (pts.length < 2) return null;
+  let loss = 0, level = pts[0][1];
+  pts.forEach(([, a]) => {
+    if (a > level) level = a;
+    else if (level - a >= 3) { loss += level - a; level = a; }
+  });
+  // (The highest and lowest points always stay in, so its High and Low are the watch's.)
+  let hi = 0, lo = 0;
+  pts.forEach(([, a], i) => { if (a > pts[hi][1]) hi = i; if (a < pts[lo][1]) lo = i; });
+  const every = Math.ceil(pts.length / 148);
+  const keep = pts.filter((_, i) => i % every === 0 || i === pts.length - 1 || i === hi || i === lo);
+  return { d: keep.map((x) => Math.round(x[0])), a: keep.map((x) => Math.round(x[1] * 10) / 10), loss: Math.round(loss * 10) / 10 };
+}
+// A few at a time, for activities with a route (outdoors), each one's altitude stream is fetched once (one
+// whose height line is stored isn't asked for again).
+const PROFILE_FETCHES_PER_SYNC = 6;
+// deno-lint-ignore no-explicit-any
+async function fetchProfile(deps: Deps, conn: Connection, id: unknown): Promise<any | "limit" | null> {
+  const res = await deps.fetch(`${STRAVA}/api/v3/activities/${encodeURIComponent(String(id))}/streams?keys=altitude,distance&key_by_type=true`, {
+    headers: { Authorization: `Bearer ${conn.access_token}` },
+  });
+  if (!res.ok) return res.status === 429 ? "limit" : null;
+  const st = await res.json();
+  return elevProfile(st && st.distance && st.distance.data, st && st.altitude && st.altitude.data);
+}
+// deno-lint-ignore no-explicit-any
+async function addElevProfiles(deps: Deps, conn: Connection, rows: any[]) {
+  const withRoute = rows.filter((r) => r.route_polyline);
+  if (!withRoute.length || !deps.db.idsWithProfiles) return;
+  let have: Set<number> | null = null;
+  try { have = await deps.db.idsWithProfiles(withRoute.map((r) => Number(r.id))); } catch { have = null; }
+  if (!have) return;
+  const todo = withRoute.filter((r) => !have!.has(Number(r.id))).slice(0, PROFILE_FETCHES_PER_SYNC);
+  for (const r of todo) {
+    try {
+      const prof = await fetchProfile(deps, conn, r.id);
+      if (prof === "limit") break;
+      if (prof) r.elev_profile = prof;
+    } catch { /* the next sync tries again */ }
+  }
+}
+
 // ---------------- Strava's webhook: new runs arrive on their own ----------------
 // deno-lint-ignore no-explicit-any
 async function handleWebhookEvent(deps: Deps, ev: any) {
@@ -239,7 +293,9 @@ async function handleWebhookEvent(deps: Deps, ev: any) {
   if (!res.ok) return { handled: false, reason: `strava_activity_${res.status}` };
   const a = await res.json();
   if (!wanted(conn, a)) return { handled: true, run: false };
-  await deps.db.insertNewActivities([runRow(a, conn.user_id)]);
+  const row = runRow(a, conn.user_id);
+  await addElevProfiles(deps, conn, [row]);
+  await deps.db.insertNewActivities([row]);
   return { handled: true, run: isRun(a), kind: kindOf(a), id: a.id };
 }
 // One-time setup, from a browser: subscribes Altiro to Strava's webhook with this function as the address.
@@ -302,6 +358,7 @@ async function syncRuns(deps: Deps, userId: string, kinds?: unknown) {
     .map((a) => runRow(a, userId));
   // (Best efforts are a run's.)
   await addBestEfforts(deps, conn, runs.filter((r) => RUN_TYPES.includes(String(r.sport_type))));
+  await addElevProfiles(deps, conn, runs);
   if (runs.length) await deps.db.insertNewActivities(runs);
   await deps.db.saveConnection({ ...conn, last_synced_at: new Date(deps.now()).toISOString() });
   return { connected: true, athlete_name: conn.athlete_name, fetched: runs.length };
@@ -475,7 +532,7 @@ function supabaseDb(): Db {
     async insertNewActivities(rows) {
       // (Best efforts go in on their own below, so runs still come in while the database doesn't have
       // that column yet.)
-      const plain = rows.map((r) => { const { best_efforts: _b, route_polyline: _r, ...rest } = r; return rest; });
+      const plain = rows.map((r) => { const { best_efforts: _b, route_polyline: _r, elev_profile: _e, ...rest } = r; return rest; });
       check(await admin.from("strava_activities").upsert(plain, { onConflict: "id", ignoreDuplicates: true }));
       const bests = rows.filter((r) => r.best_efforts != null).map((r) => ({ id: r.id, user_id: r.user_id, local_date: r.local_date, best_efforts: r.best_efforts }));
       if (bests.length) {
@@ -493,6 +550,17 @@ function supabaseDb(): Db {
         const { error } = await admin.from("strava_activities").upsert(routes, { onConflict: "id" });
         if (error) console.log(JSON.stringify({ route_error: error.message }));
       }
+      const profiles = rows.filter((r) => r.elev_profile).map((r) => ({ id: r.id, user_id: r.user_id, local_date: r.local_date, elev_profile: r.elev_profile }));
+      if (profiles.length) {
+        const { error } = await admin.from("strava_activities").upsert(profiles, { onConflict: "id" });
+        if (error) console.log(JSON.stringify({ elev_profile_error: error.message }));
+      }
+    },
+    async idsWithProfiles(ids) {
+      if (!ids.length) return new Set();
+      const { data, error } = await admin.from("strava_activities").select("id").in("id", ids).not("elev_profile", "is", null);
+      if (error) return null; // (no elev_profile column yet)
+      return new Set((data || []).map((r: { id: number }) => Number(r.id)));
     },
     async idsWithBests(ids) {
       if (!ids.length) return new Set();

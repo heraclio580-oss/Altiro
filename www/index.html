@@ -10780,6 +10780,7 @@ document.getElementById('saveLogPerf').addEventListener('click', function(){
     if(!logged.source) logged.source = 'gps';
   }
   if(routeFrom && routeFrom.elevProfile) logged.elevProfile = routeFrom.elevProfile;
+  if(routeFrom && routeFrom.elevFrom) logged.elevFrom = routeFrom.elevFrom;
   if(isCardio(eff.t)){
     const g = parseFloat(document.getElementById('logPerfElevGainInput').value), l = parseFloat(document.getElementById('logPerfElevLossInput').value);
     if(g>=0) logged.elevGain = Math.round(fromDispElev(g)*10)/10;
@@ -18138,11 +18139,11 @@ function fileStravaRun(row){
     if(!kind || !importOtherOn()) return false;
     return fileOtherActivity({kind, key: String(row.local_date).slice(0,10), miles: +(Number(row.distance_m||0)/1609.344).toFixed(2),
       minutes: row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null, win: stravaRowWindow(row), name: row.name,
-      source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null, indoor: stravaIndoor(row), route: row.route_polyline || null});
+      source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null, indoor: stravaIndoor(row), route: row.route_polyline || null, elevProfile: stravaProfile(row.elev_profile)});
   }
   return fileWatchRun({key: String(row.local_date).slice(0,10), miles: +(Number(row.distance_m||0)/1609.344).toFixed(2),
     minutes: row.moving_time_s ? +(row.moving_time_s/60).toFixed(2) : null, win: stravaRowWindow(row), name: row.name,
-    source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null, bests: stravaBests(row.best_efforts), indoor: stravaIndoor(row), route: row.route_polyline || null});
+    source: 'strava', stravaId: row.id, elevGain: row.elev_gain_m!=null ? Number(row.elev_gain_m) : null, bests: stravaBests(row.best_efforts), indoor: stravaIndoor(row), route: row.route_polyline || null, elevProfile: stravaProfile(row.elev_profile)});
 }
 // Walks, hikes and bike rides from Strava and Health Connect (on unless turned off in Settings -- the
 // Strava sync is told which kinds this app takes in).
@@ -18202,13 +18203,13 @@ function fileOtherActivity(act){
     if(act.indoor) next.indoor = true;
     storeLoggedPerformance(match.target, r, next);
     if(fromWatch) applyLoggedPerformance(match.target, r, next);
-    if(act.route) takeWatchRoute(match.target, act.route, miles);
+    if(act.route) takeWatchRoute(match.target, act.route, miles, act.elevProfile);
     return false;
   }
   if(kind==='walk' && dd.p.t==='run' && dd.primarySource==='plan' && !dd.isCustom && /^Brisk Walk$/.test(dd.p.en.title) && !dd.completed){
     return fileWatchRun({key, miles, minutes, win, name: act.name, source: act.source, ...ids, elevGain: act.elevGain, calories: act.calories});
   }
-  const logged = {distance: miles, time: minutes, notes: '', source: act.source, ...ids, ...(act.indoor ? {indoor: true} : {}), ...(act.route ? {route: [act.route], routeFrom: 'strava'} : {}),
+  const logged = {distance: miles, time: minutes, notes: '', source: act.source, ...ids, ...(act.indoor ? {indoor: true} : {}), ...(act.route ? {route: [act.route], routeFrom: 'strava'} : {}), ...(act.route && act.elevProfile ? withWatchProfile({}, act.elevProfile) : {}),
     ...(win ? {startedAt: win.start, finishedAt: win.end} : {}), ...(act.calories ? {calories: act.calories} : {}),
     ...(act.elevGain!=null && isFinite(act.elevGain) ? {elevGain: Math.round(act.elevGain*10)/10, elevSource: 'watch'} : {})};
   const volume = [`${miles} mi`, minutes!=null ? fmtDurationClock(minutes) : ''].filter(Boolean).join(' · ');
@@ -18246,11 +18247,29 @@ function giveStravaBests(target, bests){
 // Strava's route for a workout: taken when it has none of its own, or when the phone tracked only part of
 // the way (GPS lost signal) -- then the phone's partial splits, height line and descent go with it, since
 // they were only of that part. A route the phone tracked all the way stays. true if it changed.
-function takeWatchRoute(target, route, miles){
+// The watch's height along the way from Strava ({d, a, loss}: metres), as the app keeps it, or null.
+function stravaProfile(raw){
+  const p = raw && typeof raw==='object' ? raw : null;
+  if(!p || !Array.isArray(p.d) || !Array.isArray(p.a) || p.d.length<2 || p.d.length!==p.a.length) return null;
+  return {d: p.d.map(Number), a: p.a.map(Number), ...(Number(p.loss)>=0 ? {loss: Number(p.loss)} : {})};
+}
+// With Strava's route comes the watch's height along the way, and its descent.
+function withWatchProfile(perf, prof){
+  if(!prof) return perf;
+  const next = {...perf, elevProfile: {d: prof.d, a: prof.a}, elevFrom: 'strava'};
+  if(prof.loss!=null) next.elevLoss = prof.loss;
+  return next;
+}
+function takeWatchRoute(target, route, miles, prof){
   if(!route) return false;
   const r = resolveLogTarget(target), perf = r && (r.performance || (r.record && r.record.performance));
   if(!perf) return false;
-  if(perf.routeFrom==='strava' && Array.isArray(perf.route) && perf.route[0]===route) return false;
+  if(perf.routeFrom==='strava' && Array.isArray(perf.route) && perf.route[0]===route){
+    // (Its route came before its height line did: the height line now.)
+    if(!prof || perf.elevFrom==='strava') return false;
+    storeLoggedPerformance(target, r, withWatchProfile(perf, prof));
+    return true;
+  }
   const whole = Math.max(Number(perf.distance) || 0, Number(miles) || 0);
   const tracked = perf.route ? routeTrackedMiles(perf) : 0;
   if(perf.route && !(tracked>0 && whole > tracked*1.15 + 0.25)) return false;
@@ -18260,7 +18279,7 @@ function takeWatchRoute(target, route, miles){
     if(next.bestsFrom!=='strava') delete next.bestsFrom;
     next.phoneMiles = Math.round(tracked*100)/100;
   }
-  storeLoggedPerformance(target, r, next);
+  storeLoggedPerformance(target, r, withWatchProfile(next, prof));
   return true;
 }
 // A workout already logged turns out to have been indoors (the watch says so): it's marked so.
@@ -18294,11 +18313,11 @@ function fileWatchRun(run){
     // (And Strava's best efforts for it, whichever way it was logged.)
     if(run.bests) giveStravaBests(match, run.bests);
     if(run.indoor) markIndoor(match);
-    if(run.route) takeWatchRoute(match, run.route, miles);
+    if(run.route) takeWatchRoute(match, run.route, miles, run.elevProfile);
     return false;
   }
 
-  const logged = {distance: miles, time: minutes, notes: '', source: run.source, ...ids, ...(run.indoor ? {indoor: true} : {}), ...(run.route ? {route: [run.route], routeFrom: 'strava'} : {}),
+  const logged = {distance: miles, time: minutes, notes: '', source: run.source, ...ids, ...(run.indoor ? {indoor: true} : {}), ...(run.route ? {route: [run.route], routeFrom: 'strava'} : {}), ...(run.route && run.elevProfile ? withWatchProfile({}, run.elevProfile) : {}),
     ...(win ? {startedAt: win.start, finishedAt: win.end} : {}), ...(run.calories ? {calories: run.calories} : {}),
     ...(run.elevGain!=null && isFinite(run.elevGain) ? {elevGain: Math.round(run.elevGain*10)/10, elevSource: 'watch'} : {}),
     ...(run.bests ? {bests: run.bests, bestsFrom: 'strava'} : {})};
@@ -18332,8 +18351,9 @@ const STRAVA_LINK_BACKFILL_DAYS = 30;
 // Rows from strava_activities with the watch's climb and Strava's best efforts -- or without them, while
 // the database doesn't have those columns yet (they came later: see supabase/schema.sql), so runs still come in.
 async function selectStravaRows(cols, narrow){
-  const missing = res=> res && res.error && (res.error.code==='42703' || /elev_gain_m|best_efforts|route_polyline/.test(res.error.message || ''));
-  let res = await narrow(sb.from('strava_activities').select(cols + ', elev_gain_m, best_efforts, route_polyline'));
+  const missing = res=> res && res.error && (res.error.code==='42703' || /elev_gain_m|best_efforts|route_polyline|elev_profile/.test(res.error.message || ''));
+  let res = await narrow(sb.from('strava_activities').select(cols + ', elev_gain_m, best_efforts, route_polyline, elev_profile'));
+  if(missing(res)) res = await narrow(sb.from('strava_activities').select(cols + ', elev_gain_m, best_efforts, route_polyline'));
   if(missing(res)) res = await narrow(sb.from('strava_activities').select(cols + ', elev_gain_m, best_efforts'));
   if(missing(res)) res = await narrow(sb.from('strava_activities').select(cols + ', elev_gain_m'));
   if(missing(res)) res = await narrow(sb.from('strava_activities').select(cols));
@@ -18356,7 +18376,7 @@ async function importStravaActivities(){
       if(row.route_polyline && state.dayLog[key]){
         const kind = stravaKind(row.sport_type), dd = getDayData(parseDateKey(key));
         const it = kind && dayLoggedOf(dd, kind).find(x=> x.perf && String(x.perf.stravaId)===String(row.id));
-        if(it && takeWatchRoute(it.target, row.route_polyline, +(Number(row.distance_m||0)/1609.344).toFixed(2))) linked++;
+        if(it && takeWatchRoute(it.target, row.route_polyline, +(Number(row.distance_m||0)/1609.344).toFixed(2), stravaProfile(row.elev_profile))) linked++;
       }
       if(!state.dayLog[key] || stravaKind(row.sport_type)!=='run') return; // (runs: see fileOtherActivity for the rest)
       const miles = +(Number(row.distance_m||0)/1609.344).toFixed(2);

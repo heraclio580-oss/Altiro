@@ -8,7 +8,9 @@ const { JSDOM } = require('jsdom');
 // - the hike already filed from it takes Strava's whole route on the next sync -- and the phone's partial
 //   splits, height line and descent go (only of the first 4.6 mi); its distance, time and climb stay;
 // - a hike from Strava filed fresh has its route on the map;
-// - a run tracked here all the way keeps its own route and splits (Strava's isn't needed).
+// - a run tracked here all the way keeps its own route and splits (Strava's isn't needed);
+// - with Strava's route comes the watch's height along the way (its barometer, from Strava's altitude
+//   stream) and its descent -- also for one whose route came before its height line did.
 const html = fs.readFileSync(path.join(__dirname, '..', 'www', 'index.html'), 'utf8');
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 let failures = 0;
@@ -121,14 +123,17 @@ const line = (mi, n)=> Array.from({length: n+1}, (_, i)=> [34.20 + i/n*mi*0.0145
       elevProfile: {d: [0, 2000, 4000, 7400], a: [1494, 1700, 2000, 2559]}};
     backend.db.manual_entries.e1 = {id:'e1', workout_log_id: logId, name:'Cucamonga peak hike', type:'hike', volume:'13.01 mi', notes:'', distance: 13.01, duration_min: 655, performance: phone};
     const full = encode(line(13.0, 120));
-    backend.addStrava(501, '2026-11-22', 'Morning Hike', 20937, 29840, {sport_type:'Hike', elev_gain_m: 1278, applied_at:'2026-11-22T20:00:00Z', route_polyline: full});
+    // (The watch's height: up to 2,696 m and back down, 1,276 m descended.)
+    const prof = {d: Array.from({length: 121}, (_, i)=> Math.round(i*20937/120)), a: Array.from({length: 121}, (_, i)=> Math.round((1494 + 1202*(1 - Math.abs(60 - i)/60))*10)/10), loss: 1276};
+    backend.addStrava(501, '2026-11-22', 'Morning Hike', 20937, 29840, {sport_type:'Hike', elev_gain_m: 1278, applied_at:'2026-11-22T20:00:00Z', route_polyline: full, elev_profile: prof});
     const dom = open(backend, '2026-11-23');
     await wait(2500);
     const w = dom.window, doc = w.document;
     for(const id of ['badgeOverlay', 'locPromptOverlay']){ const e = doc.getElementById(id); if(e) e.hidden = true; }
     const p = backend.db.manual_entries.e1.performance;
     check('The hike filed already takes Strava\'s whole route', Array.isArray(p.route) && p.route.length===1 && p.route[0]===full && p.routeFrom==='strava', JSON.stringify(p.route).slice(0, 60));
-    check('...and the phone\'s partial splits, height line and descent go', !p.splits && !p.lastSplit && !p.elevProfile && p.elevLoss==null, JSON.stringify({s: p.splits, e: !!p.elevProfile, l: p.elevLoss}));
+    check('...and the phone\'s partial splits go', !p.splits && !p.lastSplit, JSON.stringify({s: p.splits}));
+    check('...its height line is the watch\'s (to 2,696 m = 8,845 ft, all 13 miles), and its descent too (1,276 m)', p.elevFrom==='strava' && p.elevProfile && Math.max(...p.elevProfile.a)===2696 && p.elevProfile.d[p.elevProfile.d.length-1]===20937 && p.elevLoss===1276, JSON.stringify({f: p.elevFrom, l: p.elevLoss}));
     check('...its distance, time and climb stay', p.distance===13.01 && p.time===655 && p.elevGain===1278);
     const go = id => [...doc.querySelectorAll('.proto-pill')].find(x => x.dataset.navId === id).click();
     go('calendar'); await wait(20);
@@ -136,7 +141,25 @@ const line = (mi, n)=> Array.from({length: n+1}, (_, i)=> [34.20 + i/n*mi*0.0145
     (doc.querySelector('#dayDetailEntries [data-entry-id]') || doc.getElementById('dayDetailPlanRow')).click(); await wait(60);
     const stats = txt(doc.getElementById('summaryStats'));
     check('Its Summary: the route, no splits, no partial note', !doc.getElementById('summaryRouteCard').hidden && !/Mile 1/.test(txt(doc.getElementById('summarySplits'))) && doc.getElementById('summaryGpsNote').hidden, txt(doc.getElementById('summarySplits')) + ' / ' + txt(doc.getElementById('summaryGpsNote')));
-    check('...13.01 mi, the climb, and no partial descent', /13\.01 mi/.test(stats) && /Elevation Gain/i.test(stats) && !/Elevation Loss/i.test(stats), stats);
+    check('...13.01 mi, the climb, and the watch\'s descent (4,186 ft)', /13\.01 mi/.test(stats) && /Elevation Gain\s*4,193 ft/i.test(stats) && /Elevation Loss\s*4,186 ft/i.test(stats), stats);
+    const elev = doc.getElementById('summaryElevProfile');
+    check('...and the height line: the watch\'s, High 8,845 ft', !elev.hidden && /High 8,845 ft/.test(txt(elev)), txt(elev));
+    dom.window.close();
+  }
+
+  // ---- Its route came before its height line did (the function's first update): the height line now ----
+  {
+    const backend = makeBackend({connected:true});
+    const logId = backend.addLog('2026-11-22', {});
+    const full = encode(line(13.0, 120));
+    backend.db.manual_entries.e1 = {id:'e1', workout_log_id: logId, name:'Cucamonga peak hike', type:'hike', volume:'13.01 mi', notes:'', distance: 13.01, duration_min: 655,
+      performance: {distance: 13.01, time: 655, stravaId: 501, elevGain: 1278, route: [full], routeFrom: 'strava', activity: 'hike'}};
+    const prof = {d: [0, 10000, 20937], a: [1494, 2696, 1494], loss: 1276};
+    backend.addStrava(501, '2026-11-22', 'Morning Hike', 20937, 29840, {sport_type:'Hike', elev_gain_m: 1278, applied_at:'2026-11-22T20:00:00Z', route_polyline: full, elev_profile: prof});
+    const dom = open(backend, '2026-11-23');
+    await wait(2500);
+    const p = backend.db.manual_entries.e1.performance;
+    check('Strava\'s route already in, the height line comes next: taken', p.elevFrom==='strava' && JSON.stringify(p.elevProfile.a)==='[1494,2696,1494]' && p.elevLoss===1276, JSON.stringify(p).slice(0, 160));
     dom.window.close();
   }
 
@@ -144,11 +167,12 @@ const line = (mi, n)=> Array.from({length: n+1}, (_, i)=> [34.20 + i/n*mi*0.0145
   {
     const backend = makeBackend({connected:true});
     const r = encode(line(6, 50));
-    backend.addStrava(601, '2026-11-21', 'Saturday Hike', 9656, 9000, {sport_type:'Hike', route_polyline: r});
+    backend.addStrava(601, '2026-11-21', 'Saturday Hike', 9656, 9000, {sport_type:'Hike', route_polyline: r, elev_profile: {d: [0, 4800, 9656], a: [400, 700, 400], loss: 300}});
     const dom = open(backend, '2026-11-23');
     await wait(2500);
     const e = Object.values(backend.db.manual_entries).find(x=> x.name==='Saturday Hike');
     check('A hike from Strava: filed with its route', !!e && e.performance && e.performance.route && e.performance.route[0]===r && e.performance.routeFrom==='strava', JSON.stringify(e && e.performance).slice(0, 120));
+    check('...and the watch\'s height line and descent', !!e && e.performance.elevFrom==='strava' && e.performance.elevProfile && e.performance.elevLoss===300);
     dom.window.close();
   }
 

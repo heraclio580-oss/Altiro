@@ -225,6 +225,8 @@ alter table strava_activities add column if not exists elev_gain_m numeric;
 alter table strava_activities add column if not exists best_efforts jsonb;
 -- Its route (an encoded polyline): drawn when the phone tracked only part of the way (GPS lost signal).
 alter table strava_activities add column if not exists route_polyline text;
+-- The watch's height along the way, from Strava's altitude stream: {d: [m along], a: [m high], loss: m}.
+alter table strava_activities add column if not exists elev_profile jsonb;
 -- Which activities the athlete's app takes in besides runs ('walk', 'hike', 'ride'): it says so with each sync.
 alter table strava_connections add column if not exists import_kinds text[];
 alter table strava_activities enable row level security;

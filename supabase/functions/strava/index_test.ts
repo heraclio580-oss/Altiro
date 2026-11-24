@@ -2,7 +2,7 @@
 // (tests/run-all.js runs it too when `deno` is installed.) Strava and the database are both faked --
 // this checks the function's own logic: sign-in exchange, token refresh, run filtering, revocation.
 import { assertEquals } from "jsr:@std/assert@1";
-import { bestEfforts, makeHandler, routeOf, type Deps } from "./index.ts";
+import { bestEfforts, elevProfile, makeHandler, routeOf, type Deps } from "./index.ts";
 
 const NOW = Date.parse("2026-09-27T15:00:00Z");
 
@@ -45,6 +45,12 @@ function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatu
           athlete: body.grant_type === "authorization_code" ? { id: 99, firstname: "Sam", lastname: "Runner" } : undefined,
         });
       }
+      const st = url.match(/\/api\/v3\/activities\/(\d+)\/streams\?keys=altitude,distance/);
+      if (st) {
+        // (A climb to 100 m and back down, every 10 m along.)
+        const d = Array.from({ length: 401 }, (_, i) => i * 10), a = d.map((x) => 1500 + 100 - Math.abs(2000 - x) / 20);
+        return Response.json({ distance: { data: d }, altitude: { data: a } });
+      }
       const one = url.match(/\/api\/v3\/activities\/(\d+)$/);
       if (one) {
         const a = stravaActivities.find((x) => String(x.id) === one[1]);
@@ -80,6 +86,7 @@ function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatu
             if (r.elev_gain_m != null) had.elev_gain_m = r.elev_gain_m;
             if (r.best_efforts != null) had.best_efforts = r.best_efforts;
             if (r.route_polyline != null) had.route_polyline = r.route_polyline;
+            if (r.elev_profile != null) had.elev_profile = r.elev_profile;
           }
         });
       },
@@ -88,6 +95,7 @@ function setup(opts: { tokenStatus?: number; tokenBody?: string; activitiesStatu
       },
       deleteUnappliedActivity: async (id) => { if (activities[id] && !activities[id].applied_at) delete activities[id]; },
       ...(opts.bests ? { idsWithBests: async (ids: number[]) => new Set(ids.filter((id) => activities[id] && activities[id].best_efforts != null)) } : {}),
+      ...(opts.routes ? { idsWithProfiles: async (ids: number[]) => new Set(ids.filter((id) => activities[id] && activities[id].elev_profile != null)) } : {}),
     },
   };
   const call = async (body: unknown, jwt = "good-jwt", headers?: Record<string, string>) => {
@@ -436,4 +444,30 @@ Deno.test("routeOf: the full polyline from an activity's details, else the summa
   assertEquals(routeOf({ map: { polyline: null, summary_polyline: "short" } }), "short");
   assertEquals(routeOf({ map: { summary_polyline: "" } }), null);
   assertEquals(routeOf({}), null);
+});
+
+Deno.test("keeps the watch's height along the way for an activity with a route, once", async () => {
+  const { call, connections, activities, calls } = setup({ routes: true });
+  await call({ action: "connect", code: "abc", scope: "read,activity:read_all" });
+  const p = activities[1].elev_profile;
+  assertEquals(p.d.length <= 150, true);
+  assertEquals(p.d[0], 0);
+  assertEquals(p.d[p.d.length - 1], 4000);
+  assertEquals(Math.max(...p.a), 1600);
+  assertEquals(p.loss, 99); // (down 100 m, counted in steps of 3 m: the last metre is below the threshold)
+  // The treadmill run (no route): not asked for.
+  assertEquals(activities[3].elev_profile, undefined);
+  assertEquals(calls.filter((c) => c.includes("/activities/3/streams")).length, 0);
+  // The next sync doesn't ask again.
+  const before = calls.filter((c) => c.includes("/streams")).length;
+  connections["user-1"].last_synced_at = new Date(NOW - 3600 * 1000).toISOString();
+  await call({ action: "sync" });
+  assertEquals(calls.filter((c) => c.includes("/streams")).length, before);
+});
+
+Deno.test("elevProfile: none without both streams; skips gaps", () => {
+  assertEquals(elevProfile([], []), null);
+  assertEquals(elevProfile([0, 10], [100]), null);
+  const p = elevProfile([0, 10, 20, 30], [100, NaN, 106, 100]);
+  assertEquals(p, { d: [0, 20, 30], a: [100, 106, 100], loss: 6 });
 });

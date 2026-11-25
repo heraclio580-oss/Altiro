@@ -4416,7 +4416,8 @@ const STR = {
     paywallYearlySub: "{m} a month, billed yearly", paywallMonthlySub: "Billed monthly",
     paywallBuyYearly: "Subscribe for {p} a year", paywallBuyMonthly: "Subscribe for {p} a month", paywallBuying: "Opening the store…",
     paywallRestore: "Restore purchases",
-    paywallWebNote: "Subscribe in the Altiro app on your iPhone or Android phone. Pro then works here too, with the same account.",
+    paywallWebNote: "Subscribe in the Altiro app on your Android phone. Pro then works here too, with the same account.",
+    proStatusIphone: "Pro is free on iPhone for now", proStatusIphoneSub: "Until Altiro is in the App Store, everything is included here at no cost.",
     paywallNotReady: "Subscriptions aren't open yet. Check back soon.",
     paywallBuyFailed: "The purchase didn't go through. Nothing was charged. Try again in a moment.",
     paywallBuyPending: "Purchase received, but Pro isn't on yet. Wait a moment, then tap Restore purchases.",
@@ -5214,7 +5215,8 @@ const STR = {
     paywallYearlySub: "{m} al mes, cobro anual", paywallMonthlySub: "Cobro mensual",
     paywallBuyYearly: "Suscribirse por {p} al año", paywallBuyMonthly: "Suscribirse por {p} al mes", paywallBuying: "Abriendo la tienda…",
     paywallRestore: "Restaurar compras",
-    paywallWebNote: "Suscríbete en la app de Altiro en tu iPhone o Android. Después Pro también funciona aquí, con la misma cuenta.",
+    paywallWebNote: "Suscríbete en la app de Altiro en tu teléfono Android. Después Pro también funciona aquí, con la misma cuenta.",
+    proStatusIphone: "Pro es gratis en iPhone por ahora", proStatusIphoneSub: "Hasta que Altiro esté en la App Store, todo está incluido aquí sin costo.",
     paywallNotReady: "Las suscripciones aún no están abiertas. Vuelve pronto.",
     paywallBuyFailed: "La compra no se completó. No se cobró nada. Inténtalo de nuevo en un momento.",
     paywallBuyPending: "Compra recibida, pero Pro aún no está activo. Espera un momento y toca Restaurar compras.",
@@ -11746,12 +11748,23 @@ function closeTerm(){ document.getElementById('termOverlay').hidden = true; }
 // or a lifetime grant given by hand), and, in the store app, what RevenueCat says right now, so a
 // purchase counts before its webhook arrives. Null while unknown: the app is all there until then.
 let proUser = null, proSub = null, proRc = null;
+// The website on an iPhone or iPad (an iPad says it's a Mac, with a touch screen). Not the store app.
+function iphoneWeb(){
+  if(typeof window!=='undefined' && window.__ALTIRO_TEST_IPHONE_WEB__!=null) return !!window.__ALTIRO_TEST_IPHONE_WEB__;
+  if(isNativeShell()) return false;
+  try{
+    const ua = navigator.userAgent || '';
+    return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
+  }catch(e){ return false; }
+}
 function computePro(user, sub, rc){
   const created = Date.parse((user && user.created_at) || '');
   if(!created) return null;
   if(!PRO_LAUNCH_AT || created < Date.parse(PRO_LAUNCH_AT)) return {source:'early', lifetime:true};
   if(sub && sub.status==='lifetime') return {source:'grant', lifetime:true};
   if(rc && rc.lifetime) return {source:'paid', lifetime:true, store: rc.store, manageUrl: rc.manageUrl};
+  // On an iPhone or iPad, in the browser: free until Altiro is in the App Store (there's nowhere to buy it yet).
+  if(iphoneWeb()) return {source:'iphone', lifetime:true};
   const now = Date.now(), trialEnds = created + PRO_TRIAL_DAYS*86400000;
   const subUntil = sub && sub.expires_at ? Date.parse(sub.expires_at) || 0 : 0;
   const paidUntil = Math.max(subUntil, (rc && rc.until) || 0);
@@ -11958,6 +11971,7 @@ function renderProSettings(){
   let title = '', sub = '', btn = '';
   if(p.source==='early'){ title = L.proStatusEarly; sub = L.proStatusEarlySub; }
   else if(p.source==='grant'){ title = L.proStatusGrant; sub = L.proStatusGrantSub; }
+  else if(p.source==='iphone'){ title = L.proStatusIphone; sub = L.proStatusIphoneSub; }
   else if(p.source==='trial'){
     const left = Math.ceil((p.trialEnds - Date.now())/86400000);
     title = left<=1 ? L.proStatusTrialLast : L.proStatusTrial.replace('{n}', left);
@@ -11978,7 +11992,7 @@ function renderProSettings(){
     : 'https://play.google.com/store/account/subscriptions?package=com.altiro.app');
   manage.hidden = p.source!=='paid' || p.lifetime;
   manage.href = url;
-  document.getElementById('proRestoreBtn').hidden = !rcPlugin() || p.source==='paid' || p.source==='early' || p.source==='grant';
+  document.getElementById('proRestoreBtn').hidden = !rcPlugin() || p.source==='paid' || p.source==='early' || p.source==='grant' || p.source==='iphone';
 }
 document.addEventListener('click', e=>{
   const b = e.target.closest && e.target.closest('[data-pro]');

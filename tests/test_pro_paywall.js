@@ -127,6 +127,7 @@ const open = (backend, o = {}) => new JSDOM(html, {runScripts:'dangerously', pre
     w.__ALTIRO_TEST_TODAY__ = '2026-09-16'; // a Wednesday: a training day on the default plan
     // (No launch given: before any launch date was set. 'default': the app's own launch date.)
     if(o.launch!=='default') w.__ALTIRO_TEST_PRO_LAUNCH__ = o.launch || 'none';
+    w.__ALTIRO_TEST_IPHONE_WEB__ = !!o.iphoneWeb;
     if(o.rc){
       w.__ALTIRO_TEST_RC_KEYS__ = o.keys===false ? {android: '', ios: ''} : {android: 'goog_test', ios: 'appl_test'};
       w.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: { Purchases: o.rc.plugin, App: { addListener(){ return Promise.resolve({remove(){}}); }, getLaunchUrl: async () => undefined } } };
@@ -170,6 +171,20 @@ async function app(o){
     const sl = await late.settings();
     check('...one made Dec 1 (12:30 am Pacific) doesn\'t: it has the free week, then subscribes', sl.title!=='Pro, free for life' && /Free trial|free version|Free/i.test(sl.title), sl.title);
     late.dom.window.close();
+  }
+  // ---- An iPhone, in the browser: Pro free until Altiro is in the App Store ----
+  {
+    const a = await app({launch: LAUNCH, createdAt: ago(30), iphoneWeb: true});
+    check('iPhone browser, an account made after launch (its free week long over): still everything', !a.planLocked() && !a.paywall().open);
+    const st = await a.settings();
+    check('...Settings: "Pro is free on iPhone for now", until it\'s in the App Store; nothing to buy', st.title==='Pro is free on iPhone for now' && /App Store/.test(st.sub) && st.btn.hidden, `${st.title} / ${st.sub}`);
+    a.dom.window.close();
+    const b = await app({launch: LAUNCH, createdAt: ago(30)});
+    check('...the same account elsewhere in a browser: the free version, as before', b.planLocked());
+    b.doc.querySelector('#sessionCard [data-pro="plan"]').click(); await wait(60);
+    const note = text(b.paywall().note);
+    check('...and the website\'s paywall says to subscribe in the Android app (not an iPhone app)', b.paywall().open && /Android phone/.test(note) && !/iPhone/.test(note), note);
+    b.dom.window.close();
   }
   // ---- After launch: made before it ----
   {

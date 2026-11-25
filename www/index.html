@@ -6311,8 +6311,14 @@ function planWeekFor(date){ return generatedWeek(planConfig(), planWeekIndex(dat
 // of Progress, no personal records, no voice cues. It only changes what's shown -- nothing saved is
 // touched. A tester account (profiles.tester, set in Supabase) can switch on "Preview free version" in
 // Settings to see that whatever it has. (Kept on this device.)
-// The day Pro goes live in the stores, e.g. '2026-12-01'. (Tests set window.__ALTIRO_TEST_PRO_LAUNCH__.)
-const PRO_LAUNCH_AT = ((typeof window!=='undefined') && window.__ALTIRO_TEST_PRO_LAUNCH__) || null;
+// The day Pro goes live in the stores: December 1, 2026, at midnight Pacific time. Accounts made before it keep
+// Pro free for life; from it, a new account has a week of Pro and then subscribes. (Tests set
+// window.__ALTIRO_TEST_PRO_LAUNCH__ -- 'none' for before any launch date was set.)
+const PRO_LAUNCH_DEFAULT = '2026-12-01T00:00:00-08:00';
+const PRO_LAUNCH_AT = (()=>{
+  const t = (typeof window!=='undefined') && window.__ALTIRO_TEST_PRO_LAUNCH__;
+  return t==='none' ? null : (t || PRO_LAUNCH_DEFAULT);
+})();
 const PRO_TRIAL_DAYS = 7;
 function proActive(){
   const p = state.pro;

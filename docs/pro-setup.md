@@ -86,6 +86,6 @@ A store event never replaces a lifetime grant.
 
 ## 7. Switching Pro on
 
-When the app is approved in both stores, ask Claude to set the launch date (`PRO_LAUNCH_AT` in
-`www/index.html`). From that day, new accounts get the 7-day free week and then the paywall; everyone who
+The launch date is set: **December 1, 2026, midnight Pacific** (`PRO_LAUNCH_DEFAULT` in `www/index.html`;
+ask Claude to change it). From that day, new accounts get the 7-day free week and then the paywall; everyone who
 signed up before keeps Pro free for life.

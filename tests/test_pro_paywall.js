@@ -125,7 +125,8 @@ const open = (backend, o = {}) => new JSDOM(html, {runScripts:'dangerously', pre
   beforeParse(w){
     w.supabase = {createClient: ()=> backend.createClient()};
     w.__ALTIRO_TEST_TODAY__ = '2026-09-16'; // a Wednesday: a training day on the default plan
-    if(o.launch) w.__ALTIRO_TEST_PRO_LAUNCH__ = o.launch;
+    // (No launch given: before any launch date was set. 'default': the app's own launch date.)
+    if(o.launch!=='default') w.__ALTIRO_TEST_PRO_LAUNCH__ = o.launch || 'none';
     if(o.rc){
       w.__ALTIRO_TEST_RC_KEYS__ = o.keys===false ? {android: '', ios: ''} : {android: 'goog_test', ios: 'appl_test'};
       w.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android', Plugins: { Purchases: o.rc.plugin, App: { addListener(){ return Promise.resolve({remove(){}}); }, getLaunchUrl: async () => undefined } } };
@@ -158,6 +159,17 @@ async function app(o){
     const st = await t.settings();
     check('A tester sees it before launch: "Pro, free for life" for joining early', st.shown && st.title==='Pro, free for life' && /before Pro launched/.test(st.sub), JSON.stringify(st.title));
     t.dom.window.close();
+  }
+  // ---- The app's own launch date: December 1, 2026, midnight Pacific ----
+  {
+    const early = await app({launch: 'default', createdAt: '2026-11-30T23:30:00-08:00'});
+    const se = await early.settings();
+    check('Launch date: an account made Nov 30 (11:30 pm Pacific) keeps Pro free for life', se.title==='Pro, free for life', se.title);
+    early.dom.window.close();
+    const late = await app({launch: 'default', createdAt: '2026-12-01T00:30:00-08:00'});
+    const sl = await late.settings();
+    check('...one made Dec 1 (12:30 am Pacific) doesn\'t: it has the free week, then subscribes', sl.title!=='Pro, free for life' && /Free trial|free version|Free/i.test(sl.title), sl.title);
+    late.dom.window.close();
   }
   // ---- After launch: made before it ----
   {

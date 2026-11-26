@@ -9,8 +9,11 @@
 //   the HealthKit entitlement and its permission text; on Android only the five health permissions Altiro
 //   reads (the plugin declares dozens), Android 8+ (Health Connect's minimum) and the privacy policy link
 //   Health Connect shows on its permission screen.
-//   Portrait only on phones: turning the phone sideways doesn't turn the app (iPad still turns -- Apple
-//   expects that of iPad apps that allow multitasking).
+//   Portrait only on phones: turning the phone sideways doesn't turn the app.
+//   iPhone only, for now: an iPad runs the iPhone app as it is (the App Store then needs no iPad screenshots,
+//   and reviewers don't test it as an iPad app). No encryption of its own beyond HTTPS (so App Store Connect
+//   doesn't ask about export compliance on every upload).
+//   The version and build number, when the cloud build gives them (ALTIRO_VERSION_NAME, ALTIRO_BUILD_NUMBER).
 const fs = require('fs');
 const path = require('path');
 const root = process.env.ALTIRO_NATIVE_ROOT || path.join(__dirname, '..');
@@ -79,9 +82,34 @@ if(fs.existsSync(plist)){
 `); changed++;
     console.log('iOS: added the HealthKit entitlement (App.entitlements)');
   } else console.log('iOS: HealthKit entitlement already set');
+  // No encryption of its own (only Apple's HTTPS): App Store Connect stops asking at every upload.
+  s = fs.readFileSync(plist, 'utf8');
+  if(!s.includes('<key>ITSAppUsesNonExemptEncryption</key>')){
+    s = s.replace(/<\/dict>\s*<\/plist>\s*$/, '\t<key>ITSAppUsesNonExemptEncryption</key>\n\t<false/>\n</dict>\n</plist>\n');
+    fs.writeFileSync(plist, s); changed++;
+    console.log('iOS: no export-compliance question (uses only standard HTTPS)');
+  } else console.log('iOS: export compliance already answered');
   const pbx = path.join(root, 'ios', 'App', 'App.xcodeproj', 'project.pbxproj');
   if(fs.existsSync(pbx)){
     let p = fs.readFileSync(pbx, 'utf8');
+    // iPhone only (TARGETED_DEVICE_FAMILY 1; "1,2" is iPhone and iPad).
+    if(/TARGETED_DEVICE_FAMILY = "1,2";/.test(p)){
+      p = p.replace(/TARGETED_DEVICE_FAMILY = "1,2";/g, 'TARGETED_DEVICE_FAMILY = 1;');
+      fs.writeFileSync(pbx, p); changed++;
+      console.log('iOS: iPhone only (an iPad runs the iPhone app)');
+    } else console.log('iOS: device family already set');
+    // The version people see, and the build number (each upload needs a higher one).
+    const ver = process.env.ALTIRO_VERSION_NAME, num = process.env.ALTIRO_BUILD_NUMBER;
+    if(ver){
+      if(!/^\d+(\.\d+){1,2}$/.test(ver)) throw new Error('iOS: the version should look like 1.0.0, not ' + ver);
+      p = p.replace(/MARKETING_VERSION = [^;]+;/g, `MARKETING_VERSION = ${ver};`); fs.writeFileSync(pbx, p); changed++;
+      console.log('iOS: version ' + ver);
+    }
+    if(num){
+      if(!/^\d+$/.test(num)) throw new Error('iOS: the build number should be a whole number, not ' + num);
+      p = p.replace(/CURRENT_PROJECT_VERSION = [^;]+;/g, `CURRENT_PROJECT_VERSION = ${num};`); fs.writeFileSync(pbx, p); changed++;
+      console.log('iOS: build number ' + num);
+    }
     if(!p.includes('CODE_SIGN_ENTITLEMENTS')){
       p = p.replace(/(\n(\t+)INFOPLIST_FILE = App\/Info\.plist;)/g, '\n$2CODE_SIGN_ENTITLEMENTS = App/App.entitlements;$1');
       if(!p.includes('CODE_SIGN_ENTITLEMENTS')) throw new Error("iOS: couldn't find the App target's build settings");

@@ -1,0 +1,54 @@
+# The iPhone app, built on Codemagic's Macs (no Mac needed) and sent to TestFlight. Started by hand in
+# Codemagic: Altiro -> Start new build -> "iOS release (TestFlight)". See docs/ios-setup.md for the one-time
+# setup (Apple Developer account, App Store Connect API key, the "Altiro" integration in Codemagic).
+#
+# Like the Android release (.github/workflows/android-release.yml), the iOS project isn't kept in git: it's
+# made fresh each time with `npx cap add ios`, and scripts/native-config.js applies Altiro's settings
+# (permission text, Apple Health, background location for GPS runs, altiro:// links, iPhone only,
+# portrait, the version and build number).
+workflows:
+  ios-release:
+    name: iOS release (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      # The App Store Connect API key, added in Codemagic as "Altiro" (Team settings -> Integrations ->
+      # Developer Portal -> Manage keys).
+      app_store_connect: Altiro
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.altiro.app
+      vars:
+        # The version people see in the App Store. Each build gets a higher build number by itself.
+        VERSION_NAME: "1.0.10"
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Install packages
+        script: npm ci
+      # The same build stamp the website gets (see deploy-pages.yml), and the page without its comments.
+      - name: Stamp build
+        script: |
+          sed -i '' "s/__ALTIRO_BUILD__/${CM_COMMIT}/" www/index.html
+          printf '{"build":"%s"}\n' "$CM_COMMIT" > www/version.json
+          npm install --prefix /tmp/esb --no-save esbuild@0.24.0
+          NODE_PATH=/tmp/esb/node_modules node scripts/minify-inline.js www/index.html
+      - name: Create the iOS project
+        script: |
+          npx cap add ios
+          npx cap sync ios
+          ALTIRO_VERSION_NAME="$VERSION_NAME" ALTIRO_BUILD_NUMBER="$BUILD_NUMBER" node scripts/native-config.js
+      - name: App icons and splash screen
+        script: npx capacitor-assets generate --ios --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000' --splashBackgroundColor '#0a0a0a' --splashBackgroundColorDark '#0a0a0a'
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Build the app
+        script: xcode-project build-ipa --project "ios/App/App.xcodeproj" --scheme "App"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

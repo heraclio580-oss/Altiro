@@ -22,7 +22,12 @@ const pluginDir = path.join(root, 'node_modules', '@capgo', 'capacitor-health', 
 fs.mkdirSync(pluginDir, {recursive:true});
 const pluginPerms = ['READ_STEPS','WRITE_STEPS','READ_DISTANCE','READ_EXERCISE','READ_ACTIVE_CALORIES_BURNED','READ_TOTAL_CALORIES_BURNED','READ_WEIGHT','READ_VO2_MAX','WRITE_VO2_MAX','READ_HEART_RATE'];
 fs.writeFileSync(path.join(pluginDir, 'AndroidManifest.xml'), `<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n${pluginPerms.map(x=> `    <uses-permission android:name="android.permission.health.${x}" />`).join('\n')}\n</manifest>\n`);
-const run = () => execFileSync('node', [path.join(__dirname, '..', 'scripts', 'native-config.js')], {env: {...process.env, ALTIRO_NATIVE_ROOT: root}, encoding: 'utf8'});
+// The App target's build settings, as Capacitor 8 makes them (Debug and Release).
+const pbx = path.join(root, 'ios', 'App', 'App.xcodeproj', 'project.pbxproj');
+fs.mkdirSync(path.dirname(pbx), {recursive:true});
+const target = cfg=> `\t\t${cfg} /* ${cfg} */ = {\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {\n\t\t\t\tCURRENT_PROJECT_VERSION = 1;\n\t\t\t\tINFOPLIST_FILE = App/Info.plist;\n\t\t\t\tMARKETING_VERSION = 1.0;\n\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.altiro.app;\n\t\t\t\tTARGETED_DEVICE_FAMILY = "1,2";\n\t\t\t};\n\t\t};\n`;
+fs.writeFileSync(pbx, `// !$*UTF8*$!\n{\n\tobjects = {\n${target('Debug')}${target('Release')}\t};\n}\n`);
+const run = (env) => execFileSync('node', [path.join(__dirname, '..', 'scripts', 'native-config.js')], {env: {...process.env, ALTIRO_NATIVE_ROOT: root, ALTIRO_VERSION_NAME: '', ALTIRO_BUILD_NUMBER: '', ...(env || {})}, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']});
 run();
 const p1 = fs.readFileSync(plist, 'utf8'), m1 = fs.readFileSync(manifest, 'utf8');
 check('iOS: the altiro URL scheme is registered', /<key>CFBundleURLSchemes<\/key>\s*<array>\s*<string>altiro<\/string>/.test(p1) && /<\/dict>\s*<\/plist>\s*$/.test(p1));
@@ -36,8 +41,20 @@ check('...the 5 Altiro reads are kept', ['READ_STEPS','READ_DISTANCE','READ_EXER
 const phone = (p1.match(/<key>UISupportedInterfaceOrientations<\/key>\s*<array>([\s\S]*?)<\/array>/) || [])[1] || '';
 const pad = (p1.match(/<key>UISupportedInterfaceOrientations~ipad<\/key>\s*<array>([\s\S]*?)<\/array>/) || [])[1] || '';
 check('iOS: iPhone stays in portrait', phone.replace(/\s+/g, '')==='<string>UIInterfaceOrientationPortrait</string>', phone);
-check('iOS: iPad still turns (its own list is untouched)', (pad.match(/<string>/g) || []).length===4 && /<\/dict>\s*<\/plist>\s*$/.test(p1));
+check('iOS: iPad\'s own list is untouched', (pad.match(/<string>/g) || []).length===4 && /<\/dict>\s*<\/plist>\s*$/.test(p1));
+check('iOS: no export-compliance question at every upload (standard HTTPS only)', /<key>ITSAppUsesNonExemptEncryption<\/key>\s*<false\/>/.test(p1));
+const x1 = fs.readFileSync(pbx, 'utf8');
+check('iOS: iPhone only (an iPad runs the iPhone app), in both builds', (x1.match(/TARGETED_DEVICE_FAMILY = 1;/g) || []).length===2 && !/"1,2"/.test(x1));
+check('iOS: signed with the HealthKit entitlement', (x1.match(/CODE_SIGN_ENTITLEMENTS = App\/App\.entitlements;/g) || []).length===2);
+check('...no version given: the version and build number stay as they were', /MARKETING_VERSION = 1\.0;/.test(x1) && /CURRENT_PROJECT_VERSION = 1;/.test(x1));
 run();
-check('Running it again changes nothing', fs.readFileSync(plist, 'utf8')===p1 && fs.readFileSync(manifest, 'utf8')===m1);
+check('Running it again changes nothing', fs.readFileSync(plist, 'utf8')===p1 && fs.readFileSync(manifest, 'utf8')===m1 && fs.readFileSync(pbx, 'utf8')===x1);
+// The cloud build gives the version and build number.
+run({ALTIRO_VERSION_NAME: '1.0.10', ALTIRO_BUILD_NUMBER: '7'});
+const x2 = fs.readFileSync(pbx, 'utf8');
+check('iOS: the cloud build\'s version (1.0.10) and build number (7), in both builds', (x2.match(/MARKETING_VERSION = 1\.0\.10;/g) || []).length===2 && (x2.match(/CURRENT_PROJECT_VERSION = 7;/g) || []).length===2);
+let refused = false;
+try{ run({ALTIRO_VERSION_NAME: 'v1'}); }catch(e){ refused = true; }
+check('...a version that isn\'t like 1.0.0 is refused', refused);
 fs.rmSync(root, {recursive:true, force:true});
 console.log(failures ? `${failures} FAILED` : 'ALL DONE');

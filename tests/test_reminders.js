@@ -125,19 +125,27 @@ function openSession(backend, opts = {}){
 
   go('home'); await wait(30);
   const nudge = doc.getElementById('installNudge');
-  check('Today suggests adding Altiro to the Home Screen (on a phone)', !nudge.hidden && nudge.textContent.includes('Put Altiro on your Home Screen'));
-  doc.getElementById('installNudgeAdd').click(); await wait(10);
-  const steps = [...doc.querySelectorAll('#installSteps li')].map(li => li.textContent.trim());
-  check('...Add shows how, for Android when the browser hasn\'t offered to install', !doc.getElementById('installOverlay').hidden && steps.length===3 && /Add to Home screen/.test(steps[1]), steps.join(' | '));
-  doc.getElementById('installDoneBtn').click();
-  // Chrome's own install prompt, when it offers one
-  let prompted = 0;
-  const ev = new w.Event('beforeinstallprompt'); ev.prompt = () => { prompted++; }; ev.userChoice = Promise.resolve({outcome:'accepted'});
-  w.dispatchEvent(ev); await wait(5);
-  doc.getElementById('installNudgeAdd').click(); await wait(10);
-  check('...and uses the browser\'s own install prompt when there is one', prompted===1 && doc.getElementById('installOverlay').hidden);
+  // (On an Android phone, the app itself is offered -- it's on Google Play -- not adding the website.)
+  check('Today, on an Android phone: the app on Google Play is offered (not adding the website)', !nudge.hidden && nudge.textContent.includes('Get the Altiro app') && !doc.getElementById('playNudgeGet').hidden && doc.getElementById('installNudgeAdd').hidden);
   doc.getElementById('installNudgeClose').click(); await wait(5);
-  check('Closing the suggestion hides it for good', nudge.hidden && w.localStorage.getItem('altiro_install_nudge_dismissed')==='1');
+  check('Closing the suggestion hides it for good', nudge.hidden && w.localStorage.getItem('altiro_play_nudge_dismissed')==='1');
+  {
+    // On a computer, when Chrome offers to install it: Today suggests it, Add uses Chrome's own prompt.
+    const desk = openSession(makeBackend(), {userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/129 Safari/537.36'});
+    await wait(1500);
+    const dw = desk.window, dd = dw.document;
+    let prompted = 0;
+    const ev = new dw.Event('beforeinstallprompt'); ev.prompt = () => { prompted++; }; ev.userChoice = Promise.resolve({outcome:'accepted'});
+    dw.dispatchEvent(ev); await wait(5);
+    [...dd.querySelectorAll('.proto-pill')].find(p => p.dataset.navId === 'home').click(); await wait(30);
+    const dn = dd.getElementById('installNudge');
+    check('A computer whose browser offers to install it: Today suggests adding it', !dn.hidden && dn.textContent.includes('Put Altiro on your Home Screen') && !dd.getElementById('installNudgeAdd').hidden);
+    dd.getElementById('installNudgeAdd').click(); await wait(10);
+    check('...and uses the browser\'s own install prompt', prompted===1 && dd.getElementById('installOverlay').hidden);
+    dd.getElementById('installNudgeClose').click(); await wait(5);
+    check('...closed, it stays closed', dn.hidden && dw.localStorage.getItem('altiro_install_nudge_dismissed')==='1');
+    dw.close();
+  }
 
   // ---- reminders ----
   go('settings'); await wait(30);

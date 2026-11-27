@@ -1009,6 +1009,13 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 .reminder-time-select{flex:0 0 auto;width:auto;min-width:118px;height:40px;cursor:pointer;}
 .reminder-note{text-align:left;margin-top:8px;line-height:1.45;}
 .reminder-note[hidden]{display:none;}
+.play-get{margin-top:18px;text-align:center;}
+.play-get[hidden],.play-badge[hidden],a.install-nudge-add[hidden],#installBtn[hidden]{display:none;}
+.play-get-t{font-size:calc(13px * var(--fs, 1));color:var(--text-2);margin-bottom:2px;}
+.play-badge{display:inline-block;line-height:0;}
+.play-badge img{height:70px;width:auto;display:block;}
+#settingsPlay{margin:-6px 0 6px -10px;}
+a.install-nudge-add{text-decoration:none;}
 .install-nudge{display:flex;align-items:center;gap:10px;margin:4px 20px 6px;padding:10px 8px 10px 10px;background:var(--well);border:1px solid var(--border);border-radius:var(--r-lg);}
 .install-nudge[hidden]{display:none;}
 .install-nudge-ic{width:40px;height:40px;border-radius:10px;flex-shrink:0;}
@@ -1782,6 +1789,11 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
         <div class="t" data-i18n="trialTitle"></div>
         <div class="s" data-i18n="trialSub"></div>
       </div>
+      <!-- The Android app, on Google Play (in a browser; not on an iPhone, which has no app yet). -->
+      <div class="play-get" id="welcomePlay" hidden>
+        <div class="play-get-t" data-i18n="playGetTitle"></div>
+        <a class="play-badge" data-play-link href="https://play.google.com/store/apps/details?id=com.altiro.app" target="_blank" rel="noopener"><img data-play-badge alt="Get it on Google Play" width="180" height="70"></a>
+      </div>
     </div>
     <div class="footer-cta">
       <button class="btn btn-primary" data-i18n="startBtn" data-go="onb-goal"></button>
@@ -2053,6 +2065,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
       <img class="install-nudge-ic" src="icons/icon-192.png" alt="" width="40" height="40">
       <div class="install-nudge-text"><b data-i18n="installNudgeTitle"></b><span data-i18n="installNudgeSub"></span></div>
       <button class="btn-text install-nudge-add" id="installNudgeAdd" type="button" data-i18n="installNudgeAdd"></button>
+      <a class="btn-text install-nudge-add" id="playNudgeGet" data-play-link href="https://play.google.com/store/apps/details?id=com.altiro.app" target="_blank" rel="noopener" data-i18n="playNudgeGet" hidden></a>
       <button class="iconbtn install-nudge-x" id="installNudgeClose" type="button" aria-label="Close"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M6 6l8 8M14 6l-8 8"/></svg></button>
     </div>
 
@@ -2261,6 +2274,7 @@ textarea.text-input{height:auto;min-height:64px;padding:10px 12px;resize:vertica
 
       <div class="sheet-section" id="installSection" hidden>
         <div class="st-label" data-i18n="installLabel"></div>
+        <a class="play-badge" id="settingsPlay" data-play-link href="https://play.google.com/store/apps/details?id=com.altiro.app" target="_blank" rel="noopener" hidden><img data-play-badge alt="Get it on Google Play" width="180" height="70"></a>
         <button class="how-it-works-btn" id="installBtn" type="button">
           <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="10" height="16" rx="2"/><path d="M10 6v6M7.5 9.5L10 12l2.5-2.5"/></svg></span>
           <span data-i18n="installBtn"></span>
@@ -4370,7 +4384,9 @@ const STR = {
     remindersBlockedNative: "Notifications are off for Altiro. Turn them on in your phone's Settings, then try again.",
     remindersIosNote: "On iPhone, reminders work once Altiro is on your Home Screen. Tap Add to Home Screen below, then open Altiro from there and turn this on.",
     remindersDeviceNote: "Reminders are on for your account. To get them on this device too, turn them off and on again here.",
-    installLabel: "Home Screen",
+    installLabel: "Get the app",
+    playGetTitle: "Get the Android app", playNudgeTitle: "Get the Altiro app", playNudgeSub: "GPS that keeps tracking with your screen off, Health Connect and reminders.",
+    playNudgeGet: "Get it", playBadgeAlt: "Get it on Google Play",
     installBtn: "Add Altiro to your Home Screen",
     installNudgeTitle: "Put Altiro on your Home Screen",
     installNudgeSub: "Open it in one tap, and get workout reminders.",
@@ -5169,7 +5185,9 @@ const STR = {
     remindersBlockedNative: "Las notificaciones de Altiro están desactivadas. Actívalas en los Ajustes del teléfono y vuelve a intentarlo.",
     remindersIosNote: "En iPhone, los recordatorios funcionan cuando Altiro está en tu pantalla de inicio. Toca Añadir a pantalla de inicio abajo, abre Altiro desde ahí y actívalos.",
     remindersDeviceNote: "Los recordatorios están activados en tu cuenta. Para recibirlos también en este dispositivo, desactívalos y vuelve a activarlos aquí.",
-    installLabel: "Pantalla de inicio",
+    installLabel: "Descarga la app",
+    playGetTitle: "Descarga la app para Android", playNudgeTitle: "Descarga la app de Altiro", playNudgeSub: "GPS que sigue con la pantalla apagada, Health Connect y recordatorios.",
+    playNudgeGet: "Descargar", playBadgeAlt: "Disponible en Google Play",
     installBtn: "Añadir Altiro a tu pantalla de inicio",
     installNudgeTitle: "Pon Altiro en tu pantalla de inicio",
     installNudgeSub: "Ábrelo con un toque y recibe recordatorios de entrenamiento.",
@@ -8484,6 +8502,8 @@ function applyLang(){
     const key = el.getAttribute('data-i18n-aria');
     if(L[key]!==undefined) el.setAttribute('aria-label', L[key]);
   });
+  // (Google Play's badge is in the app's language too -- once the install code has loaded.)
+  try{ renderInstallUI(); }catch(e){}
   document.querySelectorAll('.lang-btn[data-lang]').forEach(b=>{
     b.classList.toggle('active', b.getAttribute('data-lang')===state.lang);
   });
@@ -20985,11 +21005,34 @@ window.addEventListener('appinstalled', ()=>{ installPrompt = null; renderInstal
 const INSTALL_NUDGE_KEY = 'altiro_install_nudge_dismissed';
 function installNudgeDismissed(){ try{ return localStorage.getItem(INSTALL_NUDGE_KEY)==='1'; }catch(e){ return false; } }
 function canInstall(){ return !isStandalone() && !isNativeShell(); }
+// The Android app on Google Play: offered in a browser anywhere but an iPhone or iPad (no app there yet) --
+// on Android, instead of adding the website to the home screen.
+const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.altiro.app';
+const PLAY_NUDGE_KEY = 'altiro_play_nudge_dismissed';
+function playOffered(){ return !isNativeShell() && !isIOS(); }
+function androidWeb(){ return isAndroid() && !isNativeShell(); }
+function playNudgeDismissed(){ try{ return localStorage.getItem(PLAY_NUDGE_KEY)==='1'; }catch(e){ return false; } }
 function renderInstallUI(){
-  const show = canInstall();
-  document.getElementById('installSection').hidden = !show;
-  // The Today banner: only on phones (or wherever the browser offers to install), and once dismissed, gone.
-  document.getElementById('installNudge').hidden = !(show && !installNudgeDismissed() && (installPrompt || isIOS() || isAndroid()));
+  const L = STR[state.lang], show = canInstall(), play = playOffered();
+  // (Google's own badge, in the app's language.)
+  document.querySelectorAll('img[data-play-badge]').forEach(img=>{
+    const src = `https://play.google.com/intl/en_us/badges/static/images/badges/${state.lang==='es' ? 'es-419' : 'en'}_badge_web_generic.png`;
+    if(img.getAttribute('src')!==src) img.setAttribute('src', src);
+    img.alt = L.playBadgeAlt;
+  });
+  document.getElementById('welcomePlay').hidden = !play;
+  document.getElementById('settingsPlay').hidden = !play;
+  document.getElementById('installSection').hidden = !(show || play);
+  document.getElementById('installBtn').hidden = !show || androidWeb();
+  // The Today banner: on an Android phone, the app on Google Play (even once the website is on its home
+  // screen); elsewhere, only on phones (or wherever the browser offers to install). Once dismissed, gone.
+  const nudge = document.getElementById('installNudge'), title = nudge.querySelector('b'), sub = nudge.querySelector('span');
+  const playMode = androidWeb();
+  title.setAttribute('data-i18n', playMode ? 'playNudgeTitle' : 'installNudgeTitle'); title.textContent = L[title.getAttribute('data-i18n')];
+  sub.setAttribute('data-i18n', playMode ? 'playNudgeSub' : 'installNudgeSub'); sub.textContent = L[sub.getAttribute('data-i18n')];
+  document.getElementById('installNudgeAdd').hidden = playMode;
+  document.getElementById('playNudgeGet').hidden = !playMode;
+  nudge.hidden = playMode ? playNudgeDismissed() : !(show && !installNudgeDismissed() && (installPrompt || isIOS() || isAndroid()));
 }
 const INSTALL_ICONS = {
   share: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12.5V2.5M6.5 6L10 2.5 13.5 6M6 9H4.5v8.5h11V9H14"/></svg>',
@@ -21017,7 +21060,7 @@ async function startInstall(){
 document.getElementById('installBtn').addEventListener('click', startInstall);
 document.getElementById('installNudgeAdd').addEventListener('click', startInstall);
 document.getElementById('installNudgeClose').addEventListener('click', ()=>{
-  try{ localStorage.setItem(INSTALL_NUDGE_KEY, '1'); }catch(e){}
+  try{ localStorage.setItem(androidWeb() ? PLAY_NUDGE_KEY : INSTALL_NUDGE_KEY, '1'); }catch(e){}
   renderInstallUI();
 });
 document.getElementById('closeInstall').addEventListener('click', closeInstallSheet);

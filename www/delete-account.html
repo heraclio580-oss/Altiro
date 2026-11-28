@@ -44,6 +44,16 @@ button:disabled{opacity:0.5;cursor:default;}
 .msg.ok{color:#2EB872;}
 [hidden]{display:none !important;}
 </style>
+<!-- HeyCatch analytics (see heycatch.ai/agents.md): a separate page, each visit a full page load, so events
+     go out right away (requestBatching: false). -->
+<script type="module">
+import { analytics } from 'https://esm.sh/@heycatch/sdk@0.8.5';
+analytics.init({
+  projectKey: 'hck_pk_lLJ2SwhN4rLJ0wp-8UntgVCFFkwVs-DN',
+  install: { framework: 'web', agent: 'claude-code' },
+  requestBatching: false,
+});
+</script>
 </head>
 <body>
 <main>

@@ -38,6 +38,16 @@ a{color:var(--text);text-underline-offset:3px;}
 .app-back a{display:inline-flex;align-items:center;gap:8px;min-height:36px;font-family:Montserrat,sans-serif;font-weight:700;font-size:15px;color:var(--text);text-decoration:none;}
 .app-back svg{width:18px;height:18px;}
 </style>
+<!-- HeyCatch analytics (see heycatch.ai/agents.md): a separate page, each visit a full page load, so events
+     go out right away (requestBatching: false). -->
+<script type="module">
+import { analytics } from 'https://esm.sh/@heycatch/sdk@0.8.5';
+analytics.init({
+  projectKey: 'hck_pk_lLJ2SwhN4rLJ0wp-8UntgVCFFkwVs-DN',
+  install: { framework: 'web', agent: 'claude-code' },
+  requestBatching: false,
+});
+</script>
 </head>
 <body>
 <!-- Back to the app: added to the home screen, Altiro runs full screen with no browser buttons, so this page needs its own way back. -->

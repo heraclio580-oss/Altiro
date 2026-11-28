@@ -38,6 +38,17 @@ jobs:
         run: |
           npm install --prefix /tmp/esb --no-save esbuild@0.24.0
           NODE_PATH=/tmp/esb/node_modules node scripts/minify-inline.js www/index.html
+      # HeyCatch short links (heycatch.ai/agents.md, step 4): getaltiro.app/a ... /z and /0 ... /9 go to the
+      # app with the link's campaign in the address. GitHub Pages can't redirect on the server, so each gets a
+      # tiny page that forwards at once (made here, not kept in git; a real one-character page would stop it).
+      - name: Short links
+        run: |
+          for c in a b c d e f g h i j k l m n o p q r s t u v w x y z 0 1 2 3 4 5 6 7 8 9; do
+            if [ -e "www/$c" ]; then echo "::error::www/$c exists -- one-character paths are HeyCatch's short links"; exit 1; fi
+            mkdir -p "www/$c"
+            url="/?utm_source=heycatch&utm_campaign=$c"
+            printf '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url=%s"><link rel="canonical" href="%s"><script>location.replace("%s")</script><a href="%s">Altiro</a>\n' "$url" "$url" "$url" "$url" > "www/$c/index.html"
+          done
       - uses: actions/upload-pages-artifact@v3
         with:
           path: www

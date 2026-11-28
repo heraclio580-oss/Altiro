@@ -36,6 +36,16 @@ a{color:var(--text);text-underline-offset:3px;}
 .app-back a{display:inline-flex;align-items:center;gap:8px;min-height:36px;font-family:Montserrat,sans-serif;font-weight:700;font-size:15px;color:var(--text);text-decoration:none;}
 .app-back svg{width:18px;height:18px;}
 </style>
+<!-- HeyCatch analytics (see heycatch.ai/agents.md): a separate page, each visit a full page load, so events
+     go out right away (requestBatching: false). -->
+<script type="module">
+import { analytics } from 'https://esm.sh/@heycatch/sdk@0.8.5';
+analytics.init({
+  projectKey: 'hck_pk_lLJ2SwhN4rLJ0wp-8UntgVCFFkwVs-DN',
+  install: { framework: 'web', agent: 'claude-code' },
+  requestBatching: false,
+});
+</script>
 </head>
 <body>
 <!-- Back to the app: added to the home screen, Altiro runs full screen with no browser buttons, so this page needs its own way back. -->
@@ -53,7 +63,7 @@ a{color:var(--text);text-underline-offset:3px;}
 <main>
   <div class="brand">Altiro</div>
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated October 27, 2026</p>
+  <p class="updated">Last updated November 28, 2026</p>
 
   <p>Altiro builds you a running and strength training plan and keeps track of the workouts you do. This page
   explains what information Altiro keeps, why, who else handles it, and how to remove it.</p>
@@ -76,6 +86,11 @@ a{color:var(--text);text-underline-offset:3px;}
     <li><b>Error reports:</b> if something breaks in the app, it sends us a short report so we can fix it: the
       error, where in the app it happened, the app version and your device and browser type, with your account
       if you're signed in. Nothing about your training is in it.</li>
+    <li><b>How the app and website are used:</b> the screens and pages you open and the buttons you tap,
+      your device and browser type, your approximate location (country and city, worked out from your IP address)
+      and, once you're signed in, your Altiro account ID with your email and name, and whether you have Pro. It
+      shows us how Altiro is used, so we can see what works and fix what doesn't. It never includes your
+      workouts, routes or health data.</li>
     <li><b>Feedback you send us:</b> your message, along with your email and a snapshot of your plan setup and
       device type, so we can act on it and reply.</li>
     <li><b>Workout reminders, if you turn them on:</b> your reminder time and time zone, the names of your
@@ -172,6 +187,7 @@ a{color:var(--text);text-underline-offset:3px;}
     <li>To keep your plan and history in sync across your devices.</li>
     <li>To read and answer feedback you send.</li>
     <li>To find and fix things that break in the app.</li>
+    <li>To understand how Altiro is used and make it better.</li>
   </ul>
   <p>We don't use your information for advertising, and there are no third-party ads or ad trackers in Altiro.</p>
 
@@ -187,6 +203,9 @@ a{color:var(--text);text-underline-offset:3px;}
     <li><b>Strava</b>, only if you connect it, as described above.</li>
     <li><b>Apple Health</b> or <b>Health Connect</b>, only if you connect it, as described above. They run on your
       phone; Altiro reads from them there and doesn't send them anything.</li>
+    <li><b>HeyCatch</b> provides Altiro's usage analytics: it receives the usage information described above
+      (screens, taps, device type, approximate location, and your account ID, email and name once you're signed
+      in) and shows it to the Altiro team. It isn't used for advertising.</li>
     <li><b>Resend</b> delivers the email that lets the Altiro team know you sent feedback.</li>
     <li><b>OpenFreeMap</b> provides the street maps shown under your runs' routes. Like any map service it
       receives requests for the map area being shown (and your IP address); it doesn't receive your route or

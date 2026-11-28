@@ -10,6 +10,18 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Altiro">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
+<!-- HeyCatch analytics (see heycatch.ai/agents.md): no build step here, so the SDK comes from esm.sh, pinned
+     to its latest stable version. Autocapture covers page views and clicks; the app adds who's signed in and
+     a completed sign-up (heycatchCall in the app script). -->
+<script type="module">
+import { analytics } from 'https://esm.sh/@heycatch/sdk@0.8.5';
+analytics.init({
+  projectKey: 'hck_pk_lLJ2SwhN4rLJ0wp-8UntgVCFFkwVs-DN',
+  install: { framework: 'web', agent: 'claude-code' },
+});
+window.heycatch = analytics;
+window.dispatchEvent(new Event('heycatch-ready'));
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -11797,9 +11809,15 @@ function computePro(user, sub, rc){
   };
 }
 // (Re)decides Pro; going between free and Pro, the days still to come follow the plan again, or don't.
+let heycatchPlan = null;
 function refreshPro(){
   const before = isPro();
   state.pro = computePro(proUser, proSub, proRc);
+  // (Their plan, for HeyCatch: only when it changes.)
+  if(state.pro){
+    const plan = isPro() ? 'pro' : 'free', source = state.pro.source;
+    if(heycatchPlan!==plan+'/'+source){ heycatchPlan = plan+'/'+source; heycatchCall(a=> a.setPersonProperties({plan, pro_source: source})); }
+  }
   if(isPro()!==before){
     state.week = regenerateUpcomingWeek();
     state.doneCount = computeDoneCount();
@@ -14570,6 +14588,7 @@ document.getElementById('signOutBtn').addEventListener('click', async ()=>{
   commitPendingDelete(); // a delete still waiting on its Undo is final now
   await forgetThisDeviceForReminders(); // the next person to sign in here shouldn't get this account's reminders
   await sb.auth.signOut();
+  heycatchCall(a=> a.resetIdentity()); // (the next person here starts anonymous)
   resetToWelcome();
   showToast(STR[state.lang].signOutToast);
 });
@@ -14623,6 +14642,7 @@ document.getElementById('confirmDeleteAccount').addEventListener('click', async 
   // Gone on the server: forget it on this device too, then back to the start.
   try{ await forgetThisDeviceForReminders(); }catch(e){}
   try{ await sb.auth.signOut(); }catch(e){}
+  heycatchCall(a=> a.resetIdentity());
   ['altiro_pending_signup','altiro_workout_start','altiro_strava_callback','altiro_tour_done'].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
   closeDeleteAccount();
   resetToWelcome();
@@ -19003,7 +19023,36 @@ function greetingName(){
   if(!name || name.includes('@') || (local && name.toLowerCase()===local.toLowerCase())) return '';
   return name.split(/\s+/)[0];
 }
+// HeyCatch (the analytics SDK, loaded by the module script in <head>): a call made before it has loaded
+// waits for it (a few at most); if it never loads -- offline, blocked -- nothing happens.
+function heycatchCall(fn){
+  const a = window.heycatch;
+  if(a){ try{ fn(a); }catch(e){} return; }
+  const q = window.__heycatchQueue = window.__heycatchQueue || [];
+  if(q.length < 20) q.push(fn);
+}
+window.addEventListener('heycatch-ready', ()=>{
+  const q = window.__heycatchQueue || [];
+  window.__heycatchQueue = [];
+  q.forEach(fn=>{ try{ fn(window.heycatch); }catch(e){} });
+});
+// Who's signed in: the account's id (never an email), with their email and name as properties; the day the
+// account was made, once. A new account (made in the last 2 days, first seen on this device): its sign-up.
+function heycatchIdentify(user){
+  const md = user.user_metadata || {};
+  const name = String(md.full_name || md.name || [md.given_name, md.family_name].filter(Boolean).join(' ') || '').trim();
+  heycatchCall(a=> a.setIdentity(user.id, {email: user.email || undefined, ...(name ? {name} : {})}, user.created_at ? {signup_date: user.created_at} : undefined));
+  const made = Date.parse(user.created_at || ''), key = 'altiro_hc_signup_' + user.id;
+  let seen = false;
+  try{ seen = localStorage.getItem(key)==='1'; }catch(e){}
+  if(made && Date.now() - made < 2*86400000 && !seen){
+    try{ localStorage.setItem(key, '1'); }catch(e){}
+    const method = (user.app_metadata && user.app_metadata.provider) || 'email';
+    heycatchCall(a=> a.trackEvent('signup_completed', {method}));
+  }
+}
 function setSignedInUser(user){
+  if(state.userId!==user.id) heycatchIdentify(user);
   if(state.userId!==user.id){ resetBadgeChecks(); state.badges = null; state.joinedOn = null; }
   state.signedIn = true;
   proUser = user; proSub = null; proRc = null; state.pro = null; // (decided once the account's data is in)

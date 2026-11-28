@@ -288,6 +288,24 @@ create policy "report errors" on app_errors
 create index if not exists app_errors_created_at on app_errors (created_at desc);
 
 -- ---------------------------------------------------------------------------
+-- ios_waitlist: emails from the welcome screen's "iPhone version coming" list, to tell them when the
+-- iPhone app is out. Anyone can add one (no account needed); nobody can read the list from the app --
+-- the team reads it in the Supabase dashboard. One row per email.
+create table if not exists ios_waitlist (
+  id bigint generated always as identity primary key,
+  email text not null unique,
+  lang text,
+  source text,                       -- 'iphone' (an iPhone's browser) | 'web'
+  created_at timestamptz default now()
+);
+alter table ios_waitlist enable row level security;
+drop policy if exists "join ios waitlist" on ios_waitlist;
+create policy "join ios waitlist" on ios_waitlist
+  for insert to anon, authenticated
+  with check (length(email) between 3 and 254 and position('@' in email) > 1
+    and coalesce(length(lang), 0) <= 5 and coalesce(length(source), 0) <= 10);
+
+-- ---------------------------------------------------------------------------
 -- subscriptions: synced from RevenueCat webhooks. This is the source of truth
 -- for whether a user's account currently has paid access ("entitlement").
 -- Client code should only ever READ this table -- writes come exclusively

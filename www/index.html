@@ -1,7 +1,33 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Altiro</title>
+<title>Altiro - Hybrid Running + Strength Training Planner</title>
+<meta name="description" content="Altiro builds one weekly plan for your runs and lifts, with hard days spaced apart. GPS runs, set logging and Strava sync. First week free, no card.">
+<link rel="canonical" href="https://getaltiro.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Altiro">
+<meta property="og:url" content="https://getaltiro.app/">
+<meta property="og:title" content="Altiro - Hybrid Running + Strength Training Planner">
+<meta property="og:description" content="Altiro builds one weekly plan for your runs and lifts, with hard days spaced apart. GPS runs, set logging and Strava sync. First week free, no card.">
+<meta property="og:image" content="https://getaltiro.app/img/og-image.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="500">
+<meta property="og:image:alt" content="Altiro: your runs and lifts in one weekly plan">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Altiro - Hybrid Running + Strength Training Planner">
+<meta name="twitter:description" content="Altiro builds one weekly plan for your runs and lifts, with hard days spaced apart. GPS runs, set logging and Strava sync. First week free, no card.">
+<meta name="twitter:image" content="https://getaltiro.app/img/og-image.png">
+<!-- For search engines and AI assistants: what Altiro is, what it costs, and the FAQ on the welcome screen. -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"Organization","@id":"https://getaltiro.app/#org","name":"Altiro","url":"https://getaltiro.app/","logo":"https://getaltiro.app/icons/icon-512.png","email":"support@getaltiro.app"},
+ {"@type":"SoftwareApplication","name":"Altiro","applicationCategory":"HealthApplication","operatingSystem":"Android, Web","url":"https://getaltiro.app/","publisher":{"@id":"https://getaltiro.app/#org"},
+  "description":"A hybrid running and strength training planner: one weekly plan for your runs and lifts, with hard days spaced apart, GPS run tracking, set-by-set strength logging, progress and personal records, and Strava sync.",
+  "downloadUrl":"https://play.google.com/store/apps/details?id=com.altiro.app",
+  "offers":[{"@type":"Offer","name":"Altiro Pro, monthly","price":"7.99","priceCurrency":"USD"},{"@type":"Offer","name":"Altiro Pro, yearly","price":"49.99","priceCurrency":"USD"}]},
+ {"@type":"FAQPage","mainEntity":[{"@type": "Question", "name": "What happens after the free week?", "acceptedAnswer": {"@type": "Answer", "text": "Your plan and its progression are part of Altiro Pro: $7.99 a month or $49.99 a year. If you don't subscribe, logging, GPS runs and your own workouts stay free. No card is asked for during the free week, so nothing is charged unless you subscribe. Accounts made before December 1, 2026 keep Pro free for life."}},{"@type": "Question", "name": "Which phones does it work on?", "acceptedAnswer": {"@type": "Answer", "text": "Android, with the app on Google Play, and any phone or computer at getaltiro.app. An iPhone app is on the way; until then, iPhone users can use the website, and Pro is free there. Your account and plan are the same everywhere you sign in."}},{"@type": "Question", "name": "What data does Altiro store?", "acceptedAnswer": {"@type": "Answer", "text": "Your email, your plan settings (goal, level, training days), the workouts you log, the GPS routes of runs you track, and your Strava activities if you connect Strava. It's used to run your plan and improve the app. It's never sold or used for ads. The privacy policy has the details."}},{"@type": "Question", "name": "How do I cancel?", "acceptedAnswer": {"@type": "Answer", "text": "In the Google Play Store app: tap your profile picture, then Payments & subscriptions, Subscriptions, Altiro, Cancel. Pro stays on until the end of the period you paid for. Deleting the app or your account doesn't cancel the subscription, so cancel in the store first."}},{"@type": "Question", "name": "What happens to my history if I stop paying?", "acceptedAnswer": {"@type": "Answer", "text": "Nothing is deleted. Your logged workouts, runs and records stay in your account. A free account shows the last 4 weeks of Progress, and everything shows again if you subscribe again."}},{"@type": "Question", "name": "Can I delete my account?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, anytime: in Settings, Delete account, or on the delete-account page. Your account and everything in it are deleted."}}]}
+]}
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0B0C">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -22,8 +48,11 @@ analytics.init({
 window.heycatch = analytics;
 window.dispatchEvent(new Event('heycatch-ready'));
 </script>
+<!-- Fonts load without holding up the first paint (the fallbacks in --font-* show until they arrive). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap"></noscript>
 <style>
 :root{
   --bg-outer:#000000;
@@ -1667,6 +1696,57 @@ a.install-nudge-add{text-decoration:none;}
 .trial-box{margin-top:18px;background:var(--accent-tint);border:1px solid var(--accent);border-left:4px solid var(--accent);border-radius:var(--r-lg);padding:13px 14px;}
 .trial-box .t{font-family:var(--font-display);font-weight:600;font-size:calc(13.5px * var(--fs, 1));letter-spacing:0.02em;color:var(--text);}
 .trial-box .s{font-size:calc(11.5px * var(--fs, 1));color:var(--text-2);margin-top:3px;}
+.trial-box .trial-price{margin-top:6px;color:var(--text);}
+/* The welcome screen as a homepage: eyebrow, hybrid h1, a sample week, the start buttons, then the
+   sections below (who it's for, proof, the iPhone list, the FAQ, links). */
+.welcome-eyebrow{font-size:calc(12.5px * var(--fs, 1));color:var(--text-2);text-align:center;margin:14px 0 0;text-wrap:balance;}
+#screen-welcome .tagline{margin-top:10px;}
+.hero-week{margin:16px 0 0;}
+.hero-week .tm-phone{width:auto;height:auto;box-shadow:none;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:10px 10px 6px;}
+.hero-week .tm-label{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:calc(10px * var(--fs, 1));letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;}
+.hero-week .tm-pill{background:var(--screen-bg);}
+.hero-week .tm-title{font-size:calc(12px * var(--fs, 1));}
+.hero-week .tm-dow,.hero-week .tm-detail{font-size:calc(9.5px * var(--fs, 1));}
+.hero-week .tm-dow{width:30px;}
+.hero-week figcaption{font-size:calc(11.5px * var(--fs, 1));color:var(--text-3);text-align:center;margin-top:6px;}
+.hero-cta{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+#screen-welcome .welcome-footer{position:sticky;bottom:0;z-index:2;}
+#screen-welcome.hero-cta-watch:not(.hero-cta-gone) .welcome-footer{display:none;}
+.welcome-sec{margin-top:22px;}
+.welcome-h2{font-family:var(--font-display);font-weight:600;font-size:calc(15px * var(--fs, 1));color:var(--text);margin:0 0 8px;}
+.welcome-sec p{font-size:calc(13px * var(--fs, 1));color:var(--text-2);line-height:1.5;margin:0 0 6px;}
+.welcome-fit-no{color:var(--text-3) !important;}
+.proof-count{display:flex;align-items:center;gap:10px;margin-top:18px;font-size:calc(12.5px * var(--fs, 1));color:var(--text-2);}
+.proof-count[hidden],.iphone-list[hidden],.welcome-sec[hidden],.iphone-list-sub[hidden]{display:none;}
+.proof-avatars{display:flex;}
+.proof-avatars img{width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid var(--screen-bg);margin-left:-8px;}
+.proof-avatars img:first-child{margin-left:0;}
+.quote-row{display:grid;gap:8px;}
+.quote-card{margin:0;background:var(--well);border:1px solid var(--divider);border-radius:var(--r-lg);padding:11px 12px;}
+.quote-card blockquote{margin:0;font-size:calc(13px * var(--fs, 1));color:var(--text);line-height:1.45;}
+.quote-card figcaption{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:calc(11.5px * var(--fs, 1));color:var(--text-3);}
+.quote-card figcaption img{width:28px;height:28px;border-radius:50%;object-fit:cover;}
+.iphone-list{margin-top:18px;text-align:center;}
+.iphone-list-t{font-size:calc(13px * var(--fs, 1));color:var(--text-2);text-wrap:balance;}
+.iphone-list-sub{font-size:calc(11.5px * var(--fs, 1));color:var(--text-3);margin-top:4px;}
+.iphone-list-row{display:flex;gap:8px;margin-top:8px;}
+.iphone-list-row .text-input{flex:1;min-width:0;margin:0;}
+.iphone-list-row .btn{width:auto;padding:0 18px;flex-shrink:0;}
+.iphone-list-msg{font-size:calc(11.5px * var(--fs, 1));color:var(--text-2);margin-top:6px;min-height:1em;}
+.iphone-list.done .iphone-list-row{display:none;}
+.founder-row{display:flex;align-items:center;gap:12px;}
+.founder-photo{width:64px;height:64px;border-radius:50%;object-fit:cover;}
+.founder-photo[hidden]{display:none;}
+.founder-name{font-weight:600;color:var(--text);font-size:calc(14px * var(--fs, 1));}
+.founder-role{font-size:calc(12px * var(--fs, 1));color:var(--text-3);}
+.founder-story{margin-top:10px !important;}
+.founder-links{display:flex;gap:12px;font-size:calc(12.5px * var(--fs, 1));}
+.founder-links a,.welcome-links a{color:var(--accent-hover);}
+.faq-item{border-top:1px solid var(--divider);}
+.faq-item:last-child{border-bottom:1px solid var(--divider);}
+.faq-item summary{cursor:pointer;padding:11px 0;font-size:calc(13.5px * var(--fs, 1));font-weight:600;color:var(--text);list-style-position:inside;}
+.faq-item p{padding-bottom:10px;}
+.welcome-links{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;margin:22px 0 6px;font-size:calc(12.5px * var(--fs, 1));}
 
 /* ---------- progress tab ---------- */
 .barchart{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:12px;padding:0 2px;border-bottom:1px solid var(--divider);}
@@ -1768,13 +1848,10 @@ a.install-nudge-add{text-decoration:none;}
 
 <script>if(/[?&]proto\b/.test(location.search)) document.documentElement.classList.add('proto-on');</script>
 <script>try{ if(Object.keys(localStorage).some(k=> /^sb-.+-auth-token$/.test(k))) document.documentElement.classList.add('boot-signed-in'); }catch(e){}</script>
-<div class="proto-nav">
-  <div class="proto-title">
-    <span>Prototype Navigator — Altiro</span>
-    <button id="resetBtn" type="button">Reset</button>
-  </div>
-  <div class="proto-pills" id="protoPills"></div>
-</div>
+<!-- The Prototype Navigator (a screen picker for the team): only with ?proto in the address, and in the
+     tests' simulated browser (jsdom), which drive the app with it. Public visitors never get it. -->
+<script>if(/[?&]proto\b/.test(location.search) || /\bjsdom\b/.test(navigator.userAgent)) document.currentScript.insertAdjacentHTML('afterend',
+  '<div class="proto-nav"><div class="proto-title"><span>Prototype Navigator — Altiro</span><button id="resetBtn" type="button">Reset</button></div><div class="proto-pills" id="protoPills"></div></div>');</script>
 
 <div class="device-wrap">
 <div class="device" id="device">
@@ -1786,31 +1863,101 @@ a.install-nudge-add{text-decoration:none;}
         <div class="lang-toggle"><button class="lang-btn" data-lang="en">EN</button><button class="lang-btn" data-lang="es">ES</button></div>
       </div>
       <div class="brand-logo-wrap"><img class="brand-logo" id="brandLogoFull" alt="Altiro" width="460" height="366" src="data:image/webp;base64,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"></div>
-      <div class="tagline" data-i18n="taglineText"></div>
-      <h1 class="hl" data-i18n="welcomeHeadline" style="text-align:center;margin-top:10px;"></h1>
+      <!-- The page's first screen is also the website's homepage: it says what Altiro is and who it's for,
+           shows a sample week, then the proof, the prices and the common questions. English is in the
+           markup so search engines and link previews read it; applyLang fills in the chosen language. -->
+      <p class="welcome-eyebrow" data-i18n="welcomeEyebrow">Finding time to work out is hard. Figuring out where to start shouldn't be.</p>
+      <h1 class="hl" data-i18n="welcomeHeadline" style="text-align:center;margin-top:8px;">Altiro: the hybrid running + strength planner. One clear week, built around you.</h1>
+      <div class="tagline" data-i18n="taglineText">Your pace, your plan.</div>
+      <!-- A sample week, so the first screen shows what you get (the same sessions the plan uses). -->
+      <figure class="hero-week" aria-labelledby="heroWeekCaption">
+        <div class="tm-phone">
+          <div class="tm-label"><span data-i18n="tourMockThisWeek">This week</span><span><span data-i18n="planWeekBuild">Build week</span> · 14 mi</span></div>
+          <div class="tm-row"><span class="tm-dow" data-hero-dow="0"></span><span class="tm-pill"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockLegs">Leg Day</span><span class="tm-detail">45 min</span></span></span></div>
+          <div class="tm-row"><span class="tm-dow" data-hero-dow="1"></span><span class="tm-pill"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockEasyRun">Easy Run</span><span class="tm-detail">3 mi</span></span></span></div>
+          <div class="tm-row"><span class="tm-dow" data-hero-dow="2"></span><span class="tm-pill"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockPush">Push Day</span><span class="tm-detail">40 min</span></span></span></div>
+          <div class="tm-row"><span class="tm-dow" data-hero-dow="3"></span><span class="tm-pill"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockTempoRun">Tempo Run</span><span class="tm-detail">4 mi</span></span></span></div>
+          <div class="tm-row"><span class="tm-dow" data-hero-dow="4"></span><span class="tm-pill rest"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockRest">Rest Day</span></span></span></div>
+          <div class="tm-row"><span class="tm-dow" data-hero-dow="5"></span><span class="tm-pill"><span class="tm-pill-main"><span class="tm-title" data-i18n="tourMockLongRun">Long Run</span><span class="tm-detail">7 mi</span></span></span></div>
+        </div>
+        <figcaption id="heroWeekCaption" data-i18n="heroWeekCaption">A sample week: runs and lifts together, with the hard days kept apart.</figcaption>
+      </figure>
+      <div class="hero-cta" id="heroCta">
+        <button class="btn btn-primary" data-i18n="startBtn" data-go="onb-goal">Start Free Week</button>
+        <button class="btn btn-ghost" id="welcomeSignInBtn" type="button" data-i18n="welcomeSignInBtn">I have an account · Sign in</button>
+        <div class="footer-note" data-i18n="heroCtaNote">First week free, no card. A few quick questions, about a minute.</div>
+      </div>
       <div class="welcome-bullets">
-        <div class="bullet"><span class="ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l1.9 4.6 5 .4-3.8 3.2 1.2 4.8L10 12.6 5.7 15l1.2-4.8L3.1 7l5-.4z"/></svg></span><p data-i18n="bullet1"></p></div>
-        <div class="bullet"><span class="ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l1.9 4.6 5 .4-3.8 3.2 1.2 4.8L10 12.6 5.7 15l1.2-4.8L3.1 7l5-.4z"/></svg></span><p data-i18n="bullet2"></p></div>
-        <div class="bullet"><span class="ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l1.9 4.6 5 .4-3.8 3.2 1.2 4.8L10 12.6 5.7 15l1.2-4.8L3.1 7l5-.4z"/></svg></span><p data-i18n="bullet3"></p></div>
+        <div class="bullet"><span class="ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l1.9 4.6 5 .4-3.8 3.2 1.2 4.8L10 12.6 5.7 15l1.2-4.8L3.1 7l5-.4z"/></svg></span><p data-i18n="bullet1">One plan for your runs and your lifts, instead of two plans that ignore each other. Hard days are spaced apart, and heavy leg days are kept away from your hard runs.</p></div>
+        <div class="bullet"><span class="ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l1.9 4.6 5 .4-3.8 3.2 1.2 4.8L10 12.6 5.7 15l1.2-4.8L3.1 7l5-.4z"/></svg></span><p data-i18n="bullet2">One clear view of the whole week, with build and deload weeks marked. Connect Strava and your runs fill in your week.</p></div>
+        <div class="bullet"><span class="ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l1.9 4.6 5 .4-3.8 3.2 1.2 4.8L10 12.6 5.7 15l1.2-4.8L3.1 7l5-.4z"/></svg></span><p data-i18n="bullet3">Track runs with GPS, log every set and weight, and watch your progress and personal records add up.</p></div>
+        <div class="bullet"><span class="ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l1.9 4.6 5 .4-3.8 3.2 1.2 4.8L10 12.6 5.7 15l1.2-4.8L3.1 7l5-.4z"/></svg></span><p data-i18n="bullet4">Plans change? Log a workout whenever it happens, move the rest of your week around it, or change your focus and intensity anytime.</p></div>
       </div>
       <button class="how-it-works-btn" id="openTutorialBtn" type="button">
         <span class="how-it-works-ic"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 4.5v11l9-5.5z"/></svg></span>
-        <span data-i18n="seeHowItWorks"></span>
+        <span data-i18n="seeHowItWorks">See how it works</span>
       </button>
+      <section class="welcome-sec welcome-fit" aria-labelledby="fitTitle">
+        <h2 class="welcome-h2" id="fitTitle" data-i18n="fitTitle">Who it's for</h2>
+        <p data-i18n="fitYes">People who want to run and lift in the same week, from a first 5K to a regular gym routine. New runners start with walk-jog days.</p>
+        <p class="welcome-fit-no" data-i18n="fitNo">Not for: athletes who need a coach writing a plan for one specific race.</p>
+      </section>
+      <!-- Proof: a count with faces (WELCOME_PROOF), tester quotes (TESTER_QUOTES) and the founder (FOUNDER), each
+           hidden until it's filled in with real, permission-cleared content (see renderWelcomeProof). -->
+      <div class="proof-count" id="proofCount" hidden><div class="proof-avatars" id="proofAvatars"></div><span id="proofCountText"></span></div>
       <div class="trial-box">
-        <div class="t" data-i18n="trialTitle"></div>
-        <div class="s" data-i18n="trialSub"></div>
+        <div class="t" data-i18n="trialTitle">TRY YOUR FIRST WEEK FREE</div>
+        <div class="s" data-i18n="trialSub">No payment info required.</div>
+        <div class="s trial-price" id="trialPrice">Then Altiro Pro from $4.17/mo, billed $49.99 a year, or $7.99 month to month. First week free, no card.</div>
       </div>
+      <section class="welcome-sec" id="testerQuotes" aria-labelledby="testerQuotesTitle" hidden>
+        <h2 class="welcome-h2" id="testerQuotesTitle" data-i18n="testerQuotesTitle">From our beta testers</h2>
+        <div class="quote-row" id="testerQuoteRow"></div>
+      </section>
       <!-- The Android app, on Google Play (in a browser; not on an iPhone, which has no app yet). -->
       <div class="play-get" id="welcomePlay" hidden>
-        <div class="play-get-t" data-i18n="playGetTitle"></div>
+        <div class="play-get-t" data-i18n="playGetTitle">Get the Android app</div>
         <a class="play-badge" data-play-link href="https://play.google.com/store/apps/details?id=com.altiro.app" target="_blank" rel="noopener"><img data-play-badge alt="Get it on Google Play" width="180" height="70"></a>
       </div>
+      <!-- No iPhone app yet: a list to hear when it's out (on the website, not in the store app). -->
+      <form class="iphone-list" id="iphoneList" hidden novalidate>
+        <div class="iphone-list-t" data-i18n="iphoneListTitle">iPhone version coming. Join the list and we'll email you when it's out.</div>
+        <div class="iphone-list-sub" id="iphoneListSub" data-i18n="iphoneListSub" hidden>Until then, Altiro works right here in your iPhone's browser, and Pro is free there.</div>
+        <div class="iphone-list-row">
+          <input type="email" class="text-input" id="iphoneListEmail" placeholder="you@email.com" autocomplete="email" aria-labelledby="iphoneListTitleLabel">
+          <button class="btn btn-ghost" id="iphoneListBtn" type="submit" data-i18n="iphoneListBtn">Join</button>
+        </div>
+        <span id="iphoneListTitleLabel" class="sr-only" data-i18n="iphoneListEmailLabel">Email for the iPhone list</span>
+        <div class="iphone-list-msg" id="iphoneListMsg" role="status"></div>
+      </form>
+      <section class="welcome-sec founder" id="founderBlock" aria-labelledby="founderTitle" hidden>
+        <h2 class="welcome-h2" id="founderTitle" data-i18n="founderTitle">Why I built Altiro</h2>
+        <div class="founder-row"><img class="founder-photo" id="founderPhoto" alt="" width="64" height="64"><div><div class="founder-name" id="founderName"></div><div class="founder-role" id="founderRole"></div></div></div>
+        <p class="founder-story" id="founderStory"></p>
+        <div class="founder-links" id="founderLinks"></div>
+      </section>
+      <section class="welcome-sec welcome-faq" aria-labelledby="faqTitle">
+        <h2 class="welcome-h2" id="faqTitle" data-i18n="faqTitle">Questions</h2>
+        <details class="faq-item"><summary data-i18n="faqQ1">What happens after the free week?</summary><p data-i18n="faqA1">Your plan and its progression are part of Altiro Pro: $7.99 a month or $49.99 a year. If you don&#x27;t subscribe, logging, GPS runs and your own workouts stay free. No card is asked for during the free week, so nothing is charged unless you subscribe. Accounts made before December 1, 2026 keep Pro free for life.</p></details>
+        <details class="faq-item"><summary data-i18n="faqQ2">Which phones does it work on?</summary><p data-i18n="faqA2">Android, with the app on Google Play, and any phone or computer at getaltiro.app. An iPhone app is on the way; until then, iPhone users can use the website, and Pro is free there. Your account and plan are the same everywhere you sign in.</p></details>
+        <details class="faq-item"><summary data-i18n="faqQ3">What data does Altiro store?</summary><p data-i18n="faqA3">Your email, your plan settings (goal, level, training days), the workouts you log, the GPS routes of runs you track, and your Strava activities if you connect Strava. It&#x27;s used to run your plan and improve the app. It&#x27;s never sold or used for ads. The privacy policy has the details.</p></details>
+        <details class="faq-item"><summary data-i18n="faqQ4">How do I cancel?</summary><p data-i18n="faqA4">In the Google Play Store app: tap your profile picture, then Payments &amp; subscriptions, Subscriptions, Altiro, Cancel. Pro stays on until the end of the period you paid for. Deleting the app or your account doesn&#x27;t cancel the subscription, so cancel in the store first.</p></details>
+        <details class="faq-item"><summary data-i18n="faqQ5">What happens to my history if I stop paying?</summary><p data-i18n="faqA5">Nothing is deleted. Your logged workouts, runs and records stay in your account. A free account shows the last 4 weeks of Progress, and everything shows again if you subscribe again.</p></details>
+        <details class="faq-item"><summary data-i18n="faqQ6">Can I delete my account?</summary><p data-i18n="faqA6">Yes, anytime: in Settings, Delete account, or on the delete-account page. Your account and everything in it are deleted.</p></details>
+      </section>
+      <nav class="welcome-links" aria-label="More about Altiro">
+        <a href="hybrid-training.html" data-app-page data-i18n="linkHybrid">Hybrid training guide</a>
+        <a href="changelog.html" data-app-page data-i18n="linkChangelog">What's new</a>
+        <a class="support-link" href="support.html" data-app-page data-i18n="linkSupport">Help &amp; support</a>
+        <a href="privacy.html" data-app-page data-i18n="privacyPolicyLink">Privacy policy</a>
+        <a class="terms-link" href="terms.html" data-app-page data-i18n="termsLink">Terms of use</a>
+      </nav>
     </div>
-    <div class="footer-cta">
-      <button class="btn btn-primary" data-i18n="startBtn" data-go="onb-goal"></button>
-      <button class="btn btn-ghost" id="welcomeSignInBtn" type="button" data-i18n="welcomeSignInBtn"></button>
-      <div class="footer-note" data-i18n="footNote"></div>
+    <!-- The start buttons stay at the bottom once the ones up top have scrolled away (see watchHeroCta). -->
+    <div class="footer-cta welcome-footer">
+      <button class="btn btn-primary" data-i18n="startBtn" data-go="onb-goal">Start Free Week</button>
+      <button class="btn btn-ghost" id="welcomeSignInBtn2" type="button" data-i18n="welcomeSignInBtn">I have an account · Sign in</button>
+      <div class="footer-note" data-i18n="footNote">A few quick questions. Takes about a minute.</div>
     </div>
   </section>
   <!-- Starting up signed in: the logo alone until Today is ready (a spinner too, if that takes a while) -->
@@ -2034,7 +2181,7 @@ a.install-nudge-add{text-decoration:none;}
       <div id="authError" class="footer-note" style="margin-top:10px;color:var(--accent);"></div>
       <button class="btn-text" id="resendConfirmBtn" type="button" style="margin-top:6px;width:100%;text-align:center;" data-i18n="resendConfirmBtn" hidden></button>
 
-      <div class="footer-note" style="margin-top:14px;" data-i18n="mockAuthNote"></div>
+      <div class="footer-note" style="margin-top:14px;" data-i18n="accountSavedNote"></div>
       <div class="footer-note" style="margin-top:6px;" data-i18n="agreeTermsNote"></div>
       <div class="legal-links"><a class="settings-link terms-link" href="terms.html" data-app-page data-i18n="termsLink"></a><span>·</span><a class="settings-link" href="privacy.html" data-app-page data-i18n="privacyPolicyLink"></a></div>
     </div>
@@ -2599,14 +2746,14 @@ a.install-nudge-add{text-decoration:none;}
       </ul>
       <div class="paywall-plans" role="radiogroup">
         <button type="button" class="paywall-plan" data-plan="yearly" role="radio">
-          <span class="pp-top"><span class="pp-name" data-i18n="paywallYearly"></span><span class="pp-save" id="paywallSave"></span></span>
-          <span class="pp-price" id="paywallYearlyPrice"></span>
-          <span class="pp-sub" id="paywallYearlySub"></span>
+          <span class="pp-top"><span class="pp-name" data-i18n="paywallYearly"></span><span class="pp-save" id="paywallSave">Save 48%</span></span>
+          <span class="pp-price" id="paywallYearlyPrice">$49.99</span>
+          <span class="pp-sub" id="paywallYearlySub">$4.17 a month, billed yearly</span>
         </button>
         <button type="button" class="paywall-plan" data-plan="monthly" role="radio">
           <span class="pp-top"><span class="pp-name" data-i18n="paywallMonthly"></span></span>
-          <span class="pp-price" id="paywallMonthlyPrice"></span>
-          <span class="pp-sub" data-i18n="paywallMonthlySub"></span>
+          <span class="pp-price" id="paywallMonthlyPrice">$7.99</span>
+          <span class="pp-sub" data-i18n="paywallMonthlySub">Billed monthly</span>
         </button>
       </div>
       <button class="btn btn-primary" id="paywallBuyBtn" type="button"></button>
@@ -3732,16 +3879,52 @@ function fmtCardioRate(t, min, mi){ return usesSpeed(t) ? fmtSpeed(min, mi) : (m
 /* ---------------- translations ---------------- */
 const STR = {
   en: {
-    welcomeHeadline: "Finding time to work out is hard. Figuring out where to start shouldn't be.",
-    bullet1: "Your plan adjusts to your focus and intensity — anytime, not just on day one.",
-    bullet2: "One clear view of the whole week. No guessing what's next.",
-    bullet3: "Log any workout whenever it happens, or reschedule the rest of your week when plans change.",
+    welcomeHeadline: "Altiro: the hybrid running + strength planner. One clear week, built around you.",
+    bullet1: "One plan for your runs and your lifts, instead of two plans that ignore each other. Hard days are spaced apart, and heavy leg days are kept away from your hard runs.",
+    bullet2: "One clear view of the whole week, with build and deload weeks marked. Connect Strava and your runs fill in your week.",
+    bullet3: "Track runs with GPS, log every set and weight, and watch your progress and personal records add up.",
     trialTitle: "TRY YOUR FIRST WEEK FREE",
     trialSub: "No payment info required.",
     startBtn: "Start Free Week",
     footNote: "A few quick questions. Takes about a minute.",
     taglineText: "Your pace, your plan.",
     seeHowItWorks: "See how it works",
+    welcomeEyebrow: "Finding time to work out is hard. Figuring out where to start shouldn't be.",
+    bullet4: "Plans change? Log a workout whenever it happens, move the rest of your week around it, or change your focus and intensity anytime.",
+    heroWeekCaption: "A sample week: runs and lifts together, with the hard days kept apart.",
+    heroCtaNote: "First week free, no card. A few quick questions, about a minute.",
+    fitTitle: "Who it's for",
+    fitYes: "People who want to run and lift in the same week, from a first 5K to a regular gym routine. New runners start with walk-jog days.",
+    fitNo: "Not for: athletes who need a coach writing a plan for one specific race.",
+    trialPriceLine: "Then Altiro Pro from {m}/mo, billed {y} a year, or {mo} month to month. First week free, no card.",
+    trialPricePrelaunch: "Altiro Pro is {mo} a month or {y} a year from December 1. Make your account before then and Pro is free for life.",
+    trialPriceIphone: "On iPhone, Pro is free in the browser until the iPhone app is out. On Android, Pro is {mo} a month or {y} a year after the free week.",
+    testerQuotesTitle: "From our beta testers",
+    iphoneListTitle: "iPhone version coming. Join the list and we'll email you when it's out.",
+    iphoneListSub: "Until then, Altiro works right here in your iPhone's browser, and Pro is free there.",
+    iphoneListBtn: "Join",
+    iphoneListEmailLabel: "Email for the iPhone list",
+    iphoneListBad: "Enter a valid email address.",
+    iphoneListSaving: "Adding you…",
+    iphoneListDone: "You're on the list. We'll email you when the iPhone app is out.",
+    iphoneListFailed: "Couldn't add you just now. Try again, or email support@getaltiro.app.",
+    founderTitle: "Why I built Altiro",
+    faqTitle: "Questions",
+    linkHybrid: "Hybrid training guide",
+    linkChangelog: "What's new",
+    linkSupport: "Help & support",
+    faqQ1: "What happens after the free week?",
+    faqA1: "Your plan and its progression are part of Altiro Pro: $7.99 a month or $49.99 a year. If you don't subscribe, logging, GPS runs and your own workouts stay free. No card is asked for during the free week, so nothing is charged unless you subscribe. Accounts made before December 1, 2026 keep Pro free for life.",
+    faqQ2: "Which phones does it work on?",
+    faqA2: "Android, with the app on Google Play, and any phone or computer at getaltiro.app. An iPhone app is on the way; until then, iPhone users can use the website, and Pro is free there. Your account and plan are the same everywhere you sign in.",
+    faqQ3: "What data does Altiro store?",
+    faqA3: "Your email, your plan settings (goal, level, training days), the workouts you log, the GPS routes of runs you track, and your Strava activities if you connect Strava. It's used to run your plan and improve the app. It's never sold or used for ads. The privacy policy has the details.",
+    faqQ4: "How do I cancel?",
+    faqA4: "In the Google Play Store app: tap your profile picture, then Payments & subscriptions, Subscriptions, Altiro, Cancel. Pro stays on until the end of the period you paid for. Deleting the app or your account doesn't cancel the subscription, so cancel in the store first.",
+    faqQ5: "What happens to my history if I stop paying?",
+    faqA5: "Nothing is deleted. Your logged workouts, runs and records stay in your account. A free account shows the last 4 weeks of Progress, and everything shows again if you subscribe again.",
+    faqQ6: "Can I delete my account?",
+    faqA6: "Yes, anytime: in Settings, Delete account, or on the delete-account page. Your account and everything in it are deleted.",
     tourReplayBtn: "Take the guided tour",
     ownWorkoutsTitle: "Create my own workouts",
     ownWorkoutsSub: "No generated plan: every day is open for the workouts you add yourself.",
@@ -3896,7 +4079,7 @@ const STR = {
     passwordLabel: "Password",
     createAccountBtn: "Create Account",
     creatingAccountMsg: "Creating account…",
-    mockAuthNote: "Your account is created with Supabase — a real password, a real sign-in.",
+    accountSavedNote: "Your plan is saved to your account automatically. Delete it anytime.",
     alreadyHaveAccount: "Already have an account? Sign in",
     needAccount: "Need an account? Create one",
     signInBtn: "Sign In",
@@ -4533,16 +4716,52 @@ const STR = {
     workoutPlannedToast: "Workout planned",
   },
   es: {
-    welcomeHeadline: "Encontrar tiempo para entrenar es difícil. Saber por dónde empezar no debería serlo.",
-    bullet1: "Tu plan se ajusta a tu enfoque e intensidad — en cualquier momento, no solo el primer día.",
-    bullet2: "Una vista clara de toda la semana. Sin adivinar qué sigue.",
-    bullet3: "Registra cualquier entrenamiento cuando ocurra, o reprograma el resto de tu semana si tus planes cambian.",
+    welcomeHeadline: "Altiro: el planificador híbrido de carrera + fuerza. Una semana clara, hecha a tu medida.",
+    bullet1: "Un solo plan para tus carreras y tus pesas, en vez de dos planes que se ignoran. Los días duros van separados, y los días pesados de piernas se mantienen lejos de tus carreras duras.",
+    bullet2: "Una vista clara de toda la semana, con las semanas de carga y de descarga marcadas. Conecta Strava y tus carreras se anotan solas en tu semana.",
+    bullet3: "Registra tus carreras con GPS, anota cada serie y peso, y mira cómo suman tu progreso y tus récords personales.",
     trialTitle: "PRUEBA TU PRIMERA SEMANA GRATIS",
     trialSub: "No se requiere información de pago.",
     startBtn: "Comenzar semana gratis",
     footNote: "Unas preguntas rápidas. Toma alrededor de un minuto.",
     taglineText: "Tu ritmo, tu plan.",
     seeHowItWorks: "Ver cómo funciona",
+    welcomeEyebrow: "Encontrar tiempo para entrenar es difícil. Saber por dónde empezar no debería serlo.",
+    bullet4: "¿Cambian tus planes? Registra un entrenamiento cuando ocurra, mueve el resto de tu semana o cambia tu enfoque e intensidad cuando quieras.",
+    heroWeekCaption: "Una semana de ejemplo: carreras y pesas juntas, con los días duros separados.",
+    heroCtaNote: "Primera semana gratis, sin tarjeta. Unas preguntas rápidas, alrededor de un minuto.",
+    fitTitle: "Para quién es",
+    fitYes: "Para quien quiere correr y hacer pesas en la misma semana, desde su primer 5K hasta una rutina regular de gimnasio. Si empiezas a correr, empiezas con días de caminar y trotar.",
+    fitNo: "No es para: atletas que necesitan un entrenador que les escriba un plan para una carrera específica.",
+    trialPriceLine: "Después, Altiro Pro desde {m} al mes, con cobro anual de {y}, o {mo} mes a mes. Primera semana gratis, sin tarjeta.",
+    trialPricePrelaunch: "Altiro Pro cuesta {mo} al mes o {y} al año desde el 1 de diciembre. Crea tu cuenta antes y Pro es gratis de por vida.",
+    trialPriceIphone: "En iPhone, Pro es gratis en el navegador hasta que salga la app para iPhone. En Android, Pro cuesta {mo} al mes o {y} al año después de la semana gratis.",
+    testerQuotesTitle: "De nuestros testers",
+    iphoneListTitle: "La versión para iPhone viene pronto. Únete a la lista y te avisamos por correo cuando salga.",
+    iphoneListSub: "Mientras tanto, Altiro funciona aquí mismo en el navegador de tu iPhone, y ahí Pro es gratis.",
+    iphoneListBtn: "Unirme",
+    iphoneListEmailLabel: "Correo para la lista de iPhone",
+    iphoneListBad: "Escribe un correo válido.",
+    iphoneListSaving: "Agregándote…",
+    iphoneListDone: "Ya estás en la lista. Te escribiremos cuando salga la app para iPhone.",
+    iphoneListFailed: "No pudimos agregarte ahora. Inténtalo de nuevo o escribe a support@getaltiro.app.",
+    founderTitle: "Por qué creé Altiro",
+    faqTitle: "Preguntas frecuentes",
+    linkHybrid: "Guía de entrenamiento híbrido",
+    linkChangelog: "Novedades",
+    linkSupport: "Ayuda y soporte",
+    faqQ1: "¿Qué pasa después de la semana gratis?",
+    faqA1: "Tu plan y su progresión son parte de Altiro Pro: $7.99 al mes o $49.99 al año. Si no te suscribes, el registro, las carreras con GPS y tus propios entrenamientos siguen gratis. No se pide tarjeta durante la semana gratis, así que no se cobra nada a menos que te suscribas. Las cuentas creadas antes del 1 de diciembre de 2026 conservan Pro gratis de por vida.",
+    faqQ2: "¿En qué teléfonos funciona?",
+    faqA2: "Android, con la app en Google Play, y cualquier teléfono o computadora en getaltiro.app. La app para iPhone viene en camino; mientras tanto, en iPhone puedes usar el sitio web, y ahí Pro es gratis. Tu cuenta y tu plan son los mismos dondequiera que inicies sesión.",
+    faqQ3: "¿Qué datos guarda Altiro?",
+    faqA3: "Tu correo, la configuración de tu plan (objetivo, nivel, días de entrenamiento), los entrenamientos que registras, las rutas GPS de las carreras que registras y tus actividades de Strava si conectas Strava. Se usan para tu plan y para mejorar la app. Nunca se venden ni se usan para anuncios. La política de privacidad tiene los detalles.",
+    faqQ4: "¿Cómo cancelo?",
+    faqA4: "En la app Google Play Store: toca tu foto de perfil y luego Pagos y suscripciones, Suscripciones, Altiro, Cancelar. Pro sigue activo hasta el final del periodo que pagaste. Borrar la app o tu cuenta no cancela la suscripción, así que cancélala primero en la tienda.",
+    faqQ5: "¿Qué pasa con mi historial si dejo de pagar?",
+    faqA5: "No se borra nada. Tus entrenamientos, carreras y récords se quedan en tu cuenta. Una cuenta gratis muestra las últimas 4 semanas de Progreso, y todo vuelve a verse si te suscribes de nuevo.",
+    faqQ6: "¿Puedo eliminar mi cuenta?",
+    faqA6: "Sí, cuando quieras: en Ajustes, Eliminar cuenta, o en la página para eliminar la cuenta. Se eliminan tu cuenta y todo lo que contiene.",
     tourReplayBtn: "Hacer el recorrido guiado",
     ownWorkoutsTitle: "Crear mis propios entrenamientos",
     ownWorkoutsSub: "Sin plan generado: cada día queda libre para los entrenamientos que añadas tú.",
@@ -4697,7 +4916,7 @@ const STR = {
     passwordLabel: "Contraseña",
     createAccountBtn: "Crear cuenta",
     creatingAccountMsg: "Creando cuenta…",
-    mockAuthNote: "Tu cuenta se crea con Supabase: una contraseña real, un inicio de sesión real.",
+    accountSavedNote: "Tu plan se guarda en tu cuenta automáticamente. Puedes eliminarla cuando quieras.",
     alreadyHaveAccount: "¿Ya tienes una cuenta? Inicia sesión",
     needAccount: "¿Necesitas una cuenta? Crea una",
     signInBtn: "Iniciar sesión",
@@ -7144,8 +7363,8 @@ const defaultState = () => ({
   theme:'dark',
   signedIn:false,
   userId:null,
-  userName:'Jordan Rivera',
-  userEmail:'jordan.rivera@gmail.com',
+  userName:'Sample Athlete', // (a made-up demo profile until they sign in -- clearly not a real person)
+  userEmail:'sample@example.com',
 });
 let badgesReady = false, badgeQueue = [], badgePumpTimer = null; // trophies (see checkBadges)
 let state = defaultState();
@@ -8516,6 +8735,7 @@ function applyLang(){
   });
   // (Google Play's badge is in the app's language too -- once the install code has loaded.)
   try{ renderInstallUI(); }catch(e){}
+  try{ renderWelcome(); }catch(e){}
   document.querySelectorAll('.lang-btn[data-lang]').forEach(b=>{
     b.classList.toggle('active', b.getAttribute('data-lang')===state.lang);
   });
@@ -8603,8 +8823,8 @@ function closeAllOverlays(){
   if(!document.getElementById('weatherOverlay').hidden) closeWeatherSheet();
   if(!document.getElementById('moveDemoOverlay').hidden) closeMoveDemo();
 }
-const pillsWrap = document.getElementById('protoPills');
-NAV_MAP.forEach(([id,label])=>{
+const pillsWrap = document.getElementById('protoPills'); // (only there with ?proto -- see the navigator's markup)
+if(pillsWrap) NAV_MAP.forEach(([id,label])=>{
   const b = document.createElement('button');
   b.className='proto-pill'; b.textContent=label; b.dataset.navId=id;
   b.addEventListener('click', ()=>{
@@ -8618,7 +8838,7 @@ NAV_MAP.forEach(([id,label])=>{
 });
 function highlightNav(activeId){
   const effective = document.getElementById('adjustOverlay').hidden ? activeId : 'adjust';
-  pillsWrap.querySelectorAll('.proto-pill').forEach(p=>{
+  if(pillsWrap) pillsWrap.querySelectorAll('.proto-pill').forEach(p=>{
     p.classList.toggle('current', p.dataset.navId===effective);
   });
 }
@@ -8655,7 +8875,7 @@ function resetToWelcome(){
   applyLang();
   showScreen('welcome');
 }
-document.getElementById('resetBtn').addEventListener('click', resetToWelcome);
+document.getElementById('resetBtn')?.addEventListener('click', resetToWelcome);
 
 /* ---------------- option lists (goal / level / intensity) ---------------- */
 function renderOptionList(containerId, items, selectedKey, onSelect){
@@ -21061,6 +21281,102 @@ const PLAY_NUDGE_KEY = 'altiro_play_nudge_dismissed';
 function playOffered(){ return !isNativeShell() && !isIOS(); }
 function androidWeb(){ return isAndroid() && !isNativeShell(); }
 function playNudgeDismissed(){ try{ return localStorage.getItem(PLAY_NUDGE_KEY)==='1'; }catch(e){ return false; } }
+/* ---------------- the welcome screen (also the website's homepage) ---------------- */
+// Proof on the welcome screen. Each block stays hidden until it's filled in with something real and
+// permission-cleared: never made-up numbers, quotes or people.
+//   WELCOME_PROOF: a count ("N training weeks planned") and up to 12 tester photos (image URLs).
+//   TESTER_QUOTES: {name, context, quote, photo} -- up to 3 show, as a row of cards.
+//   FOUNDER: {name, role, photo, story (3 sentences), links: [{label, url}]}.
+const WELCOME_PROOF = {count: null, label: {en: 'training weeks planned', es: 'semanas de entrenamiento planeadas'}, avatars: []};
+const TESTER_QUOTES = [];
+const FOUNDER = null;
+function renderWelcomeProof(){
+  const lang = state.lang;
+  const cnt = document.getElementById('proofCount');
+  cnt.hidden = !(WELCOME_PROOF.count > 0);
+  if(!cnt.hidden){
+    document.getElementById('proofCountText').textContent = `${Number(WELCOME_PROOF.count).toLocaleString(lang)} ${WELCOME_PROOF.label[lang]}`;
+    const av = document.getElementById('proofAvatars');
+    av.replaceChildren(...WELCOME_PROOF.avatars.slice(0, 12).map(src=>{ const i = document.createElement('img'); i.src = src; i.alt = ''; i.loading = 'lazy'; return i; }));
+  }
+  const quotes = TESTER_QUOTES.filter(q=> q && q.name && q.quote).slice(0, 3);
+  document.getElementById('testerQuotes').hidden = !quotes.length;
+  document.getElementById('testerQuoteRow').replaceChildren(...quotes.map(q=>{
+    const card = document.createElement('figure'); card.className = 'quote-card';
+    const t = document.createElement('blockquote'); t.textContent = `“${q.quote}”`;
+    const who = document.createElement('figcaption');
+    if(q.photo){ const i = document.createElement('img'); i.src = q.photo; i.alt = ''; i.loading = 'lazy'; who.append(i); }
+    const n = document.createElement('span'); n.textContent = q.context ? `${q.name} · ${q.context}` : q.name; who.append(n);
+    card.append(t, who); return card;
+  }));
+  const f = FOUNDER, fb = document.getElementById('founderBlock');
+  fb.hidden = !(f && f.name && f.story);
+  if(!fb.hidden){
+    const photo = document.getElementById('founderPhoto');
+    photo.hidden = !f.photo; if(f.photo){ photo.src = f.photo; photo.alt = f.name; }
+    document.getElementById('founderName').textContent = f.name;
+    document.getElementById('founderRole').textContent = f.role || '';
+    document.getElementById('founderStory').textContent = f.story;
+    document.getElementById('founderLinks').replaceChildren(...(f.links || []).map(l=>{ const a = document.createElement('a'); a.href = l.url; a.textContent = l.label; a.target = '_blank'; a.rel = 'noopener'; return a; }));
+  }
+}
+// The line under the free week: what Pro costs after it -- before Pro launches, that an account made now
+// keeps Pro for life; in an iPhone's browser, that Pro is free there.
+function renderTrialPrice(){
+  const L = STR[state.lang];
+  const y = PRO_PRICES.yearly, mo = PRO_PRICES.monthly;
+  const m = '$' + (Math.round(y.amount/12*100)/100).toFixed(2); // (written like the other two, in either language)
+  const prelaunch = PRO_LAUNCH_AT && Date.now() < Date.parse(PRO_LAUNCH_AT);
+  const key = prelaunch ? 'trialPricePrelaunch' : iphoneWeb() ? 'trialPriceIphone' : 'trialPriceLine';
+  document.getElementById('trialPrice').textContent = L[key].replace('{m}', m).replace('{y}', y.text).replace('{mo}', mo.text);
+}
+// The iPhone list: on the website (not in the store app). Saved to Supabase's ios_waitlist (anyone can
+// add an email; nobody can read the list from the app -- the team reads it in the Supabase dashboard).
+const IPHONE_LIST_KEY = 'altiro_iphone_list_joined';
+function renderIphoneList(){
+  const form = document.getElementById('iphoneList');
+  form.hidden = isNativeShell();
+  document.getElementById('iphoneListSub').hidden = !iphoneWeb();
+  let joined = false; try{ joined = !!localStorage.getItem(IPHONE_LIST_KEY); }catch(e){}
+  if(joined && !form.dataset.msg) form.dataset.msg = 'iphoneListDone';
+  const msg = document.getElementById('iphoneListMsg');
+  msg.textContent = form.dataset.msg ? STR[state.lang][form.dataset.msg] : '';
+  form.classList.toggle('done', form.dataset.msg==='iphoneListDone');
+}
+document.getElementById('iphoneList').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const form = e.currentTarget, input = document.getElementById('iphoneListEmail'), btn = document.getElementById('iphoneListBtn');
+  const email = input.value.trim().toLowerCase();
+  const say = k=>{ form.dataset.msg = k; renderIphoneList(); };
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254){ say('iphoneListBad'); input.focus(); return; }
+  btn.disabled = true; say('iphoneListSaving');
+  try{
+    const { error } = await sb.from('ios_waitlist').insert({email, lang: state.lang, source: iphoneWeb() ? 'iphone' : 'web'});
+    // (Already on the list counts as on the list.)
+    if(error && error.code!=='23505') throw error;
+    try{ localStorage.setItem(IPHONE_LIST_KEY, '1'); }catch(err){}
+    input.value = '';
+    heycatchCall(a=> a.trackEvent('ios_waitlist_joined', {source: iphoneWeb() ? 'iphone' : 'web'}));
+    say('iphoneListDone');
+  }catch(err){ say('iphoneListFailed'); }
+  btn.disabled = false;
+});
+// The start buttons: up top under the sample week, and at the bottom once those have scrolled away --
+// never both on screen at once.
+function watchHeroCta(){
+  const hero = document.getElementById('heroCta'), screen = document.getElementById('screen-welcome');
+  if(!hero || typeof IntersectionObserver!=='function') return;
+  screen.classList.add('hero-cta-watch');
+  new IntersectionObserver(([en])=> screen.classList.toggle('hero-cta-gone', !en.isIntersecting)).observe(hero);
+}
+watchHeroCta();
+document.getElementById('welcomeSignInBtn2').addEventListener('click', ()=> document.getElementById('welcomeSignInBtn').click());
+function renderWelcome(){
+  document.querySelectorAll('[data-hero-dow]').forEach(el=>{ el.textContent = DAY_NAMES_SHORT[state.lang][+el.dataset.heroDow]; });
+  renderTrialPrice();
+  renderWelcomeProof();
+  renderIphoneList();
+}
 function renderInstallUI(){
   const L = STR[state.lang], show = canInstall(), play = playOffered();
   // (Google's own badge, in the app's language.)

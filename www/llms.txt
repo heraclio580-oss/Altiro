@@ -1,0 +1,36 @@
+# Altiro
+
+> Altiro is a hybrid running + strength training planner. It builds one weekly plan for your runs and your lifts, with hard days spaced apart, and adjusts it when your week changes. It's for people who want to run and lift in the same week, from a first 5K to a regular gym routine.
+
+## What it does
+
+- Builds a weekly plan from a few questions: goal, experience level, training days, and how to split running and lifting.
+- Spaces hard days apart: the Long Run and fast runs (Tempo Run, Interval Run, Hill Repeats, Fartlek Run) aren't back to back, and a heavy Leg Day isn't right before a hard run.
+- Builds a little each week; every 4th week is a deload week.
+- Tracks runs, walks, hikes and rides with GPS; logs every strength set, weight and rep; shows progress and personal records.
+- Syncs with Strava, and with Health Connect on Android. Lets you move, log or reschedule workouts when plans change.
+- In English and Spanish.
+
+## Platforms
+
+- Android: Google Play, https://play.google.com/store/apps/details?id=com.altiro.app
+- Web: https://getaltiro.app (any phone or computer)
+- iPhone: app coming; until then the website works in an iPhone's browser, and Pro is free there.
+
+## Pricing
+
+- First week free; no card needed.
+- Altiro Pro: $7.99 a month or $49.99 a year (USD), bought in the Android app through Google Play.
+- Without Pro: logging, GPS runs and your own workouts stay free; the generated plan and its progression are part of Pro.
+- Accounts made before December 1, 2026 keep Pro free for life.
+
+## Key pages
+
+- [Home and sign-up](https://getaltiro.app/): what Altiro is, prices and common questions
+- [Hybrid training guide](https://getaltiro.app/hybrid-training.html): how running and lifting fit in one week
+- [What's new](https://getaltiro.app/changelog.html): dated list of updates
+- [Help & support](https://getaltiro.app/support.html)
+- [Privacy policy](https://getaltiro.app/privacy.html)
+- [Terms of use](https://getaltiro.app/terms.html)
+
+Contact: support@getaltiro.app

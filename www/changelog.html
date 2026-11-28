@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's New in Altiro | Changelog</title>
+<meta name="description" content="A dated list of what's changed in Altiro, the hybrid running and strength training planner: new features, fixes and launches, newest first.">
+<link rel="canonical" href="https://getaltiro.app/changelog.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Altiro">
+<meta property="og:url" content="https://getaltiro.app/changelog.html">
+<meta property="og:title" content="What's New in Altiro | Changelog">
+<meta property="og:description" content="A dated list of what's changed in Altiro, the hybrid running and strength training planner: new features, fixes and launches, newest first.">
+<meta property="og:image" content="https://getaltiro.app/img/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+<style>
+:root{
+  --bg:#0B0B0C; --card:#1C1C1E; --border:#3A3A3D;
+  --text:#F5F5F5; --text-2:#B4B4B8; --text-3:#8A8A8E;
+  --accent:#DA1419; --strava:#FC5200;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#F6F6F4; --card:#FFFFFF; --border:#E2E2DE; --text:#1A1A1A; --text-2:#4A4A4F; --text-3:#6E6E73; }
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text-2);font:15px/1.6 'IBM Plex Sans',system-ui,-apple-system,sans-serif;}
+main{max-width:680px;margin:0 auto;padding:28px 16px 64px;}
+.brand{font-family:Montserrat,sans-serif;font-weight:800;letter-spacing:0.14em;font-size:13px;color:var(--accent);text-transform:uppercase;}
+h1{font-family:Montserrat,sans-serif;font-weight:800;color:var(--text);font-size:30px;line-height:1.15;margin:8px 0 6px;}
+.updated{font-size:13px;color:var(--text-3);margin:0 0 28px;}
+h2{font-family:Montserrat,sans-serif;font-weight:700;color:var(--text);font-size:18px;margin:36px 0 8px;}
+h3{color:var(--text);font-size:15px;font-weight:600;margin:20px 0 4px;}
+p{margin:0 0 12px;}
+ul{margin:0 0 12px;padding-left:20px;}
+li{margin:4px 0;}
+b{color:var(--text);font-weight:600;}
+a{color:var(--text);text-underline-offset:3px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 18px 8px;margin:16px 0;}
+.card.strava{border-left:4px solid var(--strava);}
+.strava-mark{width:14px;height:14px;vertical-align:-2px;color:var(--strava);}
+.warn{border-left:4px solid var(--accent);}
+.lang{font-size:13px;margin:0 0 20px;}
+details{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin:10px 0;}
+summary{color:var(--text);font-weight:600;cursor:pointer;}
+details p,details ul{margin-top:8px;}
+.contact{font-size:17px;}
+.back{display:inline-block;margin-top:36px;font-size:14px;}
+.app-back{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--border);padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;}
+.app-back a{display:inline-flex;align-items:center;gap:8px;min-height:36px;font-family:Montserrat,sans-serif;font-weight:700;font-size:15px;color:var(--text);text-decoration:none;}
+.app-back svg{width:18px;height:18px;}
+.cta{display:inline-block;margin:8px 0 4px;padding:12px 20px;border-radius:999px;background:var(--accent);color:#fff;font-family:Montserrat,sans-serif;font-weight:700;font-size:14px;letter-spacing:0.04em;text-transform:uppercase;text-decoration:none;}
+.week{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:14px;}
+.week th,.week td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);}
+.week th{color:var(--text);font-weight:600;}
+.log h2{font-size:16px;margin-top:28px;}
+.more{font-size:14px;margin-top:36px;display:flex;flex-wrap:wrap;gap:6px 16px;}
+</style>
+<!-- HeyCatch analytics (see heycatch.ai/agents.md): a separate page, each visit a full page load, so events
+     go out right away (requestBatching: false). -->
+<script type="module">
+import { analytics } from 'https://esm.sh/@heycatch/sdk@0.8.5';
+analytics.init({
+  projectKey: 'hck_pk_lLJ2SwhN4rLJ0wp-8UntgVCFFkwVs-DN',
+  install: { framework: 'web', agent: 'claude-code' },
+  requestBatching: false,
+});
+</script>
+</head>
+<body>
+<!-- Back to the app: added to the home screen, Altiro runs full screen with no browser buttons, so this page needs its own way back. -->
+<nav class="app-back"><a href="./" id="appBack"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5L7 10l5.5 5.5"/></svg><span id="appBackLabel">Back to Altiro</span></a></nav>
+<script>
+(function(){
+  var lang = 'en';
+  try{ lang = localStorage.getItem('altiro_lang') || lang; }catch(e){}
+  if(location.hash==='#es') lang = 'es';
+  if(lang==='es') document.getElementById('appBackLabel').textContent = 'Volver a Altiro';
+  // (Replaced, not added: the app's history doesn't fill up with these pages.)
+  document.getElementById('appBack').addEventListener('click', function(e){ e.preventDefault(); location.replace('./'); });
+})();
+</script>
+<main>
+  <div class="brand">Altiro</div>
+  <h1>What's new in Altiro</h1>
+  <p class="updated">Updates to the app and website, newest first. Last updated November 28, 2026.</p>
+  <div class="log">
+  <h2>November 2026</h2>
+  <ul>
+    <li><b><time datetime="2026-11-28">Nov 28</time>:</b> Website: a clearer welcome page with prices, common questions and an iPhone list; this changelog and a hybrid training guide.</li>
+    <li><b><time datetime="2026-11-27">Nov 27</time>:</b> Altiro is on Google Play. The website links to the Android app.</li>
+    <li><b><time datetime="2026-11-25">Nov 25</time>:</b> Altiro Pro launches December 1, 2026. Accounts made before then keep Pro free for life; on iPhone, Pro is free in the browser until the iPhone app is out.</li>
+    <li><b><time datetime="2026-11-24">Nov 24</time>:</b> Strava routes and elevation: runs from your watch show their full route and height line.</li>
+    <li><b><time datetime="2026-11-17">Nov 17</time>:</b> Indoor workouts: an Indoor switch on the GPS tracker for the treadmill or spin bike. Interval workouts count their time in Progress.</li>
+    <li><b><time datetime="2026-11-16">Nov 16</time>:</b> Help, Terms and Privacy pages get a "Back to Altiro" bar.</li>
+    <li><b><time datetime="2026-11-15">Nov 15</time>:</b> Walks, hikes and bike rides, tracked with GPS or brought in from Strava and Health Connect.</li>
+    <li><b><time datetime="2026-11-14">Nov 14</time>:</b> Best efforts from Strava: your fastest mile and 5K from a watch run.</li>
+    <li><b><time datetime="2026-11-04">Nov 4</time>:</b> Share card: the route and elevation of a GPS run, with every split.</li>
+  </ul>
+  <h2>October 2026</h2>
+  <ul>
+    <li><b><time datetime="2026-10-29">Oct 29</time>:</b> Supersets and circuits; add, move and reorder exercises during a workout.</li>
+    <li><b><time datetime="2026-10-27">Oct 27</time>:</b> Altiro Pro with a 7-day free week. Sign in with Apple. Error reports so bugs get fixed faster.</li>
+    <li><b><time datetime="2026-10-25">Oct 25</time>:</b> Classes: basketball, handball, racquetball, padel and pickleball.</li>
+    <li><b><time datetime="2026-10-20">Oct 20</time>:</b> Photo demos for dozens of strength exercises.</li>
+    <li><b><time datetime="2026-10-13">Oct 13</time>:</b> Runs and steps from Apple Health and Health Connect.</li>
+    <li><b><time datetime="2026-10-05">Oct 5</time>:</b> Workout reminders in the phone app; recorded voice cues on the interval timer.</li>
+  </ul>
+  <h2>September 2026</h2>
+  <ul>
+    <li><b><time datetime="2026-09-30">Sep 30</time>:</b> Workout reminders by web push, and Add to Home Screen.</li>
+    <li><b><time datetime="2026-09-29">Sep 29</time>:</b> Deload weeks, a start date for your plan, and Connect with Strava.</li>
+    <li><b><time datetime="2026-09-21">Sep 21</time>:</b> Interval timer with a countdown and spoken Go and Stop cues.</li>
+  </ul>
+  </div>
+  <p class="more"><a href="./">Altiro home</a><a href="hybrid-training.html">Hybrid training guide</a><a href="changelog.html">What's new</a><a href="support.html">Help &amp; support</a><a href="privacy.html">Privacy policy</a><a href="terms.html">Terms of use</a></p>
+</main>
+</body>
+</html>

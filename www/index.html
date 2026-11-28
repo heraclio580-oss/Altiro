@@ -1848,10 +1848,14 @@ a.install-nudge-add{text-decoration:none;}
 
 <script>if(/[?&]proto\b/.test(location.search)) document.documentElement.classList.add('proto-on');</script>
 <script>try{ if(Object.keys(localStorage).some(k=> /^sb-.+-auth-token$/.test(k))) document.documentElement.classList.add('boot-signed-in'); }catch(e){}</script>
-<!-- The Prototype Navigator (a screen picker for the team): only with ?proto in the address, and in the
-     tests' simulated browser (jsdom), which drive the app with it. Public visitors never get it. -->
-<script>if(/[?&]proto\b/.test(location.search) || /\bjsdom\b/.test(navigator.userAgent)) document.currentScript.insertAdjacentHTML('afterend',
-  '<div class="proto-nav"><div class="proto-title"><span>Prototype Navigator — Altiro</span><button id="resetBtn" type="button">Reset</button></div><div class="proto-pills" id="protoPills"></div></div>');</script>
+<!-- The Prototype Navigator (a screen picker for the team, and how the tests move around the app): for
+     visitors it's hidden and has no text at all; with ?proto in the address it shows, with its labels. -->
+<script>(function(){
+  var on = document.documentElement.classList.contains('proto-on');
+  document.currentScript.insertAdjacentHTML('afterend', on
+    ? '<div class="proto-nav"><div class="proto-title"><span>Prototype Navigator — Altiro</span><button id="resetBtn" type="button">Reset</button></div><div class="proto-pills" id="protoPills"></div></div>'
+    : '<div class="proto-nav" hidden aria-hidden="true"><button id="resetBtn" type="button" hidden tabindex="-1"></button><div class="proto-pills" id="protoPills"></div></div>');
+})();</script>
 
 <div class="device-wrap">
 <div class="device" id="device">
@@ -8823,10 +8827,12 @@ function closeAllOverlays(){
   if(!document.getElementById('weatherOverlay').hidden) closeWeatherSheet();
   if(!document.getElementById('moveDemoOverlay').hidden) closeMoveDemo();
 }
-const pillsWrap = document.getElementById('protoPills'); // (only there with ?proto -- see the navigator's markup)
-if(pillsWrap) NAV_MAP.forEach(([id,label])=>{
+const pillsWrap = document.getElementById('protoPills');
+const protoOn = document.documentElement.classList.contains('proto-on'); // (labels only for the team -- see its markup)
+NAV_MAP.forEach(([id,label])=>{
   const b = document.createElement('button');
-  b.className='proto-pill'; b.textContent=label; b.dataset.navId=id;
+  b.className='proto-pill'; b.dataset.navId=id; b.tabIndex = -1;
+  if(protoOn){ b.textContent = label; b.tabIndex = 0; }
   b.addEventListener('click', ()=>{
     ensureWeek();
     closeAllOverlays();
@@ -8838,7 +8844,7 @@ if(pillsWrap) NAV_MAP.forEach(([id,label])=>{
 });
 function highlightNav(activeId){
   const effective = document.getElementById('adjustOverlay').hidden ? activeId : 'adjust';
-  if(pillsWrap) pillsWrap.querySelectorAll('.proto-pill').forEach(p=>{
+  pillsWrap.querySelectorAll('.proto-pill').forEach(p=>{
     p.classList.toggle('current', p.dataset.navId===effective);
   });
 }
@@ -8875,7 +8881,7 @@ function resetToWelcome(){
   applyLang();
   showScreen('welcome');
 }
-document.getElementById('resetBtn')?.addEventListener('click', resetToWelcome);
+document.getElementById('resetBtn').addEventListener('click', resetToWelcome);
 
 /* ---------------- option lists (goal / level / intensity) ---------------- */
 function renderOptionList(containerId, items, selectedKey, onSelect){

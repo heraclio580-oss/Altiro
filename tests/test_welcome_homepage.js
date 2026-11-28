@@ -6,7 +6,7 @@ const http = require('http');
 // who it's for (hybrid running + strength), shows a sample week, has the start buttons up top (the bottom
 // ones only once those scroll away), prices under the free week (before Pro launches: free for life; in an
 // iPhone's browser: Pro free there), common questions, links to the other pages, and a list for the iPhone
-// app. The Prototype Navigator isn't there for visitors (only with ?proto). Proof blocks (count, tester
+// app. The Prototype Navigator is hidden and wordless for visitors (shown, labeled, only with ?proto). Proof blocks (count, tester
 // quotes, founder) stay hidden until real content is filled in. The head has a real title, description,
 // share tags and structured data; robots.txt, sitemap.xml, llms.txt, the hybrid-training guide and the
 // changelog exist. Skipped without Playwright.
@@ -44,7 +44,7 @@ check('Structured data: organization, app with both prices, FAQ', ['Organization
 const faqLd = ld && ld['@graph'].find(n=> n['@type']==='FAQPage');
 check('...the FAQ schema has the same 6 questions as the page', faqLd && faqLd.mainEntity.length===6 && faqLd.mainEntity.every(q=> html.includes(`>${q.name.replace(/'/g, '&#x27;')}</summary>`) || html.includes(`>${q.name}</summary>`)));
 check('Fonts don\'t block the first paint', /fonts\.googleapis\.com\/css2[^>]*media="print" onload="this\.media='all'"/.test(head));
-check('The navigator isn\'t in the page for visitors (only built with ?proto)', !/<div class="proto-nav">/.test(html.replace(/<script>[\s\S]*?<\/script>/g, '')));
+check('The navigator isn\'t in the served page outside its script (made only by script)', !/<div class="proto-nav"/.test(html.replace(/<script>[\s\S]*?<\/script>/g, '')));
 check('No "Supabase" staging note on the account screen', !/created with Supabase/.test(html) && /saved to your account automatically/.test(html));
 check('No real-looking demo person', !/Jordan Rivera|jordan\.rivera/.test(html));
 check('The paywall\'s prices are in the page before any script runs', /id="paywallYearlyPrice">\$49\.99</.test(html) && /id="paywallMonthlyPrice">\$7\.99</.test(html));
@@ -104,7 +104,11 @@ for(const f of ['hybrid-training.html', 'changelog.html']){
   // ---- A visitor on a computer, after Pro launched ----
   {
     const {ctx, page, errors, joined} = await open('desktop', {launch: '2026-01-01T00:00:00Z'});
-    check('No Prototype Navigator for a visitor', await page.evaluate(()=> !document.querySelector('.proto-nav') && !document.getElementById('protoPills') && !document.body.innerText.includes('Prototype Navigator')));
+    check('No Prototype Navigator for a visitor: hidden, and not a word of it in the page', await page.evaluate(()=>{
+      const nav = document.querySelector('.proto-nav');
+      return (!nav || (nav.hidden && getComputedStyle(nav).display==='none' && nav.textContent.trim()===''))
+        && !document.body.innerText.includes('Prototype Navigator') && !document.body.innerText.includes('Reset');
+    }));
     check('One h1, naming the category', await page.evaluate(()=> document.querySelectorAll('h1').length===1 && /hybrid running \+ strength planner/.test(document.querySelector('h1').textContent)));
     check('The pain line is the eyebrow above it, the tagline beneath', await page.evaluate(()=>{
       const e = document.querySelector('.welcome-eyebrow'), h = document.querySelector('#screen-welcome h1'), t = document.querySelector('#screen-welcome .tagline');
@@ -175,7 +179,7 @@ for(const f of ['hybrid-training.html', 'changelog.html']){
   // ---- The team's navigator, with ?proto ----
   {
     const {ctx, page} = await open('desktop', {proto: true});
-    check('With ?proto the navigator is there, with its pills', await page.evaluate(()=> !!document.querySelector('.proto-nav') && document.querySelectorAll('.proto-pill').length > 10));
+    check('With ?proto the navigator shows, with its labeled pills', await page.evaluate(()=> getComputedStyle(document.querySelector('.proto-nav')).display!=='none' && document.querySelectorAll('.proto-pill').length > 10 && document.querySelector('.proto-pill').textContent.length > 0));
     await ctx.close();
   }
   await browser.close(); server.close();
